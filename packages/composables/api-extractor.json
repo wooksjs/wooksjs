@@ -1,0 +1,15 @@
+{
+  "extends": "../../api-extractor.json",
+  "mainEntryPointFilePath": "./dist/packages/composables/src/index.d.ts",
+  "dtsRollup": {
+    "publicTrimmedFilePath": "./dist/index.d.ts"
+  },
+  "compiler": {
+    "overrideTsconfig": {
+      "include": [
+        "packages/composables/dist/packages",
+        "packages/composables/dist/common"
+      ]
+    }
+  }
+}

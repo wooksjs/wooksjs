@@ -1,0 +1,37 @@
+{
+  "name": "@wooksjs/body",
+  "version": "0.0.0",
+  "description": "@wooksjs/body",
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wooksjs/wooksjs.git",
+    "directory": "packages/body"
+  },
+  "peerDependencies": {
+    "@wooksjs/composables": "^0.0.1-alpha.8"
+  },
+  "keywords": [
+    "http",
+    "wooks",
+    "composables",
+    "web",
+    "framework",
+    "app",
+    "api",
+    "rest",
+    "restful",
+    "prostojs"
+  ],
+  "author": "Artem Maltsev",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/wooksjs/wooksjs/issues"
+  },
+  "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/body#readme"
+}

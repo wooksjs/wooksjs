@@ -1,0 +1,40 @@
+{
+  "name": "@wooksjs/proxy",
+  "version": "0.1.0",
+  "description": "Proxy Wooks composable",
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wooksjs/wooksjs.git",
+    "directory": "packages/proxy"
+  },
+  "keywords": [
+    "http",
+    "wooks",
+    "composables",
+    "web",
+    "framework",
+    "app",
+    "api",
+    "rest",
+    "restful",
+    "prostojs"
+  ],
+  "author": "Artem Maltsev",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/wooksjs/wooksjs/issues"
+  },
+  "peerDependencies": {
+    "@wooksjs/composables": "^0.0.1-alpha.8"
+  },
+  "dependencies": {
+    "node-fetch-native": "^0.1.8"
+  },
+  "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/proxy#readme"
+}
