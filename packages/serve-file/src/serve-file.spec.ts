@@ -1,6 +1,6 @@
 import { IncomingMessage, ServerResponse } from 'http'
 import { Socket } from 'net'
-import { createWooksCtx } from '@wooksjs/composables'
+import { createHttpContext } from '@wooksjs/http-event'
 // import { serveFile } from './serve-file'
 
 describe('serve-file', () => {
@@ -8,7 +8,7 @@ describe('serve-file', () => {
     const res = new ServerResponse(req)
 
     beforeEach(() => {
-        createWooksCtx({ req, res })
+        createHttpContext({ req, res })
     })
     it('', () => {
         // const r = serveFile('package.json')

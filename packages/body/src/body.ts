@@ -1,8 +1,8 @@
-import { useHeaders, innerCacheSymbols, useRequest, EHttpStatusCode, WooksError, WooksURLSearchParams, useCacheStore } from '@wooksjs/composables'
+import { useHeaders, useRequest, EHttpStatusCode, WooksError, WooksURLSearchParams, useHttpContext } from '@wooksjs/http-event'
 import { panic } from 'common/panic'
 import { compressors, TBodyCompressor, uncompressBody } from './utils/body-compressor'
 
-type TBodyCache = { 
+type TBodyStore = { 
     parsed?: unknown
     isJson?: boolean
     isHtml?: boolean
@@ -16,7 +16,8 @@ type TBodyCache = {
 }
 
 export function useBody() {
-    const { get, set, has } = useCacheStore<TBodyCache>(innerCacheSymbols.request)
+    const { store } = useHttpContext<{ request: TBodyStore }>()
+    const { hook } = store('request')
     const { rawBody } = useRequest()
     const { 'content-type': contentType, 'content-encoding': contentEncoding } = useHeaders()
 
@@ -25,82 +26,92 @@ export function useBody() {
     }
 
     function isJson() {
-        if (!has('isJson')) {
-            return set('isJson', contentIs('application/json'))
+        const _isJson = hook('isJson')
+        if (!_isJson.isDefined) {
+            return _isJson.value = contentIs('application/json')
         }
-        return get('isJson')
+        return _isJson.value
     }
 
     function isHtml() {
-        if (!has('isHtml')) {
-            return set('isHtml', contentIs('text/html'))
+        const _isHtml = hook('isHtml')
+        if (!_isHtml.isDefined) {
+            return _isHtml.value = contentIs('text/html')
         }
-        return get('isHtml')
+        return _isHtml.value
     }
 
     function isXml() {
-        if (!has('isXml')) {
-            return set('isXml', contentIs('text/xml'))
+        const _isXml = hook('isXml')
+        if (!_isXml.isDefined) {
+            return _isXml.value = contentIs('text/xml')
         }
-        return get('isXml')
+        return _isXml.value
     }
 
     function isText() {
-        if (!has('isText')) {
-            return set('isText', contentIs('text/plain'))
+        const _isText = hook('isText')
+        if (!_isText.isDefined) {
+            return _isText.value = contentIs('text/plain')
         }
-        return get('isText')
+        return _isText.value
     }
 
     function isBinary() {
-        if (!has('isBinary')) {
-            return set('isBinary', contentIs('application/octet-stream'))
+        const _isBinary = hook('isBinary')
+        if (!_isBinary.isDefined) {
+            return _isBinary.value = contentIs('application/octet-stream')
         }
-        return get('isBinary')
+        return _isBinary.value
     }
 
     function isFormData() {
-        if (!has('isFormData')) {
-            return set('isFormData', contentIs('multipart/form-data'))
+        const _isFormData = hook('isFormData')
+        if (!_isFormData.isDefined) {
+            return _isFormData.value = contentIs('multipart/form-data')
         }
-        return get('isFormData')
+        return _isFormData.value
     }
 
     function isUrlencoded() {
-        if (!has('isUrlencoded')) {
-            return set('isUrlencoded', contentIs('application/x-www-form-urlencoded'))
+        const _isUrlencoded = hook('isUrlencoded')
+        if (!_isUrlencoded.isDefined) {
+            return _isUrlencoded.value = contentIs('application/x-www-form-urlencoded')
         }
-        return get('isUrlencoded')
+        return _isUrlencoded.value
     }
 
     function isCompressed() {
-        if (!has('isCompressed')) {
+        const _isCompressed = hook('isCompressed')
+        if (!_isCompressed.isDefined) {
             const parts = contentEncodings()
             for (const p of parts) {
-                set('isCompressed', ['deflate', 'gzip', 'br'].includes(p))
-                if (get('isCompressed')) break
+                _isCompressed.value = ['deflate', 'gzip', 'br'].includes(p)
+                if (_isCompressed.value) break
             }
         }
-        return get('isCompressed')
+        return _isCompressed.value
     }
 
     function contentEncodings(): string[] {
-        if (!has('contentEncodings')) {
-            set('contentEncodings', (contentEncoding || '').split(',').map(p => p.trim()).filter(p => !!p))
+        const _contentEncodings = hook('contentEncodings')
+        if (!_contentEncodings.isDefined) {
+            _contentEncodings.value = (contentEncoding || '').split(',').map(p => p.trim()).filter(p => !!p)
         }
-        return get('contentEncodings') as unknown as string[]
+        return _contentEncodings.value as unknown as string[]
     }
 
     async function parseBody<T = unknown>() {
-        if (!has('parsed')) {
+        const _parsed = hook('parsed')
+        if (!_parsed.isDefined) {
             const body = await uncompressBody(contentEncodings(), (await rawBody()).toString())
-            if (isJson()) { set('parsed', jsonParser(body)) }
-            else if (isFormData()) { set('parsed', formDataParser(body)) }
-            else if (isUrlencoded()) { set('parsed', urlEncodedParser(body)) }
-            else if (isBinary()) { set('parsed', textParser(body)) }
-            else { set('parsed', textParser(body)) }
+            if (isJson()) { _parsed.value = jsonParser(body) }
+            else if (isFormData()) { _parsed.value = formDataParser(body) }
+            else if (isUrlencoded()) { _parsed.value = urlEncodedParser(body) }
+            else if (isBinary()) { _parsed.value = textParser(body) }
+            else { _parsed.value = textParser(body) }
         }
-        return get('parsed') as T
+        return _parsed.value as T
     }
 
     function jsonParser(v: string): Record<string, unknown> | unknown[] {

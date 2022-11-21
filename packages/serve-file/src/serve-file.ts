@@ -1,5 +1,5 @@
-import { useHeaders, useRequest, useResponse, useSetHeaders, useWooksCtx,
-    useSetCacheControl, BaseWooksResponse, WooksError, TCacheControl } from '@wooksjs/composables'
+import { useHeaders, useRequest, useResponse, useSetHeaders,
+    useSetCacheControl, BaseWooksResponse, WooksError, TCacheControl, useHttpContext } from '@wooksjs/http-event'
 
 import { promises as fsPromises, createReadStream, Stats } from 'fs'
 const { stat, readdir } = fsPromises
@@ -23,7 +23,7 @@ interface TServeFileOptions {
 // }
 
 export async function serveFile(filePath: string, options: TServeFileOptions = {}): Promise<Readable | string | string[] | unknown> {
-    const { restoreCtx } = useWooksCtx()
+    const { restoreCtx } = useHttpContext()
     const { status } = useResponse()
     const { setHeader, removeHeader } = useSetHeaders()
     const headers = useHeaders()

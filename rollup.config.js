@@ -73,7 +73,7 @@ function createConfig(target, type, declaration = false) {
             "packages/*/__tests__",
             "common/*.ts"
           ],
-          exclude: ['**/__tests__', '*.spec.ts'],
+          exclude: ['**/__tests__', '*.spec.ts', 'explorations'],
         }
       }),
       replacePlugin,

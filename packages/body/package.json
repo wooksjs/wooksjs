@@ -14,7 +14,7 @@
     "directory": "packages/body"
   },
   "peerDependencies": {
-    "@wooksjs/composables": "^0.0.1-alpha.8"
+    "@wooksjs/http-event": "^0.0.1-alpha.8"
   },
   "keywords": [
     "http",

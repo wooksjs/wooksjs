@@ -1,6 +1,6 @@
 import { ProstoRouter, THttpMethod, TProstoLookupResult, TProstoParamsType } from '@prostojs/router'
 import { IncomingMessage, Server, ServerResponse } from 'http'
-import { createWooksCtx, useWooksCtx, WooksError, createWooksResponder } from '@wooksjs/composables'
+import { WooksError, createWooksResponder, useHttpContext, createHttpContext } from '@wooksjs/http-event'
 import { createServer } from './http'
 import { TWooksHandler, TWooksOptions } from './types'
 import { banner } from 'common/banner'
@@ -75,7 +75,7 @@ export class Wooks {
     protected processRequest(req: IncomingMessage, res: ServerResponse) {
         const found = this.router.lookup(req.method as THttpMethod, req.url as string)
         const params = found?.ctx?.params || {}
-        const { restoreCtx, clearCtx } = createWooksCtx({ req, res, params })
+        const { restoreCtx, clearCtx } = createHttpContext({ req, res, params })
         if (found) {
             this.processHandlers(req, res, found)
                 // .then(() => {
@@ -99,7 +99,7 @@ export class Wooks {
     }
 
     protected async processHandlers(req: IncomingMessage, res: ServerResponse, found: TProstoLookupResult<TWooksHandler>) {
-        const { restoreCtx, clearCtx } = useWooksCtx()
+        const { restoreCtx, clearCtx } = useHttpContext()
         for (const [i, handler] of found.route.handlers.entries()) {
             const isLastHandler = found.route.handlers.length === i + 1
             try {

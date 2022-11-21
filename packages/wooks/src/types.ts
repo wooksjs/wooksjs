@@ -1,4 +1,4 @@
-import { BaseWooksResponse } from '@wooksjs/composables'
+import { BaseWooksResponse } from '@wooksjs/http-event'
 
 export interface TWooksOptions {
 

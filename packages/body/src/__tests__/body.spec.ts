@@ -1,9 +1,9 @@
 import { useBody } from '../body'
-import { setTestWooksContext } from '../../../composables/src/testing'
+import { setTestHttpContext } from '../../../http-event/src/testing'
 
-describe('composables/body', () => {
+describe('body', () => {
     it('must parse body content-type application/json', () => {
-        setTestWooksContext({
+        setTestHttpContext({
             url: '',
             headers: {'content-type': 'application/json'},
         })
@@ -18,7 +18,7 @@ describe('composables/body', () => {
     })
 
     it('must parse body content-type text/xml', () => {
-        setTestWooksContext({
+        setTestHttpContext({
             url: '',
             headers: {'content-type': 'text/xml'},
         })
@@ -33,7 +33,7 @@ describe('composables/body', () => {
     })
 
     it('must parse body content-type text/html', () => {
-        setTestWooksContext({
+        setTestHttpContext({
             url: '',
             headers: {'content-type': 'text/html'},
         })
@@ -48,7 +48,7 @@ describe('composables/body', () => {
     })
 
     it('must parse body content-type text/plain', () => {
-        setTestWooksContext({
+        setTestHttpContext({
             url: '',
             headers: {'content-type': 'text/plain'},
         })
@@ -63,7 +63,7 @@ describe('composables/body', () => {
     })
 
     it('must parse body content-type application/octet-stream', () => {
-        setTestWooksContext({
+        setTestHttpContext({
             url: '',
             headers: {'content-type': 'application/octet-stream'},
         })
@@ -78,7 +78,7 @@ describe('composables/body', () => {
     })
 
     it('must parse body content-type multipart/form-data', () => {
-        setTestWooksContext({
+        setTestHttpContext({
             url: '',
             headers: {'content-type': 'multipart/form-data'},
         })
@@ -93,7 +93,7 @@ describe('composables/body', () => {
     })
 
     it('must parse body content-type application/x-www-form-urlencoded', () => {
-        setTestWooksContext({
+        setTestHttpContext({
             url: '',
             headers: {'content-type': 'application/x-www-form-urlencoded'},
         })
@@ -108,7 +108,7 @@ describe('composables/body', () => {
     })
 
     it('must parse content encodings', () => {
-        setTestWooksContext({
+        setTestHttpContext({
             url: '',
             headers: {'content-encoding': 'identity'},
         })
@@ -118,7 +118,7 @@ describe('composables/body', () => {
 
     it('must parse body json', async () => {
         const bodyValue = JSON.stringify({ test: 'object', a: 123 })
-        setTestWooksContext({
+        setTestHttpContext({
             url: '',
             headers: {'content-type': 'application/json'},
             cachedContext: { rawBody: bodyValue },
@@ -143,7 +143,7 @@ Content-Disposition: form-data; name="x2[]"
 44%25
 ----------------------------038816476509113988597354--
 `
-        setTestWooksContext({
+        setTestHttpContext({
             url: '',
             headers: {'content-type': 'multipart/form-data; boundary=--------------------------038816476509113988597354'},
             cachedContext: { rawBody: bodyValue },
@@ -167,7 +167,7 @@ Content-Disposition: form-data; name="x4"
 { "a": "b" }
 ----------------------------038816476509113988597354--
 `
-        setTestWooksContext({
+        setTestHttpContext({
             url: '',
             headers: {'content-type': 'multipart/form-data; boundary=--------------------------038816476509113988597354'},
             cachedContext: { rawBody: bodyValue },
@@ -181,7 +181,7 @@ Content-Disposition: form-data; name="x4"
 
     it('must parse body x-www-form-urlencoded', async () => {
         const bodyValue = 't1=11&t2=2'
-        setTestWooksContext({
+        setTestHttpContext({
             url: '',
             headers: {'content-type': 'application/x-www-form-urlencoded'},
             cachedContext: { rawBody: bodyValue },

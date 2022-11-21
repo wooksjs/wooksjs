@@ -1,7 +1,7 @@
 {
-  "name": "wooks",
-  "version": "0.0.0",
-  "description": "wooks",
+  "name": "@wooksjs/event-context",
+  "version": "0.1.0",
+  "description": "@wooksjs/event-context",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -11,7 +11,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/wooksjs/wooksjs.git",
-    "directory": "packages/wooks"
+    "directory": "packages/event-context"
   },
   "keywords": [
     "http",
@@ -30,9 +30,5 @@
   "bugs": {
     "url": "https://github.com/wooksjs/wooksjs/issues"
   },
-  "dependencies": {
-    "@prostojs/router": "^0.0.14",
-    "@wooksjs/http-event": "^0.0.1-alpha.8"
-  },
-  "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/wooks#readme"
+  "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/event-context#readme"
 }

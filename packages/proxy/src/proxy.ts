@@ -1,5 +1,5 @@
 import { fetch } from 'node-fetch-native'
-import { useSetHeaders, useStatus, useWooksCtx } from '@wooksjs/composables'
+import { useHttpContext, useSetHeaders, useStatus } from '@wooksjs/http-event'
 import { warn } from 'common/log'
 import { applyProxyControls, CookiesIterable, HeadersIterable } from './proxy-utils'
 import { TWooksProxyOptions } from './types'
@@ -21,7 +21,7 @@ const resHeadersToBlock = [
 export function useProxy() {
     const status = useStatus()
     const { setHeader, headers: getSetHeaders } = useSetHeaders()
-    const { req } = useWooksCtx().getCtx()
+    const { req } = useHttpContext().getCtx().event
 
     const setHeadersObject = getSetHeaders()
 
