@@ -46,7 +46,6 @@ export function useEventContext<S extends TGenericContextStore>(expectedTypes?: 
 }
 
 function _getCtxHelpers<S extends TGenericContextStore>(cc: S) {
-
     /**
      * Hook to an event store property
      * 
@@ -79,7 +78,7 @@ function _getCtxHelpers<S extends TGenericContextStore>(cc: S) {
         function hook<K2 extends keyof Required<S>[K]>(key2: K2) {
             const obj = {
                 value: null as Required<S>[K][K2],
-                isDefined: null as unknown as boolean
+                isDefined: null as unknown as boolean,
             }
             attachHook(obj, {
                 set: v => setNested(key2, v as S[K][K2]),
@@ -114,7 +113,7 @@ function _getCtxHelpers<S extends TGenericContextStore>(cc: S) {
      * 
      * @returns whole context object
      */
-    function getCtx() { return cc as S }
+    function getCtx() { return cc }
 
     /**
      * Get value of event store property
@@ -131,13 +130,13 @@ function _getCtxHelpers<S extends TGenericContextStore>(cc: S) {
      * @param v property value
      */
     function set<K extends keyof S>(key: K, v: S[K]) {
-        (getCtx() as S)[key] = v 
+        (getCtx())[key] = v 
     }
 
     return {
         getCtx,
         restoreCtx: () => currentContext = cc,
-        clearCtx: () => currentContext = null,
+        clearCtx: () => cc === currentContext ? currentContext = null : null,
         store,
         getStore: get,
         setStore: set,

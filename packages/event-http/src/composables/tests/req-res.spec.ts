@@ -38,8 +38,8 @@ describe('compasble/req-res', () => {
     })
 
     it('must return route-params', () => {
-        const { routeParams, getRouteParam } = useRouteParams()
-        expect(routeParams).toBe(params)
-        expect(getRouteParam('a')).toEqual('a1')
+        const { params, get } = useRouteParams()
+        expect(params).toBe(params)
+        expect(get('a')).toEqual('a1')
     })
 })

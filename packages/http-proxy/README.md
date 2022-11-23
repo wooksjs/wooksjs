@@ -10,18 +10,18 @@
 </p>
 
 
-Wooks Proxy is composable proxy for [Wooks Composables](https://github.com/wooksjs/composables)
+Wooks Proxy is composable proxy for [@wooksjs/event-http](https://github.com/wooksjs/wooksjs/tree/main/packages/event-http)
 
 🔥 An easy way to proxy request!
 
 ## Install
 
-`npm install @wooksjs/proxy`
+`npm install @wooksjs/http-proxy`
 
 ## Usage
 
 ```ts
-import { useProxy } from '@wooksjs/proxy'
+import { useProxy } from '@wooksjs/http-proxy'
 app.get('/to-proxy', () => {
     const proxy = useProxy()
     return proxy('https://target-website.com/target-path?query=123')
@@ -32,7 +32,7 @@ app.get('/to-proxy', () => {
 ### Restrict cookies/headers to pass
 
 ```ts
-import { useProxy } from '@wooksjs/proxy'
+import { useProxy } from '@wooksjs/http-proxy'
 app.get('/to-proxy', () => {
     const proxy = useProxy()
     return proxy('https://target-website.com/target-path?query=123', {
@@ -48,7 +48,7 @@ app.get('/to-proxy', () => {
 It's easy as `proxy` returns fetch response
 
 ```ts
-import { useProxy } from '@wooksjs/proxy'
+import { useProxy } from '@wooksjs/http-proxy'
 app.get('/to-proxy', async () => {
     const proxy = useProxy()
     const response = proxy('https://mayapi.com/json-api')
@@ -60,7 +60,7 @@ app.get('/to-proxy', async () => {
 
 ## Proxy advanced options
 ```ts
-import { useProxy } from '@wooksjs/proxy'
+import { useProxy } from '@wooksjs/http-proxy'
 import { useRequest } from '@wooksjs/composables'
 //...
 app.get('*', async () => {

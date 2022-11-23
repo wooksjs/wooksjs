@@ -12,5 +12,4 @@ export interface TCliContextStore extends TGenericContextStore<TCliEvent> {
     flags?: {
         [name: string]: boolean | string
     }
-    rootCmd?: string
 }

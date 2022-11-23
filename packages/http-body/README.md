@@ -10,7 +10,7 @@
 </p>
 
 
-Wooks Body is composable body parser for Wooks Composables.
+Wooks Body is composable body parser for [@wooksjs/event-http](https://github.com/wooksjs/wooksjs/tree/main/packages/event-http).
 
 Supported content types:
 
@@ -23,12 +23,12 @@ Body parser does not parse every request's body. The parsing happens only when y
 
 ## Install
 
-`npm install @wooksjs/body`
+`npm install @wooksjs/http-body`
 
 ## Usage
 
 ```ts
-import { useBody } from '@wooksjs/body'
+import { useBody } from '@wooksjs/http-body'
 app.post('test', async () => {
     const { parseBody } = useBody()
     const data = await parseBody()
@@ -37,7 +37,7 @@ app.post('test', async () => {
 
 ### Additional hooks
 ```ts
-import { useBody } from '@wooksjs/body'
+import { useBody } from '@wooksjs/http-body'
 app.post('test', async () => {
     const {
         isJson, // checks if content-type is "application/json" : () => boolean;

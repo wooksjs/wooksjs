@@ -103,8 +103,8 @@ describe('Wooks E2E', () => {
     })
     
     app.get('/params/:p1/:p2', () => {
-        const { getRouteParam } = useRouteParams()
-        return [getRouteParam('p1') as unknown as string, getRouteParam('p2') as unknown as string]
+        const { get } = useRouteParams()
+        return [get('p1') as unknown as string, get('p2') as unknown as string]
     })
     
     app.get('/query', () => {

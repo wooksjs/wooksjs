@@ -46,7 +46,7 @@ export class WooksHttp implements TWooksSubscribeAdapter {
             try {
                 this.server = createServer({ port },
                     (req, res) => {
-                        this.processRequest(req, res, lookup)
+                        void this.processRequest(req, res, lookup)
                     },
                     typeof hostname === 'string' ? hostname : '',
                     listenCb,
@@ -93,7 +93,7 @@ export class WooksHttp implements TWooksSubscribeAdapter {
                 clearCtx()
                 break
             } catch (e) {
-                traceError('Uncought route handler exception: ' + (store('event').get('req') || '') + '\n', e as Error)
+                traceError(`Uncought route handler exception: ${(store('event').get('req').url || '')}\n`, e as Error)
                 if (isLastHandler) {
                     restoreCtx()
                     this.respond(e)

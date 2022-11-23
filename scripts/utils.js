@@ -1,7 +1,7 @@
 import fs from 'fs'
 import path from 'path'
-import {fileURLToPath} from 'url';
-import { createRequire } from "module"
+import {fileURLToPath} from 'url'
+import { createRequire } from 'module'
 import { dye } from '@prostojs/dye'
 
 export const require = createRequire(import.meta.url)
@@ -15,11 +15,13 @@ const files = fs.readdirSync(packagesDir)
 export const mainPkg = require('../package.json')
 export const version = mainPkg.version
 export const packages = files.filter(shortName => fs.statSync(path.join(packagesDir, shortName)).isDirectory()).map(shortName => {
-    const pkgPath = path.join(packagesDir, shortName, `package.json`)
+    const pkgRoot = path.join(packagesDir, shortName)
+    const pkgPath = path.join(pkgRoot, `package.json`)
     return {
         name: shortName === `wooks` ? shortName : `@wooksjs/${shortName}`,
         shortName,
         pkgPath,
+        pkgRoot,
         pkg: fs.existsSync(pkgPath) ? require(pkgPath) : null,
     }
 })

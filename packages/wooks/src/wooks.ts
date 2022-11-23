@@ -7,11 +7,12 @@ import { useEventContext } from '@wooksjs/event-core'
 export class Wooks {
     protected router: ProstoRouter<TWooksHandler>
 
-
     protected adapters: TWooksSubscribeAdapter[] = []
 
     constructor() {
-        this.router = new ProstoRouter()
+        this.router = new ProstoRouter({
+            silent: true,
+        })
     }
 
     public getRouter() {
@@ -25,7 +26,7 @@ export class Wooks {
                 traceError('System error: ', new Error(`Could not assign shortcut "${ name }" because it was already assigned.`))
             } else {
                 Object.defineProperty(this, name, {
-                        value: (path: string, handler: TWooksHandler) => {
+                    value: (path: string, handler: TWooksHandler) => {
                         return this.on(method as THttpMethod, path, handler)
                     },
                 })
@@ -45,5 +46,4 @@ export class Wooks {
     public on<ResType = unknown, ParamsType = TProstoParamsType>(method: string, path: string, handler: TWooksHandler<ResType>) {
         return this.router.on<ParamsType, TWooksHandler>(method as THttpMethod, path, handler)
     }
-
 }

@@ -2,14 +2,14 @@ import { useEventContext } from '../context'
 
 export function useRouteParams<T extends object = Record<string, string | string[]>>() {
     const { store } = useEventContext()
-    const routeParams = (store('routeParams').value || {}) as T
+    const params = (store('routeParams').value || {}) as T
 
-    function getRouteParam<K extends keyof T>(name: K) {
-        return routeParams[name] as T[K]
+    function get<K extends keyof T>(name: K) {
+        return params[name]
     }
 
     return {
-        routeParams,
-        getRouteParam,
+        params,
+        get,
     }
 }
