@@ -1,6 +1,6 @@
 import { IncomingMessage, ServerResponse } from 'http'
 import { Socket } from 'net'
-import { createHttpContext } from '@wooksjs/http-event'
+import { createHttpContext } from '@wooksjs/event-http'
 // import { serveFile } from './serve-file'
 
 describe('serve-file', () => {

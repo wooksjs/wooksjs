@@ -1,4 +1,4 @@
-import { BaseWooksResponse } from '@wooksjs/http-event'
+import { BaseWooksResponse } from '@wooksjs/event-http'
 
 export interface TWooksOptions {
 

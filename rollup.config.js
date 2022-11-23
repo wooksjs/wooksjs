@@ -68,6 +68,7 @@ function createConfig(target, type, declaration = false) {
           target: 'es2015',
           declaration,
           declarationMap: declaration,
+          removeComments: !declaration,
           include: [
             "packages/*/src",
             "packages/*/__tests__",

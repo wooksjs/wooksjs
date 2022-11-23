@@ -1,5 +1,5 @@
 import { useHeaders, useRequest, useResponse, useSetHeaders,
-    useSetCacheControl, BaseWooksResponse, WooksError, TCacheControl, useHttpContext } from '@wooksjs/http-event'
+    useSetCacheControl, BaseWooksResponse, WooksError, TCacheControl, useHttpContext } from '@wooksjs/event-http'
 
 import { promises as fsPromises, createReadStream, Stats } from 'fs'
 const { stat, readdir } = fsPromises

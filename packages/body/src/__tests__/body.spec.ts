@@ -1,5 +1,5 @@
 import { useBody } from '../body'
-import { setTestHttpContext } from '../../../http-event/src/testing'
+import { setTestHttpContext } from '../../../event-http/src/testing'
 
 describe('body', () => {
     it('must parse body content-type application/json', () => {

@@ -1,6 +1,6 @@
 import { applyProxyControls, CookiesIterable, HeadersIterable } from './proxy-utils'
 
-describe('composables/proxy', () => {
+describe('event-http/proxy', () => {
     const headers = {
         'content-type': 'application/json',
         'content-length': '256',

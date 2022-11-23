@@ -1,5 +1,5 @@
 import { fetch } from 'node-fetch-native'
-import { useHttpContext, useSetHeaders, useStatus } from '@wooksjs/http-event'
+import { useHttpContext, useSetHeaders, useStatus } from '@wooksjs/event-http'
 import { warn } from 'common/log'
 import { applyProxyControls, CookiesIterable, HeadersIterable } from './proxy-utils'
 import { TWooksProxyOptions } from './types'

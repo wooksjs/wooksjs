@@ -16,3 +16,11 @@ export function warn(text: string) {
 export function logError(error: string) {
     console.error(__DYE_RED_BRIGHT__ + __DYE_BOLD__ + banner() + error + __DYE_RESET__)
 }
+
+export function traceError(expl: string, e: Error) {
+    logError(expl)
+    logError(e.message)
+    if (e.stack) {
+        warn(e.stack)
+    }    
+}

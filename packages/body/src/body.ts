@@ -1,9 +1,9 @@
-import { useHeaders, useRequest, EHttpStatusCode, WooksError, WooksURLSearchParams, useHttpContext } from '@wooksjs/http-event'
+import { useHeaders, useRequest, EHttpStatusCode, WooksError, WooksURLSearchParams, useHttpContext } from '@wooksjs/event-http'
 import { panic } from 'common/panic'
 import { compressors, TBodyCompressor, uncompressBody } from './utils/body-compressor'
 
 type TBodyStore = { 
-    parsed?: unknown
+    parsed?: Promise<unknown>
     isJson?: boolean
     isHtml?: boolean
     isText?: boolean
@@ -17,7 +17,7 @@ type TBodyStore = {
 
 export function useBody() {
     const { store } = useHttpContext<{ request: TBodyStore }>()
-    const { hook } = store('request')
+    const { init } = store('request')
     const { rawBody } = useRequest()
     const { 'content-type': contentType, 'content-encoding': contentEncoding } = useHeaders()
 
@@ -25,94 +25,31 @@ export function useBody() {
         return (contentType || '').indexOf(type) >= 0
     }
 
-    function isJson() {
-        const _isJson = hook('isJson')
-        if (!_isJson.isDefined) {
-            return _isJson.value = contentIs('application/json')
+    const isJson = () => init('isJson', () => contentIs('application/json'))
+    const isHtml = () => init('isHtml', () => contentIs('text/html'))
+    const isXml = () => init('isXml', () => contentIs('text/xml'))
+    const isText = () => init('isText', () => contentIs('text/plain'))
+    const isBinary = () => init('isBinary', () => contentIs('application/octet-stream'))
+    const isFormData = () => init('isFormData', () => contentIs('multipart/form-data'))
+    const isUrlencoded = () => init('isUrlencoded', () => contentIs('application/x-www-form-urlencoded'))
+    const isCompressed = () => init('isCompressed', () => {
+        const parts = contentEncodings()
+        for (const p of parts) {
+            if (['deflate', 'gzip', 'br'].includes(p)) return true
         }
-        return _isJson.value
-    }
+        return false
+    })
 
-    function isHtml() {
-        const _isHtml = hook('isHtml')
-        if (!_isHtml.isDefined) {
-            return _isHtml.value = contentIs('text/html')
-        }
-        return _isHtml.value
-    }
+    const contentEncodings = () => init('contentEncodings', () => (contentEncoding || '').split(',').map(p => p.trim()).filter(p => !!p))
 
-    function isXml() {
-        const _isXml = hook('isXml')
-        if (!_isXml.isDefined) {
-            return _isXml.value = contentIs('text/xml')
-        }
-        return _isXml.value
-    }
-
-    function isText() {
-        const _isText = hook('isText')
-        if (!_isText.isDefined) {
-            return _isText.value = contentIs('text/plain')
-        }
-        return _isText.value
-    }
-
-    function isBinary() {
-        const _isBinary = hook('isBinary')
-        if (!_isBinary.isDefined) {
-            return _isBinary.value = contentIs('application/octet-stream')
-        }
-        return _isBinary.value
-    }
-
-    function isFormData() {
-        const _isFormData = hook('isFormData')
-        if (!_isFormData.isDefined) {
-            return _isFormData.value = contentIs('multipart/form-data')
-        }
-        return _isFormData.value
-    }
-
-    function isUrlencoded() {
-        const _isUrlencoded = hook('isUrlencoded')
-        if (!_isUrlencoded.isDefined) {
-            return _isUrlencoded.value = contentIs('application/x-www-form-urlencoded')
-        }
-        return _isUrlencoded.value
-    }
-
-    function isCompressed() {
-        const _isCompressed = hook('isCompressed')
-        if (!_isCompressed.isDefined) {
-            const parts = contentEncodings()
-            for (const p of parts) {
-                _isCompressed.value = ['deflate', 'gzip', 'br'].includes(p)
-                if (_isCompressed.value) break
-            }
-        }
-        return _isCompressed.value
-    }
-
-    function contentEncodings(): string[] {
-        const _contentEncodings = hook('contentEncodings')
-        if (!_contentEncodings.isDefined) {
-            _contentEncodings.value = (contentEncoding || '').split(',').map(p => p.trim()).filter(p => !!p)
-        }
-        return _contentEncodings.value as unknown as string[]
-    }
-
-    async function parseBody<T = unknown>() {
-        const _parsed = hook('parsed')
-        if (!_parsed.isDefined) {
-            const body = await uncompressBody(contentEncodings(), (await rawBody()).toString())
-            if (isJson()) { _parsed.value = jsonParser(body) }
-            else if (isFormData()) { _parsed.value = formDataParser(body) }
-            else if (isUrlencoded()) { _parsed.value = urlEncodedParser(body) }
-            else if (isBinary()) { _parsed.value = textParser(body) }
-            else { _parsed.value = textParser(body) }
-        }
-        return _parsed.value as T
-    }
+    const parseBody = () => init('parsed', async () => {
+        const body = await uncompressBody(contentEncodings(), (await rawBody()).toString())
+        if (isJson()) return jsonParser(body)
+        else if (isFormData()) return formDataParser(body)
+        else if (isUrlencoded()) return urlEncodedParser(body)
+        else if (isBinary()) return textParser(body)
+        else return textParser(body)
+    })
 
     function jsonParser(v: string): Record<string, unknown> | unknown[] {
         try {

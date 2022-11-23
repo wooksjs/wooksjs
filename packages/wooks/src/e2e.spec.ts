@@ -1,7 +1,8 @@
-import { useCookies, useResponse, useRouteParams, useSearchParams, useSetCookies, useSetHeaders, BaseWooksResponse } from '@wooksjs/http-event'
+import { useCookies, useResponse, useSearchParams, useSetCookies, useSetHeaders, BaseWooksResponse, WooksHttp, httpShortcuts } from '@wooksjs/event-http'
 import { Wooks } from './wooks'
 import http, { IncomingMessage, OutgoingHttpHeaders } from 'http'
 import { useBody } from '@wooksjs/body'
+import { useRouteParams } from '@wooksjs/context-core'
 
 const PORT = 3043
 
@@ -67,10 +68,11 @@ async function getStatus(path: string) {
 }
 
 describe('Wooks E2E', () => {
-    const app = new Wooks()
+    const app = new Wooks().shortcuts(httpShortcuts)
+    const httpAdapter = new WooksHttp(PORT)
 
     beforeAll(async () => {
-        await app.listen(PORT)
+        await app.subscribe(httpAdapter)
     })
 
     app.get('/json', () => {
@@ -195,6 +197,6 @@ describe('Wooks E2E', () => {
     })
 
     afterAll(async () => {
-        await app.close()
+        await httpAdapter.close()
     })
 })
