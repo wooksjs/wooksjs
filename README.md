@@ -4,7 +4,7 @@
 
 <p align="center">
 <img src="logo.png" width="128px"><br>
-<a  href="https://github.com/prostojs/wooks/blob/main/LICENSE">
+<a  href="https://github.com/wooksjs/wooksjs/blob/main/LICENSE">
     <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" />
 </a>
 </p>
