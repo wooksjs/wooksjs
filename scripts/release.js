@@ -198,17 +198,7 @@ async function publishPackage(pkg, version, runIfNotDry) {
     out.step(`Publishing ${pkg.name}...`)
     try {
         await runIfNotDry(
-            // note: use of yarn is intentional here as we rely on its publishing
-            // behavior.
-            'yarn',
-            [
-                'publish',
-                '--new-version',
-                version,
-                ...(releaseTag ? ['--tag', releaseTag] : []),
-                '--access',
-                'public'
-            ],
+            'npm', ['publish', '--access', 'public'],
             {
                 cwd: pkg.pkgRoot,
                 stdio: 'pipe'
