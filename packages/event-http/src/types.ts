@@ -1,5 +1,5 @@
 import { IncomingMessage, ServerResponse } from 'http'
-import { TGenericEvent, TGenericContextStore } from '@wooksjs/context-core'
+import { TGenericEvent, TGenericContextStore } from '@wooksjs/event-core'
 import { TTimeMultiString } from './utils/time'
 import { EHttpStatusCode } from './utils/status-codes'
 import { WooksURLSearchParams } from './utils/url-search-params'

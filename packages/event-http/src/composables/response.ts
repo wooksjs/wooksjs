@@ -1,5 +1,5 @@
 import { EHttpStatusCode } from '../utils/status-codes'
-import { attachHook } from '@wooksjs/context-core'
+import { attachHook } from '@wooksjs/event-core'
 import { useHttpContext } from '../event-http'
 
 type TUseResponseOptions = {

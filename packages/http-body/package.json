@@ -1,7 +1,7 @@
 {
-  "name": "@wooksjs/serve-file",
-  "version": "0.0.0",
-  "description": "@wooksjs/serve-file",
+  "name": "@wooksjs/http-body",
+  "version": "0.1.0",
+  "description": "@wooksjs/http-body",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -11,7 +11,10 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/wooksjs/wooksjs.git",
-    "directory": "packages/serve-file"
+    "directory": "packages/http-body"
+  },
+  "peerDependencies": {
+    "@wooksjs/event-http": "^0.0.1-alpha.8"
   },
   "keywords": [
     "http",
@@ -30,8 +33,5 @@
   "bugs": {
     "url": "https://github.com/wooksjs/wooksjs/issues"
   },
-  "peerDependencies": {
-    "@wooksjs/event-http": "^0.0.1-alpha.8"
-  },
-  "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/serve-file#readme"
+  "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/http-body#readme"
 }

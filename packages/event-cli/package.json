@@ -33,7 +33,7 @@
   "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/event-cli#readme",
   "dependencies": {
     "minimist": "^1.2.6",
-    "@wooksjs/context-core": "",
+    "@wooksjs/event-core": "",
     "wooks": ""
   }
 }

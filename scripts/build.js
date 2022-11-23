@@ -73,6 +73,9 @@ async function build(target) {
         const { Extractor, ExtractorConfig } = require('@microsoft/api-extractor')
 
         try {
+            const filePath = path.join(pkgDir, 'dist', 'packages', target, 'src', 'index.d.ts')
+            const file = (await fs.readFile(filePath)).toString()
+            await fs.writeFile(filePath, file.replace(/['"]@wooksjs\/([^'"]+)/g, '\'../../$1/src'))
             const extractorConfigPath = path.resolve(pkgDir, `api-extractor.json`)
             const extractorConfig =
                 ExtractorConfig.loadFileAndPrepare(extractorConfigPath)

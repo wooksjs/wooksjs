@@ -32,7 +32,7 @@
   },
   "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/event-http#readme",
   "dependencies": {
-    "@wooksjs/context-core": "",
+    "@wooksjs/event-core": "",
     "wooks": ""
   }
 }

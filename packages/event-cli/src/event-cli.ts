@@ -1,4 +1,4 @@
-import { createEventContext, useEventContext } from '@wooksjs/context-core'
+import { createEventContext, useEventContext } from '@wooksjs/event-core'
 import { TCliContextStore, TCliEventData } from './types'
 
 export function createCliContext(data: TCliEventData) {

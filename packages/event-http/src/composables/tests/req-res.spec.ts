@@ -1,7 +1,8 @@
-import { useRequest, useRouteParams } from '../request'
+import { useRouteParams } from '@wooksjs/event-core'
 import { setTestHttpContext } from '../../testing'
 import { IncomingMessage, ServerResponse } from 'http'
 import { useResponse } from '../response'
+import { useRequest } from '../request'
 
 describe('compasble/req-res', () => {
     const url='test.com/path?a[]=1&a[]=2&b=3&c=4&encoded=%7e%20%25'

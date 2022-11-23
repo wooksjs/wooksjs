@@ -1,7 +1,7 @@
 import { useHeaders } from './headers'
 import { renderCookie } from '../utils/set-cookie'
 import { escapeRegex, safeDecodeURIComponent } from '../utils/helpers'
-import { attachHook } from '@wooksjs/context-core'
+import { attachHook } from '@wooksjs/event-core'
 import { useHttpContext } from '../event-http'
 import { TCookieAttributes, TSetCookieData } from '../types'
 

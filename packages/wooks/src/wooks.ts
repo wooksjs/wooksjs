@@ -2,7 +2,7 @@ import { ProstoRouter, THttpMethod, TProstoParamsType, TProstoRouterPathBuilder 
 import { TWooksHandler } from './types'
 import { traceError } from 'common/log'
 import { TWooksSubscribeAdapter } from './adapter'
-import { useEventContext } from '@wooksjs/context-core'
+import { useEventContext } from '@wooksjs/event-core'
 
 export class Wooks {
     protected router: ProstoRouter<TWooksHandler>

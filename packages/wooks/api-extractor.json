@@ -9,7 +9,12 @@
       "include": [
         "packages/wooks/dist/packages",
         "packages/wooks/dist/common"
-      ]
+      ],
+      "paths": {
+        "@wooksjs/*": ["packages/wooks/dist/packages/*/src"],
+        "wooks": ["packages/wooks/dist/packages/wooks/src"],
+        "common/*": ["packages/wooks/dist/common/*"]
+      }
     }
   }
 }

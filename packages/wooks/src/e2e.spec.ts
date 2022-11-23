@@ -1,8 +1,8 @@
 import { useCookies, useResponse, useSearchParams, useSetCookies, useSetHeaders, BaseWooksResponse, WooksHttp, httpShortcuts } from '@wooksjs/event-http'
 import { Wooks } from './wooks'
 import http, { IncomingMessage, OutgoingHttpHeaders } from 'http'
-import { useBody } from '@wooksjs/body'
-import { useRouteParams } from '@wooksjs/context-core'
+import { useBody } from '@wooksjs/http-body'
+import { useRouteParams } from '@wooksjs/event-core'
 
 const PORT = 3043
 

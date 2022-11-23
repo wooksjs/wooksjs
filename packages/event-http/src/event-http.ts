@@ -1,4 +1,4 @@
-import { createEventContext, useEventContext } from '@wooksjs/context-core'
+import { createEventContext, useEventContext } from '@wooksjs/event-core'
 import { THttpContextStore, THttpEventData } from './types'
 
 export function createHttpContext(data: THttpEventData) {

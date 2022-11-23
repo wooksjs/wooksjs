@@ -1,7 +1,7 @@
 {
-  "name": "@wooksjs/context-core",
+  "name": "@wooksjs/http-static",
   "version": "0.1.0",
-  "description": "@wooksjs/context-core",
+  "description": "@wooksjs/http-static",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -11,7 +11,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/wooksjs/wooksjs.git",
-    "directory": "packages/context-core"
+    "directory": "packages/http-static"
   },
   "keywords": [
     "http",
@@ -30,5 +30,8 @@
   "bugs": {
     "url": "https://github.com/wooksjs/wooksjs/issues"
   },
-  "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/context-core#readme"
+  "peerDependencies": {
+    "@wooksjs/event-http": "^0.0.1-alpha.8"
+  },
+  "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/http-static#readme"
 }

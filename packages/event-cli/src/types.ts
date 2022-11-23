@@ -1,4 +1,4 @@
-import { TGenericEvent, TGenericContextStore } from '@wooksjs/context-core'
+import { TGenericEvent, TGenericContextStore } from '@wooksjs/event-core'
 
 export interface TCliEventData {
     argv: string[]

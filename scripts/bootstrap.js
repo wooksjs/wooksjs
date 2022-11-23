@@ -47,7 +47,16 @@ packages.forEach(({shortName, name, pkg, pkgPath}) => {
       fs.writeFileSync(pkgPath, JSON.stringify(json, null, 2))
       out.success(`✅ package.json created`)
     } else {
-        out.log(`- package.json already exists`)
+        if (pkg.name !== name || pkg.version !== version) {
+          pkg.name = name
+          pkg.version = version
+          pkg.repository.directory = 'packages/' + shortName
+          pkg.homepage = `https://github.com/wooksjs/wooksjs/tree/main/packages/${shortName}#readme`
+          fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2))
+          out.success(`⚠️ package.json fixed`)
+        } else {
+          out.log(`- package.json already exists`)
+        }
     }
   
     const readmePath = path.join(packagesDir, shortName, `README.md`)

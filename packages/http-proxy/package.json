@@ -1,5 +1,5 @@
 {
-  "name": "@wooksjs/proxy",
+  "name": "@wooksjs/http-proxy",
   "version": "0.1.0",
   "description": "Proxy Wooks composable",
   "main": "dist/index.cjs",
@@ -11,7 +11,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/wooksjs/wooksjs.git",
-    "directory": "packages/proxy"
+    "directory": "packages/http-proxy"
   },
   "keywords": [
     "http",
@@ -36,5 +36,5 @@
   "dependencies": {
     "node-fetch-native": "^0.1.8"
   },
-  "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/proxy#readme"
+  "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/http-proxy#readme"
 }
