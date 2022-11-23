@@ -24,6 +24,7 @@ As a part of `wooks` event processing framework, `@wooksjs/event-http` implement
 
 ### Official Wooks HTTP composables:
 
+- [@wooksjs/http-body](https://github.com/wooksjs/wooksjs/tree/main/packages/http-body) - to parse body
 - [@wooksjs/http-static](https://github.com/wooksjs/wooksjs/tree/main/packages/http-static) - to serve static files
 - [@wooksjs/http-proxy](https://github.com/wooksjs/wooksjs/tree/main/packages/http-proxy) - to proxy requests
 
