@@ -19,6 +19,9 @@ const skipBuild = args.skipBuild
 if (isDryRun) {
     out.warn('Dry Run!')
 }
+if (skipBuild) {
+    out.warn('Skip Build!')
+}
 
 const skippedPackages = []
 
@@ -95,8 +98,8 @@ async function main() {
     if (!skipBuild && !isDryRun) {
         await run('npm', ['run', 'build', '--release'])
         // test generated dts files
-        out.step('Verifying type declarations...')
-        await run('npm', ['run', 'test-dts-only'])
+        // out.step('Verifying type declarations...')
+        // await run('npm', ['run', 'test-dts-only'])
     } else {
         out.warn(`(skipped)`)
     }
