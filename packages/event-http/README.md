@@ -35,31 +35,33 @@ As a part of `wooks` event processing framework, `@wooksjs/event-http` implement
 ## Quick Start
 
 ```js
-import { Wooks, useRouteParams } from 'wooks'
-import { WooksHttp } from '@wooksjs/event-http'
+import { useRouteParams } from 'wooks'
+import { createHttpApp } from '@wooksjs/event-http'
 
-const app = new Wooks()
+const app = createHttpApp()
 
 app.on('GET', 'hello/:name', () => `Hello ${ useRouteParams().get('name') }!`)
 
-app.subscribe(new WooksHttp(3000, () => {
-    console.log('Wooks Server is up on port 3000')
-}))
+// shortcuts for some methods are supported:
+// app.get('hello/:name', () => `Hello ${ useRouteParams().get('name') }!`)
+
+app.listen(3000, () => { console.log('Wooks Server is up on port 3000') })
 ```
 
-## Shortcuts
-
-You can use `get`, `post`, ... methods directly with `shortcuts` feature:
+### Get More Control on Server
+You can create http(s) server manually and pass server callback from the wooks http app:
 
 ```js
-import { useRouteParams, Wooks } from 'wooks'
-import { httpShortcuts, WooksHttp } from '@wooksjs/event-http'
+import { useRouteParams } from 'wooks'
+import { createHttpApp } from '@wooksjs/event-http'
+import http from 'http' // or https
 
-const app = new Wooks().shortcuts(httpShortcuts)
+const app = createHttpApp()
 
 app.get('hello/:name', () => `Hello ${ useRouteParams().get('name') }!`)
 
-app.subscribe(new WooksHttp(3000))
+const server = http.createServer(app.getServerCb())
+server.listen(3000, () => { console.log('Wooks Server is up on port 3000') })
 ```
 
 ## Quick Navigation

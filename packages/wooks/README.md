@@ -32,14 +32,16 @@ It utilizes such a technique as you can see in React Hooks or Vue Composables. I
 `npm install wooks @wooksjs/event-http`
 
 ```js
-import { Wooks, useRouteParams } from 'wooks'
-import { WooksHttp } from '@wooksjs/event-http'
+import { useRouteParams } from 'wooks'
+import { createHttpApp } from '@wooksjs/event-http'
 
-const app = new Wooks()
+const app = createHttpApp()
 
 app.on('GET', 'hello/:name', () => `Hello ${ useRouteParams().get('name') }!`)
 
-app.subscribe(new WooksHttp(3000, () => {
-    console.log('Wooks Server is up on port 3000')
-}))
+// shortcuts for some methods are supported:
+// app.get('hello/:name', () => `Hello ${ useRouteParams().get('name') }!`)
+
+app.listen(3000, () => { console.log('Wooks Server is up on port 3000') })
 ```
+See full documentation [here](https://github.com/wooksjs/wooksjs/tree/main/packages/event-http)

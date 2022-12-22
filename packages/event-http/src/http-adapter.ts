@@ -1,28 +1,69 @@
-import { TWooksSubscribeAdapter, TWooksHandler, TWooksLookupArgs, TWooksLookupHandlers } from 'wooks'
-import { IncomingMessage, Server, ServerResponse } from 'http'
-import { createServer } from './http'
+import { TWooksHandler, Wooks, WooksAdapterBase } from 'wooks'
+import http, { IncomingMessage, ServerResponse, Server } from 'http'
 import { createHttpContext, useHttpContext } from './event-http'
 import { createWooksResponder } from './response'
 import { WooksError } from './errors'
 import { traceError } from 'common/log'
 
-export const httpShortcuts = {
-    all: '*',
-    get: 'GET',
-    post: 'POST',
-    put: 'PUT',
-    patch: 'PATCH',
-    delete: 'DELETE',
-    head: 'HEAD',
-    options: 'OPTIONS',
-}
+export interface TWooksHttpOptions {}
 
-export class WooksHttp implements TWooksSubscribeAdapter {
-    constructor(protected port: number, protected hostname?: string | (() => void) , protected cb?: () => void) {
+export class WooksHttp extends WooksAdapterBase {
+    constructor(protected opts?: TWooksHttpOptions, wooks?: Wooks | WooksAdapterBase) {
+        super(wooks)
+    }
 
+    all<ResType = unknown, ParamsType = Record<string, string | string[]>>(path: string, handler: TWooksHandler<ResType>) {
+        return this.on<ResType, ParamsType>('*', path, handler)
+    }
+
+    get<ResType = unknown, ParamsType = Record<string, string | string[]>>(path: string, handler: TWooksHandler<ResType>) {
+        return this.on<ResType, ParamsType>('GET', path, handler)
+    }
+
+    post<ResType = unknown, ParamsType = Record<string, string | string[]>>(path: string, handler: TWooksHandler<ResType>) {
+        return this.on<ResType, ParamsType>('POST', path, handler)
+    }
+
+    put<ResType = unknown, ParamsType = Record<string, string | string[]>>(path: string, handler: TWooksHandler<ResType>) {
+        return this.on<ResType, ParamsType>('PUT', path, handler)
+    }
+
+    patch<ResType = unknown, ParamsType = Record<string, string | string[]>>(path: string, handler: TWooksHandler<ResType>) {
+        return this.on<ResType, ParamsType>('PATCH', path, handler)
+    }
+
+    delete<ResType = unknown, ParamsType = Record<string, string | string[]>>(path: string, handler: TWooksHandler<ResType>) {
+        return this.on<ResType, ParamsType>('DELETE', path, handler)
+    }
+
+    head<ResType = unknown, ParamsType = Record<string, string | string[]>>(path: string, handler: TWooksHandler<ResType>) {
+        return this.on<ResType, ParamsType>('HEAD', path, handler)
+    }
+
+    options<ResType = unknown, ParamsType = Record<string, string | string[]>>(path: string, handler: TWooksHandler<ResType>) {
+        return this.on<ResType, ParamsType>('OPTIONS', path, handler)
     }
 
     protected server?: Server
+
+    public async listen(...args: Parameters<Server['listen']>) {
+        const server = this.server = http.createServer(this.getServerCb())
+        return new Promise((resolve, reject) => {
+            server.once('listening', resolve)
+            server.once('error', reject)
+            server.listen(...args)
+        })
+    }
+
+    public close(server?: Server) {
+        let srv = server || this.server
+        return new Promise((resolve, reject) => {
+            srv?.close((err) => {
+                if (err) return reject(err)
+                resolve(srv)
+            })
+        })
+    }
 
     protected responder = createWooksResponder()
 
@@ -32,49 +73,25 @@ export class WooksHttp implements TWooksSubscribeAdapter {
         })
     }
 
-    subscribe(lookup: (route: TWooksLookupArgs) => TWooksLookupHandlers | null): void | Promise<void> {
-        const port = this.port
-        const hostname = this.hostname
-        const cb = this.cb
-        return new Promise((resolve, reject) => {
-            const listenCb = () => {
-                const fn = typeof hostname === 'function' ? hostname : cb
-                if (fn) { fn() }
-                this.server?.off('error', reject)
-                resolve()
-            }
-            try {
-                this.server = createServer({ port },
-                    (req, res) => {
-                        void this.processRequest(req, res, lookup)
-                    },
-                    typeof hostname === 'string' ? hostname : '',
-                    listenCb,
-                )
-                this.server?.on('error', reject)
-            } catch(e) {
-                reject(e)
-            }
-        })
-    }
-
-    protected async processRequest(req: IncomingMessage, res: ServerResponse, lookup: (route: TWooksLookupArgs) => TWooksLookupHandlers | null) {
-        const { restoreCtx, clearCtx } = createHttpContext({ req, res })
-        const handlers = lookup({ method: req.method, url: req.url })
-        if (handlers) {
-            try {
-                await this.processHandlers(handlers)
-            } catch (e) {
-                traceError('Internal error, please report: ', e as Error)
-                restoreCtx()
-                this.respond(e)
+    getServerCb() {
+        return async (req: IncomingMessage, res: ServerResponse) => {
+            const { restoreCtx, clearCtx } = createHttpContext({ req, res })
+            const handlers = this.wooks.lookup(req.method as string, req.url as string)
+            if (handlers) {
+                try {
+                    await this.processHandlers(handlers)
+                } catch (e) {
+                    traceError('Internal error, please report: ', e as Error)
+                    restoreCtx()
+                    this.respond(e)
+                    clearCtx()
+                }
+            } else {
+                // not found
+                this.respond(new WooksError(404))
                 clearCtx()
-            }
-        } else {
-            // not found
-            this.respond(new WooksError(404))
-            clearCtx()
-        }    
+            }    
+        }
     }
     
     protected async processHandlers(handlers: TWooksHandler<unknown>[]) {
@@ -102,14 +119,8 @@ export class WooksHttp implements TWooksSubscribeAdapter {
             }
         }
     }
-
-    public close() {
-        return new Promise((resolve, reject) => {
-            this.server?.close((err) => {
-                if (err) return reject(err)
-                resolve(this.server)
-            })
-        })
-    }
 }
 
+export function createHttpApp(opts?: TWooksHttpOptions, wooks?: Wooks | WooksAdapterBase) {
+    return new WooksHttp(opts, wooks)
+}
