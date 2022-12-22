@@ -20,10 +20,10 @@ As a part of `wooks` event processing framework, `@wooksjs/event-cli` implements
 ## Quick Start
 
 ```js
-import { useRouteParams, Wooks } from 'wooks'
-import { WooksCli, cliShortcuts, useFlags } from '@wooksjs/event-cli'
+import { useRouteParams } from 'wooks'
+import { createCliApp, useFlags } from '@wooksjs/event-cli'
 
-const app = new Wooks().shortcuts(cliShortcuts)
+const app = createCliApp()
 
 app.cli('test', () => {
     console.log('flags:')
@@ -35,7 +35,7 @@ app.cli(':arg', () => {
     return 'done'
 })
 
-app.subscribe(new WooksCli())
+app.run()
 
 // node ./index.js test
 // node ./index.js random
