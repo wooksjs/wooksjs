@@ -1,3 +1,12 @@
+## [0.2.2](https://github.com/wooksjs/wooksjs/compare/v0.2.1...v0.2.2) (2022-12-22)
+
+
+### Features
+
+* add event id composable ([5ac91ae](https://github.com/wooksjs/wooksjs/commit/5ac91ae6049bc83b7692bee382f52fbc5bdb6336))
+
+
+
 ## [0.2.1](https://github.com/wooksjs/wooksjs/compare/v0.1.0...v0.2.1) (2022-12-22)
 
 

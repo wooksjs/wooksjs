@@ -1,6 +1,6 @@
 {
   "name": "@wooksjs/http-body",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "@wooksjs/http-body",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
@@ -14,7 +14,7 @@
     "directory": "packages/http-body"
   },
   "peerDependencies": {
-    "@wooksjs/event-http": "0.2.1"
+    "@wooksjs/event-http": "0.2.2"
   },
   "keywords": [
     "http",
