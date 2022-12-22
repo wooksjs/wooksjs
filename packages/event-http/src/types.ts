@@ -46,7 +46,6 @@ export type TAuthCache = {
 export type TRequestCache = {
     rawBody: Promise<Buffer>
     parsed: unknown
-    reqId?: string
     forwardedIp?: string
     remoteIp?: string
     ipList?: { remoteIp: string, forwarded: string[] }

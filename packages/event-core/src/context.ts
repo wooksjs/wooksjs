@@ -3,6 +3,7 @@ import { attachHook } from './hook'
 
 export interface TGenericEvent {
     type: string
+    id?: string
 }
 
 export type TGenericContextStore<E extends TGenericEvent = TGenericEvent> = {

@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto'
+import { useEventId } from '@wooksjs/event-core'
 import { useHttpContext } from '../event-http'
 
 const xForwardedFor = 'x-forwarded-for'
@@ -24,7 +24,7 @@ export function useRequest() {
         })
     })
 
-    const reqId = () => init('reqId', () => randomUUID())
+    const reqId = useEventId().getId
 
     const forwardedIp = () => init('forwardedIp', () => {
         if (typeof req.headers[xForwardedFor] === 'string' && req.headers[xForwardedFor]) {
