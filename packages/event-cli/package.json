@@ -30,10 +30,12 @@
   "bugs": {
     "url": "https://github.com/wooksjs/wooksjs/issues"
   },
-  "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/event-cli#readme",
+  "peerDependencies": {
+    "wooks": "0.2.3",
+    "@wooksjs/event-core": "0.2.3"
+  },
   "dependencies": {
-    "minimist": "^1.2.6",
-    "@wooksjs/event-core": "0.2.3",
-    "wooks": "0.2.3"
-  }
+    "minimist": "^1.2.6"
+  },
+  "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/event-cli#readme"
 }

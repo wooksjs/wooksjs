@@ -13,9 +13,6 @@
     "url": "git+https://github.com/wooksjs/wooksjs.git",
     "directory": "packages/http-body"
   },
-  "peerDependencies": {
-    "@wooksjs/event-http": "0.2.3"
-  },
   "keywords": [
     "http",
     "wooks",
@@ -32,6 +29,9 @@
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/wooksjs/wooksjs/issues"
+  },
+  "peerDependencies": {
+    "@wooksjs/event-http": "0.2.3"
   },
   "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/http-body#readme"
 }

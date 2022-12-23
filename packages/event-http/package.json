@@ -30,9 +30,9 @@
   "bugs": {
     "url": "https://github.com/wooksjs/wooksjs/issues"
   },
-  "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/event-http#readme",
-  "dependencies": {
-    "@wooksjs/event-core": "0.2.3",
-    "wooks": "0.2.3"
-  }
+  "peerDependencies": {
+    "wooks": "0.2.3",
+    "@wooksjs/event-core": "0.2.3"
+  },
+  "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/event-http#readme"
 }
