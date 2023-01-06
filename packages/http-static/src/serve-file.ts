@@ -1,5 +1,5 @@
 import { useHeaders, useRequest, useResponse, useSetHeaders,
-    useSetCacheControl, BaseWooksResponse, WooksError, TCacheControl, useHttpContext } from '@wooksjs/event-http'
+    useSetCacheControl, BaseWooksResponse, HttpError, TCacheControl, useHttpContext } from '@wooksjs/event-http'
 
 import { promises as fsPromises, createReadStream, Stats } from 'fs'
 const { stat, readdir } = fsPromises
@@ -48,7 +48,7 @@ export async function serveFile(filePath: string, options: TServeFileOptions = {
                 return serveFile(filePath + '.' + options.defaultExt)
             }
         }
-        throw new WooksError(404)
+        throw new HttpError(404)
     }
 
     status(200)
@@ -91,7 +91,7 @@ export async function serveFile(filePath: string, options: TServeFileOptions = {
         }
         removeHeader('etag')
         removeHeader('last-modified')
-        throw new WooksError(404)
+        throw new HttpError(404)
     }
 
     // range header processing start
@@ -105,7 +105,7 @@ export async function serveFile(filePath: string, options: TServeFileOptions = {
         end = e ? parseInt(e) : (size - 1)
         end = Math.min(size - 1, end)
         if (start > end || isNaN(start) || isNaN(end)) {
-            throw new WooksError(416)
+            throw new HttpError(416)
         }
         size = (end - start) + 1
 

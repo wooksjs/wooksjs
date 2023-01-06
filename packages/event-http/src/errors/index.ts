@@ -1,2 +1,2 @@
 export * from './error-renderer'
-export * from './wooks-error'
+export * from './http-error'

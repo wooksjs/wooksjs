@@ -1,7 +1,7 @@
 import { WooksErrorRenderer } from './error-renderer'
 import { EHttpStatusCode, httpStatusCodes, THttpErrorCodes } from '../utils/status-codes'
 
-export class WooksError<T extends TWooksErrorBody = TWooksErrorBody> extends Error {
+export class HttpError<T extends TWooksErrorBody = TWooksErrorBody> extends Error {
     constructor(protected code: THttpErrorCodes = 500, protected _body: string | T = '') {
         super(typeof _body === 'string' ? _body : _body.message)
     }

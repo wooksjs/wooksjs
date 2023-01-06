@@ -1,4 +1,4 @@
-import { TWooksErrorBodyExt } from './wooks-error'
+import { TWooksErrorBodyExt } from './http-error'
 import { useAccept } from '../composables'
 import { BaseWooksResponse } from '../response/core'
 import { httpStatusCodes } from '../utils/status-codes'

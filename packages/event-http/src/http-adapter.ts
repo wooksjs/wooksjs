@@ -2,7 +2,7 @@ import { TWooksHandler, Wooks, WooksAdapterBase } from 'wooks'
 import http, { IncomingMessage, ServerResponse, Server } from 'http'
 import { createHttpContext, useHttpContext } from './event-http'
 import { createWooksResponder } from './response'
-import { WooksError } from './errors'
+import { HttpError } from './errors'
 import { traceError } from 'common/log'
 
 export interface TWooksHttpOptions {}
@@ -88,7 +88,7 @@ export class WooksHttp extends WooksAdapterBase {
                 }
             } else {
                 // not found
-                this.respond(new WooksError(404))
+                this.respond(new HttpError(404))
                 clearCtx()
             }    
         }

@@ -1,7 +1,7 @@
 import { useResponse } from '../composables'
 import { WooksErrorRenderer } from '../errors/error-renderer'
-import { WooksError } from '../errors/wooks-error'
-import { TWooksErrorBodyExt } from '../errors/wooks-error'
+import { HttpError } from '../errors/http-error'
+import { TWooksErrorBodyExt } from '../errors/http-error'
 import { BaseWooksResponse } from './core'
 import { BaseWooksResponseRenderer, TWooksResponseRenderer } from './renderer'
 
@@ -16,11 +16,11 @@ export function createWooksResponder(
         if (hasResponded()) return null
         if (data instanceof Error) {
             const r = new BaseWooksResponse<TWooksErrorBodyExt>(errorRenderer)
-            let httpError: WooksError
-            if (data instanceof WooksError) {
+            let httpError: HttpError
+            if (data instanceof HttpError) {
                 httpError = data
             } else {
-                httpError = new WooksError(500, data.message)
+                httpError = new HttpError(500, data.message)
             }
             r.setBody(httpError.body)
             return r

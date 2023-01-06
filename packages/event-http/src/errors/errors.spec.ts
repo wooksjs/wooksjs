@@ -1,5 +1,5 @@
 import { WooksErrorRenderer } from './error-renderer'
-import { WooksError, TWooksErrorBodyExt } from './wooks-error'
+import { HttpError, TWooksErrorBodyExt } from './http-error'
 import { IncomingMessage, ServerResponse } from 'http'
 import { Socket } from 'net'
 import { BaseWooksResponse, createWooksResponder } from '../response'
@@ -18,7 +18,7 @@ describe('response', () => {
 
     it('must create error-response in json', () => {
         req.headers.accept = 'application/json'
-        expect(renderer.render(createWooksResponder().createResponse(new WooksError(405, 'test message')) as BaseWooksResponse<TWooksErrorBodyExt>))
+        expect(renderer.render(createWooksResponder().createResponse(new HttpError(405, 'test message')) as BaseWooksResponse<TWooksErrorBodyExt>))
             .toEqual('{"statusCode":405,"error":"Method Not Allowed","message":"test message"}')
     })
 
@@ -30,7 +30,7 @@ describe('response', () => {
             error: string
             additional: string
         }
-        expect(renderer.render(createWooksResponder().createResponse(new WooksError<MyError>(405, {
+        expect(renderer.render(createWooksResponder().createResponse(new HttpError<MyError>(405, {
             statusCode: 405,
             message: 'message text',
             error: 'error text',
@@ -41,13 +41,13 @@ describe('response', () => {
 
     it('must create error-response in text', () => {
         req.headers.accept = 'text/plain'
-        expect(renderer.render(createWooksResponder().createResponse(new WooksError(405, 'test message')) as BaseWooksResponse<TWooksErrorBodyExt>))
+        expect(renderer.render(createWooksResponder().createResponse(new HttpError(405, 'test message')) as BaseWooksResponse<TWooksErrorBodyExt>))
             .toContain('405 Method Not Allowed\ntest message')
     })
 
     it('must create error-response in html', () => {
         req.headers.accept = 'text/html'
-        expect(renderer.render(createWooksResponder().createResponse(new WooksError(405, 'test message')) as BaseWooksResponse<TWooksErrorBodyExt>))
+        expect(renderer.render(createWooksResponder().createResponse(new HttpError(405, 'test message')) as BaseWooksResponse<TWooksErrorBodyExt>))
             .toEqual('<html style="background-color: #333; color: #bbb;"><head><title>405 Method Not Allowed</title>' +
             '</head><body><center><h1>405 Method Not Allowed</h1></center><center><h4>test message</h1></center>' +
             '<hr color="#666"><center style="color: #666;"> Wooks vJEST_TEST </center></body></html>')
@@ -61,7 +61,7 @@ describe('response', () => {
             error: string
             additional: string
         }
-        const result = renderer.render(createWooksResponder().createResponse(new WooksError<MyError>(405, {
+        const result = renderer.render(createWooksResponder().createResponse(new HttpError<MyError>(405, {
             statusCode: 405,
             message: 'message text',
             error: 'error text',

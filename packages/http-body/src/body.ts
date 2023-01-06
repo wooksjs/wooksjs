@@ -1,4 +1,4 @@
-import { useHeaders, useRequest, EHttpStatusCode, WooksError, WooksURLSearchParams, useHttpContext } from '@wooksjs/event-http'
+import { useHeaders, useRequest, EHttpStatusCode, HttpError, WooksURLSearchParams, useHttpContext } from '@wooksjs/event-http'
 import { panic } from 'common/panic'
 import { compressors, TBodyCompressor, uncompressBody } from './utils/body-compressor'
 
@@ -55,7 +55,7 @@ export function useBody() {
         try {
             return JSON.parse(v) as Record<string, unknown> | unknown[]
         } catch(e) {
-            throw new WooksError(400, (e as Error).message)
+            throw new HttpError(400, (e as Error).message)
         }
     }
     function textParser(v: string): string {
@@ -64,7 +64,7 @@ export function useBody() {
 
     function formDataParser(v: string): Record<string, unknown> {
         const boundary = '--' + ((/boundary=([^;]+)(?:;|$)/.exec(contentType || '') || [, ''])[1] as string)
-        if (!boundary) throw new WooksError(EHttpStatusCode.BadRequest, 'form-data boundary not recognized')
+        if (!boundary) throw new HttpError(EHttpStatusCode.BadRequest, 'form-data boundary not recognized')
         const parts = v.trim().split(boundary)
         const result: Record<string, unknown> = {}
         let key = ''
@@ -92,12 +92,12 @@ export function useBody() {
                     }
                     if (line.toLowerCase().startsWith('content-disposition: form-data;')) {
                         key = (/name=([^;]+)/.exec(line) || [])[1]
-                        if (!key) throw new WooksError(EHttpStatusCode.BadRequest, 'Could not read multipart name: ' + line)
+                        if (!key) throw new HttpError(EHttpStatusCode.BadRequest, 'Could not read multipart name: ' + line)
                         continue
                     }
                     if (line.toLowerCase().startsWith('content-type:')) {
                         partContentType = (/content-type:\s?([^;]+)/i.exec(line) || [])[1]
-                        if (!partContentType) throw new WooksError(EHttpStatusCode.BadRequest, 'Could not read content-type: ' + line)
+                        if (!partContentType) throw new HttpError(EHttpStatusCode.BadRequest, 'Could not read content-type: ' + line)
                         continue
                     }
                 }
