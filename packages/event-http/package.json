@@ -1,6 +1,6 @@
 {
   "name": "@wooksjs/event-http",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "@wooksjs/event-http",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
@@ -31,8 +31,8 @@
     "url": "https://github.com/wooksjs/wooksjs/issues"
   },
   "peerDependencies": {
-    "wooks": "0.2.4",
-    "@wooksjs/event-core": "0.2.4"
+    "wooks": "0.2.5",
+    "@wooksjs/event-core": "0.2.5"
   },
   "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/event-http#readme"
 }
