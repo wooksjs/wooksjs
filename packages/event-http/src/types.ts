@@ -25,7 +25,9 @@ export interface THttpContextStore extends TGenericContextStore<THttpEvent> {
     status?: { code: EHttpStatusCode }
 }
 
-export type TSetCookieData = { value: string, attrs: Partial<TCookieAttributes> }
+export type TSetCookieData = { value: string, attrs: TCookieAttributesInput }
+
+export type TCookieAttributesInput = Partial<TCookieAttributes>
 
 export interface TCookieAttributes {
     expires: Date | string | number // date
