@@ -1,3 +1,12 @@
+## [0.2.6](https://github.com/wooksjs/wooksjs/compare/v0.2.5...v0.2.6) (2023-01-17)
+
+
+### Bug Fixes
+
+* **types:** expose http types ([a321219](https://github.com/wooksjs/wooksjs/commit/a3212199c94b33a68a2eb2a46e3da77f5f151a70))
+
+
+
 ## [0.2.5](https://github.com/wooksjs/wooksjs/compare/v0.2.4...v0.2.5) (2023-01-06)
 
 
