@@ -1,3 +1,12 @@
+## [0.2.7](https://github.com/wooksjs/wooksjs/compare/v0.2.6...v0.2.7) (2023-01-18)
+
+
+### Features
+
+* **cli:** better error processing ([1abe86f](https://github.com/wooksjs/wooksjs/commit/1abe86f61eee046f50179cc0e81f75a72cfd33b4))
+
+
+
 ## [0.2.6](https://github.com/wooksjs/wooksjs/compare/v0.2.5...v0.2.6) (2023-01-17)
 
 
