@@ -1,12 +1,14 @@
 import { TWooksHandler, Wooks, WooksAdapterBase } from 'wooks'
-import { logError } from 'common/log'
 import { createCliContext } from './event-cli'
 
 export const cliShortcuts = {
     cli: 'CLI',
 }
 
-export interface TWooksCliOptions {}
+export interface TWooksCliOptions {
+    onError?(e: Error): void
+    onUnknownParams?(pathParams: string[]): void
+}
 
 export class WooksCli extends WooksAdapterBase {
     constructor(protected opts?: TWooksCliOptions, wooks?: Wooks | WooksAdapterBase) {
@@ -20,7 +22,8 @@ export class WooksCli extends WooksAdapterBase {
     async run(_argv?: string[]) {
         const argv = process.argv.slice(2) || _argv
         const firstFlagIndex = argv.findIndex(a => a.startsWith('-')) + 1
-        const path = '/' + (firstFlagIndex ? argv.slice(0, firstFlagIndex - 1) : argv).map(v => encodeURIComponent(v)).join('/')
+        const pathParams = (firstFlagIndex ? argv.slice(0, firstFlagIndex - 1) : argv)
+        const path = '/' + pathParams.map(v => encodeURIComponent(v)).join('/')
         const { restoreCtx, clearCtx } = createCliContext({ argv })
         const handlers = this.wooks.lookup('CLI', path)
         if (handlers) {
@@ -32,19 +35,47 @@ export class WooksCli extends WooksAdapterBase {
                         console.log(response)
                     } else if (Array.isArray(response)) {
                         response.forEach(r => console.log(typeof r === 'string' ? r : JSON.stringify(r, null, '  ')))
-                    } else {
-                        console.log(JSON.stringify(response, null, '  '))
+                    } else if (response instanceof Error) {
+                        console.error(__DYE_RED__ + response.message + __DYE_RESET__)
+                    } else if (response) {
+                        if (response) {
+                            console.log(JSON.stringify(response, null, '  '))
+                        }
                     }
                 }
             } catch (e) {
-                logError((e as Error).message)
-                process.exit(1)
+                this.onError(e as Error)
             }
             clearCtx()
         } else {
-            logError('Unknown command parameters')
-            process.exit(1)
+            this.onUnknownParams(pathParams)
         }   
+    }
+
+    onError(e: Error) {
+        if (this.opts?.onError) {
+            this.opts.onError(e)
+        } else {
+            this.error(e.message)
+            process.exit(1)
+        }
+    }
+
+    onUnknownParams(pathParams: string[]) {
+        if (this.opts?.onUnknownParams) {
+            this.opts.onUnknownParams(pathParams)
+        } else {
+            this.error(__DYE_RESET__ + 'Unknown command parameters: ' + __DYE_RED__ + pathParams.join(' '))
+            process.exit(1)
+        }
+    }
+
+    error(e: string | Error) {
+        if (typeof e === 'string') {
+            console.error(__DYE_RED__ + e + __DYE_RESET__)
+        } else {
+            console.error(__DYE_RED__ + e.message + __DYE_RESET__)
+        }
     }
 }
 

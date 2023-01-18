@@ -36,7 +36,6 @@ export function getGlobalWooks(): Wooks {
 }
 
 export class WooksAdapterBase {
-
     protected wooks: Wooks
 
     constructor(wooks?: Wooks | WooksAdapterBase) {
