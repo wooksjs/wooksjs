@@ -47,7 +47,7 @@ export class WooksHttp extends WooksAdapterBase {
     protected server?: Server
 
     public async listen(...args: Parameters<Server['listen']>) {
-        const server = this.server = http.createServer(this.getServerCb())
+        const server = this.server = http.createServer(this.getServerCb() as http.RequestListener)
         return new Promise((resolve, reject) => {
             server.once('listening', resolve)
             server.once('error', reject)
@@ -56,13 +56,21 @@ export class WooksHttp extends WooksAdapterBase {
     }
 
     public close(server?: Server) {
-        let srv = server || this.server
+        const srv = server || this.server
         return new Promise((resolve, reject) => {
             srv?.close((err) => {
                 if (err) return reject(err)
                 resolve(srv)
             })
         })
+    }
+
+    getServer() {
+        return this.server
+    }
+
+    attachServer(server?: Server) {
+        this.server = server
     }
 
     protected responder = createWooksResponder()
