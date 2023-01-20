@@ -1,3 +1,12 @@
+## [0.2.8](https://github.com/wooksjs/wooksjs/compare/v0.2.7...v0.2.8) (2023-01-20)
+
+
+### Features
+
+* **http:** add server getter ([e4f0368](https://github.com/wooksjs/wooksjs/commit/e4f036899f9e25224443ade95bc6ea39fd764a05))
+
+
+
 ## [0.2.7](https://github.com/wooksjs/wooksjs/compare/v0.2.6...v0.2.7) (2023-01-18)
 
 
