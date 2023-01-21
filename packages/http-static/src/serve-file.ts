@@ -1,5 +1,5 @@
 import { useHeaders, useRequest, useResponse, useSetHeaders,
-    useSetCacheControl, BaseWooksResponse, HttpError, TCacheControl, useHttpContext } from '@wooksjs/event-http'
+    useSetCacheControl, BaseHttpResponse, HttpError, TCacheControl, useHttpContext } from '@wooksjs/event-http'
 
 import { promises as fsPromises, createReadStream, Stats } from 'fs'
 const { stat, readdir } = fsPromises
@@ -81,7 +81,7 @@ export async function serveFile(filePath: string, options: TServeFileOptions = {
             return listDirectory(normalizedPath)
         } else if (options.index) {
             if (filePath[filePath.length - 1] !== '/' && url && url[url.length - 1] !== '/') {
-                return new BaseWooksResponse().setStatus(302).setHeader('location', url + '/')
+                return new BaseHttpResponse().setStatus(302).setHeader('location', url + '/')
             }
             restoreCtx()
             return serveFile(path.join(filePath, options.index), {

@@ -63,7 +63,7 @@ export function useBody() {
     }
 
     function formDataParser(v: string): Record<string, unknown> {
-        const boundary = '--' + ((/boundary=([^;]+)(?:;|$)/.exec(contentType || '') || [, ''])[1] as string)
+        const boundary = '--' + ((/boundary=([^;]+)(?:;|$)/.exec(contentType || '') || [, ''])[1])
         if (!boundary) throw new HttpError(EHttpStatusCode.BadRequest, 'form-data boundary not recognized')
         const parts = v.trim().split(boundary)
         const result: Record<string, unknown> = {}

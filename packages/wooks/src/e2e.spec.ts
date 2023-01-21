@@ -1,4 +1,4 @@
-import { useCookies, useResponse, useSearchParams, useSetCookies, useSetHeaders, BaseWooksResponse, createHttpApp } from '@wooksjs/event-http'
+import { useCookies, useResponse, useSearchParams, useSetCookies, useSetHeaders, BaseHttpResponse, createHttpApp } from '@wooksjs/event-http'
 import http, { IncomingMessage, OutgoingHttpHeaders } from 'http'
 import { useBody } from '@wooksjs/http-body'
 import { useRouteParams } from '@wooksjs/event-core'
@@ -120,7 +120,7 @@ describe('Wooks E2E', () => {
     })
     
     app.get('/overwrite', () => {
-        const response = new BaseWooksResponse()
+        const response = new BaseHttpResponse()
         const { status } = useResponse()
         const { setCookie } = useSetCookies()
         const { setHeader } = useSetHeaders()

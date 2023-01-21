@@ -1,21 +1,21 @@
 import { useResponse } from '../composables'
-import { WooksErrorRenderer } from '../errors/error-renderer'
+import { HttpErrorRenderer } from '../errors/error-renderer'
 import { HttpError } from '../errors/http-error'
 import { TWooksErrorBodyExt } from '../errors/http-error'
-import { BaseWooksResponse } from './core'
-import { BaseWooksResponseRenderer, TWooksResponseRenderer } from './renderer'
+import { BaseHttpResponse } from './core'
+import { BaseHttpResponseRenderer, TWooksResponseRenderer } from './renderer'
 
 export function createWooksResponder(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    renderer: TWooksResponseRenderer<any> = new BaseWooksResponseRenderer(),
+    renderer: TWooksResponseRenderer<any> = new BaseHttpResponseRenderer(),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    errorRenderer: TWooksResponseRenderer<any> = new WooksErrorRenderer(),
+    errorRenderer: TWooksResponseRenderer<any> = new HttpErrorRenderer(),
 ) {
-    function createResponse<T = unknown>(data: T): BaseWooksResponse<T | TWooksErrorBodyExt> | null {
+    function createResponse<T = unknown>(data: T): BaseHttpResponse<T | TWooksErrorBodyExt> | null {
         const { hasResponded } = useResponse()
         if (hasResponded()) return null
         if (data instanceof Error) {
-            const r = new BaseWooksResponse<TWooksErrorBodyExt>(errorRenderer)
+            const r = new BaseHttpResponse<TWooksErrorBodyExt>(errorRenderer)
             let httpError: HttpError
             if (data instanceof HttpError) {
                 httpError = data
@@ -24,10 +24,10 @@ export function createWooksResponder(
             }
             r.setBody(httpError.body)
             return r
-        } else if (data instanceof BaseWooksResponse) {
-            return data as BaseWooksResponse<T>
+        } else if (data instanceof BaseHttpResponse) {
+            return data as BaseHttpResponse<T>
         } else {
-            return new BaseWooksResponse<T>(renderer).setBody(data)
+            return new BaseHttpResponse<T>(renderer).setBody(data)
         }
     }
     return {

@@ -1,4 +1,4 @@
-import { WooksErrorRenderer } from './error-renderer'
+import { HttpErrorRenderer } from './error-renderer'
 import { EHttpStatusCode, httpStatusCodes, THttpErrorCodes } from '../utils/status-codes'
 
 export class HttpError<T extends TWooksErrorBody = TWooksErrorBody> extends Error {
@@ -19,9 +19,9 @@ export class HttpError<T extends TWooksErrorBody = TWooksErrorBody> extends Erro
         }
     }
 
-    protected renderer?: WooksErrorRenderer
+    protected renderer?: HttpErrorRenderer
 
-    attachRenderer(renderer: WooksErrorRenderer) {
+    attachRenderer(renderer: HttpErrorRenderer) {
         this.renderer = renderer
     }
 

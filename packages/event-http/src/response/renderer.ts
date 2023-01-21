@@ -1,8 +1,8 @@
-import { BaseWooksResponse } from './core'
+import { BaseHttpResponse } from './core'
 import { panic } from 'common/panic'
 
-export class BaseWooksResponseRenderer<T = unknown> implements TWooksResponseRenderer<T> {
-    render(response: BaseWooksResponse<T>): string | Uint8Array {
+export class BaseHttpResponseRenderer<T = unknown> implements TWooksResponseRenderer<T> {
+    render(response: BaseHttpResponse<T>): string | Uint8Array {
         if (typeof response.body === 'string' || typeof response.body === 'boolean' || typeof response.body === 'number') {
             if (!response.getContentType()) response.setContentType('text/plain')
             return response.body.toString()
@@ -22,5 +22,5 @@ export class BaseWooksResponseRenderer<T = unknown> implements TWooksResponseRen
 }
 
 export interface TWooksResponseRenderer<T = unknown> {
-    render: (response: BaseWooksResponse<T>) => string | Uint8Array
+    render: (response: BaseHttpResponse<T>) => string | Uint8Array
 }

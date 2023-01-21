@@ -1,4 +1,4 @@
-import { BaseWooksResponseRenderer } from './renderer'
+import { BaseHttpResponseRenderer } from './renderer'
 import { useRequest, useResponse, useSetHeaders, useSetCookies } from '../composables'
 import { EHttpStatusCode } from '../utils/status-codes'
 import { panic } from 'common/panic'
@@ -16,10 +16,10 @@ const defaultStatus: Record<string, EHttpStatusCode> = {
     DELETE: EHttpStatusCode.Accepted,
 }
 
-const baseRenderer = new BaseWooksResponseRenderer()
+const baseRenderer = new BaseHttpResponseRenderer()
 
-export class BaseWooksResponse<BodyType = unknown> {
-    constructor(protected renderer: BaseWooksResponseRenderer = baseRenderer) {}
+export class BaseHttpResponse<BodyType = unknown> {
+    constructor(protected renderer: BaseHttpResponseRenderer = baseRenderer) {}
 
     protected _status: EHttpStatusCode = 0
 

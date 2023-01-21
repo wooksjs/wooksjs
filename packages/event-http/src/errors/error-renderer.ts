@@ -1,8 +1,8 @@
 import { TWooksErrorBodyExt } from './http-error'
 import { useAccept } from '../composables'
-import { BaseWooksResponse } from '../response/core'
+import { BaseHttpResponse } from '../response/core'
 import { httpStatusCodes } from '../utils/status-codes'
-import { BaseWooksResponseRenderer } from '../response/renderer'
+import { BaseHttpResponseRenderer } from '../response/renderer'
 
 const preStyles = 'font-family: monospace;'
 + 'width: 100%;'
@@ -13,8 +13,8 @@ const preStyles = 'font-family: monospace;'
 + 'background-color: #494949;'
 + 'box-shadow: 0px 0px 3px 2px rgb(255 255 255 / 20%);'
 
-export class WooksErrorRenderer extends BaseWooksResponseRenderer<TWooksErrorBodyExt> {
-    renderHtml(response: BaseWooksResponse<TWooksErrorBodyExt>): string {
+export class HttpErrorRenderer extends BaseHttpResponseRenderer<TWooksErrorBodyExt> {
+    renderHtml(response: BaseHttpResponse<TWooksErrorBodyExt>): string {
         const data = response.body || {} as TWooksErrorBodyExt
         response.setContentType('text/html')
         const keys = Object.keys(data).filter(key => !['statusCode', 'error', 'message'].includes(key)) as (keyof typeof data)[]
@@ -27,7 +27,7 @@ export class WooksErrorRenderer extends BaseWooksResponseRenderer<TWooksErrorBod
             '</body></html>'
     }
 
-    renderText(response: BaseWooksResponse<TWooksErrorBodyExt>): string {
+    renderText(response: BaseHttpResponse<TWooksErrorBodyExt>): string {
         const data = response.body || {} as TWooksErrorBodyExt
         response.setContentType('text/plain')
         const keys = Object.keys(data).filter(key => !['statusCode', 'error', 'message'].includes(key)) as (keyof typeof data)[]
@@ -35,7 +35,7 @@ export class WooksErrorRenderer extends BaseWooksResponseRenderer<TWooksErrorBod
             + `\n\n${keys.length ? `${JSON.stringify({...data, statusCode: undefined, message: undefined, error: undefined}, null, '  ')}` : ''}`
     }
 
-    renderJson(response: BaseWooksResponse<TWooksErrorBodyExt>): string {
+    renderJson(response: BaseHttpResponse<TWooksErrorBodyExt>): string {
         const data = response.body || {} as TWooksErrorBodyExt
         response.setContentType('application/json')
         const keys = Object.keys(data).filter(key => !['statusCode', 'error', 'message'].includes(key)) as (keyof typeof data)[]
@@ -45,7 +45,7 @@ export class WooksErrorRenderer extends BaseWooksResponseRenderer<TWooksErrorBod
             + `${ keys.length ? (',' + keys.map(k => `"${escapeQuotes(k)}":${JSON.stringify(data[k])}`).join(',')) : '' }}`
     }
 
-    render(response: BaseWooksResponse<TWooksErrorBodyExt>): string {
+    render(response: BaseHttpResponse<TWooksErrorBodyExt>): string {
         const { acceptsJson, acceptsText, acceptsHtml } = useAccept()
         response.status = response.body?.statusCode || 500
         if (acceptsJson()) {
