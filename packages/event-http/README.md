@@ -205,7 +205,7 @@ app.get('test', async () => {
 ```
 
 ### Request Body Parser
-[More details here](https://github.com/wooksjs/body#readme)
+[More details here](https://github.com/wooksjs/wooksjs/blob/main/packages/http-body/README.md)
 
 ### Response
 The easiest way to respond to the request is to return some value from handler function like this:
@@ -394,10 +394,10 @@ app.get('static/*', () => {
 ```
 
 ### Proxy Requests
-[More details here](https://github.com/wooksjs/proxy#readme)
+[More details here](https://github.com/wooksjs/wooksjs/blob/main/packages/http-proxy/README.md)
 
 ### Serve File
-[More details here](https://github.com/wooksjs/serve-file#readme)
+[More details here](https://github.com/wooksjs/wooksjs/blob/main/packages/http-static/README.md)
 
 ## Create you own hooks
 
