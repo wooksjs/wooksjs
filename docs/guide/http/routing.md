@@ -1,10 +1,10 @@
 # Routing
 
-Routing is the first step of event processing. It helps to route the event context to a proper event handler.
-Routes can be static or parametric. Parameters are parsed from a parametric route and then passed further to handler.
+Routing is the first step of event processing. It's responsible for routing the event context to a proper event handler.
+Routes can be static or parametric. Parameters are parsed from a parametric route and then passed further to a handler.
 
 ::: info
-Wooks uses [@prostojs/router](https://github.com/prostojs/router) for routing. But its documentation is inicluded
+Wooks uses [@prostojs/router](https://github.com/prostojs/router) for routing. Its documentation partly inicluded
 here for easy access.
 :::
 
@@ -74,33 +74,60 @@ function useRouteParams<T extends object = Record<string, string | string[]>>():
 }
 ```
 
-Usage `useRouteParams`
+Usage of `useRouteParams`
 
-```js
+::: code-group
+```js [ESM]
 import { useRouteParams } from 'wooks'
 app.get('hello/:name', () => {
     const { get } = useRouteParams()
     return `Hello ${ get('name') }!`
 })
 ```
+```js [CommonJS]
+const { useRouteParams } = require('wooks')
+app.get('hello/:name', () => {
+    const { get } = useRouteParams()
+    return `Hello ${ get('name') }!`
+})
+```
+:::
 
 For repeated param name it returns an array:
-```js
+::: code-group
+```js [ESM]
 import { useRouteParams } from 'wooks'
 app.get('hello/:name/:name', () => {
     const { get } = useRouteParams()
     return get('name') // array of names
 })
 ```
+```js [CommonJS]
+const { useRouteParams } = require('wooks')
+app.get('hello/:name/:name', () => {
+    const { get } = useRouteParams()
+    return get('name') // array of names
+})
+```
+:::
 
 For wildcard the name of param is `*`:
-```js
+::: code-group
+```js [ESM]
 import { useRouteParams } from 'wooks'
 app.get('hello/*', () => {
     const { get } = useRouteParams()
     return get('*') // returns everything that follows hello/
 })
 ```
+```js [CommonJS]
+const { useRouteParams } = require('wooks')
+app.get('hello/*', () => {
+    const { get } = useRouteParams()
+    return get('*') // returns everything that follows hello/
+})
+```
+:::
 
 Multiple wildcards are stored as an array (similar to repeated param name)
 
@@ -145,7 +172,7 @@ console.log(userPathBuilder({
 
 ## Query Parameters
 
-Query Parameters of URL Search Parameters are not a part of URI path that is processed by router.
+Query Parameters or URL Search Parameters are not a part of URI path that is processed by router.
 Router simply ignores everything after `?` or `#`.
 
 So there is nothing router can do about query params. But there is a composable function that

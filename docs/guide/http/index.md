@@ -32,7 +32,7 @@ None of these composables is triggered unless you want it. This makes Wooks HTTP
 Composable function (hook) is a function that hooks you to the [event context](../#event-context), e.g. URL-params, body, cookies etc.
 :::
 
-### Differences from `express` and `fastify`:
+### Differences from other Web App Frameworks:
 
 1. Wooks never mutates request object (`req`). It stores a request context in a separate object(s) instead ([event context](../#event-context)).
 2. Wooks never parses anything (cookies, body) before it is really requested by the request handler.
@@ -49,7 +49,9 @@ npm install wooks @wooksjs/event-http
 
 Here's a `Hello World` example app. It spins up a server on port 3000 and replies `Hello World!`.
 
-```js
+::: code-group
+
+```js [ESM]
 import { useRouteParams } from 'wooks'
 import { createHttpApp } from '@wooksjs/event-http'
 
@@ -62,6 +64,22 @@ app.on('GET', 'hello/:name', () => `Hello ${ useRouteParams().get('name') }!`)
 
 app.listen(3000, () => { console.log('Wooks Server is up on port 3000') })
 ```
+
+```js [CommonJS]
+const { useRouteParams } = require('wooks')
+const { createHttpApp } = require('@wooksjs/event-http')
+
+const app = createHttpApp()
+
+app.on('GET', 'hello/:name', () => `Hello ${ useRouteParams().get('name') }!`)
+
+// or use a shortcut for get method:
+// app.get('hello/:name', () => `Hello ${ useRouteParams().get('name') }!`)
+
+app.listen(3000, () => { console.log('Wooks Server is up on port 3000') })
+```
+
+:::
 
 Call the endpoint to see the result:
 ```bash

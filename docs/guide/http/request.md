@@ -6,6 +6,9 @@ You probably don't need a `rawRequest` unless you are developing some new featur
 
 ```js
 import { useRequest } from '@wooksjs/event-http'
+// cjs:
+// const { useRequest } = require('@wooksjs/event-http')
+
 app.get('test', () => {
     const { rawRequest } = useRequest()
 })
@@ -19,6 +22,9 @@ To get access to URL parameters use composable function `useRouteParams`
 
 ```js
 import { useRouteParams } from 'wooks'
+// cjs:
+// const { useRouteParams } = require('wooks')
+
 app.get('parametric/:param1/:param2/...', () => {
     const { params, get } = useRouteParams()
     // presume we had a request on `/parametric/value1/value2`
@@ -40,6 +46,9 @@ To get access to Query parameters use composable function `useSearchParams`
 
 ```js
 import { useSearchParams } from '@wooksjs/event-http'
+// cjs:
+// const { useSearchParams } = require('@wooksjs/event-http')
+
 app.get('with-query', () => {
     const { jsonSearchParams, urlSearchParams } = useSearchParams()
     // presume we had a request on `/with-query?param1=abc&param2=cde`

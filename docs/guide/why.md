@@ -16,10 +16,10 @@ Fastify has a proper router but tries to get rid of middlewares. Although they s
 
 One of the problems with event processing (http request particularly is obviously an event) is that event can carry
 some payload that might be required by handlers. Well, some part of the payload is consumable the way it was shipped from
-the event trigger. The other part of the it must be parsed or checked against various data sources (db, iam, abac, ...).
+the event trigger. The other part of it must be parsed or checked against various data sources (db, iam, abac, ...).
 
 If we have to parse something, we want to make sure we do it once. So why don't just parse everything that we might need
-every time event is triggered? Well, most of express and fastify apps do exactly this. The problem is that there are many scenarios
+each time when event is triggered? Well, most of express and fastify apps do exactly this. The problem is that there are many scenarios
 where parsed body was never used, as well as parsed cookies.
 
 Another problem is where to cache already parsed and fetched data? Express and fastify simply attach everything to a
@@ -28,7 +28,7 @@ request instance. This leads to the following issues:
 - When using TS it's not clear how exactly type the request (Is it still `IncomingMessage`? Is `Express.Request`? What's the difference?);
 - Request object always appears in middlewares and handlers and may be accidentally linked to some persistent object -> memory leaks.
 
-## What's the difference with Wooks
+## What's the difference with Wooks?
 
 Wooks with the help of **composable functions** (hooks) solves the problem of parsing/fetching data on demand. When you need a parsed body
 you call composable function that will parse it for you. Same for cookies. Same for everything.

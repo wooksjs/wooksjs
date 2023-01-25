@@ -36,13 +36,14 @@ The main ideas behind Wooks are:
 ## Event Routing
 
 Fast and robust routing is achieved with [@prostojs/router](https://github.com/prostojs/router).
-It's basically a URI router that supports parameters and wildcards.
+It's basically an URI router that supports parameters and wildcards.
 
-It's as fast as `find-my-way` used by `fastify` *(in some tests it is even faster)*, see benchmars [here](https://github.com/prostojs/router-benchmark).
+It's as fast as `find-my-way` used by `fastify` *(in some tests it is even faster)*, see benchmarks [here](https://github.com/prostojs/router-benchmark).
 But it's less buggy (IMO) and handles `%`-encoding properly with no compromises.
 
 See performance comparison table with `express`, `find-my-way` and `radix3` ([source](https://github.com/prostojs/router-benchmark)):
 
+::: details
 |Test Name|Express avg op/ms|FindMyWay avg op/ms|ProstoRouter avg op/ms|Radix3 avg op/ms|
 |:-|-:|-:|-:|-:|
 |Short static|1 792|7 070|6 912|10 326|
@@ -52,6 +53,7 @@ See performance comparison table with `express`, `find-my-way` and `radix3` ([so
 |Long static|637|2 174|8 934|14 000|
 |Wildcard|486|2 081|2 065|1 019|
 |**All together**|**663**|**2 328**|**2 893**|**1 549**|
+:::
 
 ## Event Context
 
@@ -65,7 +67,7 @@ Each event context has:
 The generic event context API is implemented in `@wooksjs/event-core` library.
 
 Each event-specific library provides its wrapper of `event-core`. The reason for that is to provide proper types and event-specific composables.
-Such libraries named with `event-` as the prefix, e.g. `@wooksjs/event-http`, `@wooksjs/event-cli`, ...
+Such libraries refixed with `event-`, e.g. `@wooksjs/event-http`, `@wooksjs/event-cli`, ...
 
 The `event-core` functionality includes the following actions:
 - create/clear/restore event context
@@ -78,7 +80,7 @@ Besides actions it supplies several composables:
 
 ## Response
 
-There is no generic response handling in Wooks. Each event-specific wrapper is responsible for managing the response from handlers.
+There is no generic response handling in Wooks. Each event-specific wrapper is responsible for managing the response from the handlers.
 For instance `@wooksjs/event-http` comes with a **responder** that is capable of calling `res.writeHead(...)` and `res.end(...)` based on the event
 context and returned values from event handler.
 
@@ -87,9 +89,9 @@ context and returned values from event handler.
 You actually can not just use Wooks as a generic thing. It can not handle any of the events. It only provides
 a landscape with router and event context. So you always need some event-specific library together with Wooks.
 
-Currently there are two such libraries:
+Currently there are two of such libraries:
 
 1. `@wooksjs/event-http` — http event processing, it can easily replace `express` or `fastify`
 1. `@wooksjs/event-cli` <Badge type="warning" text="WIP" /> — command line input processing, helps to route commands
 
-In further sections of this documentation you'll find detailed examples of usage of this framework.
+In further sections of this documentation you'll find detailed examples of how to use this framework.
