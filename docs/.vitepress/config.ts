@@ -93,10 +93,6 @@ export default defineConfig({
                     text: 'Guide',
                     items: [
                         {
-                            text: 'Introduction',
-                            link: '/guide/what',
-                        },
-                        {
                             text: 'Why Wooks',
                             link: '/guide/why',
                         },
@@ -108,6 +104,10 @@ export default defineConfig({
                             text: 'Wooks HTTP',
                             link: '/guide/http/',
                             items: [
+                                {
+                                    text: 'Routing',
+                                    link: '/guide/http/routing',
+                                },
                                 {
                                     text: 'Request',
                                     link: '/guide/http/request',

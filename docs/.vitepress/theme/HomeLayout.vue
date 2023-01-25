@@ -25,7 +25,7 @@ const actions = [
         <div class="VPHero">
             <div class="container" style="display: flex; flex-direction: column;">
                 <div class="main">
-                    <img src="/wooks-full-logo.png" alt="Wooks" style="width: 333px;" />
+                    <img src="/wooks-full-logo.png" alt="Wooks" style="width: 400px; margin-bottom: 32px;" />
                     <p class="text">Next Generation Event Processing Framework</p>
                     <p class="tagline">Get ready for hooks in web apps.</p>  
 
@@ -54,12 +54,12 @@ const actions = [
 }
 @media (min-width: 640px) {
   .VPHero {
-    padding: calc(var(--vp-nav-height) + var(--vp-layout-top-height, 0px) + 80px) 48px 64px;
+    padding: calc(var(--vp-nav-height) + var(--vp-layout-top-height, 0px) + 64px) 48px 64px;
   }
 }
 @media (min-width: 960px) {
   .VPHero {
-    padding: calc(var(--vp-nav-height) + var(--vp-layout-top-height, 0px) + 80px) 64px 64px;
+    padding: calc(var(--vp-nav-height) + var(--vp-layout-top-height, 0px) + 64px) 64px 64px;
   }
 }
 .container {
