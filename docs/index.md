@@ -2,25 +2,25 @@
 layout: home
 
 title: Wooks
-titleTemplate: Next Generation Event Processing Framework
+titleTemplate: Home | :title
 
-hero:
-  name: Wooks
-  text: Next Generation Event Processing Framework
-  tagline: Get ready for hooks in web apps.
-  image:
-    src: /wooksjs.png
-    alt: WooksJS
-  actions:
-    - theme: brand
-      text: Get Started
-      link: /guide/
-    - theme: alt
-      text: Why Wooks?
-      link: /guide/why
-    - theme: alt
-      text: View on GitHub
-      link: https://github.com/wooksjs/wooksjs
+# hero:
+  # name: Wooks
+  # text: Next Generation Event Processing Framework
+  # tagline: Get ready for hooks in web apps.
+  # image:
+  #   src: /wooksjs.png
+  #   alt: WooksJS
+  # actions:
+  #   - theme: brand
+  #     text: Get Started
+  #     link: /guide/
+  #   - theme: alt
+  #     text: Why Wooks?
+  #     link: /guide/why
+  #   - theme: alt
+  #     text: View on GitHub
+  #     link: https://github.com/wooksjs/wooksjs
 
 features:
   - icon: 💕

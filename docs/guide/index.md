@@ -1,15 +1,9 @@
 # Getting Started
 
-## Overview
-
-Wooks (Web-Hooks) is an event processing framework. The major functionality is
-of course http events. Nevertheless you can build CLI with the similar approach.
-And even more event types support is coming.
-
-The main ideas are:
-- each event has its context (state)
-- composable functions (hooks) can parse/fetch data and cache the result in the event context
-- the context is available within the handlers via hooks to the context
+::: warning
+The work on Wooks is still in progress. It is already suitable for
+out-of-the-box use for HTTP events, but some of the APIs can still change.
+:::
 
 ## Your First Wooks Project
 

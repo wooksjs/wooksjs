@@ -10,8 +10,11 @@ const ogUrl = 'https://wooksjs.org'
 // const commitRef = process.env.COMMIT_REF?.slice(0, 8) || 'dev'
 
 export default defineConfig({
-    title: `Wooks`,
+    lang: 'en-US',
+    title: ' ',
     description: 'Next Generation Event Processing Framework',
+
+    titleTemplate: ':title | Wooks',
 
     head: [
         ['link', { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' }],
@@ -30,7 +33,7 @@ export default defineConfig({
     },
 
     themeConfig: {
-        logo: '/logo.svg',
+        logo: '/wooks-full-logo.png', //'/logo.svg',
 
         editLink: {
             pattern: 'https://github.com/wooksjs/wooksjs/edit/main/docs/:path',
@@ -90,6 +93,10 @@ export default defineConfig({
                     text: 'Guide',
                     items: [
                         {
+                            text: 'Introduction',
+                            link: '/guide/what',
+                        },
+                        {
                             text: 'Why Wooks',
                             link: '/guide/why',
                         },
@@ -99,7 +106,7 @@ export default defineConfig({
                         },
                         {
                             text: 'Wooks HTTP',
-                            link: '/guide/http',
+                            link: '/guide/http/',
                             items: [
                                 {
                                     text: 'Request',

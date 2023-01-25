@@ -1,5 +1,10 @@
 # Why Wooks
 
+::: warning
+The work on Wooks is still in progress. It is already suitable for
+out-of-the-box use for HTTP events, but some of the APIs can still change.
+:::
+
 Developers are struggling to pick a proper framework for web application.
 Some of them just use express. The others take fastify hoping that it'll bring more speed to the server ⚡.
 
