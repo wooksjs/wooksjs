@@ -45,3 +45,8 @@ app.on('GET', 'hello/:name', () => `Hello ${ useRouteParams().get('name') }!`)
 app.listen(3000, () => { console.log('Wooks Server is up on port 3000') })
 ```
 See full documentation for http event [here](https://github.com/wooksjs/wooksjs/tree/main/packages/event-http)
+
+
+## Documentation
+
+To check out docs, visit [wooksjs.org](https://wooksjs.org/).

@@ -135,19 +135,36 @@ export default defineConfig({
                                     text: 'Response',
                                     link: '/guide/http/composables/response',
                                 },
+                                {
+                                    text: 'Body Parser',
+                                    link: '/guide/http/body',
+                                },
+                                {
+                                    text: 'Proxy Requests',
+                                    link: '/guide/http/proxy',
+                                },
+                                {
+                                    text: 'Serve Static',
+                                    link: '/guide/http/static',
+                                },
                             ],
                         },
                         {
-                            text: 'Body Parser',
-                            link: '/guide/http/body',
+                            text: 'Advanced',
+                            items: [
+                                {
+                                    text: 'Context and Hooks',
+                                    link: '/guide/http/more-hooks',
+                                },
+                                {
+                                    text: 'Create an Adapter',
+                                    link: '/guide/http/adapters',
+                                },
+                            ],
                         },
                         {
-                            text: 'Proxy Requests',
-                            link: '/guide/http/proxy',
-                        },
-                        {
-                            text: 'Serve Static',
-                            link: '/guide/http/static',
+                            text: 'Express Adapter',
+                            link: '/guide/http/express',
                         },
                     ]
                 },  

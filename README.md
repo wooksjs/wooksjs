@@ -24,6 +24,10 @@ Supported events:
 
 ⚒️ Redis (planned ...)
 
+## Documentation
+
+To check out docs, visit [wooksjs.org](https://wooksjs.org/).
+
 ## Contributing
 
 Welcome!
