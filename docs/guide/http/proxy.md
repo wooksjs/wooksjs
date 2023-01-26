@@ -1,8 +1,7 @@
 # Proxy Requests
 
-Wooks Proxy is composable proxy for [@wooksjs/event-http](https://github.com/wooksjs/wooksjs/tree/main/packages/event-http)
-
-🔥 An easy way to proxy request!
+Although Wooks HTTP already supports `fetch` response to be returned from a handler,
+this package provides more convinient way to proxy requests.
 
 ## Install
 
@@ -12,16 +11,18 @@ npm install @wooksjs/http-proxy
 
 ## Usage
 
+A very simple example:
+
 ```js
 import { useProxy } from '@wooksjs/http-proxy'
+
 app.get('/to-proxy', () => {
     const proxy = useProxy()
     return proxy('https://target-website.com/target-path?query=123')
 })
-
 ```
 
-### Restrict cookies/headers to pass
+## Restrict cookies/headers to pass
 
 ```js
 import { useProxy } from '@wooksjs/http-proxy'
@@ -35,7 +36,7 @@ app.get('/to-proxy', () => {
 
 ```
 
-### Change response
+## Change Response
 
 It's easy as `proxy` returns fetch response
 
@@ -50,7 +51,8 @@ app.get('/to-proxy', async () => {
 
 ```
 
-## Proxy advanced options
+## Advanced Options
+
 ```js
 import { useProxy } from '@wooksjs/http-proxy'
 import { useRequest } from '@wooksjs/composables'

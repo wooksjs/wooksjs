@@ -178,25 +178,4 @@ Router simply ignores everything after `?` or `#`.
 So there is nothing router can do about query params. But there is a composable function that
 provides you access to those: `useSearchParams` from `@wooksjs/event-http`
 
-```js
-import { useSearchParams } from '@wooksjs/event-http'
-
-app.get('hello', () => {
-    const {
-        urlSearchParams,
-        jsonSearchParams,
-        rawSearchParams,
-    } = useSearchParams()
-
-    // curl http://localhost:3000/hello?name=World
-    console.log(jsonSearchParams()) // { name: 'World' }
-    console.log(rawSearchParams())  // ?name=World
-
-    return `Hello ${ urlSearchParams().get('name') }!`
-})
-```
-
-```bash
-curl http://localhost:3000/hello?name=World
-# Hello World!
-```
+See more details [here](./composables/request.md#query-parameters).

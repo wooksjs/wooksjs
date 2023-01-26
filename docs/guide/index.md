@@ -1,3 +1,22 @@
+<!-- <script setup>
+    import VPFeatures from 'vitepress/dist/client/theme-default/components/VPFeatures.vue'
+
+    const features = [
+        {
+            // icon: '🕸',
+            title: 'Wooks HTTP',
+            details: 'Create you HTTP Server that can easily replace any of well known web app frameworks',
+            link: '/guide/http/',
+        },
+        {
+            // icon: '💻',
+            title: 'Wooks CLI',
+            details: 'Create you CLI modularly with routing the commands',
+            link: '/guide/cli/',
+        },
+    ]
+</script> -->
+
 # Getting Started
 
 ::: warning
@@ -91,7 +110,11 @@ a landscape with router and event context. So you always need some event-specifi
 
 Currently there are two of such libraries:
 
-1. `@wooksjs/event-http` — http event processing, it can easily replace `express` or `fastify`
-1. `@wooksjs/event-cli` <Badge type="warning" text="WIP" /> — command line input processing, helps to route commands
+<!-- <VPFeatures
+    :features="features"
+/> -->
+
+1. `@wooksjs/event-http` — http event processing, it can easily replace any of well known web app frameworks. See details [here](./http/).
+1. `@wooksjs/event-cli` <Badge type="warning" text="WIP" /> — command line input processing, helps to route commands. See details [here](./cli/).
 
 In further sections of this documentation you'll find detailed examples of how to use this framework.

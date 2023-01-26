@@ -19,7 +19,7 @@ html.dark {
     --vp-c-bg-elv-down: #1e1e20;
     --vp-c-bg-elv-mute: #313136;
     --vp-c-bg-soft: #173241;
-    --vp-c-bg-soft-up: #313136;
+    --vp-c-bg-soft-up: #053249; /* feature hover */
     --vp-c-bg-soft-down: #0c2432;
     --vp-c-bg-soft-mute: #313136;
 
@@ -32,4 +32,24 @@ html.dark {
 
     --vp-c-bg-alt: #00121a;
 
+}
+
+img.VPImage.logo {
+    transform: scale(0);
+    transition: transform 0.2s ease-in-out;
+}
+
+a.title {
+    background-image: url(/logo.svg);
+    background-size: 50%;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.VPNavBar.has-sidebar img.VPImage.logo {
+    transform: scale(1);
+}
+
+.VPNavBar.has-sidebar a.title {
+    background-image: none;
 }

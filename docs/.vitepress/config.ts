@@ -100,36 +100,6 @@ export default defineConfig({
                             text: 'Getting Started',
                             link: '/guide/',
                         },
-                        {
-                            text: 'Wooks HTTP',
-                            link: '/guide/http/',
-                            items: [
-                                {
-                                    text: 'Routing',
-                                    link: '/guide/http/routing',
-                                },
-                                {
-                                    text: 'Request',
-                                    link: '/guide/http/request',
-                                },
-                                {
-                                    text: 'Response',
-                                    link: '/guide/http/response',
-                                },
-                                {
-                                    text: 'Body Parser',
-                                    link: '/guide/http/body',
-                                },
-                                {
-                                    text: 'Proxy Requests',
-                                    link: '/guide/http/proxy',
-                                },
-                                {
-                                    text: 'Serve Static',
-                                    link: '/guide/http/static',
-                                },
-                            ]
-                        },
                         // {
                         //     text: 'Features',
                         //     link: '/guide/features',
@@ -138,6 +108,69 @@ export default defineConfig({
                         //   text: 'CLI',
                         //   link: '/guide/cli',
                         // },
+                    ],
+                },
+                {
+                    text: 'Wooks HTTP',
+                    collapsible: true,
+                    collapsed: true,
+                    items: [
+                        {
+                            text: 'HTTP Server',
+                            link: '/guide/http/',
+                        },
+                        {
+                            text: 'Routing',
+                            link: '/guide/http/routing',
+                        },
+                        {
+                            text: 'Composables',
+                            link: '/guide/http/composables/',
+                            items: [
+                                {
+                                    text: 'Request',
+                                    link: '/guide/http/composables/request',
+                                },
+                                {
+                                    text: 'Response',
+                                    link: '/guide/http/composables/response',
+                                },
+                            ],
+                        },
+                        {
+                            text: 'Body Parser',
+                            link: '/guide/http/body',
+                        },
+                        {
+                            text: 'Proxy Requests',
+                            link: '/guide/http/proxy',
+                        },
+                        {
+                            text: 'Serve Static',
+                            link: '/guide/http/static',
+                        },
+                    ]
+                },  
+                {
+                    text: 'Wooks CLI',
+                    collapsible: true,
+                    collapsed: true,
+                    items: [
+                        {
+                            text: 'Create CLI',
+                            link: '/guide/cli/',
+                        },                        
+                    ],
+                },
+                {
+                    text: 'Advanced',
+                    collapsible: true,
+                    collapsed: true,
+                    items: [
+                        {
+                            text: 'Event Context',
+                            link: '/guide/advanced/context',
+                        },                        
                     ],
                 },
                 // {

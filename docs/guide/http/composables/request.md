@@ -1,4 +1,16 @@
-# Request
+# Request Composables
+
+Request is an object (`IncomingMessage`) that is generated when an incoming http request hits nodejs server.
+That object contains headers, body etc. Headers can be available even before body is loaded.
+The event handler is triggered right when `head` has already been received but before `body` is received.
+It means that in case of wrong path the router will reply 404 before body was even sent.
+It also means that you can check headers/cookies before body is received, then you can make a decision if body is needed, should you parse it or not.
+
+## Content
+
+[[toc]]
+
+## Raw Request Instance
 
 To get a reference to the raw request instance use composable function `useRequest`
 
@@ -14,58 +26,43 @@ app.get('test', () => {
 })
 ```
 
-## Request Parameters
+## URI Parameters
 
-### URL Parameter
+URI Parameters are parsed by the router and covered in [this](../routing.md#retrieving-uri-params) section.
 
-To get access to URL parameters use composable function `useRouteParams`
+## Query Parameters
 
-```js
-import { useRouteParams } from 'wooks'
-// cjs:
-// const { useRouteParams } = require('wooks')
+Composable `useSearchParams` provides three functions:
 
-app.get('parametric/:param1/:param2/...', () => {
-    const { params, get } = useRouteParams()
-    // presume we had a request on `/parametric/value1/value2`
-    console.log('param1=' + get('param1'))
-    // prints "param1=value1"
-    console.log('param2=' + get('param2'))
-    // prints "param2=value2"
-    console.log(params)
-    // prints {
-    //   param1: "value1",
-    //   param2: "value2" 
-    // }
-})
-```
-
-### Query Parameter
-
-To get access to Query parameters use composable function `useSearchParams`
+- `urlSearchParams()` — an instance of `WooksURLSearchParams` that extends standard `URLSearchParams` with `toJson` method that returns json object of query params
+- `jsonSearchParams()` — is a shortcut to `urlSearchParams().toJson()`
+- `rawSearchParams()` — is raw search param string like `?param1=value&...`
 
 ```js
 import { useSearchParams } from '@wooksjs/event-http'
-// cjs:
-// const { useSearchParams } = require('@wooksjs/event-http')
 
-app.get('with-query', () => {
-    const { jsonSearchParams, urlSearchParams } = useSearchParams()
-    // presume we had a request on `/with-query?param1=abc&param2=cde`
-    console.log('param1=' + urlSearchParams('param1'))
-    // prints "param1=abc"
-    console.log('param2=' + urlSearchParams('param2'))
-    // prints "param1=cde"
-    console.log(jsonSearchParams)
-    // prints {
-    //   param1: "abc",
-    //   param2: "cde"   
-    // }
+app.get('hello', () => {
+    const {
+        urlSearchParams,
+        jsonSearchParams,
+        rawSearchParams,
+    } = useSearchParams()
+
+    // curl http://localhost:3000/hello?name=World
+    console.log(jsonSearchParams()) // { name: 'World' }
+    console.log(rawSearchParams())  // ?name=World
+
+    return `Hello ${ urlSearchParams().get('name') }!`
 })
 ```
 
+```bash
+curl http://localhost:3000/hello?name=World
+# Hello World!
+```
 
-## Request Method and Headers
+
+## Method and Headers
 `useRequest` provides some more shortcuts for useful data
 
 ```js
@@ -82,11 +79,13 @@ app.get('test', async () => {
 })
 ```
 
-## Request Cookies
+## Cookies
+
 Cookies are not parsed unless requested. Composable function `useCookies` provides cookie getter and raw cookies string.
 
 ```js
 import { useCookies } from '@wooksjs/event-http'
+
 app.get('test', async () => {
     const { 
         rawCookies, // "cookie" from headers (string | undefined)
@@ -98,8 +97,9 @@ app.get('test', async () => {
 })
 ```
 
-## Request Authorization
-`useAuthorization` function provides useful helpers for auth-headers:
+## Authorization
+
+`useAuthorization` function provides helpers for auth-headers:
 
 ```js
 import { useAuthorization } from '@wooksjs/event-http'
@@ -125,5 +125,8 @@ app.get('test', async () => {
 })
 ```
 
-## Request Body Parser
-[More details here](https://github.com/wooksjs/wooksjs/blob/main/packages/http-body/README.md)
+## Body Parser
+
+Implementation of body parser is isolated into a separate package `@wooksjs/http-body`
+
+See more details [here](../body.md)
