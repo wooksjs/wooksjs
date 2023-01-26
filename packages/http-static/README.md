@@ -75,3 +75,6 @@ app.get('static/*', () => {
 
 `cacheControl` here is the same object as used in `useSetCacheControl().setCacheControl({ ... })` from `@wooksjs/composables`
 
+## Documentation
+
+To check out docs, visit [wooksjs.org](https://wooksjs.org/).
