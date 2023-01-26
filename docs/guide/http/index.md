@@ -86,3 +86,35 @@ Call the endpoint to see the result:
 curl http://localhost:3000/hello/World
 # Hello World!
 ```
+
+
+## Use `http` directly
+
+You can create http(s) server manually and pass server callback from the wooks http app:
+
+::: code-group
+```js [ESM]
+import { useRouteParams } from 'wooks'
+import { createHttpApp } from '@wooksjs/event-http'
+import http from 'http' // or https
+
+const app = createHttpApp()
+
+app.get('hello/:name', () => `Hello ${ useRouteParams().get('name') }!`)
+
+const server = http.createServer(app.getServerCb()) // [!code hl]
+server.listen(3000, () => { console.log('Wooks Server is up on port 3000') }) // [!code hl]
+```
+```js [CommonJS]
+const { useRouteParams } = require('wooks')
+const { createHttpApp } = require('@wooksjs/event-http')
+const http = require('http') // or https
+
+const app = createHttpApp()
+
+app.get('hello/:name', () => `Hello ${ useRouteParams().get('name') }!`)
+
+const server = http.createServer(app.getServerCb()) // [!code hl]
+server.listen(3000, () => { console.log('Wooks Server is up on port 3000') }) // [!code hl]
+```
+:::

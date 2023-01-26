@@ -40,3 +40,7 @@ app.run()
 // node ./index.js test
 // node ./index.js random
 ```
+
+## Documentation
+
+To check out docs, visit [wooksjs.org](https://wooksjs.org/).
