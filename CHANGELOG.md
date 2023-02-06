@@ -1,3 +1,12 @@
+## [0.2.11](https://github.com/wooksjs/wooksjs/compare/v0.2.10...v0.2.11) (2023-02-06)
+
+
+### Bug Fixes
+
+* **proxy:** restore ctx before return ([21aa564](https://github.com/wooksjs/wooksjs/commit/21aa564e084fd47db3ce86bb2d85a6b669c4e155))
+
+
+
 ## [0.2.10](https://github.com/wooksjs/wooksjs/compare/v0.2.9...v0.2.10) (2023-01-26)
 
 
