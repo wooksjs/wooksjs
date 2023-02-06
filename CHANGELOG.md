@@ -1,3 +1,12 @@
+## [0.2.12](https://github.com/wooksjs/wooksjs/compare/v0.2.11...v0.2.12) (2023-02-06)
+
+
+### Bug Fixes
+
+* **proxy:** remove unnecessary restoreCtx call ([8007c93](https://github.com/wooksjs/wooksjs/commit/8007c9383a60e9be8e540c36a4ed8cb04317b13a))
+
+
+
 ## [0.2.11](https://github.com/wooksjs/wooksjs/compare/v0.2.10...v0.2.11) (2023-02-06)
 
 
