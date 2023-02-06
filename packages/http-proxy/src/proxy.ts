@@ -21,7 +21,7 @@ const resHeadersToBlock = [
 export function useProxy() {
     const status = useStatus()
     const { setHeader, headers: getSetHeaders } = useSetHeaders()
-    const { restoreCtx, getCtx } = useHttpContext() 
+    const { getCtx } = useHttpContext() 
     const { req } = getCtx().event
 
     const setHeadersObject = getSetHeaders()
@@ -90,7 +90,6 @@ export function useProxy() {
             }
         }
 
-        restoreCtx()
         return resp
     }
 }
