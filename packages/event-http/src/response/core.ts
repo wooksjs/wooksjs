@@ -124,6 +124,10 @@ export class BaseHttpResponse<BodyType = unknown> {
         return this
     }
 
+    protected mergeFetchStatus(fetchStatus: number) {
+        this.status = this.status || useResponse().status() || fetchStatus
+    }
+
     async respond() {
         const { rawResponse, hasResponded } = useResponse()
         const { method, rawRequest } = useRequest()
@@ -160,10 +164,21 @@ export class BaseHttpResponse<BodyType = unknown> {
                 })
             }
         } else if (globalThis.Response && this.body instanceof Response /* Fetch Response */) {
-            this.mergeStatus('ok')
+            this.mergeFetchStatus(this.body.status)
             if (method === 'HEAD') {
                 res.end()
             } else {
+                const additionalHeaders: Record<string, string | string[]> = {}
+                if (this.body.headers.get('content-length')) {
+                    additionalHeaders['content-length'] = this.body.headers.get('content-length') as string
+                }
+                if (this.body.headers.get('content-type')) {
+                    additionalHeaders['content-type'] = this.body.headers.get('content-type') as string
+                }
+                res.writeHead(this.status, {
+                    ...additionalHeaders,
+                    ...this._headers,
+                })
                 await respondWithFetch(this.body.body, res)
             }
         } else {
