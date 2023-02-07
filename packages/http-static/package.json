@@ -1,6 +1,6 @@
 {
   "name": "@wooksjs/http-static",
-  "version": "0.2.12",
+  "version": "0.2.13",
   "description": "@wooksjs/http-static",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
@@ -31,7 +31,7 @@
     "url": "https://github.com/wooksjs/wooksjs/issues"
   },
   "peerDependencies": {
-    "@wooksjs/event-http": "0.2.12"
+    "@wooksjs/event-http": "0.2.13"
   },
   "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/http-static#readme"
 }

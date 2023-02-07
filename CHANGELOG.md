@@ -1,3 +1,12 @@
+## [0.2.13](https://github.com/wooksjs/wooksjs/compare/v0.2.12...v0.2.13) (2023-02-07)
+
+
+### Bug Fixes
+
+* **http:** merge headers when responding with fetch ([70e8e2c](https://github.com/wooksjs/wooksjs/commit/70e8e2c7f17e8790b8c816fe1a8b384cc1d4bab6))
+
+
+
 ## [0.2.12](https://github.com/wooksjs/wooksjs/compare/v0.2.11...v0.2.12) (2023-02-06)
 
 
