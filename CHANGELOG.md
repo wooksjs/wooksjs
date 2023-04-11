@@ -1,3 +1,13 @@
+## [0.2.14](https://github.com/wooksjs/wooksjs/compare/v0.2.13...v0.2.14) (2023-04-11)
+
+
+### Features
+
+* add event logger ([7ced254](https://github.com/wooksjs/wooksjs/commit/7ced254874f5fac7175d14c53aaeda225e81ba70))
+* add event logger ([6468d1b](https://github.com/wooksjs/wooksjs/commit/6468d1b2c0e250d8935839d81f4ddd78b9b2bedd))
+
+
+
 ## [0.2.13](https://github.com/wooksjs/wooksjs/compare/v0.2.12...v0.2.13) (2023-02-07)
 
 
