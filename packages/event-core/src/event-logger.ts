@@ -19,7 +19,7 @@ export class EventLogger extends ProstoLogger<TEventLoggerData> {
         if (!_opts.transports) {
             _opts.transports = [
                 createConsoleTransort<TEventLoggerData>({
-                    format: (message) => coloredConsole(message as unknown as TProstoLoggerMessage),
+                    format: coloredConsole as unknown as ((m: TProstoLoggerMessage<TEventLoggerData>) => string),
                 }),
             ]
         }
