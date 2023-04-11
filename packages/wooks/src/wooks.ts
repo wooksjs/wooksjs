@@ -1,18 +1,34 @@
 import { ProstoRouter, THttpMethod } from '@prostojs/router'
 import { TWooksHandler } from './types'
 import { useEventContext } from '@wooksjs/event-core'
+import { ProstoLogger, TConsoleBase } from '@prostojs/logger'
+import { getDefaultLogger } from 'common/logger'
+
+export interface TWooksOptions {
+    logger?: TConsoleBase
+}
 
 export class Wooks {
     protected router: ProstoRouter<TWooksHandler>
 
-    constructor() {
+    protected logger: TConsoleBase
+
+    constructor(opts?: TWooksOptions) {
         this.router = new ProstoRouter({
             silent: true,
         })
+        this.logger = opts?.logger || getDefaultLogger('wooks')
     }
 
     public getRouter() {
         return this.router
+    }
+
+    public getLogger(topic: string) {
+        if (this.logger instanceof ProstoLogger) {
+            return this.logger.createTopic(topic)
+        }
+        return this.logger
     }
 
     public lookup(method: string, path: string) {
@@ -50,6 +66,10 @@ export class WooksAdapterBase {
 
     public getWooks() {
         return this.wooks
+    }
+
+    public getLogger(topic: string) {
+        return this.wooks.getLogger(topic)
     }
 
     public on<ResType = unknown, ParamsType = Record<string, string | string[]>>(method: string, path: string, handler: TWooksHandler<ResType>) {

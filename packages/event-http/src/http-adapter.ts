@@ -3,13 +3,20 @@ import http, { IncomingMessage, ServerResponse, Server } from 'http'
 import { createHttpContext, useHttpContext } from './event-http'
 import { createWooksResponder } from './response'
 import { HttpError } from './errors'
-import { traceError } from 'common/log'
+import { TConsoleBase } from '@prostojs/logger'
+import { TEventOptions } from '@wooksjs/event-core'
 
-export interface TWooksHttpOptions {}
+export interface TWooksHttpOptions {
+    logger?: TConsoleBase
+    eventOptions?: TEventOptions
+}
 
 export class WooksHttp extends WooksAdapterBase {
+    protected logger: TConsoleBase
+
     constructor(protected opts?: TWooksHttpOptions, wooks?: Wooks | WooksAdapterBase) {
         super(wooks)
+        this.logger = opts?.logger || this.getLogger('wooks-http')
     }
 
     all<ResType = unknown, ParamsType = Record<string, string | string[]>>(path: string, handler: TWooksHandler<ResType>) {
@@ -77,19 +84,19 @@ export class WooksHttp extends WooksAdapterBase {
 
     protected respond(data: unknown) {
         void this.responder.respond(data)?.catch((e) => {
-            traceError('Uncought response exception:\n', e as Error)
+            this.logger.error('Uncought response exception', e)
         })
     }
 
     getServerCb() {
         return async (req: IncomingMessage, res: ServerResponse) => {
-            const { restoreCtx, clearCtx } = createHttpContext({ req, res })
+            const { restoreCtx, clearCtx } = createHttpContext({ req, res }, this.opts?.eventOptions || {})
             const handlers = this.wooks.lookup(req.method as string, req.url as string)
             if (handlers) {
                 try {
                     await this.processHandlers(handlers)
                 } catch (e) {
-                    traceError('Internal error, please report: ', e as Error)
+                    this.logger.error('Internal error, please report', e)
                     restoreCtx()
                     this.respond(e)
                     clearCtx()
@@ -118,7 +125,7 @@ export class WooksHttp extends WooksAdapterBase {
                 clearCtx()
                 break
             } catch (e) {
-                traceError(`Uncought route handler exception: ${(store('event').get('req').url || '')}\n`, e as Error)
+                this.logger.error(`Uncought route handler exception: ${(store('event').get('req').url || '')}`, e)
                 if (isLastHandler) {
                     restoreCtx()
                     this.respond(e)

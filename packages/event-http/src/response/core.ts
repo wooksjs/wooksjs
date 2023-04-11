@@ -1,12 +1,13 @@
 import { BaseHttpResponseRenderer } from './renderer'
 import { useRequest, useResponse, useSetHeaders, useSetCookies } from '../composables'
 import { EHttpStatusCode } from '../utils/status-codes'
-import { panic } from 'common/panic'
 import { renderCookie } from '../utils/set-cookie'
 import { Readable } from 'stream'
 import { renderCacheControl, TCacheControl } from '../utils/cache-control'
 import { IncomingMessage, ServerResponse } from 'http'
 import { TCookieAttributes } from '../types'
+import { useEventLogger } from '@wooksjs/event-core'
+import { TConsoleBase } from '@prostojs/logger'
 
 const defaultStatus: Record<string, EHttpStatusCode> = {
     GET: EHttpStatusCode.OK,
@@ -21,7 +22,7 @@ const baseRenderer = new BaseHttpResponseRenderer()
 export class BaseHttpResponse<BodyType = unknown> {
     constructor(protected renderer: BaseHttpResponseRenderer = baseRenderer) {}
 
-    protected _status: EHttpStatusCode = 0
+    protected _status: EHttpStatusCode = 0 as EHttpStatusCode
 
     protected _body?: BodyType
 
@@ -128,11 +129,18 @@ export class BaseHttpResponse<BodyType = unknown> {
         this.status = this.status || useResponse().status() || fetchStatus
     }
 
+    protected panic(text: string, logger: TConsoleBase) {
+        const error = new Error(text)
+        logger.error(error)
+        throw error
+    }
+
     async respond() {
         const { rawResponse, hasResponded } = useResponse()
         const { method, rawRequest } = useRequest()
+        const logger = useEventLogger('http-response')
         if (hasResponded()) {
-            throw panic('The response was already sent.')
+            this.panic('The response was already sent.', logger)
         }
         this.mergeHeaders()
         const res = rawResponse()

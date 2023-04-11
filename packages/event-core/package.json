@@ -30,5 +30,8 @@
   "bugs": {
     "url": "https://github.com/wooksjs/wooksjs/issues"
   },
+  "dependencies": {
+    "@prostojs/logger": "^0.0.16"
+  },
   "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/event-core#readme"
 }

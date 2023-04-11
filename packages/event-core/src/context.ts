@@ -1,13 +1,15 @@
-import { panic } from 'common/panic'
 import { attachHook } from './hook'
+import { TProstoLoggerOptions } from '@prostojs/logger'
+import { TEventLoggerData } from './event-logger'
+import { TGenericEvent } from './types'
 
-export interface TGenericEvent {
-    type: string
-    id?: string
+export interface TEventOptions {
+    eventLogger?: { topic?: string } & TProstoLoggerOptions<TEventLoggerData>
 }
 
 export type TGenericContextStore<E extends TGenericEvent = TGenericEvent> = {
     event: E
+    options: TEventOptions
     routeParams?: Record<string, string | string[]>
 }
 
@@ -34,13 +36,13 @@ export function createEventContext<S extends TGenericContextStore>(data: S) {
  */
 export function useEventContext<S extends TGenericContextStore>(expectedTypes?: string | string[]) {
     if (!currentContext) {
-        throw panic('Event context does not exist. Use event context synchronously within the runtime of the event.')
+        throw new Error('Event context does not exist. Use event context synchronously within the runtime of the event.')
     }
     const cc = currentContext as S
     if (expectedTypes || typeof expectedTypes === 'string') {
         const type = cc.event?.type
         const types = typeof expectedTypes === 'string' ? [ expectedTypes ] : expectedTypes 
-        if (!types.includes(type)) panic(`Event context type mismatch: expected ${ types.map(t => `"${ t }"`).join(', ') }, received "${ type }"`)
+        if (!types.includes(type)) new Error(`Event context type mismatch: expected ${ types.map(t => `"${ t }"`).join(', ') }, received "${ type }"`)
     }
     
     return _getCtxHelpers<S>(cc)

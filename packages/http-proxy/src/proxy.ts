@@ -1,8 +1,8 @@
 import { fetch } from 'node-fetch-native'
 import { useHttpContext, useSetHeaders, useStatus } from '@wooksjs/event-http'
-import { warn } from 'common/log'
 import { applyProxyControls, CookiesIterable, HeadersIterable } from './proxy-utils'
 import { TWooksProxyOptions } from './types'
+import { useEventLogger } from '@wooksjs/event-core'
 
 const reqHeadersToBlock = [
     'connection',
@@ -23,6 +23,7 @@ export function useProxy() {
     const { setHeader, headers: getSetHeaders } = useSetHeaders()
     const { getCtx } = useHttpContext() 
     const { req } = getCtx().event
+    const logger = useEventLogger('http-proxy')
 
     const setHeadersObject = getSetHeaders()
 
@@ -44,9 +45,8 @@ export function useProxy() {
         
         // actual request
         if (opts?.debug) {
-            console.log()
-            warn(`[proxy] ${__DYE_GREEN__}${req.method as string} ${req.url as string}${__DYE_YELLOW__} → ${__DYE_CYAN__}${method as string} ${url}${__DYE_YELLOW__}`)
-            console.log(__DYE_YELLOW__ + 'headers:', JSON.stringify(headers, null, '  '), __DYE_COLOR_OFF__)
+            logger.info(`${__DYE_GREEN__}${req.method as string} ${req.url as string}${__DYE_YELLOW__} → ${__DYE_CYAN__}${method as string} ${url}${__DYE_YELLOW__}`)
+            logger.info(__DYE_YELLOW__ + 'headers:', JSON.stringify(headers, null, '  '), __DYE_COLOR_OFF__)
         }
         const resp = await fetch(url, {
             method,
@@ -58,9 +58,8 @@ export function useProxy() {
         status.value = resp.status
 
         if (opts?.debug) {
-            console.log()
-            warn(`[proxy] ${ resp.status } ${__DYE_GREEN__}${req.method as string} ${req.url as string}${__DYE_YELLOW__} → ${__DYE_CYAN__}${method as string} ${url}${__DYE_YELLOW__}`)
-            console.log(`${__DYE_YELLOW__}response headers:${__DYE_COLOR_OFF__}`)
+            logger.info(`${ resp.status } ${__DYE_GREEN__}${req.method as string} ${req.url as string}${__DYE_YELLOW__} → ${__DYE_CYAN__}${method as string} ${url}${__DYE_YELLOW__}`)
+            logger.info(`${__DYE_YELLOW__}response headers:${__DYE_COLOR_OFF__}`)
         }
 
         // preparing response headers
@@ -72,7 +71,7 @@ export function useProxy() {
                 if (name) {
                     setHeader(name, value)
                     if (opts?.debug) {
-                        console.log(`\t${__DYE_YELLOW__}${name}=${__DYE_GREEN__}${value}${__DYE_COLOR_OFF__}`)
+                        logger.info(`\t${__DYE_YELLOW__}${name}=${__DYE_GREEN__}${value}${__DYE_COLOR_OFF__}`)
                     }
                 }
             }
@@ -84,7 +83,7 @@ export function useProxy() {
                 if (name) {
                     setHeadersObject['set-cookie'].push(`${name}=${value}`)
                     if (opts?.debug) {
-                        console.log(`\t${__DYE_BOLD__}${__DYE_YELLOW__}set-cookie=${__DYE_GREEN__}${name}=${value}${__DYE_RESET__}`)
+                        logger.info(`\t${__DYE_BOLD__}${__DYE_YELLOW__}set-cookie=${__DYE_GREEN__}${name}=${value}${__DYE_RESET__}`)
                     }
                 }
             }

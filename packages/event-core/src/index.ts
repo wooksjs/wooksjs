@@ -1,3 +1,5 @@
 export * from './context'
 export * from './hook'
 export * from './composables'
+export * from './event-logger'
+export * from './types'
