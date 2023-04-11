@@ -11,7 +11,7 @@ describe('response', () => {
     const res = new ServerResponse(req)
 
     beforeEach(() => {
-        createHttpContext({ req, res })
+        createHttpContext({ req, res }, {})
     })
 
     it('must create response from json', () => {

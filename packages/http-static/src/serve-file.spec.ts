@@ -8,7 +8,7 @@ describe('serve-file', () => {
     const res = new ServerResponse(req)
 
     beforeEach(() => {
-        createHttpContext({ req, res })
+        createHttpContext({ req, res }, {})
     })
     it('', () => {
         // const r = serveFile('package.json')

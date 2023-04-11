@@ -1,5 +1,4 @@
 import { BaseHttpResponse } from './core'
-import { panic } from 'common/panic'
 
 export class BaseHttpResponseRenderer<T = unknown> implements TWooksResponseRenderer<T> {
     render(response: BaseHttpResponse<T>): string | Uint8Array {
@@ -17,7 +16,7 @@ export class BaseHttpResponseRenderer<T = unknown> implements TWooksResponseRend
             if (!response.getContentType()) response.setContentType('application/json')
             return JSON.stringify(response.body)
         }
-        throw panic('Unsupported body format "' + typeof response.body + '"')
+        throw new Error('Unsupported body format "' + typeof response.body + '"')
     }    
 }
 

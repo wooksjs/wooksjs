@@ -1,5 +1,7 @@
 import { TWooksHandler, Wooks, WooksAdapterBase } from 'wooks'
 import { createCliContext } from './event-cli'
+import { TConsoleBase } from '@prostojs/logger'
+import { TEventOptions } from '@wooksjs/event-core'
 
 export const cliShortcuts = {
     cli: 'CLI',
@@ -8,11 +10,16 @@ export const cliShortcuts = {
 export interface TWooksCliOptions {
     onError?(e: Error): void
     onUnknownParams?(pathParams: string[]): void
+    logger?: TConsoleBase
+    eventOptions?: TEventOptions
 }
 
 export class WooksCli extends WooksAdapterBase {
+    protected logger: TConsoleBase
+
     constructor(protected opts?: TWooksCliOptions, wooks?: Wooks | WooksAdapterBase) {
         super(wooks)
+        this.logger = opts?.logger || this.getLogger('wooks-cli')
     }
 
     cli<ResType = unknown, ParamsType = Record<string, string | string[]>>(path: string, handler: TWooksHandler<ResType>) {
@@ -24,7 +31,7 @@ export class WooksCli extends WooksAdapterBase {
         const firstFlagIndex = argv.findIndex(a => a.startsWith('-')) + 1
         const pathParams = (firstFlagIndex ? argv.slice(0, firstFlagIndex - 1) : argv)
         const path = '/' + pathParams.map(v => encodeURIComponent(v)).join('/')
-        const { restoreCtx, clearCtx } = createCliContext({ argv })
+        const { restoreCtx, clearCtx } = createCliContext({ argv }, this.opts?.eventOptions || {})
         const handlers = this.wooks.lookup('CLI', path)
         if (handlers) {
             try {

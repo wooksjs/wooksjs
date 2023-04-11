@@ -1,4 +1,3 @@
-import { panic } from 'common/panic'
 import { convertTime, TTimeMultiString } from './time'
 
 export type TCacheControl = {
@@ -24,7 +23,7 @@ export function renderCacheControl(data: TCacheControl) {
                 attrs += attrs ? ', ' + val  : val
             }
         } else {
-            panic('Unknown Cache-Control attribute ' + a)
+            throw new Error('Unknown Cache-Control attribute ' + a)
         }
     }
     return attrs

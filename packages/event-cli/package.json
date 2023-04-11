@@ -35,7 +35,8 @@
     "@wooksjs/event-core": "0.2.13"
   },
   "dependencies": {
-    "minimist": "^1.2.6"
+    "minimist": "^1.2.6",
+    "@prostojs/logger": "^0.3.2"
   },
   "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/event-cli#readme"
 }

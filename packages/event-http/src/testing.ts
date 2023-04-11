@@ -27,7 +27,7 @@ export function setTestHttpContext(options: TTestHttpContext) {
     req.headers = options.headers || {}
     req.url = options.url
     const res = new ServerResponse(req)
-    const { store } = createHttpContext({ req, res })
+    const { store } = createHttpContext({ req, res }, {})
     store('routeParams').value = options.params
     if (options.cachedContext) {
         for (const key of Object.keys(options.cachedContext)) {

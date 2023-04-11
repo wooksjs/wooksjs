@@ -1,5 +1,4 @@
 import { useHeaders, useRequest, EHttpStatusCode, HttpError, WooksURLSearchParams, useHttpContext } from '@wooksjs/event-http'
-import { panic } from 'common/panic'
 import { compressors, TBodyCompressor, uncompressBody } from './utils/body-compressor'
 
 type TBodyStore = { 
@@ -135,7 +134,7 @@ export function useBody() {
 
 export function registerBodyCompressor(name: string, compressor: TBodyCompressor) {
     if (compressors[name]) {
-        throw panic(`Body compressor "${name}" already registered.`)
+        throw new Error(`Body compressor "${name}" already registered.`)
     }
     compressors[name] = compressor
 }

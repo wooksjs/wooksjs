@@ -1,4 +1,3 @@
-import { panic } from 'common/panic'
 import { TCookieAttributes, TSetCookieData } from '../types'
 import { convertTime } from './time'
 
@@ -10,7 +9,7 @@ export function renderCookie(key: string, data: TSetCookieData) {
             const val = func(v)
             attrs += val ? '; ' + val  : ''
         } else {
-            panic('Unknown Set-Cookie attribute ' + a)
+            throw new Error('Unknown Set-Cookie attribute ' + a)
         }
     }
     return `${key}=${encodeURIComponent(data.value)}${attrs}`

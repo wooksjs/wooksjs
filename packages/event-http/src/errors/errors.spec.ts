@@ -13,7 +13,7 @@ describe('response', () => {
     Object.defineProperty(res, 'writableEnded', { value: false })
 
     beforeEach(() => {
-        createHttpContext({ req, res })
+        createHttpContext({ req, res }, {})
     })
 
     it('must create error-response in json', () => {
