@@ -1,3 +1,12 @@
+## [0.2.16](https://github.com/wooksjs/wooksjs/compare/v0.2.15...v0.2.16) (2023-04-12)
+
+
+### Features
+
+* merge event logger opts to main logger opts ([c672253](https://github.com/wooksjs/wooksjs/commit/c672253373bb2948b4668c03354aa82b255f263a))
+
+
+
 ## [0.2.15](https://github.com/wooksjs/wooksjs/compare/v0.2.14...v0.2.15) (2023-04-11)
 
 
