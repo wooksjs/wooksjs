@@ -18,7 +18,7 @@ export class WooksCli extends WooksAdapterBase {
     protected logger: TConsoleBase
 
     constructor(protected opts?: TWooksCliOptions, wooks?: Wooks | WooksAdapterBase) {
-        super(wooks)
+        super(wooks, opts?.logger)
         this.logger = opts?.logger || this.getLogger('wooks-cli')
     }
 
@@ -31,7 +31,7 @@ export class WooksCli extends WooksAdapterBase {
         const firstFlagIndex = argv.findIndex(a => a.startsWith('-')) + 1
         const pathParams = (firstFlagIndex ? argv.slice(0, firstFlagIndex - 1) : argv)
         const path = '/' + pathParams.map(v => encodeURIComponent(v)).join('/')
-        const { restoreCtx, clearCtx } = createCliContext({ argv }, this.opts?.eventOptions || {})
+        const { restoreCtx, clearCtx } = createCliContext({ argv }, this.mergeEventOptions(this.opts?.eventOptions))
         const handlers = this.wooks.lookup('CLI', path)
         if (handlers) {
             try {

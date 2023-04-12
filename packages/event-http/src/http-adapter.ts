@@ -15,7 +15,7 @@ export class WooksHttp extends WooksAdapterBase {
     protected logger: TConsoleBase
 
     constructor(protected opts?: TWooksHttpOptions, wooks?: Wooks | WooksAdapterBase) {
-        super(wooks)
+        super(wooks, opts?.logger)
         this.logger = opts?.logger || this.getLogger('wooks-http')
     }
 
@@ -90,7 +90,7 @@ export class WooksHttp extends WooksAdapterBase {
 
     getServerCb() {
         return async (req: IncomingMessage, res: ServerResponse) => {
-            const { restoreCtx, clearCtx } = createHttpContext({ req, res }, this.opts?.eventOptions || {})
+            const { restoreCtx, clearCtx } = createHttpContext({ req, res }, this.mergeEventOptions(this.opts?.eventOptions))
             const handlers = this.wooks.lookup(req.method as string, req.url as string)
             if (handlers) {
                 try {
