@@ -103,6 +103,7 @@ export class WooksHttp extends WooksAdapterBase {
                 }
             } else {
                 // not found
+                this.logger.debug(`404 Not found (${req.method as string})${req.url as string}`)
                 this.respond(new HttpError(404))
                 clearCtx()
             }    
