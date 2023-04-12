@@ -1,3 +1,12 @@
+## [0.2.17](https://github.com/wooksjs/wooksjs/compare/v0.2.16...v0.2.17) (2023-04-12)
+
+
+### Features
+
+* add not found debug log ([a1bf8f4](https://github.com/wooksjs/wooksjs/commit/a1bf8f42f55449bbcd0d791035a861511083ace1))
+
+
+
 ## [0.2.16](https://github.com/wooksjs/wooksjs/compare/v0.2.15...v0.2.16) (2023-04-12)
 
 
