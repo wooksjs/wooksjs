@@ -7,3 +7,4 @@ export interface TGenericEvent {
     id?: string
 }
 
+export interface TEmpty {}

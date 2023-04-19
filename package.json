@@ -44,7 +44,7 @@
   },
   "homepage": "https://github.com/wooksjs/wooksjs#readme",
   "devDependencies": {
-    "@microsoft/api-extractor": "^7.33.6",
+    "@microsoft/api-extractor": "^7.34.4",
     "@prostojs/dye": "^0.3.0",
     "@prostojs/logger": "^0.3.4",
     "@prostojs/router": "^0.0.16",

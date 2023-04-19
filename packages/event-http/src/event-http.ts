@@ -1,8 +1,8 @@
-import { TEventOptions, createEventContext, useEventContext } from '@wooksjs/event-core'
+import { TEmpty, TEventOptions, createEventContext, useEventContext } from '@wooksjs/event-core'
 import { THttpContextStore, THttpEventData } from './types'
 
 export function createHttpContext(data: THttpEventData, options: TEventOptions) {
-    return createEventContext<THttpContextStore>({
+    return createEventContext<THttpContextStore, THttpEventData>({
         event: {
             ...data,
             type: 'HTTP',
@@ -11,6 +11,6 @@ export function createHttpContext(data: THttpEventData, options: TEventOptions) 
     })
 }
 
-export function useHttpContext<T extends object>() {
-    return useEventContext<THttpContextStore & T>('HTTP')
+export function useHttpContext<T extends TEmpty>() {
+    return useEventContext<THttpContextStore & T, THttpEventData>('HTTP')
 }

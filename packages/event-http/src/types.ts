@@ -1,5 +1,4 @@
 import { IncomingMessage, ServerResponse } from 'http'
-import { TGenericEvent, TGenericContextStore } from '@wooksjs/event-core'
 import { TTimeMultiString } from './utils/time'
 import { EHttpStatusCode } from './utils/status-codes'
 import { WooksURLSearchParams } from './utils/url-search-params'
@@ -9,11 +8,11 @@ export interface THttpEventData {
     res: ServerResponse
 }
 
-export interface THttpEvent extends TGenericEvent, THttpEventData {
+export interface THttpEvent {
     type: 'HTTP'
 }
 
-export interface THttpContextStore extends TGenericContextStore<THttpEvent> {
+export interface THttpContextStore {
     searchParams?: TSearchParamsCache
     cookies?: { [name: string]: string | null }
     setCookies?: { [name: string]: TSetCookieData }

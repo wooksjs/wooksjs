@@ -87,6 +87,8 @@ async function build(target) {
 
             if (extractorResult.succeeded) {
                 out.success(`✅ API Extractor completed successfully.`)
+                await fs.rm(`${pkgDir}/dist/packages`, { recursive: true, force: true })
+                await fs.rm(`${pkgDir}/dist/common`, { recursive: true, force: true })
             } else {
                 out.error(
                     `API Extractor completed with ${extractorResult.errorCount} errors` +
@@ -98,7 +100,5 @@ async function build(target) {
             out.error(e.message)
         }
 
-        await fs.rm(`${pkgDir}/dist/packages`, { recursive: true, force: true })
-        await fs.rm(`${pkgDir}/dist/common`, { recursive: true, force: true })
     }
 }

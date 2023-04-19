@@ -1,14 +1,14 @@
 import { attachHook } from './hook'
 import { TProstoLoggerOptions } from '@prostojs/logger'
 import { TEventLoggerData } from './event-logger'
-import { TGenericEvent } from './types'
+import { TEmpty, TGenericEvent } from './types'
 
 export interface TEventOptions {
     eventLogger?: { topic?: string } & TProstoLoggerOptions<TEventLoggerData>
 }
 
-export type TGenericContextStore<E extends TGenericEvent = TGenericEvent> = {
-    event: E
+export type TGenericContextStore<CustomEventType = TEmpty> = {
+    event: CustomEventType & TGenericEvent
     options: TEventOptions
     routeParams?: Record<string, string | string[]>
 }
@@ -21,10 +21,10 @@ let currentContext: TGenericContextStore | null = null
  * @param data 
  * @returns set of hooks { getCtx, restoreCtx, clearCtx, hookStore, getStore, setStore }
  */
-export function createEventContext<S extends TGenericContextStore>(data: S) {
+export function createEventContext<S = TEmpty, EventTypeToCreate = TEmpty>(data: S & TGenericContextStore<EventTypeToCreate>) {
     const newContext = { ...data }
     currentContext = newContext
-    return _getCtxHelpers<S>(newContext)
+    return _getCtxHelpers<S & TGenericContextStore<EventTypeToCreate>>(newContext)
 }
 
 /**
@@ -34,30 +34,30 @@ export function createEventContext<S extends TGenericContextStore>(data: S) {
  * 
  * @returns set of hooks { getCtx, restoreCtx, clearCtx, hookStore, getStore, setStore }
  */
-export function useEventContext<S extends TGenericContextStore>(expectedTypes?: string | string[]) {
+export function useEventContext<S = TEmpty, EventType = TEmpty>(expectedTypes?: string | string[]) {
     if (!currentContext) {
         throw new Error('Event context does not exist. Use event context synchronously within the runtime of the event.')
     }
-    const cc = currentContext as S
+    const cc = currentContext as (S & TGenericContextStore<EventType>)
     if (expectedTypes || typeof expectedTypes === 'string') {
         const type = cc.event?.type
         const types = typeof expectedTypes === 'string' ? [ expectedTypes ] : expectedTypes 
         if (!types.includes(type)) new Error(`Event context type mismatch: expected ${ types.map(t => `"${ t }"`).join(', ') }, received "${ type }"`)
     }
     
-    return _getCtxHelpers<S>(cc)
+    return _getCtxHelpers(cc)
 }
 
-function _getCtxHelpers<S extends TGenericContextStore>(cc: S) {
+function _getCtxHelpers<T>(cc: T) {
     /**
      * Hook to an event store property
      * 
      * @param key store property key
      * @returns a hook { value: <prop value>, hook: (key2: keyof <prop value>) => { value: <nested prop value> }, ... }
      */
-    function store<K extends keyof Required<S>>(key: K) {
+    function store<K extends keyof Required<T>>(key: K) {
         const obj = {
-            value: null as S[K],
+            value: null as T[K],
             hook,
             init,
             set: setNested,
@@ -73,18 +73,18 @@ function _getCtxHelpers<S extends TGenericContextStore>(cc: S) {
             get: () => get(key),
         })
 
-        function init<K2 extends keyof Required<S>[K]>(key2: K2, getter: () => Required<Required<S>[K]>[K2]): Required<Required<S>[K]>[K2] {
+        function init<K2 extends keyof Required<T>[K]>(key2: K2, getter: () => Required<Required<T>[K]>[K2]): Required<Required<T>[K]>[K2] {
             if (hasNested(key2)) return getNested(key2)
             return setNested(key2, getter())
         }
 
-        function hook<K2 extends keyof Required<S>[K]>(key2: K2) {
+        function hook<K2 extends keyof Required<T>[K]>(key2: K2) {
             const obj = {
-                value: null as Required<S>[K][K2],
+                value: null as Required<T>[K][K2],
                 isDefined: null as unknown as boolean,
             }
             attachHook(obj, {
-                set: v => setNested(key2, v as S[K][K2]),
+                set: v => setNested(key2, v as T[K][K2]),
                 get: () => getNested(key2),
             })
             attachHook(obj, {
@@ -93,20 +93,20 @@ function _getCtxHelpers<S extends TGenericContextStore>(cc: S) {
             return obj
         }
 
-        function setNested<K2 extends keyof Required<S>[K]>(key2: K2, v: Required<S[K]>[K2]) {
+        function setNested<K2 extends keyof Required<T>[K]>(key2: K2, v: Required<T[K]>[K2]) {
             if (typeof obj.value === 'undefined') {
-                obj.value = {} as S[K]
+                obj.value = {} as T[K]
             }
             obj.value[key2] = v
             return v
         }
-        function delNested<K2 extends keyof Required<S>[K]>(key2: K2) {
-            setNested(key2, undefined as Required<S[K]>[K2])
+        function delNested<K2 extends keyof Required<T>[K]>(key2: K2) {
+            setNested(key2, undefined as Required<T[K]>[K2])
         }
-        function getNested<K2 extends keyof Required<S>[K]>(key2: K2) { return (obj.value || {} as S[K])[key2] as Required<S>[K][K2] }
-        function hasNested<K2 extends keyof Required<S>[K]>(key2: K2) { return typeof (obj.value || {} as S[K])[key2] !== 'undefined' }
+        function getNested<K2 extends keyof Required<T>[K]>(key2: K2) { return (obj.value || {} as T[K])[key2] as Required<T>[K][K2] }
+        function hasNested<K2 extends keyof Required<T>[K]>(key2: K2) { return typeof (obj.value || {} as T[K])[key2] !== 'undefined' }
         function entries() { return Object.entries((obj.value || {})) }
-        function clear() { obj.value = {} as S[K] }
+        function clear() { obj.value = {} as T[K] }
     
         return obj
     }
@@ -116,7 +116,7 @@ function _getCtxHelpers<S extends TGenericContextStore>(cc: S) {
      * 
      * @returns whole context object
      */
-    function getCtx() { return cc }
+    function getCtx(): typeof cc { return cc }
 
     /**
      * Get value of event store property
@@ -124,7 +124,7 @@ function _getCtxHelpers<S extends TGenericContextStore>(cc: S) {
      * @param key property name
      * @returns value of property by name
      */
-    function get<K extends keyof S>(key: K) { return getCtx()[key] }
+    function get<K extends keyof T>(key: K) { return getCtx()[key] }
 
     /**
      * Set value of event store property
@@ -132,13 +132,13 @@ function _getCtxHelpers<S extends TGenericContextStore>(cc: S) {
      * @param key property name
      * @param v property value
      */
-    function set<K extends keyof S>(key: K, v: S[K]) {
+    function set<K extends keyof T>(key: K, v: T[K]) {
         (getCtx())[key] = v 
     }
 
     return {
         getCtx,
-        restoreCtx: () => currentContext = cc,
+        restoreCtx: () => currentContext = cc as TGenericContextStore,
         clearCtx: () => cc === currentContext ? currentContext = null : null,
         store,
         getStore: get,
