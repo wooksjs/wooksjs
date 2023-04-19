@@ -1,3 +1,12 @@
+## [0.2.18](https://github.com/wooksjs/wooksjs/compare/v0.2.17...v0.2.18) (2023-04-19)
+
+
+### Bug Fixes
+
+* improve event-core types ([713c665](https://github.com/wooksjs/wooksjs/commit/713c665b9e2fe36c5efbb34d8964ca77c69fef60))
+
+
+
 ## [0.2.17](https://github.com/wooksjs/wooksjs/compare/v0.2.16...v0.2.17) (2023-04-12)
 
 
