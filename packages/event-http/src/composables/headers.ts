@@ -9,7 +9,7 @@ export function useHeaders(): IncomingHttpHeaders {
 export function useSetHeaders() {
     const { store } = useHttpContext()
     const setHeaderStore = store('setHeader')
-    
+
     function setHeader(name: string, value: string | number) {
         setHeaderStore.set(name, value.toString())
     }

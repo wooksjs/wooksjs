@@ -1,13 +1,18 @@
 export type TTimeUnit = 'ms' | 's' | 'm' | 'h' | 'd' | 'w' | 'M' | 'Y'
 export type TTimeSingleString = `${number}${TTimeUnit}`
-export type TTimeMultiString = `${TTimeSingleString}${TTimeSingleString | ''}${TTimeSingleString | ''}${TTimeSingleString | ''}`
+export type TTimeMultiString = `${TTimeSingleString}${TTimeSingleString | ''}${
+    | TTimeSingleString
+    | ''}${TTimeSingleString | ''}`
 
-export function convertTime(time: number | TTimeMultiString, unit: TTimeUnit = 'ms') {
+export function convertTime(
+    time: number | TTimeMultiString,
+    unit: TTimeUnit = 'ms'
+) {
     if (typeof time === 'number') return time / units[unit]
     const rg = /(\d+)(\w+)/g
     let t = 0
     let r
-    while (r = rg.exec(time)) {
+    while ((r = rg.exec(time))) {
         t += Number(r[1]) * (units[r[2] as TTimeUnit] || 0)
     }
     return t / units[unit]

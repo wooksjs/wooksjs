@@ -43,13 +43,14 @@ Nevertheless you can build CLI with the similar approach.
 And even more event types support is coming :tada:.
 
 The main ideas behind Wooks are:
-- Each event can be **routed** to a handler
-- Each event has its **context** (state)
-- Event **context** (state) is stored in a special object and available to the handlers through **composables** (hooks)
-- A handler may return some data that has to be interpreted as a **Response**
+
+-   Each event can be **routed** to a handler
+-   Each event has its **context** (state)
+-   Event **context** (state) is stored in a special object and available to the handlers through **composables** (hooks)
+-   A handler may return some data that has to be interpreted as a **Response**
 
 ::: tip
-*Composables* concept is kindly borrowed from Vue 3 Composition API. Or it's also similar to react *hooks*.
+_Composables_ concept is kindly borrowed from Vue 3 Composition API. Or it's also similar to react _hooks_.
 :::
 
 ## Event Routing
@@ -57,7 +58,7 @@ The main ideas behind Wooks are:
 Fast and robust routing is achieved with [@prostojs/router](https://github.com/prostojs/router).
 It's basically an URI router that supports parameters and wildcards.
 
-It's as fast as `find-my-way` used by `fastify` *(in some tests it is even faster)*, see benchmarks [here](https://github.com/prostojs/router-benchmark).
+It's as fast as `find-my-way` used by `fastify` _(in some tests it is even faster)_, see benchmarks [here](https://github.com/prostojs/router-benchmark).
 But it's less buggy (IMO) and handles `%`-encoding properly with no compromises.
 
 See performance comparison table with `express`, `find-my-way` and `radix3` ([source](https://github.com/prostojs/router-benchmark)):
@@ -79,9 +80,10 @@ See performance comparison table with `express`, `find-my-way` and `radix3` ([so
 When an event handler is found by router, the handler and the route params/wildcards are passed to Wooks processing event loop. At that moment a new **event context** is created with pre-filled URI-params.
 
 Each event context has:
-- `type`: same as event source (`HTTP`, `CLI`, ...)
-- `params`: parsed by router on lookup
-- `custom data`: anything that needs to be parsed, fetched and cached (e.g. `parsedBody` of HTTP event)
+
+-   `type`: same as event source (`HTTP`, `CLI`, ...)
+-   `params`: parsed by router on lookup
+-   `custom data`: anything that needs to be parsed, fetched and cached (e.g. `parsedBody` of HTTP event)
 
 The generic event context API is implemented in `@wooksjs/event-core` library.
 
@@ -89,13 +91,14 @@ Each event-specific library provides its wrapper of `event-core`. The reason for
 Such libraries refixed with `event-`, e.g. `@wooksjs/event-http`, `@wooksjs/event-cli`, ...
 
 The `event-core` functionality includes the following actions:
-- create/clear/restore event context
-- get/change/hook to a specific property of event context
+
+-   create/clear/restore event context
+-   get/change/hook to a specific property of event context
 
 Besides actions it supplies several composables:
-- `useRouteParams` — provides params parsed by router
-- `useEventId` — provides an unique event ID (uuid)
 
+-   `useRouteParams` — provides params parsed by router
+-   `useEventId` — provides an unique event ID (uuid)
 
 ## Response
 

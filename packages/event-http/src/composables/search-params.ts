@@ -7,15 +7,20 @@ export function useSearchParams() {
     const url = useRequest().url || ''
     const { init } = store('searchParams')
 
-    const rawSearchParams = () => init('raw', () => {
-        const i = url.indexOf('?')
-        return i >=0 ? url.slice(i) : ''
-    })
+    const rawSearchParams = () =>
+        init('raw', () => {
+            const i = url.indexOf('?')
+            return i >= 0 ? url.slice(i) : ''
+        })
 
-    const urlSearchParams = () => init('urlSearchParams', () => new WooksURLSearchParams(rawSearchParams()))
+    const urlSearchParams = () =>
+        init(
+            'urlSearchParams',
+            () => new WooksURLSearchParams(rawSearchParams())
+        )
 
     return {
-        rawSearchParams, 
+        rawSearchParams,
         urlSearchParams,
         jsonSearchParams: () => urlSearchParams().toJson(),
     }

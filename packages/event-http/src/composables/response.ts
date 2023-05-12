@@ -14,7 +14,7 @@ export function useResponse() {
     const statusCode = store('status').hook('code')
 
     function status(code?: EHttpStatusCode) {
-        return statusCode.value = code ? code : statusCode.value
+        return (statusCode.value = code ? code : statusCode.value)
     }
 
     const rawResponse = (options?: TUseResponseOptions) => {
@@ -24,10 +24,11 @@ export function useResponse() {
 
     return {
         rawResponse,
-        hasResponded: () => responded.value || !res.writable || res.writableEnded,
+        hasResponded: () =>
+            responded.value || !res.writable || res.writableEnded,
         status: attachHook(status, {
             get: () => statusCode.value,
-            set: (code: EHttpStatusCode) => statusCode.value = code,
+            set: (code: EHttpStatusCode) => (statusCode.value = code),
         }),
     }
 }

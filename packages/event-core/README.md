@@ -11,7 +11,6 @@
 
 Core functionality of wooks context
 
-
 ## Documentation
 
 To check out docs, visit [wooksjs.org](https://wooksjs.org/).

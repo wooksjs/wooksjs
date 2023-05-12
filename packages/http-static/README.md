@@ -9,22 +9,20 @@
 </a>
 </p>
 
-
 Wooks Serve File is composable static file server for [@wooksjs/event-http](https://github.com/wooksjs/wooksjs/tree/main/packages/event-http).
 
 `serveFile` returns a readable stream and prepares all the neccessary response headers (like content-length, content-type etc).
 
-- ✅ returns a readable stream
-- ✅ prepares all the neccessary response headers (like content-length, content-type etc)
-- ✅ can handle etag
-- ✅ can handle ranges
+-   ✅ returns a readable stream
+-   ✅ prepares all the neccessary response headers (like content-length, content-type etc)
+-   ✅ can handle etag
+-   ✅ can handle ranges
 
 ## Install
 
 `npm install @wooksjs/http-static`
 
 ## Usage
-
 
 ```js
 import { serveFile } from '@wooksjs/http-static'
@@ -33,6 +31,7 @@ serveFile(filePath, options)
 ```
 
 **serveFile options**
+
 ```ts
 {
     // Any header to add
@@ -55,10 +54,10 @@ serveFile(filePath, options)
 
     // when true lists files in directory
     listDirectory?: boolean,
-    
+
     // put 'index.html'
-    // to automatically serve it from the folder    
-    index?: string,           
+    // to automatically serve it from the folder
+    index?: string,
 }
 ```
 

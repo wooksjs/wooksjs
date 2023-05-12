@@ -36,17 +36,26 @@ export function setTestHttpContext(options: TTestHttpContext) {
                     store('cookies').value = options.cachedContext.cookies
                     break
                 case 'authorization':
-                    store('authorization').value = options.cachedContext.authorization
+                    store('authorization').value =
+                        options.cachedContext.authorization
                     break
                 case 'body':
                     store('request').set('parsed', options.cachedContext.body)
                     break
                 case 'rawBody':
-                    store('request').set('rawBody', options.cachedContext.rawBody)
+                    store('request').set(
+                        'rawBody',
+                        options.cachedContext.rawBody
+                    )
                     break
                 case 'raw':
-                    for (const [key, value] of Object.entries(options.cachedContext.raw as TCachedContext)) {
-                        store<keyof THttpContextStore>(key as keyof THttpContextStore).value = value as THttpContextStore[keyof THttpContextStore]
+                    for (const [key, value] of Object.entries(
+                        options.cachedContext.raw as TCachedContext
+                    )) {
+                        store<keyof THttpContextStore>(
+                            key as keyof THttpContextStore
+                        ).value =
+                            value as THttpContextStore[keyof THttpContextStore]
                     }
                     break
             }

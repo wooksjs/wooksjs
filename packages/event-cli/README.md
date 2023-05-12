@@ -11,7 +11,7 @@
 
 As a part of `wooks` event processing framework, `@wooksjs/event-cli` implements CLI events and provides composables that let you:
 
-- access flags (- or --)
+-   access flags (- or --)
 
 ## Install
 

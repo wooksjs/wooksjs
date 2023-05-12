@@ -5,13 +5,16 @@ import { useResponse } from '../response'
 import { useRequest } from '../request'
 
 describe('compasble/req-res', () => {
-    const url='test.com/path?a[]=1&a[]=2&b=3&c=4&encoded=%7e%20%25'
+    const url = 'test.com/path?a[]=1&a[]=2&b=3&c=4&encoded=%7e%20%25'
     const params = {
         a: 'a1',
         b: 'b2',
         c: ['1', '2', '3'],
     }
-    const headers = { dummy: 'test', 'x-forwarded-for': '127.0.0.1, 192.168.0.251' }
+    const headers = {
+        dummy: 'test',
+        'x-forwarded-for': '127.0.0.1, 192.168.0.251',
+    }
     const method = 'PUT'
 
     beforeEach(() => {
@@ -19,9 +22,13 @@ describe('compasble/req-res', () => {
     })
 
     it('must return request', () => {
-        const { rawRequest, headers, method, getIp, getIpList, reqId } = useRequest()
+        const { rawRequest, headers, method, getIp, getIpList, reqId } =
+            useRequest()
         expect(rawRequest).toBeInstanceOf(IncomingMessage)
-        expect(headers).toEqual({ dummy: 'test', 'x-forwarded-for': '127.0.0.1, 192.168.0.251' })
+        expect(headers).toEqual({
+            dummy: 'test',
+            'x-forwarded-for': '127.0.0.1, 192.168.0.251',
+        })
         expect(method).toBe(method)
         expect(reqId()).toMatch(/^[a-f0-9\-]{36}$/)
         expect(getIp({ trustProxy: true })).toBe('127.0.0.1')

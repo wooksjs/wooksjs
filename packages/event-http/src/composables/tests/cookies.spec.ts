@@ -27,7 +27,7 @@ describe('event-http/cookies useSetCookies', () => {
     it('must set cookie', () => {
         const { setCookie, cookies } = useSetCookies()
         setCookie('test', 'value')
-        setCookie('test2', 'value2', {maxAge: 150, secure: true})
+        setCookie('test2', 'value2', { maxAge: 150, secure: true })
         expect(cookies()[0]).toEqual('test=value')
         expect(cookies()[1]).toEqual('test2=value2; Max-Age=0.15; Secure')
     })

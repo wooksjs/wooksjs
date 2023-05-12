@@ -5,7 +5,7 @@ export class WooksURLSearchParams extends URLSearchParams {
         const json: Record<string, unknown> = {}
         for (const [key, value] of this.entries()) {
             if (isArrayParam(key)) {
-                const a = json[key] = (json[key] || []) as string[]
+                const a = (json[key] = (json[key] || []) as string[])
                 a.push(value)
             } else {
                 json[key] = value

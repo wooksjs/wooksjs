@@ -24,7 +24,7 @@ export interface THttpContextStore {
     status?: { code: EHttpStatusCode }
 }
 
-export type TSetCookieData = { value: string, attrs: TCookieAttributesInput }
+export type TSetCookieData = { value: string; attrs: TCookieAttributesInput }
 
 export type TCookieAttributesInput = Partial<TCookieAttributes>
 
@@ -41,7 +41,7 @@ export interface TCookieAttributes {
 export type TAuthCache = {
     type: string | null
     credentials: string | null
-    basicCredentials: { username: string, password: string } | null
+    basicCredentials: { username: string; password: string } | null
 }
 
 export type TRequestCache = {
@@ -49,7 +49,7 @@ export type TRequestCache = {
     parsed: unknown
     forwardedIp?: string
     remoteIp?: string
-    ipList?: { remoteIp: string, forwarded: string[] }
+    ipList?: { remoteIp: string; forwarded: string[] }
 }
 
 export type TSearchParamsCache = {

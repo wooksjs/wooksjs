@@ -9,7 +9,6 @@
 </a>
 </p>
 
-
 Wooks Proxy is composable proxy for [@wooksjs/event-http](https://github.com/wooksjs/wooksjs/tree/main/packages/event-http)
 
 🔥 An easy way to proxy request!
@@ -26,7 +25,6 @@ app.get('/to-proxy', () => {
     const proxy = useProxy()
     return proxy('https://target-website.com/target-path?query=123')
 })
-
 ```
 
 ### Restrict cookies/headers to pass
@@ -40,7 +38,6 @@ app.get('/to-proxy', () => {
         reqCookies: { block: '*' }, // block all req cookies
     })
 })
-
 ```
 
 ### Change response
@@ -55,10 +52,10 @@ app.get('/to-proxy', async () => {
     const data = { ...(await response.json()), newField: 'new value' }
     return data
 })
-
 ```
 
 ## Proxy advanced options
+
 ```ts
 import { useProxy } from '@wooksjs/http-proxy'
 import { useRequest } from '@wooksjs/composables'
@@ -103,5 +100,3 @@ app.get('*', async () => {
 ## Documentation
 
 To check out docs, visit [wooksjs.org](https://wooksjs.org/).
-
-

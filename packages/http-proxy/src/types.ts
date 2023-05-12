@@ -1,6 +1,7 @@
-
 export interface TWooksProxyControls {
-    overwrite?: Record<string, string> | ((data: Record<string, string>) => Record<string, string>)
+    overwrite?:
+        | Record<string, string>
+        | ((data: Record<string, string>) => Record<string, string>)
     allow?: (string | RegExp)[] | '*'
     block?: (string | RegExp)[] | '*'
 }

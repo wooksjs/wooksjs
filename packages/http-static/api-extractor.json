@@ -1,15 +1,15 @@
 {
-  "extends": "../../api-extractor.json",
-  "mainEntryPointFilePath": "./dist/packages/http-static/src/index.d.ts",
-  "dtsRollup": {
-    "publicTrimmedFilePath": "./dist/index.d.ts"
-  },
-  "compiler": {
-    "overrideTsconfig": {
-      "include": [
-        "packages/http-static/dist/packages",
-        "packages/http-static/dist/common"
-      ]
+    "extends": "../../api-extractor.json",
+    "mainEntryPointFilePath": "./dist/packages/http-static/src/index.d.ts",
+    "dtsRollup": {
+        "publicTrimmedFilePath": "./dist/index.d.ts"
+    },
+    "compiler": {
+        "overrideTsconfig": {
+            "include": [
+                "packages/http-static/dist/packages",
+                "packages/http-static/dist/common"
+            ]
+        }
     }
-  }
 }

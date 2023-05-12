@@ -1,22 +1,33 @@
 import { HttpErrorRenderer } from './error-renderer'
-import { EHttpStatusCode, httpStatusCodes, THttpErrorCodes } from '../utils/status-codes'
+import {
+    EHttpStatusCode,
+    httpStatusCodes,
+    THttpErrorCodes,
+} from '../utils/status-codes'
 
-export class HttpError<T extends TWooksErrorBody = TWooksErrorBody> extends Error {
-    constructor(protected code: THttpErrorCodes = 500, protected _body: string | T = '') {
+export class HttpError<
+    T extends TWooksErrorBody = TWooksErrorBody
+> extends Error {
+    constructor(
+        protected code: THttpErrorCodes = 500,
+        protected _body: string | T = ''
+    ) {
         super(typeof _body === 'string' ? _body : _body.message)
     }
 
     get body(): TWooksErrorBodyExt {
-        return typeof this._body === 'string' ? {
-            statusCode: this.code,
-            message: this.message,
-            error: httpStatusCodes[this.code],
-        } : {
-            ...this._body,
-            statusCode: this.code,
-            message: this.message,
-            error: httpStatusCodes[this.code],
-        }
+        return typeof this._body === 'string'
+            ? {
+                statusCode: this.code,
+                message: this.message,
+                error: httpStatusCodes[this.code],
+            }
+            : {
+                ...this._body,
+                statusCode: this.code,
+                message: this.message,
+                error: httpStatusCodes[this.code],
+            }
     }
 
     protected renderer?: HttpErrorRenderer

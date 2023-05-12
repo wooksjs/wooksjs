@@ -9,15 +9,14 @@
 </a>
 </p>
 
-
 Wooks Body is composable body parser for [@wooksjs/event-http](https://github.com/wooksjs/wooksjs/tree/main/packages/event-http).
 
 Supported content types:
 
-- ✅ application/json
-- ✅ text/*
-- ✅ multipart/form-data
-- ✅ application/x-www-form-urlencoded
+-   ✅ application/json
+-   ✅ text/\*
+-   ✅ multipart/form-data
+-   ✅ application/x-www-form-urlencoded
 
 Body parser does not parse every request's body. The parsing happens only when you call `parseBody` function.
 
@@ -36,6 +35,7 @@ app.post('test', async () => {
 ```
 
 ### Additional hooks
+
 ```ts
 import { useBody } from '@wooksjs/http-body'
 app.post('test', async () => {

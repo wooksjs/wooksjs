@@ -14,47 +14,76 @@ export interface TWooksHttpOptions {
 export class WooksHttp extends WooksAdapterBase {
     protected logger: TConsoleBase
 
-    constructor(protected opts?: TWooksHttpOptions, wooks?: Wooks | WooksAdapterBase) {
+    constructor(
+        protected opts?: TWooksHttpOptions,
+        wooks?: Wooks | WooksAdapterBase
+    ) {
         super(wooks, opts?.logger)
         this.logger = opts?.logger || this.getLogger('wooks-http')
     }
 
-    all<ResType = unknown, ParamsType = Record<string, string | string[]>>(path: string, handler: TWooksHandler<ResType>) {
+    all<ResType = unknown, ParamsType = Record<string, string | string[]>>(
+        path: string,
+        handler: TWooksHandler<ResType>
+    ) {
         return this.on<ResType, ParamsType>('*', path, handler)
     }
 
-    get<ResType = unknown, ParamsType = Record<string, string | string[]>>(path: string, handler: TWooksHandler<ResType>) {
+    get<ResType = unknown, ParamsType = Record<string, string | string[]>>(
+        path: string,
+        handler: TWooksHandler<ResType>
+    ) {
         return this.on<ResType, ParamsType>('GET', path, handler)
     }
 
-    post<ResType = unknown, ParamsType = Record<string, string | string[]>>(path: string, handler: TWooksHandler<ResType>) {
+    post<ResType = unknown, ParamsType = Record<string, string | string[]>>(
+        path: string,
+        handler: TWooksHandler<ResType>
+    ) {
         return this.on<ResType, ParamsType>('POST', path, handler)
     }
 
-    put<ResType = unknown, ParamsType = Record<string, string | string[]>>(path: string, handler: TWooksHandler<ResType>) {
+    put<ResType = unknown, ParamsType = Record<string, string | string[]>>(
+        path: string,
+        handler: TWooksHandler<ResType>
+    ) {
         return this.on<ResType, ParamsType>('PUT', path, handler)
     }
 
-    patch<ResType = unknown, ParamsType = Record<string, string | string[]>>(path: string, handler: TWooksHandler<ResType>) {
+    patch<ResType = unknown, ParamsType = Record<string, string | string[]>>(
+        path: string,
+        handler: TWooksHandler<ResType>
+    ) {
         return this.on<ResType, ParamsType>('PATCH', path, handler)
     }
 
-    delete<ResType = unknown, ParamsType = Record<string, string | string[]>>(path: string, handler: TWooksHandler<ResType>) {
+    delete<ResType = unknown, ParamsType = Record<string, string | string[]>>(
+        path: string,
+        handler: TWooksHandler<ResType>
+    ) {
         return this.on<ResType, ParamsType>('DELETE', path, handler)
     }
 
-    head<ResType = unknown, ParamsType = Record<string, string | string[]>>(path: string, handler: TWooksHandler<ResType>) {
+    head<ResType = unknown, ParamsType = Record<string, string | string[]>>(
+        path: string,
+        handler: TWooksHandler<ResType>
+    ) {
         return this.on<ResType, ParamsType>('HEAD', path, handler)
     }
 
-    options<ResType = unknown, ParamsType = Record<string, string | string[]>>(path: string, handler: TWooksHandler<ResType>) {
+    options<ResType = unknown, ParamsType = Record<string, string | string[]>>(
+        path: string,
+        handler: TWooksHandler<ResType>
+    ) {
         return this.on<ResType, ParamsType>('OPTIONS', path, handler)
     }
 
     protected server?: Server
 
     public async listen(...args: Parameters<Server['listen']>) {
-        const server = this.server = http.createServer(this.getServerCb() as http.RequestListener)
+        const server = (this.server = http.createServer(
+            this.getServerCb() as http.RequestListener
+        ))
         return new Promise((resolve, reject) => {
             server.once('listening', resolve)
             server.once('error', reject)
@@ -90,8 +119,14 @@ export class WooksHttp extends WooksAdapterBase {
 
     getServerCb() {
         return async (req: IncomingMessage, res: ServerResponse) => {
-            const { restoreCtx, clearCtx } = createHttpContext({ req, res }, this.mergeEventOptions(this.opts?.eventOptions))
-            const handlers = this.wooks.lookup(req.method as string, req.url as string)
+            const { restoreCtx, clearCtx } = createHttpContext(
+                { req, res },
+                this.mergeEventOptions(this.opts?.eventOptions)
+            )
+            const handlers = this.wooks.lookup(
+                req.method as string,
+                req.url as string
+            )
             if (handlers) {
                 try {
                     await this.processHandlers(handlers)
@@ -103,13 +138,17 @@ export class WooksHttp extends WooksAdapterBase {
                 }
             } else {
                 // not found
-                this.logger.debug(`404 Not found (${req.method as string})${req.url as string}`)
+                this.logger.debug(
+                    `404 Not found (${req.method as string})${
+                        req.url as string
+                    }`
+                )
                 this.respond(new HttpError(404))
                 clearCtx()
-            }    
+            }
         }
     }
-    
+
     protected async processHandlers(handlers: TWooksHandler<unknown>[]) {
         const { restoreCtx, clearCtx, store } = useHttpContext()
         for (const [i, handler] of handlers.entries()) {
@@ -126,7 +165,12 @@ export class WooksHttp extends WooksAdapterBase {
                 clearCtx()
                 break
             } catch (e) {
-                this.logger.error(`Uncought route handler exception: ${(store('event').get('req').url || '')}`, e)
+                this.logger.error(
+                    `Uncought route handler exception: ${
+                        store('event').get('req').url || ''
+                    }`,
+                    e
+                )
                 if (isLastHandler) {
                     restoreCtx()
                     this.respond(e)
@@ -137,6 +181,9 @@ export class WooksHttp extends WooksAdapterBase {
     }
 }
 
-export function createHttpApp(opts?: TWooksHttpOptions, wooks?: Wooks | WooksAdapterBase) {
+export function createHttpApp(
+    opts?: TWooksHttpOptions,
+    wooks?: Wooks | WooksAdapterBase
+) {
     return new WooksHttp(opts, wooks)
 }

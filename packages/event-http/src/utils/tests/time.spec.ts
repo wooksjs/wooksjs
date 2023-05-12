@@ -26,7 +26,9 @@ describe('time', () => {
         expect(convertTime('15Y')).toEqual(15000 * 60 * 60 * 24 * 365)
     })
     it('must convert complex time', () => {
-        expect(convertTime('2h 13m 16s 14ms')).toEqual(16 * 1000 + 13 * 1000 * 60 + 2 * 1000 * 60 * 60 + 14)
+        expect(convertTime('2h 13m 16s 14ms')).toEqual(
+            16 * 1000 + 13 * 1000 * 60 + 2 * 1000 * 60 * 60 + 14
+        )
     })
     it('must convert number', () => {
         expect(convertTime(225)).toEqual(225)
@@ -38,7 +40,7 @@ describe('time', () => {
         expect(convertTime('600s', 'm')).toEqual(10)
     })
     it('must convert number to hours', () => {
-        expect(convertTime('30m', 'h')).toEqual(.5)
+        expect(convertTime('30m', 'h')).toEqual(0.5)
     })
     it('must convert number to days', () => {
         expect(convertTime('36h', 'd')).toEqual(1.5)

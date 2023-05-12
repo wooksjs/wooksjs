@@ -5,7 +5,7 @@ class IterableRecords {
     [Symbol.iterator]() {
         return this
     }
-    
+
     protected index = 0
 
     next(): IteratorResult<[string, string]> {
@@ -24,9 +24,15 @@ export class CookiesIterable extends IterableRecords {
     next(): IteratorResult<[string, string]> {
         const str = this.cookies[this.index++]
         const ind = str ? str.indexOf('=') : 0
-        return this.index <= this.cookies.length ?
-            { value: [str.slice(0, ind), str.slice(ind + 1)] as [string, string], done: false } :
-            { value: undefined, done: true }
+        return this.index <= this.cookies.length
+            ? {
+                  value: [str.slice(0, ind), str.slice(ind + 1)] as [
+                      string,
+                      string
+                  ],
+                  done: false,
+              }
+            : { value: undefined, done: true }
     }
 }
 
@@ -39,25 +45,39 @@ export class HeadersIterable extends IterableRecords {
     }
 
     next(): IteratorResult<[string, string]> {
-        return this.index < this.entries.length ?
-            { value: this.entries[this.index++], done: false } :
-            { value: undefined, done: true }
+        return this.index < this.entries.length
+            ? { value: this.entries[this.index++], done: false }
+            : { value: undefined, done: true }
     }
 }
 
-export function applyProxyControls(records: IterableIterator<[string, string]>, controls: TWooksProxyControls, additionalBlockers?: string[]): Record<string, string> {
+export function applyProxyControls(
+    records: IterableIterator<[string, string]>,
+    controls: TWooksProxyControls,
+    additionalBlockers?: string[]
+): Record<string, string> {
     let result: Record<string, string> = {}
     const { allow, block, overwrite } = controls
     const defaultedAllow = allow || '*'
     if (defaultedAllow) {
         for (const [name, value] of records) {
-            const add = block !== '*' &&
-            (!additionalBlockers || !additionalBlockers.includes(name)) && (
-                defaultedAllow === '*' || 
-                (defaultedAllow.find(item => typeof item === 'string' && name.toLowerCase() === item.toLowerCase() || item instanceof RegExp && item.test(name)))
-            ) && (
-                !block || !block.find(item => typeof item === 'string' && name.toLowerCase() === item.toLowerCase() || item instanceof RegExp && item.test(name))
-            )
+            const add =
+                block !== '*' &&
+                (!additionalBlockers || !additionalBlockers.includes(name)) &&
+                (defaultedAllow === '*' ||
+                    defaultedAllow.find(
+                        (item) =>
+                            (typeof item === 'string' &&
+                                name.toLowerCase() === item.toLowerCase()) ||
+                            (item instanceof RegExp && item.test(name))
+                    )) &&
+                (!block ||
+                    !block.find(
+                        (item) =>
+                            (typeof item === 'string' &&
+                                name.toLowerCase() === item.toLowerCase()) ||
+                            (item instanceof RegExp && item.test(name))
+                    ))
             if (add) {
                 result[name] = value
             }

@@ -7,7 +7,10 @@ export function useAccept() {
     const accepts = (mime: string) => {
         const { set, get, has } = store('accept')
         if (!has(mime)) {
-            return set(mime, !!(accept && (accept === '*/*' || accept.indexOf(mime) >= 0)))
+            return set(
+                mime,
+                !!(accept && (accept === '*/*' || accept.indexOf(mime) >= 0))
+            )
         }
         return get(mime)
     }
@@ -15,7 +18,7 @@ export function useAccept() {
         accept,
         accepts,
         acceptsJson: () => accepts('application/json'),
-        acceptsXml:  () => accepts('application/xml'),
+        acceptsXml: () => accepts('application/xml'),
         acceptsText: () => accepts('text/plain'),
         acceptsHtml: () => accepts('text/html'),
     }

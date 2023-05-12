@@ -1,7 +1,15 @@
-import { TEmpty, TEventOptions, createEventContext, useEventContext } from '@wooksjs/event-core'
+import {
+    TEmpty,
+    TEventOptions,
+    createEventContext,
+    useEventContext,
+} from '@wooksjs/event-core'
 import { TCliContextStore, TCliEventData } from './types'
 
-export function createCliContext(data: TCliEventData, options: TEventOptions) {
+export function createCliContext(
+    data: Omit<TCliEventData, 'type'>,
+    options: TEventOptions
+) {
     return createEventContext<TCliContextStore, TCliEventData>({
         event: {
             ...data,

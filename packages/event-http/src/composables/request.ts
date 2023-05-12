@@ -9,32 +9,45 @@ export function useRequest() {
     const event = store('event')
     const { req } = event.value
 
-    const rawBody = () => init('rawBody', () => {
-        return new Promise((resolve, reject) => {
-            let body = Buffer.from('')
-            req.on('data', function(chunk) {
-                body = Buffer.concat([body, chunk])
-            })
-            req.on('error', function(err) {
-                reject(err)
-            })
-            req.on('end', function() {
-                resolve(body)
+    const rawBody = () =>
+        init('rawBody', () => {
+            return new Promise((resolve, reject) => {
+                let body = Buffer.from('')
+                req.on('data', function (chunk) {
+                    body = Buffer.concat([body, chunk])
+                })
+                req.on('error', function (err) {
+                    reject(err)
+                })
+                req.on('end', function () {
+                    resolve(body)
+                })
             })
         })
-    })
 
     const reqId = useEventId().getId
 
-    const forwardedIp = () => init('forwardedIp', () => {
-        if (typeof req.headers[xForwardedFor] === 'string' && req.headers[xForwardedFor]) {
-            return req.headers[xForwardedFor].split(',').shift()?.trim() as string
-        } else {
-            return ''
-        }        
-    })
+    const forwardedIp = () =>
+        init('forwardedIp', () => {
+            if (
+                typeof req.headers[xForwardedFor] === 'string' &&
+                req.headers[xForwardedFor]
+            ) {
+                return req.headers[xForwardedFor]
+                    .split(',')
+                    .shift()
+                    ?.trim() as string
+            } else {
+                return ''
+            }
+        })
 
-    const remoteIp = () => init('remoteIp', () => req.socket?.remoteAddress || req.connection?.remoteAddress || '')
+    const remoteIp = () =>
+        init(
+            'remoteIp',
+            () =>
+                req.socket?.remoteAddress || req.connection?.remoteAddress || ''
+        )
 
     function getIp(options?: { trustProxy: boolean }): string {
         if (options?.trustProxy) {
@@ -44,12 +57,18 @@ export function useRequest() {
         }
     }
 
-    const getIpList = () => init('ipList', () => {
-        return {
-            remoteIp: req.socket?.remoteAddress || req.connection?.remoteAddress || '',
-            forwarded: (req.headers[xForwardedFor] as string || '').split(',').map(s => s.trim()),
-        }
-    })
+    const getIpList = () =>
+        init('ipList', () => {
+            return {
+                remoteIp:
+                    req.socket?.remoteAddress ||
+                    req.connection?.remoteAddress ||
+                    '',
+                forwarded: ((req.headers[xForwardedFor] as string) || '')
+                    .split(',')
+                    .map((s) => s.trim()),
+            }
+        })
 
     return {
         rawRequest: req,

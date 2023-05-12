@@ -1,4 +1,3 @@
-
 import { EventLogger } from './event-logger'
 
 export interface TGenericEvent {

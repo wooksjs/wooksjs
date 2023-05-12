@@ -1,7 +1,18 @@
-import { useHeaders, useRequest, EHttpStatusCode, HttpError, WooksURLSearchParams, useHttpContext } from '@wooksjs/event-http'
-import { compressors, TBodyCompressor, uncompressBody } from './utils/body-compressor'
+import {
+    useHeaders,
+    useRequest,
+    EHttpStatusCode,
+    HttpError,
+    WooksURLSearchParams,
+    useHttpContext,
+} from '@wooksjs/event-http'
+import {
+    compressors,
+    TBodyCompressor,
+    uncompressBody,
+} from './utils/body-compressor'
 
-type TBodyStore = { 
+type TBodyStore = {
     parsed?: Promise<unknown>
     isJson?: boolean
     isHtml?: boolean
@@ -18,7 +29,8 @@ export function useBody() {
     const { store } = useHttpContext<{ request: TBodyStore }>()
     const { init } = store('request')
     const { rawBody } = useRequest()
-    const { 'content-type': contentType, 'content-encoding': contentEncoding } = useHeaders()
+    const { 'content-type': contentType, 'content-encoding': contentEncoding } =
+        useHeaders()
 
     function contentIs(type: string) {
         return (contentType || '').indexOf(type) >= 0
@@ -28,32 +40,48 @@ export function useBody() {
     const isHtml = () => init('isHtml', () => contentIs('text/html'))
     const isXml = () => init('isXml', () => contentIs('text/xml'))
     const isText = () => init('isText', () => contentIs('text/plain'))
-    const isBinary = () => init('isBinary', () => contentIs('application/octet-stream'))
-    const isFormData = () => init('isFormData', () => contentIs('multipart/form-data'))
-    const isUrlencoded = () => init('isUrlencoded', () => contentIs('application/x-www-form-urlencoded'))
-    const isCompressed = () => init('isCompressed', () => {
-        const parts = contentEncodings()
-        for (const p of parts) {
-            if (['deflate', 'gzip', 'br'].includes(p)) return true
-        }
-        return false
-    })
+    const isBinary = () =>
+        init('isBinary', () => contentIs('application/octet-stream'))
+    const isFormData = () =>
+        init('isFormData', () => contentIs('multipart/form-data'))
+    const isUrlencoded = () =>
+        init('isUrlencoded', () =>
+            contentIs('application/x-www-form-urlencoded')
+        )
+    const isCompressed = () =>
+        init('isCompressed', () => {
+            const parts = contentEncodings()
+            for (const p of parts) {
+                if (['deflate', 'gzip', 'br'].includes(p)) return true
+            }
+            return false
+        })
 
-    const contentEncodings = () => init('contentEncodings', () => (contentEncoding || '').split(',').map(p => p.trim()).filter(p => !!p))
+    const contentEncodings = () =>
+        init('contentEncodings', () =>
+            (contentEncoding || '')
+                .split(',')
+                .map((p) => p.trim())
+                .filter((p) => !!p)
+        )
 
-    const parseBody = () => init('parsed', async () => {
-        const body = await uncompressBody(contentEncodings(), (await rawBody()).toString())
-        if (isJson()) return jsonParser(body)
-        else if (isFormData()) return formDataParser(body)
-        else if (isUrlencoded()) return urlEncodedParser(body)
-        else if (isBinary()) return textParser(body)
-        else return textParser(body)
-    })
+    const parseBody = () =>
+        init('parsed', async () => {
+            const body = await uncompressBody(
+                contentEncodings(),
+                (await rawBody()).toString()
+            )
+            if (isJson()) return jsonParser(body)
+            else if (isFormData()) return formDataParser(body)
+            else if (isUrlencoded()) return urlEncodedParser(body)
+            else if (isBinary()) return textParser(body)
+            else return textParser(body)
+        })
 
     function jsonParser(v: string): Record<string, unknown> | unknown[] {
         try {
             return JSON.parse(v) as Record<string, unknown> | unknown[]
-        } catch(e) {
+        } catch (e) {
             throw new HttpError(400, (e as Error).message)
         }
     }
@@ -62,8 +90,14 @@ export function useBody() {
     }
 
     function formDataParser(v: string): Record<string, unknown> {
-        const boundary = '--' + ((/boundary=([^;]+)(?:;|$)/.exec(contentType || '') || [, ''])[1])
-        if (!boundary) throw new HttpError(EHttpStatusCode.BadRequest, 'form-data boundary not recognized')
+        const boundary =
+            '--' +
+            (/boundary=([^;]+)(?:;|$)/.exec(contentType || '') || [, ''])[1]
+        if (!boundary)
+            throw new HttpError(
+                EHttpStatusCode.BadRequest,
+                'form-data boundary not recognized'
+            )
         const parts = v.trim().split(boundary)
         const result: Record<string, unknown> = {}
         let key = ''
@@ -73,7 +107,10 @@ export function useBody() {
             key = ''
             partContentType = 'text/plain'
             let valueMode = false
-            const lines = part.trim().split(/\n/g).map(s => s.trim())
+            const lines = part
+                .trim()
+                .split(/\n/g)
+                .map((s) => s.trim())
             for (const line of lines) {
                 if (valueMode) {
                     if (!result[key]) {
@@ -89,14 +126,28 @@ export function useBody() {
                         }
                         continue
                     }
-                    if (line.toLowerCase().startsWith('content-disposition: form-data;')) {
+                    if (
+                        line
+                            .toLowerCase()
+                            .startsWith('content-disposition: form-data;')
+                    ) {
                         key = (/name=([^;]+)/.exec(line) || [])[1]
-                        if (!key) throw new HttpError(EHttpStatusCode.BadRequest, 'Could not read multipart name: ' + line)
+                        if (!key)
+                            throw new HttpError(
+                                EHttpStatusCode.BadRequest,
+                                'Could not read multipart name: ' + line
+                            )
                         continue
                     }
                     if (line.toLowerCase().startsWith('content-type:')) {
-                        partContentType = (/content-type:\s?([^;]+)/i.exec(line) || [])[1]
-                        if (!partContentType) throw new HttpError(EHttpStatusCode.BadRequest, 'Could not read content-type: ' + line)
+                        partContentType = (/content-type:\s?([^;]+)/i.exec(
+                            line
+                        ) || [])[1]
+                        if (!partContentType)
+                            throw new HttpError(
+                                EHttpStatusCode.BadRequest,
+                                'Could not read content-type: ' + line
+                            )
                         continue
                     }
                 }
@@ -132,7 +183,10 @@ export function useBody() {
     }
 }
 
-export function registerBodyCompressor(name: string, compressor: TBodyCompressor) {
+export function registerBodyCompressor(
+    name: string,
+    compressor: TBodyCompressor
+) {
     if (compressors[name]) {
         throw new Error(`Body compressor "${name}" already registered.`)
     }

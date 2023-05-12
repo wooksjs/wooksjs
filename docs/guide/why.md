@@ -24,9 +24,10 @@ where parsed body was never used, as well as parsed cookies.
 
 Another problem is where to cache already parsed and fetched data? Middleware's based frameworks simply attach everything to a
 request instance. This leads to the following issues:
-- Request object grows and collects too many props;
-- When using TS it's not clear how to type the request (Is it still `IncomingMessage`? Is `Express.Request`? What's the difference?);
-- Request object always appears in middlewares and handlers and may be accidentally linked to some persistent object -> memory leaks.
+
+-   Request object grows and collects too many props;
+-   When using TS it's not clear how to type the request (Is it still `IncomingMessage`? Is `Express.Request`? What's the difference?);
+-   Request object always appears in middlewares and handlers and may be accidentally linked to some persistent object -> memory leaks.
 
 ## What's the difference with Wooks?
 

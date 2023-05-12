@@ -1,7 +1,11 @@
 import { ProstoRouter, THttpMethod } from '@prostojs/router'
 import { TWooksHandler } from './types'
 import { TEventOptions, useEventContext } from '@wooksjs/event-core'
-import { ProstoLogger, TConsoleBase, TProstoLoggerOptions } from '@prostojs/logger'
+import {
+    ProstoLogger,
+    TConsoleBase,
+    TProstoLoggerOptions,
+} from '@prostojs/logger'
 import { getDefaultLogger } from 'common/logger'
 
 export interface TWooksOptions {
@@ -44,8 +48,15 @@ export class Wooks {
         return found?.route?.handlers || null
     }
 
-    public on<ResType = unknown, ParamsType = Record<string, string | string[]>>(method: string, path: string, handler: TWooksHandler<ResType>) {
-        return this.router.on<ParamsType, TWooksHandler>(method as THttpMethod, path, handler)
+    public on<
+        ResType = unknown,
+        ParamsType = Record<string, string | string[]>
+    >(method: string, path: string, handler: TWooksHandler<ResType>) {
+        return this.router.on<ParamsType, TWooksHandler>(
+            method as THttpMethod,
+            path,
+            handler
+        )
     }
 }
 
@@ -90,12 +101,19 @@ export class WooksAdapterBase {
             ...(opts || {}),
             eventLogger: {
                 ...this.getLoggerOptions(),
-                ...( opts?.eventLogger || {} ),
+                ...(opts?.eventLogger || {}),
             } as TEventOptions['eventLogger'],
         }
     }
 
-    public on<ResType = unknown, ParamsType = Record<string, string | string[]>>(method: string, path: string, handler: TWooksHandler<ResType>) {
-        return this.wooks.on<ResType, ParamsType>(method as THttpMethod, path, handler)
+    public on<
+        ResType = unknown,
+        ParamsType = Record<string, string | string[]>
+    >(method: string, path: string, handler: TWooksHandler<ResType>) {
+        return this.wooks.on<ResType, ParamsType>(
+            method as THttpMethod,
+            path,
+            handler
+        )
     }
 }

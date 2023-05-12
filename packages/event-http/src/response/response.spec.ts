@@ -15,17 +15,24 @@ describe('response', () => {
     })
 
     it('must create response from json', () => {
-        const response = createWooksResponder().createResponse({a: 'a', b: [1,2,3]}) as BaseHttpResponse<unknown>
+        const response = createWooksResponder().createResponse({
+            a: 'a',
+            b: [1, 2, 3],
+        }) as BaseHttpResponse<unknown>
         expect(baseRenderer.render(response)).toEqual('{"a":"a","b":[1,2,3]}')
     })
 
     it('must create response from text', () => {
-        const response = createWooksResponder().createResponse('hello world') as BaseHttpResponse<unknown>
+        const response = createWooksResponder().createResponse(
+            'hello world'
+        ) as BaseHttpResponse<unknown>
         expect(baseRenderer.render(response)).toEqual('hello world')
     })
 
     it('must create response boolean', () => {
-        const response = createWooksResponder().createResponse(true) as BaseHttpResponse<unknown>
+        const response = createWooksResponder().createResponse(
+            true
+        ) as BaseHttpResponse<unknown>
         expect(baseRenderer.render(response)).toEqual('true')
     })
 })

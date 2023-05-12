@@ -1,4 +1,10 @@
-import { ProstoLogger, TProstoLoggerMessage, TProstoLoggerOptions, coloredConsole, createConsoleTransort } from '@prostojs/logger'
+import {
+    ProstoLogger,
+    TProstoLoggerMessage,
+    TProstoLoggerOptions,
+    coloredConsole,
+    createConsoleTransort,
+} from '@prostojs/logger'
 import { TEventOptions } from './context'
 
 export interface TEventLoggerData {
@@ -7,9 +13,10 @@ export interface TEventLoggerData {
 
 export class EventLogger extends ProstoLogger<TEventLoggerData> {
     constructor(eventId: string, opts?: TEventOptions['eventLogger']) {
-        const _opts: TProstoLoggerOptions<TEventLoggerData> = opts as TProstoLoggerOptions<TEventLoggerData> || {
-            level: 4,
-        }
+        const _opts: TProstoLoggerOptions<TEventLoggerData> =
+            (opts as TProstoLoggerOptions<TEventLoggerData>) || {
+                level: 4,
+            }
         if (!_opts.mapper) {
             _opts.mapper = (msg) => ({
                 ...msg,
@@ -19,7 +26,9 @@ export class EventLogger extends ProstoLogger<TEventLoggerData> {
         if (!_opts.transports) {
             _opts.transports = [
                 createConsoleTransort<TEventLoggerData>({
-                    format: coloredConsole as unknown as ((m: TProstoLoggerMessage<TEventLoggerData>) => string),
+                    format: coloredConsole as unknown as (
+                        m: TProstoLoggerMessage<TEventLoggerData>
+                    ) => string,
                 }),
             ]
         }

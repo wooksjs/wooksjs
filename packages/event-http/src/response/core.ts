@@ -1,5 +1,10 @@
 import { BaseHttpResponseRenderer } from './renderer'
-import { useRequest, useResponse, useSetHeaders, useSetCookies } from '../composables'
+import {
+    useRequest,
+    useResponse,
+    useSetHeaders,
+    useSetCookies,
+} from '../composables'
 import { EHttpStatusCode } from '../utils/status-codes'
 import { renderCookie } from '../utils/set-cookie'
 import { Readable } from 'stream'
@@ -27,19 +32,19 @@ export class BaseHttpResponse<BodyType = unknown> {
     protected _body?: BodyType
 
     protected _headers: Record<string, string | string[]> = {}
-    
+
     get status() {
         return this._status
     }
-    
+
     set status(value: EHttpStatusCode) {
         this._status = value
     }
-    
+
     get body() {
         return this._body
     }
-    
+
     set body(value: BodyType | undefined) {
         this._body = value
     }
@@ -69,7 +74,9 @@ export class BaseHttpResponse<BodyType = unknown> {
     }
 
     setCookie(name: string, value: string, attrs?: Partial<TCookieAttributes>) {
-        const cookies = this._headers['set-cookie'] = (this._headers['set-cookie'] || []) as string[]
+        const cookies = (this._headers['set-cookie'] = (this._headers[
+            'set-cookie'
+        ] || []) as string[])
         cookies.push(renderCookie(name, { value, attrs: attrs || {} }))
         return this
     }
@@ -79,7 +86,9 @@ export class BaseHttpResponse<BodyType = unknown> {
     }
 
     setCookieRaw(rawValue: string) {
-        const cookies = this._headers['set-cookie'] = (this._headers['set-cookie'] || []) as string[]
+        const cookies = (this._headers['set-cookie'] = (this._headers[
+            'set-cookie'
+        ] || []) as string[])
         cookies.push(rawValue)
         return this
     }
@@ -101,7 +110,7 @@ export class BaseHttpResponse<BodyType = unknown> {
         const { headers } = useSetHeaders()
 
         const { cookies, removeCookie } = useSetCookies()
-        const newCookies  = (this._headers['set-cookie'] || [])
+        const newCookies = this._headers['set-cookie'] || []
         for (const cookie of newCookies) {
             removeCookie(cookie.slice(0, cookie.indexOf('=')))
         }
@@ -109,7 +118,7 @@ export class BaseHttpResponse<BodyType = unknown> {
             ...headers(),
             ...this._headers,
         }
-        const setCookie = [ ...newCookies, ...cookies()]
+        const setCookie = [...newCookies, ...cookies()]
         if (setCookie && setCookie.length) {
             this._headers['set-cookie'] = setCookie
         }
@@ -120,7 +129,9 @@ export class BaseHttpResponse<BodyType = unknown> {
         this.status = this.status || useResponse().status()
         if (!this.status) {
             const { method } = useRequest()
-            this.status = renderedBody ? defaultStatus[method as 'GET'] || EHttpStatusCode.OK : EHttpStatusCode.NoContent
+            this.status = renderedBody
+                ? defaultStatus[method as 'GET'] || EHttpStatusCode.OK
+                : EHttpStatusCode.NoContent
         }
         return this
     }
@@ -171,17 +182,24 @@ export class BaseHttpResponse<BodyType = unknown> {
                     stream.pipe(res)
                 })
             }
-        } else if (globalThis.Response && this.body instanceof Response /* Fetch Response */) {
+        } else if (
+            globalThis.Response &&
+            this.body instanceof Response /* Fetch Response */
+        ) {
             this.mergeFetchStatus(this.body.status)
             if (method === 'HEAD') {
                 res.end()
             } else {
                 const additionalHeaders: Record<string, string | string[]> = {}
                 if (this.body.headers.get('content-length')) {
-                    additionalHeaders['content-length'] = this.body.headers.get('content-length') as string
+                    additionalHeaders['content-length'] = this.body.headers.get(
+                        'content-length'
+                    ) as string
                 }
                 if (this.body.headers.get('content-type')) {
-                    additionalHeaders['content-type'] = this.body.headers.get('content-type') as string
+                    additionalHeaders['content-type'] = this.body.headers.get(
+                        'content-type'
+                    ) as string
                 }
                 res.writeHead(this.status, {
                     ...additionalHeaders,
@@ -200,15 +218,18 @@ export class BaseHttpResponse<BodyType = unknown> {
     }
 }
 
-async function respondWithFetch(fetchBody: ReadableStream<Uint8Array> | null, res: ServerResponse<IncomingMessage>) {
+async function respondWithFetch(
+    fetchBody: ReadableStream<Uint8Array> | null,
+    res: ServerResponse<IncomingMessage>
+) {
     if (fetchBody) {
         try {
             for await (const chunk of fetchBody as unknown as AsyncIterable<Uint8Array>) {
                 res.write(chunk)
             }
-        } catch(e) {
+        } catch (e) {
             // ?
         }
     }
-    res.end()                        
+    res.end()
 }

@@ -1,4 +1,3 @@
-
 export type TBodyCompressor = {
     compress: (data: string) => string | Promise<string>
     uncompress: (data: string) => string | Promise<string>
@@ -6,12 +5,15 @@ export type TBodyCompressor = {
 
 export const compressors: Record<string, TBodyCompressor> = {
     identity: {
-        compress: v => v,
-        uncompress: v => v,
+        compress: (v) => v,
+        uncompress: (v) => v,
     },
 }
 
-export async function compressBody(encodings: string[], body: string): Promise<string> {
+export async function compressBody(
+    encodings: string[],
+    body: string
+): Promise<string> {
     let newBody = body
     for (const e of encodings) {
         if (!compressors[e]) {
@@ -22,7 +24,10 @@ export async function compressBody(encodings: string[], body: string): Promise<s
     return newBody
 }
 
-export async function uncompressBody(encodings: string[], body: string): Promise<string> {
+export async function uncompressBody(
+    encodings: string[],
+    body: string
+): Promise<string> {
     let newBody = body
     for (const e of encodings.reverse()) {
         if (!compressors[e]) {

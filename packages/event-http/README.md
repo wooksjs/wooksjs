@@ -10,10 +10,11 @@
 </p>
 
 As a part of `wooks` event processing framework, `@wooksjs/event-http` implements http events and provides composables that let you:
-- parse urls search params
-- parse cookies
-- parse request body (json, url-encoded, form, ...)
-- serve files
+
+-   parse urls search params
+-   parse cookies
+-   parse request body (json, url-encoded, form, ...)
+-   serve files
 
 ### The main ideas behind composable functions are:
 
@@ -24,9 +25,9 @@ As a part of `wooks` event processing framework, `@wooksjs/event-http` implement
 
 ### Official Wooks HTTP composables:
 
-- [@wooksjs/http-body](https://github.com/wooksjs/wooksjs/tree/main/packages/http-body) - to parse body
-- [@wooksjs/http-static](https://github.com/wooksjs/wooksjs/tree/main/packages/http-static) - to serve static files
-- [@wooksjs/http-proxy](https://github.com/wooksjs/wooksjs/tree/main/packages/http-proxy) - to proxy requests
+-   [@wooksjs/http-body](https://github.com/wooksjs/wooksjs/tree/main/packages/http-body) - to parse body
+-   [@wooksjs/http-static](https://github.com/wooksjs/wooksjs/tree/main/packages/http-static) - to serve static files
+-   [@wooksjs/http-proxy](https://github.com/wooksjs/wooksjs/tree/main/packages/http-proxy) - to proxy requests
 
 ## Install
 
@@ -40,12 +41,14 @@ import { createHttpApp } from '@wooksjs/event-http'
 
 const app = createHttpApp()
 
-app.on('GET', 'hello/:name', () => `Hello ${ useRouteParams().get('name') }!`)
+app.on('GET', 'hello/:name', () => `Hello ${useRouteParams().get('name')}!`)
 
 // shortcuts for some methods are supported:
 // app.get('hello/:name', () => `Hello ${ useRouteParams().get('name') }!`)
 
-app.listen(3000, () => { console.log('Wooks Server is up on port 3000') })
+app.listen(3000, () => {
+    console.log('Wooks Server is up on port 3000')
+})
 ```
 
 ## Documentation

@@ -7,6 +7,7 @@ export function useEventLogger(topic?: string) {
     const { store, getCtx } = useEventContext()
     const { init } = store('event')
     const ctx = getCtx()
-    const get = () => init('logger', () => new EventLogger(getId(), ctx.options?.eventLogger))
+    const get = () =>
+        init('logger', () => new EventLogger(getId(), ctx.options?.eventLogger))
     return topic ? get().createTopic(topic) : get()
 }

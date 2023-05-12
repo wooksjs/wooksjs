@@ -43,7 +43,7 @@ describe('event-http/headers useHeaders', () => {
         setTestHttpContext({
             url: '',
             headers: { accept: acceptValue, authorization: authValue1 },
-        })   
+        })
         const {
             authorization,
             authType,
@@ -51,7 +51,7 @@ describe('event-http/headers useHeaders', () => {
             isBasic,
             isBearer,
             basicCredentials,
-        } = useAuthorization()     
+        } = useAuthorization()
         expect(authorization).toEqual(authValue1)
         expect(authType()).toEqual('Bearer')
         expect(authRawCredentials()).toEqual('ABCDEFG')
@@ -73,13 +73,16 @@ describe('event-http/headers useHeaders', () => {
             isBearer,
             basicCredentials,
         } = useAuthorization()
-        
+
         expect(authorization).toEqual(authValue2)
         expect(authType()).toEqual('Basic')
         expect(authRawCredentials()).toEqual('bG9naW46cGFzc3dvcmQ=')
         expect(isBasic()).toEqual(true)
         expect(isBearer()).toEqual(false)
-        expect(basicCredentials()).toEqual({ username: 'login', password: 'password' })
+        expect(basicCredentials()).toEqual({
+            username: 'login',
+            password: 'password',
+        })
     })
 })
 
@@ -87,7 +90,10 @@ describe('event-http/headers useSetHeaders', () => {
     beforeEach(() => {
         setTestHttpContext({
             url: '',
-            headers: { accept: 'application/json', 'content-type': 'application/json' },
+            headers: {
+                accept: 'application/json',
+                'content-type': 'application/json',
+            },
         })
     })
 
