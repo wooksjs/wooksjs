@@ -1,42 +1,42 @@
 {
-    "name": "@wooksjs/event-http",
-    "version": "0.2.18",
-    "description": "@wooksjs/event-http",
-    "main": "dist/index.cjs",
-    "module": "dist/index.mjs",
-    "types": "dist/index.d.ts",
-    "files": [
-        "dist"
-    ],
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/wooksjs/wooksjs.git",
-        "directory": "packages/event-http"
-    },
-    "keywords": [
-        "http",
-        "wooks",
-        "composables",
-        "web",
-        "framework",
-        "app",
-        "api",
-        "rest",
-        "restful",
-        "prostojs"
-    ],
-    "author": "Artem Maltsev",
-    "license": "MIT",
-    "bugs": {
-        "url": "https://github.com/wooksjs/wooksjs/issues"
-    },
-    "peerDependencies": {
-        "wooks": "0.2.18",
-        "@prostojs/router": "^0.0.16",
-        "@wooksjs/event-core": "0.2.18"
-    },
-    "dependencies": {
-        "@prostojs/logger": "^0.3.4"
-    },
-    "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/event-http#readme"
+  "name": "@wooksjs/event-http",
+  "version": "0.2.19",
+  "description": "@wooksjs/event-http",
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wooksjs/wooksjs.git",
+    "directory": "packages/event-http"
+  },
+  "keywords": [
+    "http",
+    "wooks",
+    "composables",
+    "web",
+    "framework",
+    "app",
+    "api",
+    "rest",
+    "restful",
+    "prostojs"
+  ],
+  "author": "Artem Maltsev",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/wooksjs/wooksjs/issues"
+  },
+  "peerDependencies": {
+    "wooks": "0.2.19",
+    "@prostojs/router": "^0.1.0",
+    "@wooksjs/event-core": "0.2.19"
+  },
+  "dependencies": {
+    "@prostojs/logger": "^0.3.6"
+  },
+  "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/event-http#readme"
 }
