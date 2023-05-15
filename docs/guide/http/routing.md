@@ -151,24 +151,24 @@ Path builder can be used to build a path based on URI params.
 ::: code-group
 
 ```js [javascript]
-const pathBuilder = app.get('/api/path', () => 'ok')
+const { getPath: pathBuilder } = app.get('/api/path', () => 'ok')
 console.log(pathBuilder()) // /api/path
 
-const userPathBuilder = app.get('/api/user/:name', () => 'ok')
+const { getPath: userPathBuilder } = app.get('/api/user/:name', () => 'ok')
 console.log(
     userPathBuilder({
         name: 'John',
     })
 ) // /api/user/John
 
-const wildcardBuilder = app.get('/static/*', () => 'ok')
+const { getPath: wildcardBuilder } = app.get('/static/*', () => 'ok')
 console.log(
     wildcardBuilder({
         '*': 'index.html',
     })
 ) // /static/index.html
 
-const multiParamsBuilder = app.get('/api/asset/:type/:type/:id', () => 'ok')
+const { getPath: multiParamsBuilder } = app.get('/api/asset/:type/:type/:id', () => 'ok')
 console.log(
     userPathBuilder({
         type: ['CJ', 'REV'],
@@ -181,7 +181,7 @@ console.log(
 interface MyParamsType = {
     name: string
 }
-const userPathBuilder = app.get<string, MyParamsType>('/api/user/:name', () => 'ok')
+const { getPath: userPathBuilder } = app.get<string, MyParamsType>('/api/user/:name', () => 'ok')
 console.log(userPathBuilder({
     name: 'John'
 }))
