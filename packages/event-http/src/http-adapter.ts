@@ -9,6 +9,7 @@ import { TEventOptions } from '@wooksjs/event-core'
 export interface TWooksHttpOptions {
     logger?: TConsoleBase
     eventOptions?: TEventOptions
+    onNotFound?: TWooksHandler<unknown>
 }
 
 export class WooksHttp extends WooksAdapterBase {
@@ -127,9 +128,9 @@ export class WooksHttp extends WooksAdapterBase {
                 req.method as string,
                 req.url as string
             )
-            if (handlers) {
+            if (handlers || this.opts?.onNotFound) {
                 try {
-                    await this.processHandlers(handlers)
+                    await this.processHandlers(handlers || [this.opts?.onNotFound as TWooksHandler])
                 } catch (e) {
                     this.logger.error('Internal error, please report', e)
                     restoreCtx()

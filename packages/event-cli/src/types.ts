@@ -1,5 +1,6 @@
 export interface TCliEventData {
     argv: string[]
+    pathParams: string[]
     type: 'CLI'
 }
 

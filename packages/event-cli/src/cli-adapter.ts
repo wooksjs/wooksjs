@@ -9,7 +9,8 @@ export const cliShortcuts = {
 
 export interface TWooksCliOptions {
     onError?(e: Error): void
-    onUnknownParams?(pathParams: string[]): void
+    onNotFound?: TWooksHandler<unknown>
+    onUnknownCommand?: ((params: string[]) => unknown)
     logger?: TConsoleBase
     eventOptions?: TEventOptions
 }
@@ -35,16 +36,16 @@ export class WooksCli extends WooksAdapterBase {
     async run(_argv?: string[]) {
         const argv = process.argv.slice(2) || _argv
         const firstFlagIndex = argv.findIndex((a) => a.startsWith('-')) + 1
-        const pathParams = firstFlagIndex
+        const pathParams = (firstFlagIndex
             ? argv.slice(0, firstFlagIndex - 1)
-            : argv
+            : argv).map((v) => encodeURIComponent(v))
         const path =
-            '/' + pathParams.map((v) => encodeURIComponent(v)).join('/')
+            '/' + pathParams.join('/')
         const { restoreCtx, clearCtx } = createCliContext(
-            { argv },
+            { argv, pathParams },
             this.mergeEventOptions(this.opts?.eventOptions)
         )
-        const handlers = this.wooks.lookup('CLI', path)
+        const handlers = this.wooks.lookup('CLI', path) || this.opts?.onNotFound && [this.opts.onNotFound] || null
         if (handlers) {
             try {
                 for (const handler of handlers) {
@@ -75,7 +76,8 @@ export class WooksCli extends WooksAdapterBase {
             }
             clearCtx()
         } else {
-            this.onUnknownParams(pathParams)
+            this.onUnknownCommand(pathParams)
+            clearCtx()
         }
     }
 
@@ -88,13 +90,13 @@ export class WooksCli extends WooksAdapterBase {
         }
     }
 
-    onUnknownParams(pathParams: string[]) {
-        if (this.opts?.onUnknownParams) {
-            this.opts.onUnknownParams(pathParams)
+    onUnknownCommand(pathParams: string[]) {
+        if (this.opts?.onUnknownCommand) {
+            this.opts.onUnknownCommand(pathParams)
         } else {
             this.error(
                 __DYE_RESET__ +
-                    'Unknown command parameters: ' +
+                    'Unknown command: ' +
                     __DYE_RED__ +
                     pathParams.join(' ')
             )
