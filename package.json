@@ -1,6 +1,6 @@
 {
   "name": "wooksjs",
-  "version": "0.2.19",
+  "version": "0.2.20",
   "description": "wooksjs - web app framework with hooks",
   "main": "index.js",
   "type": "module",

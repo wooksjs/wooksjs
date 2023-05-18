@@ -1,3 +1,12 @@
+## [0.2.20](https://github.com/wooksjs/wooksjs/compare/v0.2.19...v0.2.20) (2023-05-18)
+
+
+### Features
+
+* add onNotFound option ([c949863](https://github.com/wooksjs/wooksjs/commit/c949863bf0ce57512771b4571e820776a2f3fca1))
+
+
+
 ## [0.2.19](https://github.com/wooksjs/wooksjs/compare/v0.2.18...v0.2.19) (2023-05-15)
 
 
