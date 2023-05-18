@@ -62,9 +62,7 @@ export class WooksCli extends WooksAdapterBase {
                             )
                         )
                     } else if (response instanceof Error) {
-                        console.error(
-                            __DYE_RED__ + response.message + __DYE_RESET__
-                        )
+                        this.onError(response)
                     } else if (response) {
                         if (response) {
                             console.log(JSON.stringify(response, null, '  '))
@@ -96,9 +94,8 @@ export class WooksCli extends WooksAdapterBase {
         } else {
             this.error(
                 __DYE_RESET__ +
-                    'Unknown command: ' +
-                    __DYE_RED__ +
-                    pathParams.join(' ')
+                'Unknown command: ' +
+                pathParams.join(' ')
             )
             process.exit(1)
         }
@@ -106,9 +103,9 @@ export class WooksCli extends WooksAdapterBase {
 
     error(e: string | Error) {
         if (typeof e === 'string') {
-            console.error(__DYE_RED__ + e + __DYE_RESET__)
+            console.error(__DYE_RED__ + 'ERROR: ' + __DYE_RESET__ + e)
         } else {
-            console.error(__DYE_RED__ + e.message + __DYE_RESET__)
+            console.error(__DYE_RED__ + 'ERROR: ' + __DYE_RESET__ + e.message)
         }
     }
 }
