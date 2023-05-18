@@ -1,3 +1,12 @@
+## [0.2.23](https://github.com/wooksjs/wooksjs/compare/v0.2.22...v0.2.23) (2023-05-18)
+
+
+### Bug Fixes
+
+* **event-cli:** fix encoding cmd for lookup ([2061add](https://github.com/wooksjs/wooksjs/commit/2061add5d99a274e1efb15c18079b648328ee94c))
+
+
+
 ## [0.2.22](https://github.com/wooksjs/wooksjs/compare/v0.2.21...v0.2.22) (2023-05-18)
 
 
