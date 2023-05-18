@@ -1,3 +1,12 @@
+## [0.2.22](https://github.com/wooksjs/wooksjs/compare/v0.2.21...v0.2.22) (2023-05-18)
+
+
+### Bug Fixes
+
+* **event-cli:** exit with code 1 when error returned ([ea7fd1b](https://github.com/wooksjs/wooksjs/commit/ea7fd1b00c74aee87366ace6fa61c2b55e1a4048))
+
+
+
 ## [0.2.21](https://github.com/wooksjs/wooksjs/compare/v0.2.20...v0.2.21) (2023-05-18)
 
 
