@@ -40,7 +40,7 @@ export class WooksCli extends WooksAdapterBase {
             ? argv.slice(0, firstFlagIndex - 1)
             : argv)
         const path =
-            '/' + pathParams.map((v) => encodeURIComponent(v)).join('/')
+            '/' + pathParams.map((v) => encodeURI(v).replace(/\//g, '%2F')).join('/')
         const { restoreCtx, clearCtx } = createCliContext(
             { argv, pathParams },
             this.mergeEventOptions(this.opts?.eventOptions)
