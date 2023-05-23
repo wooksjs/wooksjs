@@ -1,37 +1,37 @@
 {
-    "name": "@wooksjs/event-core",
-    "version": "0.2.23",
-    "description": "@wooksjs/event-core",
-    "main": "dist/index.cjs",
-    "module": "dist/index.mjs",
-    "types": "dist/index.d.ts",
-    "files": [
-        "dist"
-    ],
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/wooksjs/wooksjs.git",
-        "directory": "packages/event-core"
-    },
-    "keywords": [
-        "http",
-        "wooks",
-        "composables",
-        "web",
-        "framework",
-        "app",
-        "api",
-        "rest",
-        "restful",
-        "prostojs"
-    ],
-    "author": "Artem Maltsev",
-    "license": "MIT",
-    "bugs": {
-        "url": "https://github.com/wooksjs/wooksjs/issues"
-    },
-    "dependencies": {
-        "@prostojs/logger": "^0.3.6"
-    },
-    "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/event-core#readme"
+  "name": "@wooksjs/event-core",
+  "version": "0.3.0",
+  "description": "@wooksjs/event-core",
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wooksjs/wooksjs.git",
+    "directory": "packages/event-core"
+  },
+  "keywords": [
+    "http",
+    "wooks",
+    "composables",
+    "web",
+    "framework",
+    "app",
+    "api",
+    "rest",
+    "restful",
+    "prostojs"
+  ],
+  "author": "Artem Maltsev",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/wooksjs/wooksjs/issues"
+  },
+  "dependencies": {
+    "@prostojs/logger": "^0.3.6"
+  },
+  "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/event-core#readme"
 }

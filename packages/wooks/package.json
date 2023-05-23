@@ -1,39 +1,39 @@
 {
-    "name": "wooks",
-    "version": "0.2.23",
-    "description": "wooks",
-    "main": "dist/index.cjs",
-    "module": "dist/index.mjs",
-    "types": "dist/index.d.ts",
-    "files": [
-        "dist"
-    ],
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/wooksjs/wooksjs.git",
-        "directory": "packages/wooks"
-    },
-    "keywords": [
-        "http",
-        "wooks",
-        "composables",
-        "web",
-        "framework",
-        "app",
-        "api",
-        "rest",
-        "restful",
-        "prostojs"
-    ],
-    "author": "Artem Maltsev",
-    "license": "MIT",
-    "bugs": {
-        "url": "https://github.com/wooksjs/wooksjs/issues"
-    },
-    "dependencies": {
-        "@prostojs/router": "^0.1.0",
-        "@prostojs/logger": "^0.3.6",
-        "@wooksjs/event-core": "0.2.23"
-    },
-    "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/wooks#readme"
+  "name": "wooks",
+  "version": "0.3.0",
+  "description": "wooks",
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wooksjs/wooksjs.git",
+    "directory": "packages/wooks"
+  },
+  "keywords": [
+    "http",
+    "wooks",
+    "composables",
+    "web",
+    "framework",
+    "app",
+    "api",
+    "rest",
+    "restful",
+    "prostojs"
+  ],
+  "author": "Artem Maltsev",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/wooksjs/wooksjs/issues"
+  },
+  "dependencies": {
+    "@prostojs/router": "^0.1.0",
+    "@prostojs/logger": "^0.3.6",
+    "@wooksjs/event-core": "0.3.0"
+  },
+  "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/wooks#readme"
 }

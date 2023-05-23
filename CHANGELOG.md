@@ -1,3 +1,12 @@
+# [0.3.0](https://github.com/wooksjs/wooksjs/compare/v0.2.23...v0.3.0) (2023-05-23)
+
+
+### Features
+
+* **event-cli:** integrate cli-help ([3a84669](https://github.com/wooksjs/wooksjs/commit/3a846693e4df1c0f4a2519877a6de369c9844063))
+
+
+
 ## [0.2.23](https://github.com/wooksjs/wooksjs/compare/v0.2.22...v0.2.23) (2023-05-18)
 
 ### Bug Fixes

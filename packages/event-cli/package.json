@@ -1,43 +1,43 @@
 {
-    "name": "@wooksjs/event-cli",
-    "version": "0.2.23",
-    "description": "@wooksjs/event-cli",
-    "main": "dist/index.cjs",
-    "module": "dist/index.mjs",
-    "types": "dist/index.d.ts",
-    "files": [
-        "dist"
-    ],
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/wooksjs/wooksjs.git",
-        "directory": "packages/event-cli"
-    },
-    "keywords": [
-        "http",
-        "wooks",
-        "composables",
-        "web",
-        "framework",
-        "app",
-        "api",
-        "rest",
-        "restful",
-        "prostojs"
-    ],
-    "author": "Artem Maltsev",
-    "license": "MIT",
-    "bugs": {
-        "url": "https://github.com/wooksjs/wooksjs/issues"
-    },
-    "peerDependencies": {
-        "wooks": "0.2.23",
-        "@wooksjs/event-core": "0.2.23"
-    },
-    "dependencies": {
-        "minimist": "^1.2.6",
-        "@prostojs/cli-help": "",
-        "@prostojs/logger": "^0.3.6"
-    },
-    "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/event-cli#readme"
+  "name": "@wooksjs/event-cli",
+  "version": "0.3.0",
+  "description": "@wooksjs/event-cli",
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wooksjs/wooksjs.git",
+    "directory": "packages/event-cli"
+  },
+  "keywords": [
+    "http",
+    "wooks",
+    "composables",
+    "web",
+    "framework",
+    "app",
+    "api",
+    "rest",
+    "restful",
+    "prostojs"
+  ],
+  "author": "Artem Maltsev",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/wooksjs/wooksjs/issues"
+  },
+  "peerDependencies": {
+    "wooks": "0.3.0",
+    "@wooksjs/event-core": "0.3.0"
+  },
+  "dependencies": {
+    "minimist": "^1.2.6",
+    "@prostojs/cli-help": "^0.0.10",
+    "@prostojs/logger": "^0.3.6"
+  },
+  "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/event-cli#readme"
 }
