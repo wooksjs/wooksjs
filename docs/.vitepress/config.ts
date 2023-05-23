@@ -176,7 +176,7 @@ export default defineConfig({
                 },
                 {
                     text: 'Wooks CLI',
-                    collapsible: true,
+                    // collapsible: true,
                     collapsed: true,
                     items: [
                         {
@@ -199,7 +199,7 @@ export default defineConfig({
                 },
                 {
                     text: 'Advanced',
-                    collapsible: true,
+                    // collapsible: true,
                     collapsed: true,
                     items: [
                         {
