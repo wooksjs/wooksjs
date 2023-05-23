@@ -34,7 +34,7 @@ export default defineConfig({
 
     themeConfig: {
         logo: '/wooks-full-logo.png', //'/logo.svg',
-        
+
         search: {
             provider: 'local'
         },
@@ -57,6 +57,8 @@ export default defineConfig({
 
         nav: [
             { text: 'Guide', link: '/guide/', activeMatch: '/guide/' },
+            { text: 'HTTP', link: '/guide/http/', activeMatch: '/guide/http/' },
+            { text: 'CLI', link: '/guide/cli/', activeMatch: '/guide/cli/' },
             // { text: 'Config', link: '/config/', activeMatch: '/config/' },
             // { text: 'Plugins', link: '/plugins/', activeMatch: '/plugins/' },
             {
@@ -116,7 +118,7 @@ export default defineConfig({
                 },
                 {
                     text: 'Wooks HTTP',
-                    collapsible: true,
+                    // collapsible: true,
                     collapsed: true,
                     items: [
                         {
