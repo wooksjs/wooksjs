@@ -34,6 +34,10 @@ export default defineConfig({
 
     themeConfig: {
         logo: '/wooks-full-logo.png', //'/logo.svg',
+        
+        search: {
+            provider: 'local'
+        },
 
         editLink: {
             pattern: 'https://github.com/wooksjs/wooksjs/edit/main/docs/:path',
