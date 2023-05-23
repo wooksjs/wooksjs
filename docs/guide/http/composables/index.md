@@ -1,62 +1,60 @@
 # Composables
 
-::: tip
-Composable function (hook) is a function that hooks you to the [event context](../../#event-context), e.g. URL-params, body, cookies etc.
-:::
+A composable function, also known as a hook, is a function that connects you to the event context, which includes URL parameters, request body, cookies, and more.
 
-Wooks HTTP comes with many useful composable functions. Those can be devided into the following groups:
+Wooks HTTP provides various useful composable functions that can be categorized into the following groups:
 
--   [Request Composables](./request.md) — Whatever comes with the request (headers, cookies, body...)
--   [Response Composables](./request.md) — Whatever can be set for the response (set cookies, set headers, ...)
+- [Request Composables](./request.md): Functions related to the request, such as headers, cookies, and the request body.
+- [Response Composables](./request.md): Functions for setting the response, including setting headers and cookies.
 
-You can write your own composables that would incapsulate more logic, for instance getting a user data based on cookie or auth. headers.
+You can also create your own composables to encapsulate additional logic, such as retrieving user data based on cookies or authentication headers.
 
 ::: warning
-All the composable function must be called before any async operation
-because the Event Context gets lost after asyncronous commands.
+All composable functions must be called before any asynchronous operations because the event context is lost after asynchronous commands.
 
-If you need to call some composables after async operations you must first
-restore the context. See more details about Event Context [here](../../advanced/context.md).
+If you need to call composables after asynchronous operations, you must first restore the context.
+To restore the context, you can use the `useHttpContext` composable.
+Refer to the [Event Context](../../advanced/context.md) for more details.
 :::
 
 ::: code-group
 
-```js [call composables syncronously]
+```js [Synchronously]
 import { useSetHeader, useSetCookies } from '@wooksjs/event-http'
 
 app.get('/async', async () => {
-    // call the composables syncronously here
+    // Call the composables synchronously here
     const myHeader = useSetHeader('my-header')
 
     myHeader.value = 'value before await'
 
-    await ... // some async code
-    // at this point the event context already lost
+    await ... // Some asynchronous code
+    // At this point, the event context is already lost
 
-    myHeader.value = 'value after await' // but hooks are still working
+    myHeader.value = 'value after await' // But hooks are still working
 
-    const { setCookie } = useSetCookies() // don't do this // [!code error]
+    const { setCookie } = useSetCookies() // Avoid doing this // [!code error]
 })
 ```
 
-```js [how to restore context]
+```js [Asynchronously]
 import { useSetHeader, useSetCookies, useHttpContext } from '@wooksjs/event-http'
 
 app.get('/async', async () => {
     const myHeader = useSetHeader('my-header')
-    const { restoreCtx } = useHttpContext() // here's restoreCtx fn // [!code ++]
+    const { restoreCtx } = useHttpContext() // Here's the restoreCtx function // [!code ++]
 
     myHeader.value = 'value before await'
 
-    await ... // some async code
-    // at this point the event context already lost
+    await ... // Some asynchronous code
+    // At this point, the event context is already lost
 
-    myHeader.value = 'value after await' // but hooks are still working
+    myHeader.value = 'value after await' // But hooks are still working
 
-    restoreCtx()    // [!code ++]
-    // event context is back after restoreCtx() call
+    restoreCtx() // [!code ++]
+    // The event context is restored after calling restoreCtx()
 
-    const { setCookie } = useSetCookies() // works fine now // [!code hl]
+    const { setCookie } = useSetCookies() // Works fine now // [!code hl]
 })
 ```
 

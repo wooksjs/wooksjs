@@ -23,7 +23,7 @@ It utilizes such a technique as you can see in React Hooks or Vue Composables. I
 -   [@wooksjs/http-static](https://github.com/wooksjs/wooksjs/tree/main/packages/http-static) - to serve static files
 -   [@wooksjs/http-proxy](https://github.com/wooksjs/wooksjs/tree/main/packages/http-proxy) - to proxy requests
 
-## Install
+## Installation
 
 `npm install wooks`
 

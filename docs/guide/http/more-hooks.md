@@ -1,74 +1,65 @@
 # Context and Hooks
 
-This is advanced guide on how to work with Event Context and how to create your own hooks.
+In this advanced guide, we will explore how to work with Event Context and create your own hooks in Wooks HTTP.
 
 ## Create useUserProfile composable
 
-As an example we'll create a composable that resolves user profile
+As an example, let's create a composable that resolves the user profile.
 
 ```ts
-import { useAuthorization, useHttpContext } from '@wooksjs/event-http'
+import { useAuthorization, useHttpContext } from '@wooksjs/event-http';
 
 interface TUser {
-    username: string
-    age: number
+    username: string;
+    age: number;
     // ...
 }
 
 export function useUserProfile() {
-    // 1. get custom-typed context
-    const { store } = useHttpContext<{ user: TUser }>()
-    const user = store('user')
+    // 1. Get custom-typed context
+    const { store } = useHttpContext<{ user: TUser }>();
+    const user = store('user');
 
-    // 2. in this example will use basic credentials approach to get user name
-    const { basicCredentials } = useAuthorization()
+    // 2. Use basic credentials approach to get the user name in this example
+    const { basicCredentials } = useAuthorization();
+    const username = basicCredentials()?.username;
 
-    // 3. get user name
-    const username = basicCredentials()?.username
+    // 3. User profile initializer
+    const userProfile = () => user.init('data', () => readUser(username))
 
-    // 4. user data async loader
-    async function userProfile() {
-        // first check if user data was already cached
-        // for this request
-        if (!user.value) {
-            // no user data cached yet, try to read user
-            // and return the result
-            user.value = await readUser()
-        }
-        // return user profile from cache
-        return user.value
-    }
-
-    // abstract readUser function
-    function readUser(): Promise<TUser> {
-        // return db.readUser(username)
+    // Abstract readUser function
+    function readUser(username: string): Promise<TUser> {
+        // Return the user profile from the database
     }
 
     return {
-        username, // we have user name syncronously
-        userProfile, // and userProfile as (() => Promise<TUser>)
-    }
+        username,
+        userProfile,
+    };
 }
 
-// example of usage of our useUserProfile
+// Example of usage of our useUserProfile composable
 app.get('/user', async () => {
-    const { username, userProfile } = useUserProfile()
-    console.log('username =', username)
-    const data = await userProfile()
-    return { user: data }
-})
+    const { username, userProfile } = useUserProfile();
+    console.log('username =', username);
+    const data = await userProfile();
+    return { user: data };
+});
 ```
+
+In the above example, we define the `useUserProfile` composable that makes use of the `useHttpContext` and `useAuthorization` hooks provided by Wooks HTTP.
+The composable resolves the user profile by retrieving the user data from the event context store or fetching the data from the database.
 
 ### Create useHeaderHook
 
-Example of custom set header hook
+Here's an example of a custom hook for setting headers.
 
 ```ts
-import { useSetHeaders } from '@wooksjs/event-http'
-import { attachHook } from '@wooksjs/event-core'
+import { useSetHeaders } from '@wooksjs/event-http';
+import { attachHook } from '@wooksjs/event-core';
 
 function useHeaderHook(name: string) {
-    const { setHeader, headers } = useSetHeaders()
+    const { setHeader, headers } = useSetHeaders();
 
     return attachHook(
         {
@@ -79,35 +70,46 @@ function useHeaderHook(name: string) {
             get: () => headers()[name] as string,
             set: (value: string | number) => setHeader(name, value),
         }
-    )
+    );
 }
 
-// usage
-
+// Usage
 app.get('/test', () => {
-    const myHeader = useHeaderHook('x-my-header')
-    myHeader.value = 'header value'
+    const myHeader = useHeaderHook('x-my-header');
+    myHeader.value = 'header value';
     // *Please note that useSetHeader('x-my-header') will work similarly*
-    return 'ok'
-})
+    return 'ok';
+});
 
-// result:
+// Result:
 // 200
-// headers:
+// Headers:
 // x-my-header: header value
 ```
 
+In the above example, we define the `useHeaderHook` function that creates a custom hook for setting headers.
+The hook utilizes the `useSetHeaders` composable provided by Wooks HTTP to access the `setHeader` and headers functions.
+It returns an `ref`-object that allows you to get and set the value of the specified header.
+
 ## How to Restore the Event Context
 
-`const { restoreCtx, clearCtx } = useHttpContext()`
+To restore the Event Context within a handler, you can use the `restoreCtx` and functions provided by the `useHttpContext` hook.
 
 ```ts
-import { useHttpContext } from '@wooksjs/event-http'
+import { useHttpContext } from '@wooksjs/event-http';
 
 async function someHandler() {
-    const { restoreCtx, clearCtx } = useHttpContext()
-    await ... // some async operations
-    restoreCtx()
-    // here the wooks context is back
+    const { restoreCtx, clearCtx } = useHttpContext();
+    await ... // Some async operations
+    restoreCtx();
+    // Here the Wooks Context is restored
 }
 ```
+
+In the example above, within the `someHandler` function, we use the `useHttpContext` hook to retrieve the `restoreCtx` and `clearCtx` functions.
+After performing some async operations, we can call `restoreCtx()` to restore the Event Context.
+This allows subsequent operations within the handler to have access to the restored context.
+
+By using the `restoreCtx` function, you can ensure that the Event Context is maintained and accessible throughout the execution of your handler.
+
+That's how you can work with Event Context and create your own hooks in Wooks HTTP.

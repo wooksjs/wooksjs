@@ -45,7 +45,11 @@ export class Wooks {
     public lookup(method: string, path: string) {
         const found = this.getRouter().lookup(method as THttpMethod, path || '')
         useEventContext().store('routeParams').value = found?.ctx?.params || {}
-        return found?.route?.handlers || null
+        return {
+            handlers: found?.route?.handlers || null,
+            segments: found?.route?.segments || null,
+            firstStatic: found?.route?.firstStatic || null,
+        }
     }
 
     public on<

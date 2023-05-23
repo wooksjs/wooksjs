@@ -124,13 +124,15 @@ export class WooksHttp extends WooksAdapterBase {
                 { req, res },
                 this.mergeEventOptions(this.opts?.eventOptions)
             )
-            const handlers = this.wooks.lookup(
+            const { handlers } = this.wooks.lookup(
                 req.method as string,
                 req.url as string
             )
             if (handlers || this.opts?.onNotFound) {
                 try {
-                    await this.processHandlers(handlers || [this.opts?.onNotFound as TWooksHandler])
+                    await this.processHandlers(
+                        handlers || [this.opts?.onNotFound as TWooksHandler]
+                    )
                 } catch (e) {
                     this.logger.error('Internal error, please report', e)
                     restoreCtx()

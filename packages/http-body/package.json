@@ -1,37 +1,37 @@
 {
-  "name": "@wooksjs/http-body",
-  "version": "0.2.23",
-  "description": "@wooksjs/http-body",
-  "main": "dist/index.cjs",
-  "module": "dist/index.mjs",
-  "types": "dist/index.d.ts",
-  "files": [
-    "dist"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/wooksjs/wooksjs.git",
-    "directory": "packages/http-body"
-  },
-  "keywords": [
-    "http",
-    "wooks",
-    "composables",
-    "web",
-    "framework",
-    "app",
-    "api",
-    "rest",
-    "restful",
-    "prostojs"
-  ],
-  "author": "Artem Maltsev",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/wooksjs/wooksjs/issues"
-  },
-  "peerDependencies": {
-    "@wooksjs/event-http": "0.2.23"
-  },
-  "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/http-body#readme"
+    "name": "@wooksjs/http-body",
+    "version": "0.2.23",
+    "description": "@wooksjs/http-body",
+    "main": "dist/index.cjs",
+    "module": "dist/index.mjs",
+    "types": "dist/index.d.ts",
+    "files": [
+        "dist"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/wooksjs/wooksjs.git",
+        "directory": "packages/http-body"
+    },
+    "keywords": [
+        "http",
+        "wooks",
+        "composables",
+        "web",
+        "framework",
+        "app",
+        "api",
+        "rest",
+        "restful",
+        "prostojs"
+    ],
+    "author": "Artem Maltsev",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/wooksjs/wooksjs/issues"
+    },
+    "peerDependencies": {
+        "@wooksjs/event-http": "0.2.23"
+    },
+    "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/http-body#readme"
 }

@@ -29,7 +29,7 @@ As a part of `wooks` event processing framework, `@wooksjs/event-http` implement
 -   [@wooksjs/http-static](https://github.com/wooksjs/wooksjs/tree/main/packages/http-static) - to serve static files
 -   [@wooksjs/http-proxy](https://github.com/wooksjs/wooksjs/tree/main/packages/http-proxy) - to proxy requests
 
-## Install
+## Installation
 
 `npm install wooks @wooksjs/event-http`
 

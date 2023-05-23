@@ -1,67 +1,48 @@
-<!-- <script setup>
-    import VPFeatures from 'vitepress/dist/client/theme-default/components/VPFeatures.vue'
-
-    const features = [
-        {
-            // icon: '🕸',
-            title: 'Wooks HTTP',
-            details: 'Create you HTTP Server that can easily replace any of well known web app frameworks',
-            link: '/guide/http/',
-        },
-        {
-            // icon: '💻',
-            title: 'Wooks CLI',
-            details: 'Create you CLI modularly with routing the commands',
-            link: '/guide/cli/',
-        },
-    ]
-</script> -->
-
 # Getting Started
 
 ::: warning
-The work on Wooks is still in progress. It is already suitable for
-out-of-the-box use for HTTP events, but some of the APIs can still change.
+Work on Wooks is still in progress. It is already suitable for immediate use in HTTP events,
+but some APIs may still undergo changes.
 :::
 
-This section describes the basic ideas and a concept of Wooks with no dive into implementation or specific event types.
+This section provides an overview of the basic ideas and concepts behind Wooks,
+without diving into specific implementations or event types.
 
 ## Overview
 
-Wooks (Web-Hooks) is an event processing framework. What does processing mean?
-Usually each event processing workflow consists of 3 steps:
+Wooks (Web-Hooks) is an event processing framework that encompasses
+the three main steps involved in event processing workflows:
 
-1. **Routing** — lookup for a proper event handler;
-2. **Context**ing — parsing, fetching, caching, authorizing...
-3. **Responding** — acting, responding to the event.
+1. **Routing** — Finding the appropriate event handler.
+2. **Context**ing — Parsing, fetching, caching, authorizing, and other contextual operations.
+3. **Responding** — Acting upon the event and generating a response.
 
-Each of these steps is somehow covered by Wooks in a generic manner.
+Wooks addresses each of these steps in a generic manner.
 
-Of course the major functionality of Wooks is built around http events.
-It basically started with http events.
-Nevertheless you can build CLI with the similar approach.
-And even more event types support is coming :tada:.
+The primary functionality of Wooks revolves around HTTP events, because it initially started with HTTP events.
+However, you can also build command-line interfaces (CLIs) using a similar approach.
+Additionally, support for other event types is planned for the future.
 
-The main ideas behind Wooks are:
+The key ideas behind Wooks are:
 
--   Each event can be **routed** to a handler
--   Each event has its **context** (state)
--   Event **context** (state) is stored in a special object and available to the handlers through **composables** (hooks)
--   A handler may return some data that has to be interpreted as a **Response**
+-   Each event can be **routed** to an appropriate handler.
+-   Each event has its own **context** (state).
+-   The event **context** (state) is stored in a special object and is accessible to handlers through **composables** (hooks).
+-   Handlers may return data that should be interpreted as a **Response**.
 
 ::: tip
-_Composables_ concept is kindly borrowed from Vue 3 Composition API. Or it's also similar to react _hooks_.
+The concept of _composables_ is inspired by Vue 3 Composition API and in some ways is similar to React _hooks_.
 :::
 
 ## Event Routing
 
-Fast and robust routing is achieved with [@prostojs/router](https://github.com/prostojs/router).
-It's basically an URI router that supports parameters and wildcards.
+Wooks achieves fast and reliable routing using [@prostojs/router](https://github.com/prostojs/router).
+This URI router supports parameters and wildcards.
 
-It's as fast as `find-my-way` used by `fastify` _(in some tests it is even faster)_, see benchmarks [here](https://github.com/prostojs/router-benchmark).
-But it's less buggy (IMO) and handles `%`-encoding properly with no compromises.
+In terms of speed, it is comparable to `find-my-way`, which is used by `fastify` _(and in some tests, it is even faster)_.
+You can find benchmarks comparing it to `express`, `find-my-way`, and `radix3` [here](https://github.com/prostojs/router-benchmark).
 
-See performance comparison table with `express`, `find-my-way` and `radix3` ([source](https://github.com/prostojs/router-benchmark)):
+Here is a performance comparison table:
 
 ::: details
 |Test Name|Express avg op/ms|FindMyWay avg op/ms|ProstoRouter avg op/ms|Radix3 avg op/ms|
@@ -77,47 +58,47 @@ See performance comparison table with `express`, `find-my-way` and `radix3` ([so
 
 ## Event Context
 
-When an event handler is found by router, the handler and the route params/wildcards are passed to Wooks processing event loop. At that moment a new **event context** is created with pre-filled URI-params.
+When a router finds an event handler, both the handler and the route parameters/wildcards are passed to
+the Wooks event processing loop. At this point, a new event context is created with pre-filled URI parameters.
 
-Each event context has:
+Each event context includes:
 
--   `type`: same as event source (`HTTP`, `CLI`, ...)
--   `params`: parsed by router on lookup
--   `custom data`: anything that needs to be parsed, fetched and cached (e.g. `parsedBody` of HTTP event)
+-   `type`: Same as the event source (`HTTP`, `CLI`, etc.)
+-   `params`: Parameters parsed by the router during lookup.
+-   `custom data`: Any additional data that needs to be parsed, fetched, and cached (e.g. the `parsedBody` of an HTTP event)
 
-The generic event context API is implemented in `@wooksjs/event-core` library.
+The generic event context API is implemented in the `@wooksjs/event-core` library.
 
-Each event-specific library provides its wrapper of `event-core`. The reason for that is to provide proper types and event-specific composables.
-Such libraries refixed with `event-`, e.g. `@wooksjs/event-http`, `@wooksjs/event-cli`, ...
+Each event-specific library provides its own wrapper around event-core to provide proper typings
+and event-specific composables. These libraries have the `event-` prefix, such as `@wooksjs/event-http`,
+`@wooksjs/event-cli`, and so on.
 
 The `event-core` functionality includes the following actions:
 
--   create/clear/restore event context
--   get/change/hook to a specific property of event context
+-   Creating, clearing, and restoring event contexts.
+-   Getting, changing, and hooking into specific properties of the event context.
 
-Besides actions it supplies several composables:
+It also provides several composables:
 
--   `useRouteParams` — provides params parsed by router
--   `useEventId` — provides an unique event ID (uuid)
+-   `useRouteParams`: Provides access to the parameters parsed by the router.
+-   `useEventId`: Provides a unique event ID (UUID).
+-   `useEventLogger`: Provides an event logger instance from ([@prostojs/logger](https://github.com/prostojs/logger)).
 
 ## Response
 
-There is no generic response handling in Wooks. Each event-specific wrapper is responsible for managing the response from the handlers.
-For instance `@wooksjs/event-http` comes with a **responder** that is capable of calling `res.writeHead(...)` and `res.end(...)` based on the event
-context and returned values from event handler.
+Wooks does not provide a generic response handling mechanism. Each event-specific wrapper library
+is responsible for managing the responses from the handlers. For example, `@wooksjs/event-http` comes
+with a **responder** that can call `res.writeHead(...)` and `res.end(...)` based on the event context and
+the values returned by the event handler.
 
 ## Your First Wooks Project
 
-You actually can not just use Wooks as a generic thing. It can not handle any of the events. It only provides
-a landscape with router and event context. So you always need some event-specific library together with Wooks.
+You cannot use Wooks as a generic framework for handling any type of event. Instead,
+you need to use an event-specific library in conjunction with Wooks.
 
-Currently there are two of such libraries:
+Currently, there are two such libraries available:
 
-<!-- <VPFeatures
-    :features="features"
-/> -->
+1. `@wooksjs/event-http` — Handles HTTP event processing and can easily replace other well-known web application frameworks. See more details [here](./http/).
+1. `@wooksjs/event-cli` — Handles command-line input processing and facilitates command routing. See more details [here](./cli/).
 
-1. `@wooksjs/event-http` — http event processing, it can easily replace any of well known web app frameworks. See details [here](./http/).
-1. `@wooksjs/event-cli` <Badge type="warning" text="WIP" /> — command line input processing, helps to route commands. See details [here](./cli/).
-
-In further sections of this documentation you'll find detailed examples of how to use this framework.
+In the following sections of this documentation, you will find detailed examples of how to use this framework.

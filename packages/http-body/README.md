@@ -20,7 +20,7 @@ Supported content types:
 
 Body parser does not parse every request's body. The parsing happens only when you call `parseBody` function.
 
-## Install
+## Installation
 
 `npm install @wooksjs/http-body`
 

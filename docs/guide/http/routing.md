@@ -1,14 +1,16 @@
 # Routing
 
-Routing is the first step of event processing. It's responsible for routing the event context to a proper event handler.
-Routes can be static or parametric. Parameters are parsed from a parametric route and then passed further to a handler.
+Routing is the initial step in event processing, responsible for directing the event context
+to the appropriate event handler.
+Routes can be categorized as static or parametric, with parameters parsed from parametric
+routes and passed to the handler.
 
 ::: info
-Wooks uses [@prostojs/router](https://github.com/prostojs/router) for routing. Its documentation partly inicluded
-here for easy access.
+Wooks utilizes [@prostojs/router](https://github.com/prostojs/router) for routing, and its
+documentation is partially included here for easy reference.
 :::
 
-The router properly parses URI and finds the handler in the shortest possible time.
+The router effectively parses URIs and quickly identifies the corresponding handler.
 
 ## Content
 
@@ -16,57 +18,55 @@ The router properly parses URI and finds the handler in the shortest possible ti
 
 ## Parametric routes
 
-Parameter starts with `:`.
-If you want to have colon in your path without defining a parameter you must escape it with backslash like so `'/api/colon\\:novar'`.
-Parameters can be separated with hyphen like so `'/api/:key1-:key2'`
-It's possible to specify RegExp for parameters `'/api/time/:hours(\\d{2})h:minutes(\\d{2})m'`
+Parameters in routes begin with a colon (`:`).
+To include a colon in the path without defining a parameter, it must be escaped
+with a backslash (`/api/colon\\:novar`).
+Parameters can be separated using a hyphen (`/api/:key1-:key2`).
+Regular expressions can also be specified for parameters (`/api/time/:hours(\\d{2})h:minutes(\\d{2})m`).
 
 ```js
-// simple single param
+// Simple single param
 app.get('/api/vars/:key', () => 'ok')
-// two params separated with hyphen
+// Two params separated with a hyphen
 app.get('/api/vars/:key1-:key2', () => 'ok')
-// two params with regex
+// Two params with regex
 app.get('/api/time/:hours(\\d{2})h:minutes(\\d{2})m', () => 'ok')
-// two params separated with slash
+// Two params separated with a slash
 app.get('/api/user/:name1/:name2', () => 'ok')
-// three params with the same name (leads to an array as a value)
+// Three params with the same name (leads to an array as a value)
 app.get('/api/array/:name/:name/:name', () => 'ok')
 ```
 
 ## Wildcards
 
-Widlcard is specified with asterisk `'*'`
-There are several options available:
+Wildcards are denoted by an asterisk (`*`) and offer several options:
 
-1. It can be at the beginning of path, in the middle of the path or at the end of the path.
-2. It's possible to have several wildcards.
-3. It's possible to have widlcards mixed with params.
-4. It's possible to pass regex to wildcard.
+1. They can be placed at the beginning, middle, or end of a path.
+1. Multiple wildcards can be used.
+1. Wildcards can be combined with parameters.
+1. Regular expressions can be passed to wildcards.
 
 ```js
-// the most common usage (will match all the URIs that
-// start with `/static/`)
+// The most common usage (matches all URIs that start with `/static/`)
 app.get('/static/*', () => 'ok')
 
-// will match all the URIs that start with `/static/`
-// and end with `.js`
+// Matches all URIs that start with `/static/` and end with `.js`
 app.get('/static/*.js', () => 'ok')
 
-// will match all the URIs that start with `/static/`
-// and have `/test/` in the middle
+// Matches all URIs that start with `/static/` and have `/test/` in the middle
 app.get('/static/*/test/*', () => 'ok')
 
-// will match all the URIs that start with `/static/[numbers]`
+// Matches all URIs that start with `/static/[numbers]`
 app.get('/static/*(\\d+)', () => 'ok')
+
 ```
 
 ## Retrieving URI params
 
-When using parametric routes it's usefull to get access to the params.
-Here's the first composable function `useRouteParams` from `wooks`.
+When using parametric routes, it's useful to access the parameters.
+The `useRouteParams` composable function from `wooks` provides a convenient way to achieve this.
 
-It returns an object that contains params as `JSON` and a getter function `get`:
+It returns an object containing the params as `JSON` and a `get` function for accessing the values.
 
 ```ts
 function useRouteParams<
@@ -99,14 +99,14 @@ app.get('hello/:name', () => {
 
 :::
 
-For repeated param name it returns an array:
+For repeated param names, it returns an array:
 ::: code-group
 
 ```js [ESM]
 import { useRouteParams } from 'wooks'
 app.get('hello/:name/:name', () => {
     const { get } = useRouteParams()
-    return get('name') // array of names
+    return get('name') // Array of names
 })
 ```
 
@@ -114,20 +114,20 @@ app.get('hello/:name/:name', () => {
 const { useRouteParams } = require('wooks')
 app.get('hello/:name/:name', () => {
     const { get } = useRouteParams()
-    return get('name') // array of names
+    return get('name') // Array of names
 })
 ```
 
 :::
 
-For wildcard the name of param is `*`:
+For wildcards, the name of the param is `*`:
 ::: code-group
 
 ```js [ESM]
 import { useRouteParams } from 'wooks'
 app.get('hello/*', () => {
     const { get } = useRouteParams()
-    return get('*') // returns everything that follows hello/
+    return get('*') // Returns everything that follows `hello/`
 })
 ```
 
@@ -141,12 +141,12 @@ app.get('hello/*', () => {
 
 :::
 
-Multiple wildcards are stored as an array (similar to repeated param name)
+Multiple wildcards are stored as an array, similar to repeated param names.
 
 ## Path builders
 
-When you define a new route you receive a path builder for it.
-Path builder can be used to build a path based on URI params.
+When defining a new route, a path builder is returned.
+Path builders are used to construct paths based on URI params.
 
 ::: code-group
 
@@ -192,10 +192,8 @@ console.log(userPathBuilder({
 
 ## Query Parameters
 
-Query Parameters or URL Search Parameters are not a part of URI path that is processed by router.
-Router simply ignores everything after `?` or `#`.
+Query Parameters or URL Search Parameters are not part of the URI path processed by the router.
+The router simply ignores everything after `?` or `#`.
 
-So there is nothing router can do about query params. But there is a composable function that
-provides you access to those: `useSearchParams` from `@wooksjs/event-http`
-
-See more details [here](./composables/request.md#query-parameters).
+To access query parameters, you can use the `useSearchParams` composable function from `@wooksjs/event-http`.
+For more details, refer to the [Query Parameters section](./composables/request.md#query-parameters).

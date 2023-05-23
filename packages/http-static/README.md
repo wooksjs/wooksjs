@@ -18,7 +18,7 @@ Wooks Serve File is composable static file server for [@wooksjs/event-http](http
 -   ✅ can handle etag
 -   ✅ can handle ranges
 
-## Install
+## Installation
 
 `npm install @wooksjs/http-static`
 

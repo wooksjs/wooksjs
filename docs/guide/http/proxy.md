@@ -1,9 +1,11 @@
 # Proxy Requests
 
-Although Wooks HTTP already supports `fetch` response to be returned from a handler,
-this package provides more convinient way to proxy requests.
+The `@wooksjs/http-proxy` package provides a convenient way to proxy requests in Wooks HTTP.
+It allows you to easily proxy requests to another server or API.
 
-## Install
+## Installation
+
+To use the proxy functionality, you need to install the `@wooksjs/http-proxy` package:
 
 ```bash
 npm install @wooksjs/http-proxy
@@ -11,8 +13,9 @@ npm install @wooksjs/http-proxy
 
 ## Usage
 
-A very simple example:
+Once installed, you can import and use the `useProxy` composable function in your WooksJS application.
 
+Example:
 ```js
 import { useProxy } from '@wooksjs/http-proxy'
 
@@ -22,72 +25,85 @@ app.get('/to-proxy', () => {
 })
 ```
 
+The `useProxy` function returns a function that you can call with the target URL you want to proxy.
+The function will make the proxy request and return the `fetch` response from the target server.
+
 ## Restrict cookies/headers to pass
 
+You can restrict the cookies and headers that are passed in the proxy request by specifying
+the `reqCookies` and `reqHeaders` options in the `useProxy` function.
+
+Example:
 ```js
-import { useProxy } from '@wooksjs/http-proxy'
+import { useProxy } from '@wooksjs/http-proxy';
+
 app.get('/to-proxy', () => {
-    const proxy = useProxy()
+    const proxy = useProxy();
     return proxy('https://target-website.com/target-path?query=123', {
-        reqHeaders: { block: ['referer'] }, // block referer header
-        reqCookies: { block: '*' }, // block all req cookies
-    })
-})
+        reqHeaders: { block: ['referer'] }, // Block the referer header
+        reqCookies: { block: '*' }, // Block all request cookies
+    });
+});
 ```
+
+In the example above, the referer header is blocked, and all request cookies are blocked from being passed in the proxy request.
 
 ## Change Response
 
-It's easy as `proxy` returns fetch response
+The proxy function returned by `useProxy` behaves like a regular fetch call and returns a `fetch` response.
+You can modify the response or access its data before returning it from the handler.
 
+Example:
 ```js
-import { useProxy } from '@wooksjs/http-proxy'
+import { useProxy } from '@wooksjs/http-proxy';
+
 app.get('/to-proxy', async () => {
-    const proxy = useProxy()
-    const response = proxy('https://mayapi.com/json-api')
-    const data = { ...(await response.json()), newField: 'new value' }
-    return data
-})
+    const proxy = useProxy();
+    const response = proxy('https://mayapi.com/json-api');
+    const data = { ...(await response.json()), newField: 'new value' };
+    return data;
+});
 ```
+
+In the example above, the `proxy` function is used to make the proxy request,
+and the response is then modified by adding a new field before returning it from the handler.
 
 ## Advanced Options
 
-```js
-import { useProxy } from '@wooksjs/http-proxy'
-import { useRequest } from '@wooksjs/composables'
-//...
-app.get('*', async () => {
-    const proxy = useProxy()
-    const { url } = useRequest()
-    const fetchResponse = await proxy('https://www.google.com' + url, {
-        // optional method, be default is set with
-        // the original request method
-        method: 'GET',
+The `useProxy` function provides advanced options for customizing the proxy behavior.
+You can specify options such as the request method, filtering request and response headers/cookies, overwriting data, and enabling debug mode.
 
-        // the next four options help to filter out
-        // request/response headers/cookies
-        // each of the option accepts an object with:
-        // - allow: '*' | (string | RegExp)[] - a list to allow (default '*')
-        // - block: '*' | (string | RegExp)[] - a list to block
-        // - overwrite: Record<string| string> | ((data: object) -> object) - object or fn to overwrite data
+Example:
+
+```js
+import { useProxy } from '@wooksjs/http-proxy';
+import { useRequest } from '@wooksjs/composables';
+
+app.get('*', async () => {
+    const proxy = useProxy();
+    const { url } = useRequest();
+    const fetchResponse = await proxy('https://www.google.com' + url, {
+        method: 'GET', // Optional method, defaults to the original request method
+
+        // Filtering options for request headers/cookies
         reqHeaders: { block: ['referer'] },
         reqCookies: { allow: ['cookie-to-pass-upstream'] },
+
+        // Filtering options for response headers/cookies
         resHeaders: { overwrite: { 'x-proxied-by': 'wooks-proxy' } },
         resCookies: { allow: ['cookie-to-pass-downstream'] },
 
-        // debug: true - will print proxy paths and headers/cookies
-        debug: true,
-    })
-    return fetchResponse // fetch response is supported, the body will be downstreamed
+        debug: true, // Enable debug mode to print proxy paths and headers/cookies
+    });
 
-    // > you can also return fully buffered body as Uint8Array
-    // return new Uint8Array(await fetchResponse.arrayBuffer())
-
-    // > or as string
-    // return fetchResponse.text()
-
-    // > or change response before return
-    // const data = await fetchResponse.text() + '<new data>'
-    // return data
-})
-//...
+    return fetchResponse;
+});
 ```
+
+In the example above, advanced options such as the request method, filtering of headers/cookies, overwriting response headers,
+and enabling debug mode are demonstrated. You can customize these options based on your specific requirements.
+
+The `fetchResponse` returned by the proxy function can be directly returned from the handler.
+You can also modify the response or access its data before returning it.
+
+That's how you can use the `@wooksjs/http-proxy` package to proxy requests in your Wooks HTTP application.

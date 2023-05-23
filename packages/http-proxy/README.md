@@ -13,7 +13,7 @@ Wooks Proxy is composable proxy for [@wooksjs/event-http](https://github.com/woo
 
 🔥 An easy way to proxy request!
 
-## Install
+## Installation
 
 `npm install @wooksjs/http-proxy`
 

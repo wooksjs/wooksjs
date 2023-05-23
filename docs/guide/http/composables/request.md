@@ -1,10 +1,13 @@
 # Request Composables
 
-Request is an object (`IncomingMessage`) that is generated when an incoming http request hits nodejs server.
+The request composables provide various functions to interact with the incoming HTTP request in a Wooks HTTP application.
+These functions allow you to access different aspects of the request, such as headers, query parameters, cookies, authorization headers, and more.
+
+<!-- Request is an object (`IncomingMessage`) that is generated when an incoming http request hits nodejs server.
 That object contains headers, body etc. Headers can be available even before body is loaded.
 The event handler is triggered right when `head` has already been received but before `body` is received.
 It means that in case of wrong path the router will reply 404 before body was even sent.
-It also means that you can check headers/cookies before body is received, then you can make a decision if body is needed, should you parse it or not.
+It also means that you can check headers/cookies before body is received, then you can make a decision if body is needed, should you parse it or not. -->
 
 ## Content
 
@@ -12,31 +15,33 @@ It also means that you can check headers/cookies before body is received, then y
 
 ## Raw Request Instance
 
-To get a reference to the raw request instance use composable function `useRequest`
-
-You probably don't need a `rawRequest` unless you are developing some new feature. All the base use-cases covered with other composable functions.
+To get a reference to the raw request instance, you can use the `useRequest` composable function.
+However, in most cases, you won't need to directly access the raw request instance unless
+you're developing a new feature or require low-level control over the request.
 
 ```js
 import { useRequest } from '@wooksjs/event-http'
 // cjs:
 // const { useRequest } = require('@wooksjs/event-http')
 
-app.get('test', () => {
+app.get('/test', () => {
     const { rawRequest } = useRequest()
+    // Access the raw request instance if needed
 })
 ```
 
 ## URI Parameters
 
-URI Parameters are parsed by the router and covered in [this](../routing.md#retrieving-uri-params) section.
+URI parameters are automatically parsed by the router
+and are covered in the [Retrieving URI Parameters section](../routing.md#retrieving-uri-params).
 
 ## Query Parameters
 
-Composable `useSearchParams` provides three functions:
+The `useSearchParams` composable provides three functions for working with query parameters:
 
--   `urlSearchParams()` — an instance of `WooksURLSearchParams` that extends standard `URLSearchParams` with `toJson` method that returns json object of query params
--   `jsonSearchParams()` — is a shortcut to `urlSearchParams().toJson()`
--   `rawSearchParams()` — is raw search param string like `?param1=value&...`
+-   `urlSearchParams()` — returns an instance of `WooksURLSearchParams`, which extends the standard `URLSearchParams` with a `toJson` method that returns a **JSON** object of the query parameters.
+-   `jsonSearchParams()` — is a shortcut for `urlSearchParams().toJson()`, returning the query parameters as a **JSON** object.
+-   `rawSearchParams()` — returns the raw search parameter string, such as `?param1=value&...`.
 
 ```js
 import { useSearchParams } from '@wooksjs/event-http'
@@ -53,6 +58,8 @@ app.get('hello', () => {
 })
 ```
 
+Example usage with cURL:
+
 ```bash
 curl http://localhost:3000/hello?name=World
 # Hello World!
@@ -60,54 +67,57 @@ curl http://localhost:3000/hello?name=World
 
 ## Method and Headers
 
-`useRequest` provides some more shortcuts for useful data
+The `useRequest` composable provides additional shortcuts for accessing useful data related to the request, such as the URL, method, headers, and the raw request body.
 
 ```js
 import { useRequest } from '@wooksjs/event-http'
-app.get('test', async () => {
+
+app.get('/test', async () => {
     const {
-        url, // request url      (string)
-        method, // request method   (string)
-        headers, // request headers  (object)
-        rawBody, // request body     ((): Promise<Buffer>)
+        url, // Request URL (string)
+        method, // Request method (string)
+        headers, // Request headers (object)
+        rawBody, // Request body (() => Promise<Buffer>)
     } = useRequest()
 
-    const body = await rawBody() // body as a Buffer
+    const body = await rawBody() // Body as a Buffer
 })
+
 ```
 
 ## Cookies
 
-Cookies are not parsed unless requested. Composable function `useCookies` provides cookie getter and raw cookies string.
+Cookies are not automatically parsed unless requested. The `useCookies` composable function provides a cookie getter and access to the raw cookies string.
 
 ```js
 import { useCookies } from '@wooksjs/event-http'
 
-app.get('test', async () => {
+app.get('/test', async () => {
     const {
-        rawCookies, // "cookie" from headers (string | undefined)
-        getCookie, // cookie getter ((name): string | null)
+        rawCookies, // Raw "cookie" from headers (string | undefined)
+        getCookie, // Cookie getter ((name) => string | null)
     } = useCookies()
 
     console.log(getCookie('session'))
-    // prints the value of the cookie with the name "session"
+    // Prints the value of the cookie with the name "session"
 })
 ```
 
 ## Authorization
 
-`useAuthorization` function provides helpers for auth-headers:
+The `useAuthorization` function provides helpers for working with authorization headers:
 
 ```js
 import { useAuthorization } from '@wooksjs/event-http'
-app.get('test', async () => {
+
+app.get('/test', async () => {
     const {
-        authorization, // the raw value of "authorization" header : string
-        authType, // the auth type (Bearer/Basic) : string
-        authRawCredentials, // the auth credentials that follow auth type : string
-        isBasic, // true if authType === 'Basic' : () => boolean
-        isBearer, // true if authType === 'Bearer' : () => boolean
-        basicCredentials, // parsed basic auth credentials : () => { username: string, password: string }
+        authorization, // The raw value of the "authorization" header (string)
+        authType, // The authentication type (Bearer/Basic) (string)
+        authRawCredentials, // The authentication credentials that follow the auth type (string)
+        isBasic, // Returns true if authType === 'Basic' (() => boolean)
+        isBearer, // Returns true if authType === 'Bearer' (() => boolean)
+        basicCredentials, // Parsed basic auth credentials (() => { username: string, password: string })
     } = useAuthorization()
 
     if (isBasic()) {
@@ -117,13 +127,12 @@ app.get('test', async () => {
         const token = authRawCredentials
         console.log({ token })
     } else {
-        // unknown or empty authorization header
+        // Unknown or empty authorization header
     }
 })
 ```
 
 ## Body Parser
 
-Implementation of body parser is isolated into a separate package `@wooksjs/http-body`
-
-See more details [here](../body.md)
+The implementation of the body parser is isolated into a separate package
+called `@wooksjs/http-body`. For more details on using the body parser, refer to the [Body Parser section](../body.md).

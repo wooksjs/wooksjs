@@ -174,8 +174,20 @@ export default defineConfig({
                     collapsed: true,
                     items: [
                         {
-                            text: 'Create CLI',
+                            text: 'Introduction',
+                            link: '/guide/cli/introduction',
+                        },
+                        {
+                            text: 'Quick Start Guide',
                             link: '/guide/cli/',
+                        },
+                        {
+                            text: 'Routing',
+                            link: '/guide/cli/routing',
+                        },
+                        {
+                            text: 'Command Usage (Help)',
+                            link: '/guide/cli/cli-help',
                         },
                     ],
                 },

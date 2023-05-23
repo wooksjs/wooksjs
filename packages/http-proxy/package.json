@@ -1,40 +1,40 @@
 {
-  "name": "@wooksjs/http-proxy",
-  "version": "0.2.23",
-  "description": "Proxy Wooks composable",
-  "main": "dist/index.cjs",
-  "module": "dist/index.mjs",
-  "types": "dist/index.d.ts",
-  "files": [
-    "dist"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/wooksjs/wooksjs.git",
-    "directory": "packages/http-proxy"
-  },
-  "keywords": [
-    "http",
-    "wooks",
-    "composables",
-    "web",
-    "framework",
-    "app",
-    "api",
-    "rest",
-    "restful",
-    "prostojs"
-  ],
-  "author": "Artem Maltsev",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/wooksjs/wooksjs/issues"
-  },
-  "peerDependencies": {
-    "@wooksjs/event-http": "0.2.23"
-  },
-  "dependencies": {
-    "node-fetch-native": "^1.0.1"
-  },
-  "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/http-proxy#readme"
+    "name": "@wooksjs/http-proxy",
+    "version": "0.2.23",
+    "description": "Proxy Wooks composable",
+    "main": "dist/index.cjs",
+    "module": "dist/index.mjs",
+    "types": "dist/index.d.ts",
+    "files": [
+        "dist"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/wooksjs/wooksjs.git",
+        "directory": "packages/http-proxy"
+    },
+    "keywords": [
+        "http",
+        "wooks",
+        "composables",
+        "web",
+        "framework",
+        "app",
+        "api",
+        "rest",
+        "restful",
+        "prostojs"
+    ],
+    "author": "Artem Maltsev",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/wooksjs/wooksjs/issues"
+    },
+    "peerDependencies": {
+        "@wooksjs/event-http": "0.2.23"
+    },
+    "dependencies": {
+        "node-fetch-native": "^1.0.1"
+    },
+    "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/http-proxy#readme"
 }

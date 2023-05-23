@@ -1,10 +1,9 @@
 # Body Parser
 
-Request body is delivered as a `Buffer` no matter what was the content-type. Plain text, JSON, images — everything is `Buffer`.
-
-Package `@wooksjs/http-body` provides composables that can parse body according to its `Content-Type`.
-The parsed body then cached in Wooks Context to ensure that parsing happens only once, even if you call `parseBody` function
-several times in different places of your code.
+The body parser in WooksJS allows you to parse the request body based on its `Content-Type`.
+Whether it's plain text, JSON, images, or other types of data, the body parser handles the parsing process for you.
+The parsed body is then cached in the Wooks Context, ensuring that the parsing happens only once,
+even if you call the `parseBody` function multiple times in different parts of your code.
 
 Supported content types:
 
@@ -15,7 +14,9 @@ Supported content types:
 
 Body parser does not parse every request's body. The parsing happens only when you call `parseBody` function.
 
-## Install
+## Installation
+
+To use the body parser in your WooksJS project, you need to install the `@wooksjs/http-body` package:
 
 ```bash
 npm install @wooksjs/http-body
@@ -23,6 +24,9 @@ npm install @wooksjs/http-body
 
 ## Usage
 
+Once installed, you can import and use the `useBody` composable function in your WooksJS application.
+
+Example:
 ```js
 import { useBody } from '@wooksjs/http-body'
 
@@ -31,112 +35,126 @@ app.post('test', async () => {
     const data = await parseBody()
 })
 ```
+The `useBody` function provides additional hooks for checking the content type and accessing the raw body buffer.
 
-## Additional hooks
+Example:
 
 ```js
-import { useBody } from '@wooksjs/http-body'
+import { useBody } from '@wooksjs/http-body';
 
 app.post('test', async () => {
     const {
-        isJson, // checks if content-type is "application/json" : () => boolean;
-        isHtml, // checks if content-type is "text/html" : () => boolean;
-        isXml, // checks if content-type is "application/xml" : () => boolean;
-        isText, // checks if content-type is "text/plain" : () => boolean;
-        isBinary, // checks if content-type is binary : () => boolean;
-        isFormData, // checks if content-type is "multipart/form-data" : () => boolean;
-        isUrlencoded, // checks if content-type is "application/x-www-form-urlencoded" : () => boolean;
-        isCompressed, // checks content-encoding : () => boolean | undefined;
+        isJson, // checks if the content type is "application/json" : () => boolean;
+        isHtml, // checks if the content type is "text/html" : () => boolean;
+        isXml, // checks if the content type is "application/xml" : () => boolean;
+        isText, // checks if the content type is "text/plain" : () => boolean;
+        isBinary, // checks if the content type is binary : () => boolean;
+        isFormData, // checks if the content type is "multipart/form-data" : () => boolean;
+        isUrlencoded, // checks if the content type is "application/x-www-form-urlencoded" : () => boolean;
+        isCompressed, // checks the content-encoding : () => boolean | undefined;
         contentEncodings, // returns an array of encodings : () => string[];
-        parseBody, // parses body according to content-type : <T = unknown>() => Promise<T>;
-        rawBody, // returns raw body Buffer : () => Promise<Buffer>;
-    } = useBody()
+        parseBody, // parses the body according to the content type : <T = unknown>() => Promise<T>;
+        rawBody, // returns the raw body buffer : () => Promise<Buffer>;
+    } = useBody();
 
-    // the handler got the control, but the body isn't loaded yet
-    //...
+    // Your pre-processing logic goes here, the body isn't loaded yet
 
-    console.log(await parseBody())
+    console.log(await parseBody());
 
-    // after `await parseBody()` the body was loaded and parsed
-    // ...
-})
+    // Rest of your handler's code, the body was loaded and parsed
+});
 ```
+
+You can use the `isJson`, `isHtml`, `isXml`, `isText`, `isBinary`, `isFormData`, and `isUrlencoded` getters
+to check the content type of the request body.
+The `parseBody` function parses the body based on the content type and returns the parsed data.
+The `rawBody` function provides access to the raw body buffer.
 
 ## Custom Body Parser
 
-If you want to parse body your own way you can do so using `rawBody`:
+If you want to parse the body in a custom way, you can use the
+`rawBody` function provided by useBody.
+This allows you to access the raw body buffer and implement your own parsing logic.
 
+Example:
 ```js
-import { useBody } from '@wooksjs/http-body'
+import { useBody } from '@wooksjs/http-body';
 
 app.post('test', async () => {
-    const { rawBody } = useBody()
+    const { rawBody } = useBody();
 
-    const bodyBuffer = await rawBody()
+    const bodyBuffer = await rawBody();
 
-    // your logic of parsing of bodyBuffer ...
-})
+    // Custom parsing logic for bodyBuffer...
+});
 ```
 
-In the example above parsing happens in the handler. It's not very convinient and does not guarantee that parsing happens only once.
-To improve your code you can create your own body parser composable:
+However, parsing the body directly in the handler may not be convenient and may result in parsing the body multiple times.
+To improve your code, you can create your own body parser composable.
+
+Example:
 
 ::: code-group
 
 ```ts [custom-parser-composable.ts]
-import { useBody } from '@wooksjs/http-body'
+import { useBody, useHttpContext } from '@wooksjs/http-body';
 
 // Describing the type of the context store
 type TBodyStore = {
-    parsed?: Promise<unknown>
-}
+    parsed?: Promise<unknown>;
+};
 
 export function useCustomBody() {
-    // getting the context store for our type
-    const { store } = useHttpContext<{ request: TBodyStore }>()
+    // Getting the context store for our type
+    const { store } = useHttpContext<{ request: TBodyStore }>();
 
-    // getting init function for `request` props
-    const { init } = store('request')
+    // Getting the init function for `request` props
+    const { init } = store('request');
 
-    // using `rawBody` composable to get raw body Buffer
-    const { rawBody } = useRequest()
+    // Using the `rawBody` composable to get the raw body buffer
+    const { rawBody } = useBody();
 
-    // preparing default body parser for fallbacks
-    const defaultParser = useBody().parseBody
+    // Preparing default body parser for fallbacks
+    const defaultParser = useBody().parseBody;
 
-    // gettng content-type
-    const { 'content-type': contentType } = useHeaders()
+    // Getting the content-type
+    const { 'content-type': contentType } = useHeaders();
 
-    // defining our parser
+    // Defining our parser
     const parseBody = () =>
         init('parsed', async () => {
-            // do custom parsing only for 'my-custom-content'
+            // Do custom parsing only for 'my-custom-content'
             if (contentType === 'my-custom-content') {
-                const bodyBuffer = await rawBody()
-                // your logic of parsing of bodyBuffer ...  // [!code hl]
+                const bodyBuffer = await rawBody();
+                const parcedBody = '...'
+                // Your custom parsing logic for bodyBuffer...
+                return parcedBody
             } else {
-                // fallback to default parser
-                return defaultParser()
+                // Fallback to default parser
+                return defaultParser();
             }
-        })
+        });
 
-    return { parseBody, rawBody }
+    return { parseBody, rawBody };
 }
 ```
 
 ```ts [index.ts]
-import { useCustomBody } from './custom-parser-composable'
+import { useCustomBody } from './custom-parser-composable';
 
 app.post('test', async () => {
-    const { parseBody } = useCustomBody() // [!code hl]
-    console.log(await parseBody()) // [!code hl]
-})
+    const { parseBody } = useCustomBody();
+    console.log(await parseBody());
+});
 ```
 
 :::
 
-In the example above we created a composable function that parses body of content type `my-custom-content`
-and falls back to `@wooksjs/http-body` for the rest of content types.
+In the example above, we created a custom composable function called `useCustomBody`
+that parses the body for content type `'my-custom-content'` and falls back to the default
+parser provided by `@wooksjs/http-body` for other content types.
 
-We used Wooks Event Context API (`store`, `init`). If you want to learn more about Wooks Event Context API,
-please follow this [link](../advanced/context.md).
+With the this approach, you can easily customize the body parsing logic based on your specific requirements.
+
+Please note that `store` and `init` functions that we used above are part of the Event Context API.
+For more details on using Wooks Event Context API, refer to the [Event Context](../advanced/context.md).

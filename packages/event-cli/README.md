@@ -13,7 +13,7 @@ As a part of `wooks` event processing framework, `@wooksjs/event-cli` implements
 
 -   access flags (- or --)
 
-## Install
+## Installation
 
 `npm install wooks @wooksjs/event-cli`
 

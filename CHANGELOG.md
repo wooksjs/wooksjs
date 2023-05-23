@@ -1,42 +1,28 @@
 ## [0.2.23](https://github.com/wooksjs/wooksjs/compare/v0.2.22...v0.2.23) (2023-05-18)
 
-
 ### Bug Fixes
 
-* **event-cli:** fix encoding cmd for lookup ([2061add](https://github.com/wooksjs/wooksjs/commit/2061add5d99a274e1efb15c18079b648328ee94c))
-
-
+-   **event-cli:** fix encoding cmd for lookup ([2061add](https://github.com/wooksjs/wooksjs/commit/2061add5d99a274e1efb15c18079b648328ee94c))
 
 ## [0.2.22](https://github.com/wooksjs/wooksjs/compare/v0.2.21...v0.2.22) (2023-05-18)
 
-
 ### Bug Fixes
 
-* **event-cli:** exit with code 1 when error returned ([ea7fd1b](https://github.com/wooksjs/wooksjs/commit/ea7fd1b00c74aee87366ace6fa61c2b55e1a4048))
-
-
+-   **event-cli:** exit with code 1 when error returned ([ea7fd1b](https://github.com/wooksjs/wooksjs/commit/ea7fd1b00c74aee87366ace6fa61c2b55e1a4048))
 
 ## [0.2.21](https://github.com/wooksjs/wooksjs/compare/v0.2.20...v0.2.21) (2023-05-18)
 
-
 ### Bug Fixes
 
-* remove encoding from pathParams ([2ef20ec](https://github.com/wooksjs/wooksjs/commit/2ef20ec90fbdb54c3baae4661e4750bfc0d2d6fd))
-
-
+-   remove encoding from pathParams ([2ef20ec](https://github.com/wooksjs/wooksjs/commit/2ef20ec90fbdb54c3baae4661e4750bfc0d2d6fd))
 
 ## [0.2.20](https://github.com/wooksjs/wooksjs/compare/v0.2.19...v0.2.20) (2023-05-18)
 
-
 ### Features
 
-* add onNotFound option ([c949863](https://github.com/wooksjs/wooksjs/commit/c949863bf0ce57512771b4571e820776a2f3fca1))
-
-
+-   add onNotFound option ([c949863](https://github.com/wooksjs/wooksjs/commit/c949863bf0ce57512771b4571e820776a2f3fca1))
 
 ## [0.2.19](https://github.com/wooksjs/wooksjs/compare/v0.2.18...v0.2.19) (2023-05-15)
-
-
 
 ## [0.2.18](https://github.com/wooksjs/wooksjs/compare/v0.2.17...v0.2.18) (2023-04-19)
 
