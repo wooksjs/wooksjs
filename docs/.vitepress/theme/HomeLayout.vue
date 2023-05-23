@@ -28,9 +28,7 @@ const actions = [
                             alt="Wooks"
                             style="width: 400px; margin-bottom: 32px"
                         />
-                        <p class="text">
-                            Next Generation Event Processing Framework
-                        </p>
+                        <p class="text">Next Generation Event Processing Framework</p>
                         <p class="tagline">Get ready for hooks in web apps.</p>
 
                         <div v-if="actions" class="actions">
