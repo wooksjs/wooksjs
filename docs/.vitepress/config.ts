@@ -75,7 +75,7 @@ export default defineConfig({
                             //   },
                             {
                                 text: 'Changelog',
-                                link: 'https://github.com/wooksjs/wooksjs/blob/main/packages/wooks/CHANGELOG.md',
+                                link: 'https://github.com/wooksjs/wooksjs/blob/main/CHANGELOG.md',
                             },
                         ],
                     },
