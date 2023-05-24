@@ -81,6 +81,11 @@ export class WooksHttp extends WooksAdapterBase {
 
     protected server?: Server
 
+    /**
+     * Starts the http(s) server.
+     * 
+     * Use this only if you rely on Wooks server.
+     */
     public async listen(...args: Parameters<Server['listen']>) {
         const server = (this.server = http.createServer(
             this.getServerCb() as http.RequestListener
@@ -92,6 +97,10 @@ export class WooksHttp extends WooksAdapterBase {
         })
     }
 
+    /**
+     * Stops the server if it was attached or passed via argument
+     * @param server 
+     */
     public close(server?: Server) {
         const srv = server || this.server
         return new Promise((resolve, reject) => {
@@ -102,10 +111,23 @@ export class WooksHttp extends WooksAdapterBase {
         })
     }
 
+    /**
+     * Returns http(s) server that was attached to Wooks
+     * 
+     * See attachServer method docs
+     * @returns Server
+     */
     getServer() {
         return this.server
     }
 
+    /**
+     * Attaches http(s) server instance
+     * to Wooks. 
+     * 
+     * Use it only if you want to `close` method to stop the server.
+     * @param server Server
+     */
     attachServer(server?: Server) {
         this.server = server
     }
@@ -118,6 +140,18 @@ export class WooksHttp extends WooksAdapterBase {
         })
     }
 
+    /**
+     * Returns server callback function
+     * that can be passed to any node server:
+     * ```js
+     * import { createHttpApp } from '@wooksjs/event-http'
+     * import http from 'http'
+     * 
+     * const app = createHttpApp()
+     * const server = http.createServer(app.getServerCb()) 
+     * server.listen(3000)
+     * ```
+     */
     getServerCb() {
         return async (req: IncomingMessage, res: ServerResponse) => {
             const { restoreCtx, clearCtx } = createHttpContext(
@@ -184,6 +218,12 @@ export class WooksHttp extends WooksAdapterBase {
     }
 }
 
+/**
+ * Factory for WooksHttp App
+ * @param opts TWooksHttpOptions
+ * @param wooks Wooks | WooksAdapterBase
+ * @returns WooksHttp
+ */
 export function createHttpApp(
     opts?: TWooksHttpOptions,
     wooks?: Wooks | WooksAdapterBase

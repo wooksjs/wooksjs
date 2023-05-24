@@ -1,4 +1,4 @@
-# Command Usage (Help)
+# CLI Command Usage (Help)
 <span class="cli-header"><span class="cli-path">/guide</span><span class="cli-invite">$</span> wooks cli --help<span class="cli-blink">|</span></span>
 
 The Cli Help rendering option in Wooks CLI provides a convenient way to generate command-line
@@ -75,7 +75,7 @@ app.cli('root/:arg', {
       process.exit(0); // Stop the command if help is displayed
     }
     // Proceed with handling the command
-    return 'done ' + useFlag('project');
+    return 'done ' + useCliOption('project');
   },
 });
 ```
@@ -88,21 +88,32 @@ node your-script.js root --help
 In the above example, `useAutoHelp` is used to check if the `--help` option was supplied.
 If it is detected, the command usage and help information will be printed, and the command execution will be stopped by calling `process.exit(0)`.
 
-It's important to note that `useAutoHelp` is only triggered if the command is routed to one of the registered handlers.
-If the command is not recognized, the `useAutoHelp` function won't be invoked automatically.
-To handle such cases, you can use `useAutoHelp` within the `onUnknownCommand` hook provided in the `createCliApp` options. Here's an example:
-
+Please note that `useAutoHelp` is only triggered if the command is routed to one of the registered handlers.
+If the command is valid but the input is missing the required arguments, the router won't be able to match the input to the corresponding handler.
+Therefore, the handler won't be processed and `useAutoHelp` function won't be invoked.
+To handle such cases and still provide the user with usage help instructions, you can utilize the `onUnknownCommand` hook provided in the `createCliApp` options.
+Inside the `onUnknownCommand` hook, you can use the `useAutoHelp` function to check if the `--help` option is present and display the command usage instructions accordingly,
+ensuring that the user receives the necessary guidance even when the input doesn't match due to missing arguments.
+Here's an example:
 ```js
+// Create a CLI app with onUnknownCommand hook
 const app = createCliApp({
-  onUnknownCommand: (path, raiseError) => {
-    if (!useAutoHelp()) {
-      useCommandLookupHelp();
-      raiseError();
-    }
-  },
+    // This callback is triggered when the CLI command is not recognized by the router
+    onUnknownCommand: (path, raiseError) => {
+        // Whenever cli command was not recognized by router
+        // this callback will be called        
+        if (!useAutoHelp()) {
+            // Display command lookup help if command help was not found
+            useCommandLookupHelp()
+            // Raise a standard error when the command is not recognized
+            raiseError()
+        }
+    },
 });
 ```
-In the above example, `useAutoHelp` is used inside the `onUnknownCommand` hook.
-If the `--help` option is not detected, the `useCommandLookupHelp` function is used to display command lookup help, and an error is raised to indicate that the command was not recognized.
+In the example above, the `onUnknownCommand` hook utilizes `useAutoHelp` to check if the `--help` option is present.
+If the option is not detected, the `useCommandLookupHelp` function is used to display command lookup help, which includes
+a list of suggested commands that closely match what the user entered.
+Finally, an error is raised to indicate that the command was not recognized.
 
 By leveraging the Cli Help rendering option and the `useAutoHelp` composable function, you can provide helpful command-line usage information and facilitate a better user experience for your CLI commands.

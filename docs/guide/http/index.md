@@ -1,4 +1,4 @@
-# Wooks HTTP
+# HTTP Server in Wooks
 
 ::: warning
 Work on Wooks is still in progress. It is already suitable for immediate use in HTTP events,
@@ -63,7 +63,7 @@ app.on('GET', 'hello/:name', () => `Hello ${useRouteParams().get('name')}!`)
 // app.get('hello/:name', () => `Hello ${ useRouteParams().get('name') }!`)
 
 app.listen(3000, () => {
-    console.log('Wooks Server is up on port 3000')
+    app.getLogger('App').log('Wooks Server is up on port 3000')
 })
 ```
 
@@ -79,7 +79,7 @@ app.on('GET', 'hello/:name', () => `Hello ${useRouteParams().get('name')}!`)
 // app.get('hello/:name', () => `Hello ${ useRouteParams().get('name') }!`)
 
 app.listen(3000, () => {
-    console.log('Wooks Server is up on port 3000')
+    app.getLogger('App').log('Wooks Server is up on port 3000')
 })
 ```
 

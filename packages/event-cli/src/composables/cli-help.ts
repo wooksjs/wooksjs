@@ -1,5 +1,5 @@
 import { useCliContext } from '../event-cli'
-import { useFlag } from './flags'
+import { useCliOption } from './options'
 
 /**
  * ## useCliHelp
@@ -57,7 +57,7 @@ export function useCliHelp() {
  */
 export function useAutoHelp(keys = ['help'], colors = true) {
     for (const option of keys) {
-        if (useFlag(option) === true) {
+        if (useCliOption(option) === true) {
             // try {
             useCliHelp().print(colors)
             return true

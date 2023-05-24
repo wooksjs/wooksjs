@@ -92,6 +92,16 @@ export class WooksAdapterBase {
         return this.wooks
     }
 
+    /**
+     * Get logger instance for application logs
+     * ```js
+     * const app = createHttpApp()
+     * const logger = app.getLogger('app-logger')
+     * logger.log('My App log message')
+     * ```
+     * @param topic topic for logger
+     * @returns logger instance
+     */
     public getLogger(topic: string) {
         return this.getWooks().getLogger(topic)
     }

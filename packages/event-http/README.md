@@ -53,4 +53,4 @@ app.listen(3000, () => {
 
 ## Documentation
 
-To check out docs, visit [wooksjs.org](https://wooksjs.org/).
+To check out docs, visit [wooksjs.org](https://wooksjs.org/guide/http/).

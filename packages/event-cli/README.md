@@ -21,13 +21,13 @@ As a part of `wooks` event processing framework, `@wooksjs/event-cli` implements
 
 ```js
 import { useRouteParams } from 'wooks'
-import { createCliApp, useFlags } from '@wooksjs/event-cli'
+import { createCliApp, useCliOptions } from '@wooksjs/event-cli'
 
 const app = createCliApp()
 
 app.cli('test', () => {
-    console.log('flags:')
-    return useFlags()
+    console.log('options:')
+    return useCliOptions()
 })
 
 app.cli(':arg', () => {
@@ -43,4 +43,4 @@ app.run()
 
 ## Documentation
 
-To check out docs, visit [wooksjs.org](https://wooksjs.org/).
+To check out docs, visit [wooksjs.org](https://wooksjs.org/guide/cli/).

@@ -19,6 +19,11 @@ export function createCliContext(
     })
 }
 
+/**
+ * Wrapper on top of useEventContext that provides
+ * proper context types for CLI event
+ * @returns set of hooks { getCtx, restoreCtx, clearCtx, hookStore, getStore, setStore }
+ */
 export function useCliContext<T extends TEmpty>() {
     return useEventContext<TCliContextStore & T, TCliEventData>('CLI')
 }

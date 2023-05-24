@@ -19,6 +19,10 @@ export function createHttpContext(
     })
 }
 
+/**
+ * Wrapper on useEventContext with HTTP event types
+ * @returns set of hooks { getCtx, restoreCtx, clearCtx, hookStore, getStore, setStore }
+ */
 export function useHttpContext<T extends TEmpty>() {
     return useEventContext<THttpContextStore & T, THttpEventData>('HTTP')
 }

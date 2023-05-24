@@ -1,3 +1,2 @@
-export * from './flags'
-export * from './pathParams'
+export * from './options'
 export * from './cli-help'

@@ -1,7 +1,7 @@
 # Getting Started
 
 ::: warning
-Work on Wooks is still in progress. It is already suitable for immediate use in HTTP events,
+Work on Wooks is still in progress. It is already suitable for immediate use,
 but some APIs may still undergo changes.
 :::
 

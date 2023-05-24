@@ -126,11 +126,11 @@ export default defineConfig({
                             link: '/guide/http/',
                         },
                         {
-                            text: 'Routing',
+                            text: 'HTTP Routing',
                             link: '/guide/http/routing',
                         },
                         {
-                            text: 'Composables',
+                            text: 'HTTP Composables',
                             link: '/guide/http/composables/',
                             items: [
                                 {
@@ -156,7 +156,7 @@ export default defineConfig({
                             ],
                         },
                         {
-                            text: 'Advanced',
+                            text: 'Wooks HTTP Advanced',
                             items: [
                                 {
                                     text: 'Context and Hooks',
@@ -180,19 +180,23 @@ export default defineConfig({
                     collapsed: true,
                     items: [
                         {
-                            text: 'Introduction',
+                            text: 'Introduction to CLI',
                             link: '/guide/cli/introduction',
                         },
                         {
-                            text: 'Quick Start Guide',
+                            text: 'Quick Start CLI',
                             link: '/guide/cli/',
                         },
                         {
-                            text: 'Routing',
+                            text: 'Routing in CLI',
                             link: '/guide/cli/routing',
                         },
                         {
-                            text: 'Command Usage (Help)',
+                            text: 'Options in CLI',
+                            link: '/guide/cli/options',
+                        },
+                        {
+                            text: 'CLI Command Usage (Help)',
                             link: '/guide/cli/cli-help',
                         },
                     ],
@@ -200,11 +204,15 @@ export default defineConfig({
                 {
                     text: 'Advanced',
                     // collapsible: true,
-                    collapsed: true,
+                    collapsed: false,
                     items: [
                         {
                             text: 'Event Context',
                             link: '/guide/advanced/context',
+                        },
+                        {
+                            text: 'Logging in Wooks',
+                            link: '/guide/advanced/logging',
                         },
                     ],
                 },

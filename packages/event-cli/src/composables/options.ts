@@ -2,7 +2,12 @@ import minimist from 'minimist'
 import { useCliContext } from '../event-cli'
 import { useCliHelp } from './cli-help'
 
-export function useFlags() {
+/**
+ * Get CLI Options
+ * 
+ * @returns an object with CLI options
+ */
+export function useCliOptions() {
     const { store } = useCliContext()
     const flags = store('flags')
     if (!flags.value) {
@@ -11,19 +16,25 @@ export function useFlags() {
     return flags.value
 }
 
-export function useFlag(name: string) {
+/**
+ * Getter for Cli Option value
+ * 
+ * @param name name of the option
+ * @returns value of a CLI option
+ */
+export function useCliOption(name: string) {
     try {
         const options = useCliHelp().getEntry()?.options || []
         const opt = options.find(o => o.keys.includes(name))
         if (opt) {
             for (const key of opt.keys) {
-                if (useFlags()[key]) {
-                    return useFlags()[key]
+                if (useCliOptions()[key]) {
+                    return useCliOptions()[key]
                 }
             }
         }
     } catch (e) {
         //
     }
-    return useFlags()[name]
+    return useCliOptions()[name]
 }

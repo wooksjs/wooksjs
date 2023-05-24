@@ -1,5 +1,10 @@
-# Quick Start Guide
+# Quick Start CLI Guide
 <span class="cli-header"><span class="cli-path">/guide</span><span class="cli-invite">$</span> wooks cli --quick-start<span class="cli-blink">|</span></span>
+
+::: warning
+Work on Wooks is still in progress. It is already suitable for immediate use in CLI events,
+but some APIs may still undergo changes.
+:::
 
 This guide will help you get started with using Wooks CLI to build powerful command-line interfaces (CLIs) for your applications.
 Wooks CLI leverages the concept of composables and event context to provide a seamless and flexible workflow for processing CLI commands.
@@ -22,7 +27,14 @@ Here's a step-by-step guide to using Wooks CLI:
 
 Start by importing the necessary modules and creating an instance of the Wooks CLI adapter:
 
-```ts
+::: code-group
+```ts [plain]
+import { createCliApp } from '@wooksjs/event-cli'
+import { useRouteParams } from 'wooks'
+
+const app = createCliApp()
+```
+```ts [with auto-help]
 import {
     createCliApp,
     useAutoHelp,
@@ -31,27 +43,42 @@ import {
 import { useRouteParams } from 'wooks'
 
 const app = createCliApp({
+    // Implementing onUnknownCommand hook
     onUnknownCommand: (path, raiseError) => {
+        // Whenever cli command was not recognized by router
+        // this callback will be called        
         if (!useAutoHelp()) {
+            // fallback to useCommandLookupHelp if command help was not found
             useCommandLookupHelp()
+            // fallback to a standard error handling when command not recognized
             raiseError()
         }
     },
 })
 ```
+:::
 
 ### Step 2: Define CLI commands
 
 Next, you can define your CLI commands using the cli() method provided by the Wooks CLI adapter.
 The cli() method allows you to register CLI commands along with their respective handlers.
 
-```ts
+
+::: code-group
+```ts [plain]
 app.cli('command/:arg', () => {
-  useAutoHelp() && process.exit(0)
   // Handle the command and its parameters
   return 'Command executed with argument:', useRouteParams().get('arg')
 });
 ```
+```ts [with auto-help]
+app.cli('command/:arg', () => {
+  useAutoHelp() && process.exit(0)  // Print help if --help option provided
+  // Handle the command and its parameters
+  return 'Command executed with argument:', useRouteParams().get('arg')
+});
+```
+:::
 
 ### Step 3: Start command processing
 
