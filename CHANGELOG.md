@@ -1,3 +1,12 @@
+## [0.3.2](https://github.com/wooksjs/wooksjs/compare/v0.3.1...v0.3.2) (2023-05-25)
+
+
+### Bug Fixes
+
+* **event-cli:** improve params parsing; fix alias handling ([cbe2fd5](https://github.com/wooksjs/wooksjs/commit/cbe2fd5c58708f5d5da60f6ef2ebf11725bdfaa5))
+
+
+
 ## [0.3.1](https://github.com/wooksjs/wooksjs/compare/v0.3.0...v0.3.1) (2023-05-24)
 
 
