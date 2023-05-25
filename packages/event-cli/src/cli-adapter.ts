@@ -119,7 +119,7 @@ export class WooksCli extends WooksAdapterBase {
         }
         this.cliHelp.addEntry({
             command,
-            aliases: options.aliases,
+            aliases: options.aliases?.map(alias => alias.replace(/\\:/g, ':')), // unescape ":" character
             args,
             description: options.description,
             examples: options.examples,
@@ -166,13 +166,10 @@ export class WooksCli extends WooksAdapterBase {
      */
     async run(_argv?: string[]) {
         const argv = _argv || process.argv.slice(2)
-        const firstFlagIndex = argv.findIndex((a) => a.startsWith('-')) + 1
-        const pathParams = firstFlagIndex
-            ? argv.slice(0, firstFlagIndex - 1)
-            : argv
+        const pathParams = argv.filter(a => !a.startsWith('-'))
         const path =
             '/' +
-            pathParams.map((v) => encodeURI(v).replace(/\//g, '%2F')).join('/')
+            pathParams.map((v) => encodeURI(v).replace(/\//g, '%2F')).join('/')   
         const { restoreCtx, clearCtx, store } = createCliContext(
             { argv, pathParams, cliHelp: this.cliHelp, command: path.replace(/\//g, ' ').trim() },
             this.mergeEventOptions(this.opts?.eventOptions)
