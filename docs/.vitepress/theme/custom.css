@@ -5,14 +5,13 @@
     --vp-c-brand-lighter: #7ac5ee;
     --vp-c-brand-dark: #336b8a;
     --vp-c-brand-darker: #254e64;
-    --vp-code-block-bg: #0a2d3e;
-
-    --vp-code-block-bg: #244352;
+    --vp-code-block-bg: #08415e;
 }
 
 html.dark {
-    --vp-code-block-bg: #0a2d3e;
-    --vp-c-bg: #051923;
+    --vp-sidebar-bg-color: #001926; /* sidebar */
+    --vp-code-block-bg: #00344e;
+    --vp-c-bg: #072331;
     --vp-c-bg-elv: #252529;
     --vp-c-bg-elv-up: #313136;
     --vp-c-bg-elv-down: #1e1e20;
@@ -29,7 +28,7 @@ html.dark {
     --vp-c-bg-elv: #336b8a; /* menu */
     --vp-c-bg-elv-mute: #254e64; /* menu btn */
 
-    --vp-c-bg-alt: #00121a;
+    --vp-c-bg-alt: #001926;
 }
 
 img.VPImage.logo {
