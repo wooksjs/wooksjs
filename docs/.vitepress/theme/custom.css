@@ -17,7 +17,7 @@ html.dark {
     --vp-c-bg-elv-down: #1e1e20;
     --vp-c-bg-elv-mute: #313136;
     --vp-c-bg-soft: #173241;
-    --vp-c-bg-soft-up: #053249; /* feature hover */
+    --vp-c-bg-soft-up: var(--vp-code-block-bg); /* feature hover */
     --vp-c-bg-soft-down: #0c2432;
     --vp-c-bg-soft-mute: #313136;
 
