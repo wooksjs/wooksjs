@@ -14,7 +14,7 @@ All composable functions must be called before any asynchronous operations becau
 
 If you need to call composables after asynchronous operations, you must first restore the context.
 To restore the context, you can use the `useHttpContext` composable.
-Refer to the [Event Context](../../advanced/context.md) for more details.
+Refer to the [Event Context](/wooks/advanced/context) for more details.
 :::
 
 ::: code-group
