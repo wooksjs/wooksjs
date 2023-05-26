@@ -1,7 +1,7 @@
 # Event Context
 
 ::: info
-This is an Advanced Guide for Library Maintainers and or curious :smile: developers
+This is an Advanced Guide for Library Maintainers or curious developers
 :::
 
 ## Introduction

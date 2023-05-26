@@ -1,4 +1,4 @@
-# HTTP Composables
+# Composables
 
 A composable function, also known as a hook, is a function that connects you to the event context, which includes URL parameters, request body, cookies, and more.
 

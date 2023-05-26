@@ -1,4 +1,4 @@
-# Getting Started
+# Introduction to Wooks
 
 ::: warning
 Work on Wooks is still in progress. It is already suitable for immediate use,
@@ -7,6 +7,8 @@ but some APIs may still undergo changes.
 
 This section provides an overview of the basic ideas and concepts behind Wooks,
 without diving into specific implementations or event types.
+
+[[toc]]
 
 ## Overview
 
@@ -91,14 +93,12 @@ is responsible for managing the responses from the handlers. For example, `@wook
 with a **responder** that can call `res.writeHead(...)` and `res.end(...)` based on the event context and
 the values returned by the event handler.
 
-## Your First Wooks Project
+## What's next?
 
-You cannot use Wooks as a generic framework for handling any type of event. Instead,
-you need to use an event-specific library in conjunction with Wooks.
+You can use wooks to create event processing app.
+Currently, there are two libraries available:
 
-Currently, there are two such libraries available:
-
-1. `@wooksjs/event-http` — Handles HTTP event processing and can easily replace other well-known web application frameworks. See more details [here](./http/).
-1. `@wooksjs/event-cli` — Handles command-line input processing and facilitates command routing. See more details [here](./cli/).
+1. `@wooksjs/event-http` — Handles HTTP event processing and can easily replace other well-known web application frameworks. See more details [here](/webapp/).
+1. `@wooksjs/event-cli` — Handles command-line input processing and facilitates command routing. See more details [here](/cliapp/).
 
 In the following sections of this documentation, you will find detailed examples of how to use this framework.

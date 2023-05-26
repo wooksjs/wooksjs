@@ -1,5 +1,5 @@
-# Options in CLI
-<span class="cli-header"><span class="cli-path">/guide</span><span class="cli-invite">$</span> wooks cli --options<span class="cli-blink">|</span></span>
+# Command Options
+<span class="cli-header"><span class="cli-path">/cliapp</span><span class="cli-invite">$</span> wooks cli --options<span class="cli-blink">|</span></span>
 
 Wooks CLI supports handling options in your CLI commands.
 Options are typically defined with a double hyphen (`--`) or a single hyphen (`-`) prefix and can have an associated value.

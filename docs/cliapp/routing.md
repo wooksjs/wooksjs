@@ -1,5 +1,5 @@
-# Routing in CLI
-<span class="cli-header"><span class="cli-path">/guide</span><span class="cli-invite">$</span> wooks cli --routing<span class="cli-blink">|</span></span>
+# Routing
+<span class="cli-header"><span class="cli-path">/cliapp</span><span class="cli-invite">$</span> wooks cli --routing<span class="cli-blink">|</span></span>
 
 Wooks CLI provides a powerful routing system that allows you to define and handle command-line interface (CLI) commands with ease.
 This documentation will guide you through the process of defining routes, handling arguments, and working with options in Wooks CLI.

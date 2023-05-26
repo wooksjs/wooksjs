@@ -113,4 +113,4 @@ This allows subsequent operations within the handler to have access to the resto
 By using the `restoreCtx` function, you can ensure that the Event Context is maintained and accessible throughout the execution of your handler.
 
 That's how you can work with Event Context and create your own hooks in Wooks HTTP.
-Refer to the [Event Context](/guide/advanced/context.md) for more details.
+Refer to the [Event Context](/wooks/advanced/context) for more details.

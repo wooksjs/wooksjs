@@ -1,5 +1,5 @@
-# CLI Command Usage (Help)
-<span class="cli-header"><span class="cli-path">/guide</span><span class="cli-invite">$</span> wooks cli --help<span class="cli-blink">|</span></span>
+# Command Usage (Help)
+<span class="cli-header"><span class="cli-path">/cliapp</span><span class="cli-invite">$</span> wooks cli --help<span class="cli-blink">|</span></span>
 
 The Cli Help rendering option in Wooks CLI provides a convenient way to generate command-line
 interface (CLI) help and usage information for your commands.
@@ -33,6 +33,14 @@ In the above example, we define a command named `my-command/:arg` with its descr
 ### Command Description
 The `description` property allows you to provide a description for your command. It should give users an understanding of what the command does.
 
+Example:
+```js
+app.cli('my-command', {
+  description: 'Description of the command', // [!code focus]
+  handler: () => '...',
+});
+```
+
 ### Options
 The `options` property is an array that defines the available options for your command. Each option is represented by an object with the following properties:
 
@@ -40,25 +48,72 @@ The `options` property is an array that defines the available options for your c
 -   `description`: (Optional) The description of the option, which explains its purpose.
 -   `value`: (Optional) An example of the value that will be represented in the CLI command usage.
 
+Example:
+```js
+app.cli('my-command', {
+  options: [{ // [!code focus]
+    keys: ['project', 'p'], // [!code focus]
+    description: 'Description of the option', // [!code focus]
+    value: 'myProject' // [!code focus]
+  }], // [!code focus]
+  handler: () => '...',
+});
+```
+
 ### Arguments
 The args property is an object where each key represents the name of an argument, and the corresponding value is the description of the argument.
 It helps users understand the purpose of each argument in the command.
+
+Example:
+```js
+app.cli('my-command/:name', {
+  args: { name: 'Description of the argument name' },  // [!code focus]
+  handler: () => '...',
+});
+```
 
 ### Aliases
 The aliases property is an array that allows you to specify aliases for your command.
 Aliases provide alternative names for the command, making it more flexible for users.
 
+Example:
+```js
+app.cli('my-command', {
+  aliases: ['cmd'], // [!code focus]
+  handler: () => '...',
+});
+```
+
 ### Examples
 The examples property is an array that contains examples demonstrating the usage of your command.
 Each example is represented by an object with the following properties:
 
--  description: A description explaining the purpose of the example.
--  cmd: The command string that represents the example. This command will be displayed in the help output.
+-  `description`: A description explaining the purpose of the example.
+-  `cmd`: The command string that represents the example. This command will be displayed in the help output.
+
+Example:
+```js
+app.cli('my-command', {
+  examples: [{   // [!code focus]
+      description: 'Example of usage with someProject',  // [!code focus]
+      cmd: 'argValue -p=someProject',  // [!code focus]
+  }],  // [!code focus]
+  handler: () => '...',
+});
+```
 
 ### Command Handler
 The handler property represents the function that will be executed when the command is invoked.
 This function can contain the logic for handling the command and returning the desired result.
 
+Example:
+```js
+app.cli('my-command', {
+  handler: () => {     // [!code focus]
+    return 'my-command executed'     // [!code focus]
+  },     // [!code focus]
+});
+```
 
 ## Automatic Help Display
 To enable automatic help display when the `--help` option is used, you can use the `useAutoHelp` composable function within your command's handler. Here's an example:
@@ -71,9 +126,9 @@ app.cli('root/:arg', {
   ],
   aliases: ['root'],
   handler: () => {
-    if (useAutoHelp()) {
-      process.exit(0); // Stop the command if help is displayed
-    }
+    if (useAutoHelp()) {  // [!code ++]
+      process.exit(0); // Stop the command if help is displayed // [!code ++]
+    } // [!code ++]
     // Proceed with handling the command
     return 'done ' + useCliOption('project');
   },

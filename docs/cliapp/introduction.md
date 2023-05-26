@@ -1,5 +1,5 @@
 # Introduction to Wooks CLI
-<span class="cli-header"><span class="cli-path">/guide</span><span class="cli-invite">$</span> wooks cli --introduction<span class="cli-blink">|</span></span>
+<span class="cli-header"><span class="cli-path">/cliapp</span><span class="cli-invite">$</span> wooks cli --introduction<span class="cli-blink">|</span></span>
 
 The Wooks CLI adapter, `@wooksjs/event-cli`, is a package that provides functionality to process command-line interface (CLI)
 commands using the Wooks framework. It leverages the concept of composables and event context to handle the CLI command processing workflow.

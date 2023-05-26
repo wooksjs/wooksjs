@@ -1,5 +1,5 @@
-# Quick Start CLI Guide
-<span class="cli-header"><span class="cli-path">/guide</span><span class="cli-invite">$</span> wooks cli --quick-start<span class="cli-blink">|</span></span>
+# Quick Start Guide
+<span class="cli-header"><span class="cli-path">/cliapp</span><span class="cli-invite">$</span> wooks cli --quick-start<span class="cli-blink">|</span></span>
 
 ::: warning
 Work on Wooks is still in progress. It is already suitable for immediate use in CLI events,
@@ -104,8 +104,8 @@ This will execute the registered CLI command with the argument "test" and log th
 
 Wooks CLI provides additional features and options for building more complex CLIs. Some of the notable features include:
 
--   Defining command aliases
--   Adding descriptions, options, and examples to commands
+-   Defining command [aliases](/cliapp/cli-help#aliases)
+-   Adding [descriptions](/cliapp/cli-help#command-description), [options](/cliapp/cli-help#options), and [examples](/cliapp/cli-help#examples) to commands
 -   Handling unknown commands
 -   Error handling and customization
 

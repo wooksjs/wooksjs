@@ -56,9 +56,9 @@ export default defineConfig({
         },
 
         nav: [
-            { text: 'Guide', link: '/guide/', activeMatch: '/guide/' },
-            { text: 'HTTP', link: '/guide/http/', activeMatch: '/guide/http/' },
-            { text: 'CLI', link: '/guide/cli/', activeMatch: '/guide/cli/' },
+            { text: 'Wooks', link: '/wooks/', activeMatch: '/wooks/' },
+            { text: 'Web App', link: '/webapp/', activeMatch: '/webapp/' },
+            { text: 'CLI App', link: '/cliapp/', activeMatch: '/cliapp/' },
             // { text: 'Config', link: '/config/', activeMatch: '/config/' },
             // { text: 'Plugins', link: '/plugins/', activeMatch: '/plugins/' },
             {
@@ -94,128 +94,139 @@ export default defineConfig({
         ],
 
         sidebar: {
-            '/guide/': [
+            '/wooks/': [
                 {
-                    text: 'Guide',
+                    text: 'Wooks',
                     items: [
                         {
                             text: 'Why Wooks',
-                            link: '/guide/why',
+                            link: '/wooks/why',
                         },
                         {
-                            text: 'Getting Started',
-                            link: '/guide/',
+                            text: 'Introduction',
+                            link: '/wooks/',
                         },
-                        // {
-                        //     text: 'Features',
-                        //     link: '/guide/features',
-                        // },
-                        // {
-                        //   text: 'CLI',
-                        //   link: '/guide/cli',
-                        // },
+                        {
+                            text: 'Advanced',
+                            // collapsible: true,
+                            collapsed: false,
+                            items: [
+                                {
+                                    text: 'Event Context',
+                                    link: '/wooks/advanced/context',
+                                },
+                                {
+                                    text: 'Logging in Wooks',
+                                    link: '/wooks/advanced/logging',
+                                },
+                            ],
+                        }      
                     ],
                 },
+            ],
+            '/webapp/': [
                 {
-                    text: 'Wooks HTTP',
-                    // collapsible: true,
-                    collapsed: true,
+                    text: 'Web Application',
                     items: [
                         {
-                            text: 'HTTP Server',
-                            link: '/guide/http/',
+                            text: 'Introduction',
+                            link: '/webapp/introduction',
                         },
                         {
-                            text: 'HTTP Routing',
-                            link: '/guide/http/routing',
+                            text: 'Quick Start',
+                            link: '/webapp/',
                         },
                         {
-                            text: 'HTTP Composables',
-                            link: '/guide/http/composables/',
+                            text: 'Routing',
+                            link: '/webapp/routing',
+                        },
+                        {
+                            text: 'Composables',
+                            collapsed: false,
+                            link: '/webapp/composables/',
                             items: [
                                 {
                                     text: 'Request',
-                                    link: '/guide/http/composables/request',
+                                    link: '/webapp/composables/request',
                                 },
                                 {
                                     text: 'Response',
-                                    link: '/guide/http/composables/response',
+                                    link: '/webapp/composables/response',
                                 },
                                 {
                                     text: 'Body Parser',
-                                    link: '/guide/http/body',
+                                    link: '/webapp/body',
                                 },
                                 {
                                     text: 'Proxy Requests',
-                                    link: '/guide/http/proxy',
+                                    link: '/webapp/proxy',
                                 },
                                 {
                                     text: 'Serve Static',
-                                    link: '/guide/http/static',
+                                    link: '/webapp/static',
                                 },
                             ],
                         },
                         {
-                            text: 'Wooks HTTP Advanced',
+                            text: 'Advanced',
+                            collapsed: true,
                             items: [
                                 {
                                     text: 'Context and Hooks',
-                                    link: '/guide/http/more-hooks',
+                                    link: '/webapp/more-hooks',
                                 },
                                 {
                                     text: 'Create an Adapter',
-                                    link: '/guide/http/adapters',
+                                    link: '/webapp/adapters',
                                 },
                             ],
                         },
                         {
-                            text: 'Express Adapter',
-                            link: '/guide/http/express',
-                        },
-                    ],
-                },
-                {
-                    text: 'Wooks CLI',
-                    // collapsible: true,
-                    collapsed: true,
-                    items: [
-                        {
-                            text: 'Introduction to CLI',
-                            link: '/guide/cli/introduction',
-                        },
-                        {
-                            text: 'Quick Start CLI',
-                            link: '/guide/cli/',
-                        },
-                        {
-                            text: 'Routing in CLI',
-                            link: '/guide/cli/routing',
-                        },
-                        {
-                            text: 'Options in CLI',
-                            link: '/guide/cli/options',
-                        },
-                        {
-                            text: 'CLI Command Usage (Help)',
-                            link: '/guide/cli/cli-help',
-                        },
-                    ],
-                },
-                {
-                    text: 'Advanced',
-                    // collapsible: true,
-                    collapsed: false,
-                    items: [
-                        {
-                            text: 'Event Context',
-                            link: '/guide/advanced/context',
+                            text: 'Adapters',
+                            collapsed: true,
+                            items: [
+                                {
+                                    text: 'Express Adapter',
+                                    link: '/webapp/express',
+                                },
+                            ]
                         },
                         {
                             text: 'Logging in Wooks',
-                            link: '/guide/advanced/logging',
+                            link: '/wooks/advanced/logging',
                         },
-                    ],
-                },
+                    ]
+                }],
+            '/cliapp/': [
+                {
+                    text: 'CLI Application',
+                    items: [
+                        {
+                            text: 'Introduction',
+                            link: '/cliapp/introduction',
+                        },
+                        {
+                            text: 'Quick Start',
+                            link: '/cliapp/',
+                        },
+                        {
+                            text: 'Routing',
+                            link: '/cliapp/routing',
+                        },
+                        {
+                            text: 'Command Options',
+                            link: '/cliapp/options',
+                        },
+                        {
+                            text: 'Command Usage (Help)',
+                            link: '/cliapp/cli-help',
+                        },
+                        {
+                            text: 'Logging in Wooks',
+                            link: '/wooks/advanced/logging',
+                        },
+                    ]
+                }],
                 // {
                 //     text: 'APIs',
                 //     items: [
@@ -225,7 +236,6 @@ export default defineConfig({
                 //         },
                 //     ],
                 // },
-            ],
             // '/config/': [
             //     {
             //         text: 'Config',
