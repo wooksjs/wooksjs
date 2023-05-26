@@ -1,3 +1,12 @@
+## [0.3.3](https://github.com/wooksjs/wooksjs/compare/v0.3.2...v0.3.3) (2023-05-26)
+
+
+### Features
+
+* **core:** expose type THook ([d6c0dc9](https://github.com/wooksjs/wooksjs/commit/d6c0dc9fa2d7361abb1c17ff4378d003101a678a))
+
+
+
 ## [0.3.2](https://github.com/wooksjs/wooksjs/compare/v0.3.1...v0.3.2) (2023-05-25)
 
 
