@@ -25,24 +25,24 @@ themeConfig:
 
 features:
     - icon: 💕
-      title: Use composables (hooks)
-      details: Just like in vue or react use composables to access/modify event state.
+      title: Harness the Power of Composables
+      details: Utilize Vue or React-style composables to interact with and modify the event state seamlessly, making your coding experience more efficient.
     - icon: 🕸
-      title: Build Web App
-      details: With the power of @wooksjs/event-http you can easily and quickly build a web app.
+      title: Craft Dynamic Web Applications
+      details: Harness the capabilities of @wooksjs/event-http to build vibrant web applications effortlessly and swiftly.
       link: /webapp/
     - icon: 💻
-      title: Build CLI
-      details: With the help of @wooksjs/event-cli manage your cli events.
+      title: Construct Powerful Command Line Interfaces
+      details: Leverage the potency of @wooksjs/event-cli to handle CLI events and create intuitive and responsive command-line interfaces.
       link: /cliapp/
     - icon: ⚡
-      title: Get fast and robust routing
-      details: Enjoy @prostojs/router which looks up for a handler as quick as possible and properly handles %-encoding.
-      link: /webapp/routing.html
+      title: Experience High-Speed, Reliable Routing
+      details: Utilize the speedy and reliable @prostojs/router for quick handler lookups and proper handling of %-encoding, thus enhancing your app's performance.
+      link: /webapp/routing
     - icon: ✍
-      title: Write your own composables (hooks)
-      details: Take a part of your app logic to a separate composables for easy reuse.
+      title: Create Custom Composables
+      details: Modularize your application logic by crafting distinct composables for easy reuse, thereby promoting clean and maintainable code.
     - icon: 🔑
-      title: TS by design
-      details: Fully typed APIs with TypeScript.
+      title: TypeScript by Design
+      details: Enjoy the safety and clarity of fully typed APIs courtesy of TypeScript, enhancing development productivity and reducing runtime errors.
 ---

@@ -1,46 +1,41 @@
 # Why Wooks
 
 ::: warning
-Work on Wooks is still in progress. It is already suitable for immediate use,
-but some APIs may still undergo changes.
+Wooks is an evolving framework. It's fully functional and ready for immediate use, but please note that certain APIs may be fine-tuned as we proceed.
 :::
 
-Developers often struggle when choosing a suitable framework for web applications. Some opt for Express,
-while others turn to Fastify in hopes of achieving faster server performance ⚡.
+Choosing the right framework for your web applications can be a daunting task. You might have considered Express for its simplicity, or Fastify for its high-speed server performance. Each of these has its merits, but also comes with its set of limitations. 
 
-Each of these frameworks has its own advantages and disadvantages. Express, for example, is built on the
-concept of middlewares. It lacks a proper router, and all routes are checked in the order of their creation.
-On the other hand, Fastify offers a proper router but attempts to minimize the use of middlewares.
-However, both frameworks share similarities.
+## The Challenges 
 
-## The problems
+Event processing, particularly with HTTP requests, poses several hurdles. An event usually carries payload, parts of which may need parsing or validation against various data sources. 
 
-One of the challenges in event processing (particularly with HTTP requests) is that an event can carry payload,
-which may be required by handlers. Some parts of the payload are consumable as they are, while others need to
-be parsed or validated against various data sources such as databases, identity and access management (IAM) systems,
-attribute-based access control (ABAC), and so on.
+Many existing frameworks tend to parse all potentially useful data every time an event is triggered, which can be wasteful when certain data elements are not needed. Moreover, once parsed or fetched, this data needs to be cached for later use. 
 
-When parsing is necessary, it is preferable to do it only once. However, many existing frameworks parse everything
-that might be needed each time an event is triggered. The issue is that there are numerous scenarios where the
-parsed body or cookies are never used.
+Traditional middleware-based frameworks tend to attach all this data to the request object, leading to a host of issues:
 
-Another problem is determining where to cache already parsed and fetched data. Middleware-based frameworks typically
-attach everything to the request object, which leads to the following issues:
+-   The request object becomes overloaded with numerous properties.
+-   Typing the request object with TypeScript becomes a guessing game.
+-   The request object's widespread use may unintentionally result in memory leaks.
 
--   The request object becomes bloated with an excessive number of properties.
--   When using TypeScript, it is unclear how to properly type the request object
-(Is it still `IncomingMessage`? Is it `Express.Request`? What are the differences?)
--   The request object frequently appears in middlewares and handlers and may inadvertently
-be linked to persistent objects, resulting in memory leaks.
+## The Wooks Solution 
 
-## What's the difference with Wooks?
+Wooks takes a different approach to solve these issues, using the power of **composable functions** (hooks). When a piece of data needs parsing, you just call the relevant composable function to do the job. The same applies to cookies and other data types. 
 
-Wooks addresses the problem of on-demand parsing and fetching of data using **composable functions** (hooks).
-When you need to parse a body, you can simply call the appropriate composable function, which handles the
-parsing for you. The same goes for cookies and other data.
+Wooks maintains the integrity of the request object, and instead employs an **event context** for each event. This event context comes with accurate typing, and all interactions with it are strictly through the **event context API**. Composable functions use the event context and store parsed or fetched data there. 
 
-Unlike other frameworks, Wooks does not modify the request object (or any other source event object). Instead,
-it utilizes an **event context**. This event context is created for each event and has proper typing. All interactions
-with the event context are **strictly** through the **event context API**. Composable functions utilize the event context
-and cache parsed or fetched data there.
+## Superior Routing with Wooks
 
+What elevates Wooks further is its use of the robust and fast [@prostojs/router](https://github.com/prostojs/router). It delivers performance on par with find-my-way and radix3, and significantly outperforms the Express router. 
+
+But the superiority of `@prostojs/router` doesn't end with speed. It supports parameters and wildcards, even multiple wildcards, a feature that is hard to find among other routers. This level of flexibility and capability makes routing with Wooks an absolute breeze.
+
+## Why Choose Wooks?
+
+So, what sets Wooks apart from the rest? 
+
+Wooks provides a solution for on-demand parsing and data fetching, significantly reducing unnecessary workloads. By maintaining the original state of the request object, Wooks eliminates confusion and potential issues associated with data attachment. 
+
+With the high-speed, versatile routing provided by @prostojs/router, Wooks sets a new standard in efficient event processing. By introducing the concept of the event context, Wooks allows for efficient handling and storing of data, without any unintended consequences. 
+
+Choose Wooks and embrace a smoother, streamlined development experience!

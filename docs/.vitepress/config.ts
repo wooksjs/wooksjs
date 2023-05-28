@@ -193,7 +193,7 @@ export default defineConfig({
                         },
                         {
                             text: 'Logging in Wooks',
-                            link: '/wooks/advanced/logging',
+                            link: '/webapp/logging',
                         },
                     ]
                 }],
@@ -223,7 +223,7 @@ export default defineConfig({
                         },
                         {
                             text: 'Logging in Wooks',
-                            link: '/wooks/advanced/logging',
+                            link: '/cliapp/logging',
                         },
                     ]
                 }],
