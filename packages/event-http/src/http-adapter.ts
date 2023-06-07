@@ -1,4 +1,4 @@
-import { TWooksHandler, Wooks, WooksAdapterBase } from 'wooks'
+import { TWooksHandler, TWooksOptions, Wooks, WooksAdapterBase } from 'wooks'
 import http, { IncomingMessage, ServerResponse, Server } from 'http'
 import { createHttpContext, useHttpContext } from './event-http'
 import { createWooksResponder } from './response'
@@ -10,6 +10,7 @@ export interface TWooksHttpOptions {
     logger?: TConsoleBase
     eventOptions?: TEventOptions
     onNotFound?: TWooksHandler<unknown>
+    router?: TWooksOptions['router']
 }
 
 export class WooksHttp extends WooksAdapterBase {
@@ -19,7 +20,7 @@ export class WooksHttp extends WooksAdapterBase {
         protected opts?: TWooksHttpOptions,
         wooks?: Wooks | WooksAdapterBase
     ) {
-        super(wooks, opts?.logger)
+        super(wooks, opts?.logger, opts?.router)
         this.logger = opts?.logger || this.getLogger('wooks-http')
     }
 

@@ -1,4 +1,4 @@
-import { TWooksHandler, Wooks, WooksAdapterBase } from 'wooks'
+import { TWooksHandler, TWooksOptions, Wooks, WooksAdapterBase } from 'wooks'
 import { createCliContext } from './event-cli'
 import { TConsoleBase } from '@prostojs/logger'
 import { TEventOptions } from '@wooksjs/event-core'
@@ -16,6 +16,7 @@ export interface TWooksCliOptions {
     logger?: TConsoleBase
     eventOptions?: TEventOptions
     cliHelp?: TCliHelpRenderer | TCliHelpOptions
+    router?: TWooksOptions['router']
 }
 
 export interface TWooksCliEntry<T>
@@ -33,7 +34,7 @@ export class WooksCli extends WooksAdapterBase {
         protected opts?: TWooksCliOptions,
         wooks?: Wooks | WooksAdapterBase
     ) {
-        super(wooks, opts?.logger)
+        super(wooks, opts?.logger, opts?.router)
         this.logger = opts?.logger || this.getLogger('wooks-cli')
         this.cliHelp =
             opts?.cliHelp instanceof CliHelpRenderer

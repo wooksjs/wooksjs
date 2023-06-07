@@ -72,10 +72,11 @@ export class Wooks {
 
 let gWooks: Wooks
 
-export function getGlobalWooks(logger?: TConsoleBase): Wooks {
+export function getGlobalWooks(logger?: TConsoleBase, routerOpts?: TWooksOptions['router']): Wooks {
     if (!gWooks) {
         gWooks = new Wooks({
             logger,
+            router: routerOpts,
         })
     }
     return gWooks
@@ -84,13 +85,13 @@ export function getGlobalWooks(logger?: TConsoleBase): Wooks {
 export class WooksAdapterBase {
     protected wooks: Wooks
 
-    constructor(wooks?: Wooks | WooksAdapterBase, logger?: TConsoleBase) {
+    constructor(wooks?: Wooks | WooksAdapterBase, logger?: TConsoleBase, routerOpts?: TWooksOptions['router']) {
         if (wooks && wooks instanceof WooksAdapterBase) {
             this.wooks = wooks.getWooks()
         } else if (wooks && wooks instanceof Wooks) {
             this.wooks = wooks
         } else {
-            this.wooks = getGlobalWooks(logger)
+            this.wooks = getGlobalWooks(logger, routerOpts)
         }
     }
 
