@@ -1,3 +1,12 @@
+## [0.3.5](https://github.com/wooksjs/wooksjs/compare/v0.3.4...v0.3.5) (2023-06-07)
+
+
+### Features
+
+* **wooks:** add options for router ([73df152](https://github.com/wooksjs/wooksjs/commit/73df152bb91fb98eb5c947942596773f00574653))
+
+
+
 ## [0.3.4](https://github.com/wooksjs/wooksjs/compare/v0.3.3...v0.3.4) (2023-06-07)
 
 
