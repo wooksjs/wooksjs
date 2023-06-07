@@ -1,3 +1,12 @@
+## [0.3.4](https://github.com/wooksjs/wooksjs/compare/v0.3.3...v0.3.4) (2023-06-07)
+
+
+### Bug Fixes
+
+* **http-serve:** improve path normalization ([36e6217](https://github.com/wooksjs/wooksjs/commit/36e621761f193cdbbecd7389fd938848640ae5b1))
+
+
+
 ## [0.3.3](https://github.com/wooksjs/wooksjs/compare/v0.3.2...v0.3.3) (2023-05-26)
 
 
