@@ -1,9 +1,10 @@
 import { defineConfig, DefaultTheme } from 'vitepress'
 
 const ogDescription = 'Next Generation Event Processing Framework'
-const ogImage = 'https://wooksjs.org/og-image.png'
-const ogTitle = 'Wooks'
-const ogUrl = 'https://wooksjs.org'
+const ogImage = 'https://wooks.moost.org/og-wooks.png'
+const ogTitle = 'Wooks Official Documentation'
+const twitterImage = 'https://wooks.moost.org/wooksjs-small.png'
+const ogUrl = 'https://wooks.moost.org'
 
 // netlify envs
 // const deployURL = process.env.DEPLOY_PRIME_URL || ''
@@ -23,8 +24,9 @@ export default defineConfig({
         ['meta', { property: 'og:image', content: ogImage }],
         ['meta', { property: 'og:url', content: ogUrl }],
         ['meta', { property: 'og:description', content: ogDescription }],
-        ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
-        ['meta', { name: 'twitter:site', content: '@wooksjs' }],
+        ['meta', { name: 'twitter:card', content: 'summary' }],
+        ['meta', { name: 'twitter:site', content: '@MAVrik7' }],
+        ['meta', { name: 'twitter:image', content: twitterImage }],
         ['meta', { name: 'theme-color', content: '#3D90BE' }],
     ],
 

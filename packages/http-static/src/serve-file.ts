@@ -15,6 +15,7 @@ const { stat, readdir } = fsPromises
 import path from 'path'
 import { getMimeType } from './mime'
 import { Readable } from 'stream'
+import { normalizePath } from './utils/path-norm'
 
 interface TServeFileOptions {
     headers?: Record<string, string>
@@ -43,9 +44,7 @@ export async function serveFile(
     const { setCacheControl, setExpires, setPragmaNoCache } =
         useSetCacheControl()
 
-    const normalizedPath: string = path.normalize(
-        path.join(process.cwd(), options.baseDir || '', filePath)
-    )
+    const normalizedPath: string = normalizePath(filePath, options.baseDir)
 
     let fileStats: Stats
     try {
