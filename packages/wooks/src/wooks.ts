@@ -10,6 +10,11 @@ import { getDefaultLogger } from 'common/logger'
 
 export interface TWooksOptions {
     logger?: TConsoleBase
+    router?: {
+        ignoreTrailingSlash?: boolean
+        ignoreCase?: boolean
+        cacheLimit?: number
+    }
 }
 
 export class Wooks {
@@ -20,6 +25,7 @@ export class Wooks {
     constructor(opts?: TWooksOptions) {
         this.router = new ProstoRouter({
             silent: true,
+            ...(opts?.router || {}),
         })
         this.logger = opts?.logger || getDefaultLogger('wooks')
     }
