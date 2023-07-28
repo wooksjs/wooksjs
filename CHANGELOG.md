@@ -1,3 +1,12 @@
+## [0.3.10](https://github.com/wooksjs/wooksjs/compare/v0.3.9...v0.3.10) (2023-07-28)
+
+
+### Features
+
+* add cleanup cb to wf.start ([1021169](https://github.com/wooksjs/wooksjs/commit/10211698d6a0798b3f4e18a5bd2296880bb6c577))
+
+
+
 ## [0.3.9](https://github.com/wooksjs/wooksjs/compare/v0.3.8...v0.3.9) (2023-07-28)
 
 
