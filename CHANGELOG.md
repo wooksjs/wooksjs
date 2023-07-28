@@ -1,3 +1,17 @@
+## [0.3.9](https://github.com/wooksjs/wooksjs/compare/v0.3.8...v0.3.9) (2023-07-28)
+
+
+### Bug Fixes
+
+* move init to wf.flow ([2a5758a](https://github.com/wooksjs/wooksjs/commit/2a5758a4acb98c109ff7217047a95ef000ae2c64))
+
+
+### Features
+
+* add init cb to wf start ([840a718](https://github.com/wooksjs/wooksjs/commit/840a718f7fe1d15119fa822c6d67890d1fa3eac0))
+
+
+
 ## [0.3.8](https://github.com/wooksjs/wooksjs/compare/v0.3.7...v0.3.8) (2023-07-28)
 
 
