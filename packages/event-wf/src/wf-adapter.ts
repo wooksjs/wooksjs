@@ -46,15 +46,15 @@ export class WooksWf<T> extends WooksAdapterBase {
         return this.on<string>('WF_FLOW', id, () => id)
     }
 
-    public start<I>(schemaId: string, inputContext: T, input?: I) {
-        return this._start(schemaId, inputContext, undefined, input)
+    public start<I>(schemaId: string, inputContext: T, input?: I, init?: () => void | Promise<void>) {
+        return this._start(schemaId, inputContext, undefined, input, init)
     }
 
-    public resume<I>(schemaId: string, inputContext: T, indexes: number[], input?: I) {
-        return this._start(schemaId, inputContext, indexes, input)
+    public resume<I>(schemaId: string, inputContext: T, indexes: number[], input?: I, init?: () => void | Promise<void>) {
+        return this._start(schemaId, inputContext, indexes, input, init)
     }
 
-    protected async _start<I>(schemaId: string, inputContext: T, indexes?: number[], input?: I) {
+    protected async _start<I>(schemaId: string, inputContext: T, indexes?: number[], input?: I, init?: () => void | Promise<void>) {
         const resume = !!indexes?.length
         const { restoreCtx, clearCtx } = (resume ? resumeWfContext : createWfContext)({
             inputContext,
@@ -71,6 +71,10 @@ export class WooksWf<T> extends WooksAdapterBase {
             for (const handler of handlers) {
                 restoreCtx()
                 const schemaId = (await handler()) as string
+                if (init) {
+                    await init()
+                    restoreCtx()
+                }
                 if (resume) {
                     result = await this.wf.resume<I>(schemaId, { context: inputContext, indexes }, input as I)
                     break
