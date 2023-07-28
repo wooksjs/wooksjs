@@ -1,3 +1,12 @@
+## [0.3.12](https://github.com/wooksjs/wooksjs/compare/v0.3.11...v0.3.12) (2023-07-28)
+
+
+### Bug Fixes
+
+* restoreCtx before init ([176969e](https://github.com/wooksjs/wooksjs/commit/176969e7578554c4b1aae8ecfb27c9bfd37b5c46))
+
+
+
 ## [0.3.11](https://github.com/wooksjs/wooksjs/compare/v0.3.10...v0.3.11) (2023-07-28)
 
 
