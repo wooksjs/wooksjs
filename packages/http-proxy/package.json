@@ -1,6 +1,6 @@
 {
   "name": "@wooksjs/http-proxy",
-  "version": "0.3.10",
+  "version": "0.3.11",
   "description": "Proxy Wooks composable",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
@@ -31,7 +31,7 @@
     "url": "https://github.com/wooksjs/wooksjs/issues"
   },
   "peerDependencies": {
-    "@wooksjs/event-http": "0.3.10"
+    "@wooksjs/event-http": "0.3.11"
   },
   "dependencies": {
     "node-fetch-native": "^1.0.1"

@@ -1,3 +1,12 @@
+## [0.3.11](https://github.com/wooksjs/wooksjs/compare/v0.3.10...v0.3.11) (2023-07-28)
+
+
+### Bug Fixes
+
+* add cleanup on error ([0480cfb](https://github.com/wooksjs/wooksjs/commit/0480cfb2586918fb557e836bfe776e06520deb33))
+
+
+
 ## [0.3.10](https://github.com/wooksjs/wooksjs/compare/v0.3.9...v0.3.10) (2023-07-28)
 
 
