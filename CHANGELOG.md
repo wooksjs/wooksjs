@@ -1,3 +1,12 @@
+## [0.3.7](https://github.com/wooksjs/wooksjs/compare/v0.3.6...v0.3.7) (2023-07-28)
+
+
+### Features
+
+* add event-wf ([9f23e1b](https://github.com/wooksjs/wooksjs/commit/9f23e1bfad5a58e456f2c145eedeef1fc40e3b72))
+
+
+
 ## [0.3.6](https://github.com/wooksjs/wooksjs/compare/v0.3.5...v0.3.6) (2023-06-07)
 
 
