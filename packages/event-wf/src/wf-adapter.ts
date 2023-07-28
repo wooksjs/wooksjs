@@ -68,31 +68,36 @@ export class WooksWf<T> extends WooksAdapterBase {
             null
         if (handlers && handlers.length) {
             let result: TFlowOutput<T, I> = {} as TFlowOutput<T, I>
-            for (const handler of handlers) {
-                restoreCtx()
-                const { id, init } = (await handler()) as { init?: () => void | Promise<void>, id: string }
-                if (init) {
-                    await init()
+            try {
+                for (const handler of handlers) {
                     restoreCtx()
+                    const { id, init } = (await handler()) as { init?: () => void | Promise<void>, id: string }
+                    if (init) {
+                        await init()
+                        restoreCtx()
+                    }
+                    if (resume) {
+                        result = await this.wf.resume<I>(id, { context: inputContext, indexes }, input as I)
+                        break
+                    } else {
+                        result = await this.wf.start<I>(id, inputContext, input)
+                        break
+                    }
                 }
-                if (resume) {
-                    result = await this.wf.resume<I>(id, { context: inputContext, indexes }, input as I)
-                    break
-                } else {
-                    result = await this.wf.start<I>(id, inputContext, input)
-                    break
-                }
+            } catch (e) {
+                clean()
+                throw e
             }
+            clean()
+            clearCtx()
+            return result
+        }
+        clean()
+        function clean() {
             if (cleanup) {
                 restoreCtx()
                 cleanup()
             }
-            clearCtx()
-            return result
-        }
-        if (cleanup) {
-            restoreCtx()
-            cleanup()
         }
         clearCtx()
         throw new Error('Unknown schemaId: ' + schemaId)
