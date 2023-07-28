@@ -51,4 +51,4 @@ See full documentation for http event [here](https://github.com/wooksjs/wooksjs/
 
 ## Documentation
 
-To check out docs, visit [wooksjs.org](https://wooksjs.org/).
+To check out docs, visit [wooks.moost.org](https://wooks.moost.org/).

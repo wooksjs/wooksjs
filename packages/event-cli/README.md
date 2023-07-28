@@ -43,4 +43,4 @@ app.run()
 
 ## Documentation
 
-To check out docs, visit [wooksjs.org](https://wooksjs.org/cliapp/).
+To check out docs, visit [wooks.moost.org](https://wooks.moost.org/cliapp/).

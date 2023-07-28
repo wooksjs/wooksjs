@@ -76,4 +76,4 @@ app.get('static/*', () => {
 
 ## Documentation
 
-To check out docs, visit [wooksjs.org](https://wooksjs.org/).
+To check out docs, visit [wooks.moost.org](https://wooks.moost.org/).

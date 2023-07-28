@@ -1,0 +1,39 @@
+{
+  "name": "@wooksjs/event-wf",
+  "version": "0.3.6",
+  "description": "@wooksjs/event-wf",
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wooksjs/wooksjs.git",
+    "directory": "packages/event-wf"
+  },
+  "keywords": [
+    "http",
+    "wooks",
+    "composables",
+    "framework",
+    "app",
+    "workflow",
+    "prostojs"
+  ],
+  "author": "Artem Maltsev",
+  "license": "MIT",
+  "peerDependencies": {
+    "wooks": "0.3.6",
+    "@wooksjs/event-core": "0.3.6"
+  },
+  "dependencies": {
+    "@prostojs/logger": "^0.3.6",
+    "@prostojs/wf": ""
+  },
+  "bugs": {
+    "url": "https://github.com/wooksjs/wooksjs/issues"
+  },
+  "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/event-wf#readme"
+}

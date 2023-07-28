@@ -257,7 +257,7 @@ export class WooksCli extends WooksAdapterBase {
  * Factory for WooksCli App
  * @param opts TWooksCliOptions
  * @param wooks Wooks | WooksAdapterBase
- * @returns WooksHttp
+ * @returns WooksCli
  */
 export function createCliApp(
     opts?: TWooksCliOptions,
