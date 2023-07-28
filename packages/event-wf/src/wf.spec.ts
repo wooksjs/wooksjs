@@ -2,7 +2,7 @@ import { useRouteParams } from '@wooksjs/event-core'
 import { createWfApp } from './wf-adapter'
 import { useWfState } from './composables'
 
-const app = createWfApp<{ result: number }>()
+const app = createWfApp<{ result?: number }>()
 
 app.step('add', {
     input: 'number',
@@ -42,6 +42,14 @@ app.flow('parametric/*', [
     },
 ])
 
+let c = -100
+
+app.flow('init', ['add/1'], () => {
+    const ctx = useWfState().ctx<{ result: number }>()
+    c = ctx.result
+    ctx.result = 0
+})
+
 describe('event-wf', () => {
     it('must run simple wf', async () => {
         const result = await app.start('adding', { result: 0 })
@@ -60,5 +68,10 @@ describe('event-wf', () => {
         expect(result.state.context.result).toBe(14)
         const result2 = await app.start('parametric/asdf/asdf12', { result: 10 })
         expect(result2.state.context.result).toBe(17)
+    })
+    it('must call init fn', async () => {
+        const result = await app.start('init', {})
+        expect(c).toBeUndefined()
+        expect(result.state.context.result).toBe(1)
     })
 })

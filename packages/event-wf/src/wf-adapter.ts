@@ -73,9 +73,10 @@ export class WooksWf<T> extends WooksAdapterBase {
                     restoreCtx()
                     const { id, init } = (await handler()) as { init?: () => void | Promise<void>, id: string }
                     if (init) {
-                        await init()
                         restoreCtx()
+                        await init()
                     }
+                    restoreCtx()
                     if (resume) {
                         result = await this.wf.resume<I>(id, { context: inputContext, indexes }, input as I)
                         break
