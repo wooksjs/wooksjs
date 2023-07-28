@@ -41,20 +41,20 @@ export class WooksWf<T> extends WooksAdapterBase {
         return this.on<Step<T, I, D>>('WF_STEP', id, () => step)
     }
 
-    public flow(id: string, schema: TWorkflowSchema<T>) {
+    public flow(id: string, schema: TWorkflowSchema<T>, init?: () => void | Promise<void>) {
         this.wf.register(id, schema)
-        return this.on<string>('WF_FLOW', id, () => id)
+        return this.on<{ init?: () => void | Promise<void>, id: string }>('WF_FLOW', id, () => ({ init, id }))
     }
 
-    public start<I>(schemaId: string, inputContext: T, input?: I, init?: () => void | Promise<void>) {
-        return this._start(schemaId, inputContext, undefined, input, init)
+    public start<I>(schemaId: string, inputContext: T, input?: I) {
+        return this._start(schemaId, inputContext, undefined, input)
     }
 
-    public resume<I>(schemaId: string, inputContext: T, indexes: number[], input?: I, init?: () => void | Promise<void>) {
-        return this._start(schemaId, inputContext, indexes, input, init)
+    public resume<I>(schemaId: string, inputContext: T, indexes: number[], input?: I) {
+        return this._start(schemaId, inputContext, indexes, input)
     }
 
-    protected async _start<I>(schemaId: string, inputContext: T, indexes?: number[], input?: I, init?: () => void | Promise<void>) {
+    protected async _start<I>(schemaId: string, inputContext: T, indexes?: number[], input?: I) {
         const resume = !!indexes?.length
         const { restoreCtx, clearCtx } = (resume ? resumeWfContext : createWfContext)({
             inputContext,
@@ -70,16 +70,16 @@ export class WooksWf<T> extends WooksAdapterBase {
             let result: TFlowOutput<T, I> = {} as TFlowOutput<T, I>
             for (const handler of handlers) {
                 restoreCtx()
-                const schemaId = (await handler()) as string
+                const { id, init } = (await handler()) as { init?: () => void | Promise<void>, id: string }
                 if (init) {
                     await init()
                     restoreCtx()
                 }
                 if (resume) {
-                    result = await this.wf.resume<I>(schemaId, { context: inputContext, indexes }, input as I)
+                    result = await this.wf.resume<I>(id, { context: inputContext, indexes }, input as I)
                     break
                 } else {
-                    result = await this.wf.start<I>(schemaId, inputContext, input)
+                    result = await this.wf.start<I>(id, inputContext, input)
                     break
                 }
             }
