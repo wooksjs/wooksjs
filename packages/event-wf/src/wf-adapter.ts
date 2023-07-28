@@ -46,15 +46,15 @@ export class WooksWf<T> extends WooksAdapterBase {
         return this.on<{ init?: () => void | Promise<void>, id: string }>('WF_FLOW', id, () => ({ init, id }))
     }
 
-    public start<I>(schemaId: string, inputContext: T, input?: I) {
-        return this._start(schemaId, inputContext, undefined, input)
+    public start<I>(schemaId: string, inputContext: T, input?: I, cleanup?: () => void) {
+        return this._start(schemaId, inputContext, undefined, input, cleanup)
     }
 
-    public resume<I>(schemaId: string, inputContext: T, indexes: number[], input?: I) {
-        return this._start(schemaId, inputContext, indexes, input)
+    public resume<I>(schemaId: string, inputContext: T, indexes: number[], input?: I, cleanup?: () => void) {
+        return this._start(schemaId, inputContext, indexes, input, cleanup)
     }
 
-    protected async _start<I>(schemaId: string, inputContext: T, indexes?: number[], input?: I) {
+    protected async _start<I>(schemaId: string, inputContext: T, indexes?: number[], input?: I, cleanup?: () => void) {
         const resume = !!indexes?.length
         const { restoreCtx, clearCtx } = (resume ? resumeWfContext : createWfContext)({
             inputContext,
@@ -83,8 +83,16 @@ export class WooksWf<T> extends WooksAdapterBase {
                     break
                 }
             }
+            if (cleanup) {
+                restoreCtx()
+                cleanup()
+            }
             clearCtx()
             return result
+        }
+        if (cleanup) {
+            restoreCtx()
+            cleanup()
         }
         clearCtx()
         throw new Error('Unknown schemaId: ' + schemaId)
