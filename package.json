@@ -47,7 +47,7 @@
     "@microsoft/api-extractor": "^7.34.4",
     "@prostojs/dye": "^0.3.0",
     "@prostojs/logger": "^0.3.6",
-    "@prostojs/router": "^0.1.1",
+    "@prostojs/router": "^0.2.0",
     "@prostojs/wf": "^0.0.3",
     "@rollup/plugin-commonjs": "^23.0.2",
     "@rollup/plugin-node-resolve": "^15.0.1",
