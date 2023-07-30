@@ -4,6 +4,7 @@ import { TConsoleBase } from '@prostojs/logger'
 import { TEventOptions } from '@wooksjs/event-core'
 import { CliHelpRenderer, TCliEntry, TCliHelpOptions } from '@prostojs/cli-help'
 import { TCliHelpCustom, TCliHelpRenderer } from './types'
+import minimist from 'minimist'
 
 export const cliShortcuts = {
     cli: 'CLI',
@@ -165,16 +166,18 @@ export class WooksCli extends WooksAdapterBase {
      *
      * @param _argv optionally overwrite `process.argv.slice(2)` with your `argv` array
      */
-    async run(_argv?: string[]) {
+    async run(_argv?: string[], _opts?: minimist.Opts) {
         const argv = _argv || process.argv.slice(2)
-        const pathParams = argv.filter(a => !a.startsWith('-'))
+        const parsedFlags = minimist(argv, _opts)
+        const pathParams = parsedFlags._
         const path =
             '/' +
-            pathParams.map((v) => encodeURI(v).replace(/\//g, '%2F')).join('/')   
+            pathParams.map((v) => encodeURI(v).replace(/\//g, '%2F')).join('/')
         const { restoreCtx, clearCtx, store } = createCliContext(
-            { argv, pathParams, cliHelp: this.cliHelp, command: path.replace(/\//g, ' ').trim() },
+            { opts: _opts, argv, pathParams, cliHelp: this.cliHelp, command: path.replace(/\//g, ' ').trim() },
             this.mergeEventOptions(this.opts?.eventOptions)
         )
+        store('flags').value = parsedFlags
         this.computeAliases()
         const { handlers: foundHandlers, firstStatic } = this.wooks.lookup('CLI', path)
         if (typeof firstStatic === 'string') {

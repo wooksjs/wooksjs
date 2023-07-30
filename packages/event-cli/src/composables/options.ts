@@ -11,7 +11,8 @@ export function useCliOptions() {
     const { store } = useCliContext()
     const flags = store('flags')
     if (!flags.value) {
-        flags.value = minimist(store('event').value.argv)
+        const event = store('event')
+        flags.value = minimist(event.value.argv, event.get('opts'))
     }
     return flags.value
 }

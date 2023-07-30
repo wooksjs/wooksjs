@@ -31,7 +31,7 @@
     "url": "https://github.com/wooksjs/wooksjs/issues"
   },
   "dependencies": {
-    "@prostojs/router": "^0.1.1",
+    "@prostojs/router": "^0.2.0",
     "@prostojs/logger": "^0.3.6",
     "@wooksjs/event-core": "0.3.12"
   },

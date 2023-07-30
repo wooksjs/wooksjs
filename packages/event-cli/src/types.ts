@@ -1,10 +1,12 @@
 import { CliHelpRenderer } from '@prostojs/cli-help'
 import { TWooksHandler } from '@wooksjs/wooks'
+import minimist from 'minimist'
 
 export interface TCliEventData {
     argv: string[]
     pathParams: string[]
     command: string
+    opts?: minimist.Opts
     type: 'CLI'
     cliHelp: TCliHelpRenderer
 }
