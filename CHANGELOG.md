@@ -1,3 +1,12 @@
+# [0.4.0](https://github.com/wooksjs/wooksjs/compare/v0.3.12...v0.4.0) (2023-07-30)
+
+
+### Bug Fixes
+
+* **cli:** support optional params and --no-flags ([3fb53b8](https://github.com/wooksjs/wooksjs/commit/3fb53b8a53308f55361594de67be0b3cf83665ba))
+
+
+
 ## [0.3.12](https://github.com/wooksjs/wooksjs/compare/v0.3.11...v0.3.12) (2023-07-28)
 
 
