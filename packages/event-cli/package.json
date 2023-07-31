@@ -37,6 +37,7 @@
   "dependencies": {
     "minimist": "^1.2.6",
     "@prostojs/cli-help": "^0.0.10",
+    "@prostojs/router": "^0.2.1",
     "@prostojs/logger": "^0.3.6"
   },
   "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/event-cli#readme"

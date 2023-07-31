@@ -97,7 +97,7 @@ export class WooksCli extends WooksAdapterBase {
         const routed = this.on<ResType, ParamsType>('CLI', targetPath, handler)
 
         if (options.onRegister) {
-            options.onRegister(targetPath, 0)
+            options.onRegister(targetPath, 0, routed)
         }
         // register direct aliases
         for (const alias of options.aliases || []) {
@@ -105,7 +105,7 @@ export class WooksCli extends WooksAdapterBase {
             const targetPath = makePath(alias) + (vars ? '/' + vars : '')
             this.on<ResType, ParamsType>('CLI', targetPath, handler)
             if (options.onRegister) {
-                options.onRegister(targetPath, 1)
+                options.onRegister(targetPath, 1, routed)
             }
         }
 

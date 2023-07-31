@@ -1,4 +1,5 @@
 import { CliHelpRenderer } from '@prostojs/cli-help'
+import { TProstoRouterPathHandle } from '@prostojs/router'
 import { TWooksHandler } from '@wooksjs/wooks'
 import minimist from 'minimist'
 
@@ -25,6 +26,6 @@ export type TCliHelpCustom = {
      * @param path registered path
      * @param aliasType 0 - direct command, 1 - direct alias, 2 - computed alias
      */
-    cb?: (path: string, aliasType: number) => void
+    cb?: <T>(path: string, aliasType: number, route?: TProstoRouterPathHandle<T>) => void
 }
 export type TCliHelpRenderer = CliHelpRenderer<TCliHelpCustom>
