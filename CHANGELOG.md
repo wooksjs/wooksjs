@@ -1,3 +1,12 @@
+## [0.4.1](https://github.com/wooksjs/wooksjs/compare/v0.4.0...v0.4.1) (2023-07-31)
+
+
+### Features
+
+* **cli:** add route arg to onRegister cb ([9b8513f](https://github.com/wooksjs/wooksjs/commit/9b8513fde2b4834790e5404d338403c27f83ddfa))
+
+
+
 # [0.4.0](https://github.com/wooksjs/wooksjs/compare/v0.3.12...v0.4.0) (2023-07-30)
 
 
