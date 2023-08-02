@@ -61,6 +61,7 @@ export default defineConfig({
             { text: 'Wooks', link: '/wooks/', activeMatch: '/wooks/' },
             { text: 'Web App', link: '/webapp/', activeMatch: '/webapp/' },
             { text: 'CLI App', link: '/cliapp/', activeMatch: '/cliapp/' },
+            { text: 'Workflows', link: '/wf/', activeMatch: '/wf/' },
             // { text: 'Config', link: '/config/', activeMatch: '/config/' },
             // { text: 'Plugins', link: '/plugins/', activeMatch: '/plugins/' },
             {
@@ -229,26 +230,32 @@ export default defineConfig({
                         },
                     ]
                 }],
-                // {
-                //     text: 'APIs',
-                //     items: [
-                //         {
-                //             text: 'Plugin API',
-                //             link: '/guide/api-plugin',
-                //         },
-                //     ],
-                // },
-            // '/config/': [
-            //     {
-            //         text: 'Config',
-            //         items: [
-            //             {
-            //                 text: 'Configuring Wooks',
-            //                 link: '/config/',
-            //             },
-            //         ],
-            //     },
-            // ],
+            '/wf/': [
+                {
+                    text: 'Workflows',
+                    items: [
+                        {
+                            text: 'Introduction',
+                            link: '/wf/introduction',
+                        },
+                        {
+                            text: 'Quick Start',
+                            link: '/wf/',
+                        },
+                        {
+                            text: 'Routing',
+                            link: '/wf/routing',
+                        },
+                        {
+                            text: 'Flows',
+                            link: '/wf/flows',
+                        },
+                        {
+                            text: 'Steps',
+                            link: '/wf/steps',
+                        },
+                    ]
+                }],
         },
     },
 })

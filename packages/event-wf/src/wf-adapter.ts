@@ -2,7 +2,7 @@ import { TWooksHandler, TWooksOptions, Wooks, WooksAdapterBase } from 'wooks'
 import { createWfContext, resumeWfContext } from './event-wf'
 import { TConsoleBase } from '@prostojs/logger'
 import { TEventOptions } from '@wooksjs/event-core'
-import { Step, TFlowOutput, TStepHandler, TWorkflowSchema, createStep } from '@prostojs/wf'
+import { Step, TFlowOutput, TStepHandler, TWorkflowSchema, createStep, TWorkflowSpy } from '@prostojs/wf'
 import { WooksWorkflow } from './workflow'
 
 export const wfShortcuts = {
@@ -33,6 +33,14 @@ export class WooksWf<T> extends WooksAdapterBase {
         this.wf = new WooksWorkflow(this.wooks)
     }
 
+    public attachSpy<I>(fn: TWorkflowSpy<T, I>) {
+        return this.wf.attachSpy<I>(fn)
+    }
+
+    public detachSpy<I>(fn: TWorkflowSpy<T, I>) {
+        return this.wf.detachSpy<I>(fn)
+    }
+
     public step<I = any, D = any>(id: string, opts: {
         input?: D
         handler: string | TStepHandler<T, I, D>
@@ -46,15 +54,15 @@ export class WooksWf<T> extends WooksAdapterBase {
         return this.on<{ init?: () => void | Promise<void>, id: string }>('WF_FLOW', id, () => ({ init, id }))
     }
 
-    public start<I>(schemaId: string, inputContext: T, input?: I, cleanup?: () => void) {
-        return this._start(schemaId, inputContext, undefined, input, cleanup)
+    public start<I>(schemaId: string, inputContext: T, input?: I, spy?: TWorkflowSpy<T, I>, cleanup?: () => void) {
+        return this._start(schemaId, inputContext, undefined, input, spy, cleanup)
     }
 
-    public resume<I>(schemaId: string, inputContext: T, indexes: number[], input?: I, cleanup?: () => void) {
-        return this._start(schemaId, inputContext, indexes, input, cleanup)
+    public resume<I>(schemaId: string, state: { indexes: number[], context: T }, input?: I, spy?: TWorkflowSpy<T, I>, cleanup?: () => void) {
+        return this._start(schemaId, state.context, state.indexes, input, spy, cleanup)
     }
 
-    protected async _start<I>(schemaId: string, inputContext: T, indexes?: number[], input?: I, cleanup?: () => void) {
+    protected async _start<I>(schemaId: string, inputContext: T, indexes?: number[], input?: I, spy?: TWorkflowSpy<T, I>, cleanup?: () => void) {
         const resume = !!indexes?.length
         const { restoreCtx, clearCtx } = (resume ? resumeWfContext : createWfContext)({
             inputContext,
@@ -78,10 +86,10 @@ export class WooksWf<T> extends WooksAdapterBase {
                     }
                     restoreCtx()
                     if (resume) {
-                        result = await this.wf.resume<I>(id, { context: inputContext, indexes }, input as I)
+                        result = await this.wf.resume<I>(id, { context: inputContext, indexes }, input as I, spy)
                         break
                     } else {
-                        result = await this.wf.start<I>(id, inputContext, input)
+                        result = await this.wf.start<I>(id, inputContext, input, spy)
                         break
                     }
                 }

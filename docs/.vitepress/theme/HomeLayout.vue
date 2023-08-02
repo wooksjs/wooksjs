@@ -22,6 +22,7 @@ const actions = [
                     class="container"
                     style="display: flex; flex-direction: column"
                 >
+                    <div class="hero-bg" />
                     <div class="main">
                         <img
                             src="/wooks-full-logo.png"
@@ -84,7 +85,26 @@ const actions = [
     flex-direction: column;
     margin: 0 auto;
     max-width: 1152px;
+    position: relative;
 }
+
+/* Create an overlay div with the "screen" blending mode */
+.hero-bg {
+  background-image: url(/hero-bg.png);
+  display: block;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  background-size: cover;
+  background-position: center;
+  opacity: 0.7;
+  mix-blend-mode: difference;
+}
+
+.dark .hero-bg {
+  mix-blend-mode: screen;    
+}
+
 @media (min-width: 960px) {
     .container {
         flex-direction: row;

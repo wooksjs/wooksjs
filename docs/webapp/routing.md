@@ -61,6 +61,30 @@ app.get('/static/*(\\d+)', () => 'ok')
 
 ```
 
+### Optional Parameters
+
+A parametric (wildcard) route can include optional parameters. If you wish to define optional parameters, they should appear at the end of the route. It is not permitted to have obligatory parameters after an optional parameter, and static segments should not appear after optional parameters, except when using `-` and `/` as separators between parameters.
+
+Optional parameters may be omitted when matching a route, and the corresponding handler will still be found.
+
+**Note:**
+A parametric route with optional parameters is treated as a wildcard during lookup, which can reduce routing performance. Please use this feature carefully.
+
+To define a parameter (wildcard) as optional, simply add `?` at the end.
+
+```ts
+// Optional parameter
+router.get('/api/vars/:optionalKey?', () => 'ok')
+
+// Optional wildcard
+router.get('/api/vars/:*?', () => 'ok')
+
+// Several optional parameters
+router.get('/api/vars/:v1/:v2?/:v3?', () => 'ok')
+```
+
+In the above example, the router allows routes with optional parameters to be defined using the `?` symbol at the end of the parameter name. For instance, `/api/vars/myKey` and `/api/vars/` are both valid routes for the first example. Similarly, the second example allows routes like `/api/vars/param1/param2` and `/api/vars/` to be matched. Lastly, the third example permits routes with one, two, or three parameters to be matched, with any combination of parameters being optional.
+
 ## Retrieving URI params
 
 When using parametric routes, it's useful to access the parameters.

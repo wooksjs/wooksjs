@@ -44,5 +44,22 @@ The above command pattern allows the command to be executed as follows:
 my-cli app build:dev
 ```
 
+### Optional Parameters
 
-By understanding routing basics and working with options in Wooks CLI, you can create powerful and flexible CLI commands with ease.
+You can define optional route parameter
+
+```js
+'app build :target?'
+```
+
+In th example above parameter `target` will be optional.
+
+```bash
+my-cli app build
+```
+
+```bash
+my-cli app build my-target
+```
+
+Both commands will be handled by `app build :target?` pattern. In the first scenario parameter `target` will be undefined. In the second scenario parameter `target` will get `my-target` value.
