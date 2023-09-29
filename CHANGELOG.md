@@ -1,3 +1,12 @@
+## [0.4.3](https://github.com/wooksjs/wooksjs/compare/v0.4.2...v0.4.3) (2023-09-29)
+
+
+### Bug Fixes
+
+* **http-proxy:** fix dependencies ([1e3c764](https://github.com/wooksjs/wooksjs/commit/1e3c764b3cb869eac9bdc560500f3ea44f46b427))
+
+
+
 ## [0.4.2](https://github.com/wooksjs/wooksjs/compare/v0.4.1...v0.4.2) (2023-08-02)
 
 
