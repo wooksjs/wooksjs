@@ -30,7 +30,7 @@
   },
   "dependencies": {
     "@prostojs/logger": "^0.3.6",
-    "@prostojs/wf": "^0.0.6"
+    "@prostojs/wf": "^0.0.7"
   },
   "bugs": {
     "url": "https://github.com/wooksjs/wooksjs/issues"
