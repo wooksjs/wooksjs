@@ -1,3 +1,12 @@
+## [0.4.6](https://github.com/wooksjs/wooksjs/compare/v0.4.5...v0.4.6) (2023-10-02)
+
+
+### Bug Fixes
+
+* **wf:** cleanup input after the first step ([192561f](https://github.com/wooksjs/wooksjs/commit/192561fbaa9acb964ddb4eac78284585307fbf17))
+
+
+
 ## [0.4.5](https://github.com/wooksjs/wooksjs/compare/v0.4.4...v0.4.5) (2023-10-02)
 
 
