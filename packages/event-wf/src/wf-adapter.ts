@@ -1,5 +1,5 @@
 import { TWooksHandler, TWooksOptions, Wooks, WooksAdapterBase } from 'wooks'
-import { createWfContext, resumeWfContext } from './event-wf'
+import { createWfContext, resumeWfContext, useWFContext } from './event-wf'
 import { TConsoleBase } from '@prostojs/logger'
 import { TEventOptions } from '@wooksjs/event-core'
 import { Step, TFlowOutput, TStepHandler, TWorkflowSchema, createStep, TWorkflowSpy } from '@prostojs/wf'
@@ -76,6 +76,19 @@ export class WooksWf<T> extends WooksAdapterBase {
             null
         if (handlers && handlers.length) {
             let result: TFlowOutput<T, I> = {} as TFlowOutput<T, I>
+            let firstStep = true
+            const _spy: TWorkflowSpy<T, I> = (...args) => {
+                if (spy) {
+                    spy(...args)
+                }
+                if (firstStep && args[0] === 'step') {
+                    // cleanup input after the first step
+                    firstStep = false
+                    restoreCtx()
+                    const { store } = useWFContext()
+                    store('event').set('input', undefined)
+                }
+            }
             try {
                 for (const handler of handlers) {
                     restoreCtx()
@@ -86,10 +99,10 @@ export class WooksWf<T> extends WooksAdapterBase {
                     }
                     restoreCtx()
                     if (resume) {
-                        result = await this.wf.resume<I>(id, { context: inputContext, indexes }, input as I, spy)
+                        result = await this.wf.resume<I>(id, { context: inputContext, indexes }, input as I, _spy)
                         break
                     } else {
-                        result = await this.wf.start<I>(id, inputContext, input, spy)
+                        result = await this.wf.start<I>(id, inputContext, input, _spy)
                         break
                     }
                 }

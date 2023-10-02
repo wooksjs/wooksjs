@@ -40,5 +40,5 @@ export function resumeWfContext(
  * @returns set of hooks { getCtx, restoreCtx, clearCtx, hookStore, getStore, setStore }
  */
 export function useWFContext<T extends TEmpty>() {
-    return useEventContext<TWFContextStore & T, TWFEventData>('CLI')
+    return useEventContext<TWFContextStore & T, TWFEventData>('WF')
 }
