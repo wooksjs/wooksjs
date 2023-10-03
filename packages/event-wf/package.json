@@ -1,6 +1,6 @@
 {
   "name": "@wooksjs/event-wf",
-  "version": "0.4.6",
+  "version": "0.4.7",
   "description": "@wooksjs/event-wf",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
@@ -25,12 +25,12 @@
   "author": "Artem Maltsev",
   "license": "MIT",
   "peerDependencies": {
-    "wooks": "0.4.6",
-    "@wooksjs/event-core": "0.4.6"
+    "wooks": "0.4.7",
+    "@wooksjs/event-core": "0.4.7"
   },
   "dependencies": {
     "@prostojs/logger": "^0.3.6",
-    "@prostojs/wf": "^0.0.8"
+    "@prostojs/wf": "^0.0.9"
   },
   "bugs": {
     "url": "https://github.com/wooksjs/wooksjs/issues"
