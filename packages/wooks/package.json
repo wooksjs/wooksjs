@@ -1,6 +1,6 @@
 {
   "name": "wooks",
-  "version": "0.4.10",
+  "version": "0.4.11",
   "description": "wooks",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
@@ -33,7 +33,7 @@
   "dependencies": {
     "@prostojs/router": "^0.2.1",
     "@prostojs/logger": "^0.3.7",
-    "@wooksjs/event-core": "0.4.10"
+    "@wooksjs/event-core": "0.4.11"
   },
   "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/wooks#readme"
 }

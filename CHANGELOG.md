@@ -1,3 +1,7 @@
+## [0.4.11](https://github.com/wooksjs/wooksjs/compare/v0.4.10...v0.4.11) (2023-12-14)
+
+
+
 ## [0.4.10](https://github.com/wooksjs/wooksjs/compare/v0.4.9...v0.4.10) (2023-12-14)
 
 
