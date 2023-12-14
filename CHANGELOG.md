@@ -1,3 +1,12 @@
+## [0.4.10](https://github.com/wooksjs/wooksjs/compare/v0.4.9...v0.4.10) (2023-12-14)
+
+
+### Features
+
+* **static:** disable parent dir traverse by default ([e5e3e60](https://github.com/wooksjs/wooksjs/commit/e5e3e603b4837053742d818fc2c82c9e5a5d5ea2))
+
+
+
 ## [0.4.9](https://github.com/wooksjs/wooksjs/compare/v0.4.8...v0.4.9) (2023-11-22)
 
 
