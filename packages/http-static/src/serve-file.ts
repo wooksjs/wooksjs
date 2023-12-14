@@ -26,16 +26,17 @@ interface TServeFileOptions {
     defaultExt?: string
     listDirectory?: boolean
     index?: string
+    allowDotDot?: boolean
 }
-
-// export function statFile(path: string) {
-//     return stat(path)
-// }
 
 export async function serveFile(
     filePath: string,
     options: TServeFileOptions = {}
 ): Promise<Readable | string | string[] | unknown> {
+    if (!options.allowDotDot && (/\/\.\.\//.test(filePath) || /^\.\.\//.test(filePath))) {
+        throw new Error('Parent Traversal ("/../") is not allowed.')
+    }
+
     const { restoreCtx } = useHttpContext()
     const { status } = useResponse()
     const { setHeader, removeHeader } = useSetHeaders()
