@@ -17,6 +17,14 @@ packages.forEach(({ shortName, name, pkg, pkgPath }) => {
             module: 'dist/index.mjs',
             types: 'dist/index.d.ts',
             files: ['dist'],
+            exports: {
+                './package.json': './package.json',
+                '.': {
+                    require: './dist/index.cjs',
+                    import: './dist/index.mjs',
+                    types: './dist/index.d.ts',
+                },
+            },
             repository: {
                 type: 'git',
                 url: 'git+https://github.com/wooksjs/wooksjs.git',
