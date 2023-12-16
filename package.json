@@ -46,7 +46,7 @@
   "devDependencies": {
     "@microsoft/api-extractor": "^7.34.4",
     "@prostojs/dye": "^0.3.0",
-    "@prostojs/logger": "^0.3.7",
+    "@prostojs/logger": "^0.4.0",
     "@prostojs/router": "^0.2.1",
     "@prostojs/wf": "^0.0.10",
     "@rollup/plugin-commonjs": "^25.0.7",

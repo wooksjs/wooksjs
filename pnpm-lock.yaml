@@ -17,8 +17,8 @@ devDependencies:
     specifier: ^0.3.0
     version: 0.3.0
   '@prostojs/logger':
-    specifier: ^0.3.7
-    version: 0.3.7
+    specifier: ^0.4.0
+    version: 0.4.0
   '@prostojs/router':
     specifier: ^0.2.1
     version: 0.2.1
@@ -1227,8 +1227,8 @@ packages:
     resolution: {integrity: sha512-23uhbe4xDWoZ7sVbmbwSuo8+OPRG8XlTsKhpTnB7Mx6odjRHHsatt+2lPi/aHvYjZ7Jc5p2Jo3CpBDONU4qlbg==}
     dev: true
 
-  /@prostojs/logger@0.3.7:
-    resolution: {integrity: sha512-qQ/VA5kvHaFLDNC9HMYKKQvh+Td90JQpo175TU7i+PeJAfvMXcFV+0jlBfqVOoimuebPCtcciRiGGt0/vKEeBA==}
+  /@prostojs/logger@0.4.0:
+    resolution: {integrity: sha512-aKGdBASWA2G+Y+5vPKsRdSVrVR9FNoUSg2soHJ40gqWtrhKllHLD+zSxD+HwGaEkSUSLMIiqj707nnvBVyFw1g==}
     dev: true
 
   /@prostojs/parser@0.5.5:
