@@ -44,7 +44,6 @@
   },
   "homepage": "https://github.com/wooksjs/wooksjs#readme",
   "devDependencies": {
-    "@microsoft/api-extractor": "^7.34.4",
     "@prostojs/dye": "^0.3.0",
     "@prostojs/logger": "^0.4.0",
     "@prostojs/router": "^0.2.1",
@@ -70,6 +69,7 @@
     "minimist": "^1.2.6",
     "node-fetch-native": "^1.0.1",
     "rollup": "^4.9.0",
+    "rollup-plugin-dts": "^6.1.0",
     "rollup-plugin-typescript2": "^0.36.0",
     "semver": "^7.3.8",
     "ts-jest": "^29.1.1",

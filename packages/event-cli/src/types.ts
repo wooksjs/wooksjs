@@ -1,6 +1,6 @@
 import { CliHelpRenderer } from '@prostojs/cli-help'
 import { TProstoRouterPathHandle } from '@prostojs/router'
-import { TWooksHandler } from '@wooksjs/wooks'
+import { TWooksHandler } from 'wooks'
 import minimist from 'minimist'
 
 export interface TCliEventData {
