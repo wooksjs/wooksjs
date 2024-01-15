@@ -8,15 +8,16 @@ export class WooksWorkflow<T> extends Workflow<T> {
     }
 
     protected resolveStep<I, D>(stepId: string): Step<T, I, D> {
+        const stepIdNorm = stepId[0] === '/' ? stepId : '/' + stepId
         try {
             useWFContext()
-            const found = this.wooks.lookup('WF_STEP' as 'GET', '/' + stepId)
+            const found = this.wooks.lookup('WF_STEP' as 'GET', stepIdNorm)
             if (found?.handlers?.length) {
                 return found.handlers[0]() as Step<T, I, D>
             }
         } catch (e) {
             const router = this.wooks.getRouter()
-            const found = router.lookup('WF_STEP' as 'GET', '/' + stepId)
+            const found = router.lookup('WF_STEP' as 'GET', stepIdNorm)
             if (found?.route?.handlers?.length) {
                 return found.route.handlers[0]() as Step<T, I, D>
             }
