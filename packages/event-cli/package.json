@@ -1,6 +1,6 @@
 {
   "name": "@wooksjs/event-cli",
-  "version": "0.4.15",
+  "version": "0.4.16",
   "description": "@wooksjs/event-cli",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
@@ -39,8 +39,8 @@
     "url": "https://github.com/wooksjs/wooksjs/issues"
   },
   "peerDependencies": {
-    "wooks": "0.4.15",
-    "@wooksjs/event-core": "0.4.15"
+    "wooks": "0.4.16",
+    "@wooksjs/event-core": "0.4.16"
   },
   "dependencies": {
     "minimist": "^1.2.6",

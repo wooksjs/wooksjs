@@ -1,3 +1,12 @@
+## [0.4.16](https://github.com/wooksjs/wooksjs/compare/v0.4.15...v0.4.16) (2024-01-15)
+
+
+### Bug Fixes
+
+* **wf:** remove double slashes when resolving step ([5607d53](https://github.com/wooksjs/wooksjs/commit/5607d535dbfe3e85e17ffc6b2d9e46c5fb41ae91))
+
+
+
 ## [0.4.15](https://github.com/wooksjs/wooksjs/compare/v0.4.14...v0.4.15) (2024-01-15)
 
 
