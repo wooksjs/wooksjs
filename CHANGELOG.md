@@ -1,3 +1,12 @@
+## [0.4.15](https://github.com/wooksjs/wooksjs/compare/v0.4.14...v0.4.15) (2024-01-15)
+
+
+### Features
+
+* **wf:** add prefixed flows ([2d89a05](https://github.com/wooksjs/wooksjs/commit/2d89a05ccdbd8d57e6133871fb183771cb317f68))
+
+
+
 ## [0.4.14](https://github.com/wooksjs/wooksjs/compare/v0.4.13...v0.4.14) (2024-01-15)
 
 
