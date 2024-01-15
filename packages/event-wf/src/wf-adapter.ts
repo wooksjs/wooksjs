@@ -49,8 +49,8 @@ export class WooksWf<T> extends WooksAdapterBase {
         return this.on<Step<T, I, D>>('WF_STEP', id, () => step)
     }
 
-    public flow(id: string, schema: TWorkflowSchema<T>, init?: () => void | Promise<void>) {
-        this.wf.register(id, schema)
+    public flow(id: string, schema: TWorkflowSchema<T>, prefix?: string, init?: () => void | Promise<void>) {
+        this.wf.register(id, schema, prefix)
         return this.on<{ init?: () => void | Promise<void>, id: string }>('WF_FLOW', id, () => ({ init, id }))
     }
 
