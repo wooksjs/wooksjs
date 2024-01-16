@@ -1,3 +1,14 @@
+## [0.4.17](https://github.com/wooksjs/wooksjs/compare/v0.4.16...v0.4.17) (2024-01-16)
+
+
+### Features
+
+* **body:** add generic type to parseBody ([7357043](https://github.com/wooksjs/wooksjs/commit/73570433399c3e18fda75c31b7980e484031d366))
+* **wf:** update wf dep, move schemaId to state ([768e4be](https://github.com/wooksjs/wooksjs/commit/768e4be8daf08eaa5e65245b0b575615152feb00))
+* **wf:** update wf dep, move schemaId to state ([5d4c4cf](https://github.com/wooksjs/wooksjs/commit/5d4c4cf9095a262ec06d79cc942a46eb88612754))
+
+
+
 ## [0.4.16](https://github.com/wooksjs/wooksjs/compare/v0.4.15...v0.4.16) (2024-01-15)
 
 
