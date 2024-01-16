@@ -65,7 +65,7 @@ export function useBody() {
                 .filter((p) => !!p)
         )
 
-    const parseBody = () =>
+    const parseBody = <T>() =>
         init('parsed', async () => {
             const body = await uncompressBody(
                 contentEncodings(),
@@ -76,7 +76,7 @@ export function useBody() {
             else if (isUrlencoded()) return urlEncodedParser(body)
             else if (isBinary()) return textParser(body)
             else return textParser(body)
-        })
+        }) as Promise<T>
 
     function jsonParser(v: string): Record<string, unknown> | unknown[] {
         try {
