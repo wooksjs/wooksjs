@@ -58,8 +58,15 @@ export class WooksWf<T> extends WooksAdapterBase {
         return this._start(schemaId, inputContext, undefined, input, spy, cleanup)
     }
 
-    public resume<I>(schemaId: string, state: { indexes: number[], context: T }, input?: I, spy?: TWorkflowSpy<T, I>, cleanup?: () => void) {
-        return this._start(schemaId, state.context, state.indexes, input, spy, cleanup)
+    public resume<I>(state: { schemaId: string, indexes: number[], context: T }, input?: I, spy?: TWorkflowSpy<T, I>, cleanup?: () => void) {
+        return this._start(
+            state.schemaId,
+            state.context,
+            state.indexes,
+            input,
+            spy,
+            cleanup
+        )
     }
 
     protected async _start<I>(schemaId: string, inputContext: T, indexes?: number[], input?: I, spy?: TWorkflowSpy<T, I>, cleanup?: () => void) {
@@ -99,7 +106,7 @@ export class WooksWf<T> extends WooksAdapterBase {
                     }
                     restoreCtx()
                     if (resume) {
-                        result = await this.wf.resume<I>(id, { context: inputContext, indexes }, input as I, _spy)
+                        result = await this.wf.resume<I>({ schemaId: id, context: inputContext, indexes }, input as I, _spy)
                         break
                     } else {
                         result = await this.wf.start<I>(id, inputContext, input, _spy)
