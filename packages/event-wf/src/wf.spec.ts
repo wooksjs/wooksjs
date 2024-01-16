@@ -44,7 +44,7 @@ app.flow('parametric/*', [
 
 let c = -100
 
-app.flow('init', ['add/1'], () => {
+app.flow('init', ['add/1'], '', () => {
     const ctx = useWfState().ctx<{ result: number }>()
     c = ctx.result
     ctx.result = 0
