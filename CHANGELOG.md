@@ -1,3 +1,14 @@
+## [0.4.20](https://github.com/wooksjs/wooksjs/compare/v0.4.18...v0.4.20) (2024-01-18)
+
+
+### Bug Fixes
+
+* **wf:** replace double slash ([cd140d7](https://github.com/wooksjs/wooksjs/commit/cd140d73a5e8d1a2bd7a62d3400b679f6ea0c1c6))
+* **wf:** replace double slash ([af0e275](https://github.com/wooksjs/wooksjs/commit/af0e275605797f55b215eb87012778d75e771b08))
+* **wf:** replace double slash ([074cf56](https://github.com/wooksjs/wooksjs/commit/074cf56df76f860cd63e2bb6c2563792f109af84))
+
+
+
 ## [0.4.19](https://github.com/wooksjs/wooksjs/compare/v0.4.18...v0.4.19) (2024-01-18)
 
 
