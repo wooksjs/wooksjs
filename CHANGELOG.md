@@ -1,3 +1,12 @@
+## [0.4.18](https://github.com/wooksjs/wooksjs/compare/v0.4.17...v0.4.18) (2024-01-18)
+
+
+### Bug Fixes
+
+* **wf:** remove double slash in stepId ([ed0df4b](https://github.com/wooksjs/wooksjs/commit/ed0df4b4a495ec57b39a400c39d55f07fd6dd274))
+
+
+
 ## [0.4.17](https://github.com/wooksjs/wooksjs/compare/v0.4.16...v0.4.17) (2024-01-16)
 
 
