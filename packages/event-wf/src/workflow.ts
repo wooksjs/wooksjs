@@ -8,7 +8,7 @@ export class WooksWorkflow<T> extends Workflow<T> {
     }
 
     protected resolveStep<I, D>(stepId: string): Step<T, I, D> {
-        const stepIdNorm = stepId[0] === '/' ? stepId : '/' + stepId
+        const stepIdNorm = stepId.replace(/\/+/, '/')
         try {
             useWFContext()
             const found = this.wooks.lookup('WF_STEP' as 'GET', stepIdNorm)
@@ -22,6 +22,6 @@ export class WooksWorkflow<T> extends Workflow<T> {
                 return found.route.handlers[0]() as Step<T, I, D>
             }
         }
-        throw new Error(`Step "${stepId}" not found.`)
+        throw new Error(`Step "${stepIdNorm}" not found.`)
     }
 }
