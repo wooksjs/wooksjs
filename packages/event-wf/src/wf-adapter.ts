@@ -19,10 +19,11 @@ export interface TWooksWfOptions {
     router?: TWooksOptions['router']
 }
 
-export class WooksWf<T> extends WooksAdapterBase {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
     protected logger: TConsoleBase
 
-    protected wf: WooksWorkflow<T>
+    protected wf: WooksWorkflow<T, IR>
 
     constructor(
         protected opts?: TWooksWfOptions,
@@ -33,20 +34,21 @@ export class WooksWf<T> extends WooksAdapterBase {
         this.wf = new WooksWorkflow(this.wooks)
     }
 
-    public attachSpy<I>(fn: TWorkflowSpy<T, I>) {
+    public attachSpy<I>(fn: TWorkflowSpy<T, I, IR>) {
         return this.wf.attachSpy<I>(fn)
     }
 
-    public detachSpy<I>(fn: TWorkflowSpy<T, I>) {
+    public detachSpy<I>(fn: TWorkflowSpy<T, I, IR>) {
         return this.wf.detachSpy<I>(fn)
     }
 
-    public step<I = any, D = any>(id: string, opts: {
-        input?: D
-        handler: string | TStepHandler<T, I, D>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    public step<I = any>(id: string, opts: {
+        input?: I
+        handler: string | TStepHandler<T, I, IR>
     }) {
-        const step = createStep<T, I, D>(id, opts)
-        return this.on<Step<T, I, D>>('WF_STEP', id, () => step)
+        const step = createStep<T, I, IR>(id, opts)
+        return this.on<Step<T, I, IR>>('WF_STEP', id, () => step)
     }
 
     public flow(id: string, schema: TWorkflowSchema<T>, prefix?: string, init?: () => void | Promise<void>) {
@@ -54,11 +56,11 @@ export class WooksWf<T> extends WooksAdapterBase {
         return this.on<{ init?: () => void | Promise<void>, id: string }>('WF_FLOW', id, () => ({ init, id }))
     }
 
-    public start<I>(schemaId: string, inputContext: T, input?: I, spy?: TWorkflowSpy<T, I>, cleanup?: () => void) {
+    public start<I>(schemaId: string, inputContext: T, input?: I, spy?: TWorkflowSpy<T, I, IR>, cleanup?: () => void) {
         return this._start(schemaId, inputContext, undefined, input, spy, cleanup)
     }
 
-    public resume<I>(state: { schemaId: string, indexes: number[], context: T }, input?: I, spy?: TWorkflowSpy<T, I>, cleanup?: () => void) {
+    public resume<I>(state: { schemaId: string, indexes: number[], context: T }, input?: I, spy?: TWorkflowSpy<T, I, IR>, cleanup?: () => void) {
         return this._start(
             state.schemaId,
             state.context,
@@ -69,7 +71,7 @@ export class WooksWf<T> extends WooksAdapterBase {
         )
     }
 
-    protected async _start<I>(schemaId: string, inputContext: T, indexes?: number[], input?: I, spy?: TWorkflowSpy<T, I>, cleanup?: () => void) {
+    protected async _start<I>(schemaId: string, inputContext: T, indexes?: number[], input?: I, spy?: TWorkflowSpy<T, I, IR>, cleanup?: () => void) {
         const resume = !!indexes?.length
         const { restoreCtx, clearCtx } = (resume ? resumeWfContext : createWfContext)({
             inputContext,
@@ -82,9 +84,9 @@ export class WooksWf<T> extends WooksAdapterBase {
             (this.opts?.onNotFound && [this.opts.onNotFound]) ||
             null
         if (handlers && handlers.length) {
-            let result: TFlowOutput<T, I> = {} as TFlowOutput<T, I>
+            let result: TFlowOutput<T, I, IR> = {} as TFlowOutput<T, I, IR>
             let firstStep = true
-            const _spy: TWorkflowSpy<T, I> = (...args) => {
+            const _spy: TWorkflowSpy<T, I, IR> = (...args) => {
                 if (spy) {
                     spy(...args)
                 }
