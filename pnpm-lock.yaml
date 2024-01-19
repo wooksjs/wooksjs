@@ -20,8 +20,8 @@ devDependencies:
     specifier: ^0.2.1
     version: 0.2.1
   '@prostojs/wf':
-    specifier: ^0.0.16
-    version: 0.0.16
+    specifier: ^0.0.17
+    version: 0.0.17
   '@rollup/plugin-commonjs':
     specifier: ^25.0.7
     version: 25.0.7(rollup@4.9.0)
@@ -1206,8 +1206,8 @@ packages:
     resolution: {integrity: sha512-N4NHd5Nwy4nFsvmZhSgWhYCKuDuvtFpZPZOI2TKhWj44N8trlpU9MgruBlYKhwrc0RTDKhxp13JaDQ6bR4RLMA==}
     dev: true
 
-  /@prostojs/wf@0.0.16:
-    resolution: {integrity: sha512-Xt+S0LOApSA5pDvHr737/tvyqz19LAVacSjhVnNt5y5JNjTPYZpgGRvi+78Dr0MTh2vCb2sIvqi90g/pnENnlg==}
+  /@prostojs/wf@0.0.17:
+    resolution: {integrity: sha512-TXK+hnqPLJfsdnwMllDLHGa+AHvtQfJj1qgQI9I6nByTPEVycyjuWBULCLp/L/zWvN6gRGNKmYSXa17H2qhkUw==}
     dependencies:
       '@prostojs/ftring': 0.0.3
     dev: true
