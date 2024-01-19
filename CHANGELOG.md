@@ -1,3 +1,12 @@
+## [0.4.22](https://github.com/wooksjs/wooksjs/compare/v0.4.21...v0.4.22) (2024-01-19)
+
+
+### Features
+
+* **wf:** add generic for inputRequired ([48f0fac](https://github.com/wooksjs/wooksjs/commit/48f0fac38181f0c59826024a6165336eef6d72c6))
+
+
+
 ## [0.4.21](https://github.com/wooksjs/wooksjs/compare/v0.4.20...v0.4.21) (2024-01-18)
 
 
