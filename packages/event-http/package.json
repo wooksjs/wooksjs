@@ -1,6 +1,6 @@
 {
   "name": "@wooksjs/event-http",
-  "version": "0.4.24",
+  "version": "0.4.25",
   "description": "@wooksjs/event-http",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
@@ -39,9 +39,9 @@
     "url": "https://github.com/wooksjs/wooksjs/issues"
   },
   "peerDependencies": {
-    "wooks": "0.4.24",
+    "wooks": "0.4.25",
     "@prostojs/router": "^0.2.1",
-    "@wooksjs/event-core": "0.4.24"
+    "@wooksjs/event-core": "0.4.25"
   },
   "dependencies": {
     "@prostojs/logger": "^0.4.0"

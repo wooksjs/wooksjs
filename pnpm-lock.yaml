@@ -20,8 +20,8 @@ devDependencies:
     specifier: ^0.2.1
     version: 0.2.1
   '@prostojs/wf':
-    specifier: ^0.0.17
-    version: 0.0.17
+    specifier: ^0.0.18
+    version: 0.0.18
   '@rollup/plugin-commonjs':
     specifier: ^25.0.7
     version: 25.0.7(rollup@4.9.0)
@@ -1180,8 +1180,8 @@ packages:
     resolution: {integrity: sha512-cTjzK+qXL/vda4Ak/saQ9w82F41KYsDh5ycEPFR9Xkk/M4qpldH8dqOQ9ZI5sySZZAFrzoDzbRYd2GqYoyv/Ww==}
     dev: true
 
-  /@prostojs/ftring@0.0.3:
-    resolution: {integrity: sha512-23uhbe4xDWoZ7sVbmbwSuo8+OPRG8XlTsKhpTnB7Mx6odjRHHsatt+2lPi/aHvYjZ7Jc5p2Jo3CpBDONU4qlbg==}
+  /@prostojs/ftring@0.0.4:
+    resolution: {integrity: sha512-oLrPVn/UkifSfRRqDH1W055YvwxZRVHdLjlVQBPhM7xsosn0nFIQaRSNiZJH/GIRXR9ghj+INoJ9aNDJlvaogg==}
     dev: true
 
   /@prostojs/logger@0.4.0:
@@ -1206,10 +1206,10 @@ packages:
     resolution: {integrity: sha512-N4NHd5Nwy4nFsvmZhSgWhYCKuDuvtFpZPZOI2TKhWj44N8trlpU9MgruBlYKhwrc0RTDKhxp13JaDQ6bR4RLMA==}
     dev: true
 
-  /@prostojs/wf@0.0.17:
-    resolution: {integrity: sha512-TXK+hnqPLJfsdnwMllDLHGa+AHvtQfJj1qgQI9I6nByTPEVycyjuWBULCLp/L/zWvN6gRGNKmYSXa17H2qhkUw==}
+  /@prostojs/wf@0.0.18:
+    resolution: {integrity: sha512-tXX/ZwryjqXXvg/y5/4am1RIZhdaDgJzxGkP0Wls4fwWVJmcnV5AJHTqs/iZtMbsl1gzMCeaAgYyjG+cDC8BrQ==}
     dependencies:
-      '@prostojs/ftring': 0.0.3
+      '@prostojs/ftring': 0.0.4
     dev: true
 
   /@rollup/plugin-commonjs@25.0.7(rollup@4.9.0):
