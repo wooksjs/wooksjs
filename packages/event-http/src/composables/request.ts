@@ -8,7 +8,8 @@ export function useRequest() {
   const { store } = useHttpContext()
   const { init } = store('request')
   const event = store('event')
-  const req = event.get('req')
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  const req = event.get('req')!
 
   const rawBody = () =>
     init(
@@ -33,7 +34,7 @@ export function useRequest() {
   const forwardedIp = () =>
     init('forwardedIp', () => {
       if (typeof req.headers[xForwardedFor] === 'string' && req.headers[xForwardedFor]) {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
+        // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain, @typescript-eslint/no-non-null-assertion
         return req.headers[xForwardedFor].split(',').shift()?.trim()!
       } else {
         return ''
@@ -41,7 +42,8 @@ export function useRequest() {
     })
 
   const remoteIp = () =>
-    init('remoteIp', () => req.socket.remoteAddress || req.connection.remoteAddress || '')
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    init('remoteIp', () => req.socket.remoteAddress || req.connection.remoteAddress || '')!
 
   function getIp(options?: { trustProxy: boolean }): string {
     if (options?.trustProxy) {

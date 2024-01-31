@@ -108,6 +108,7 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
       this.mergeEventOptions(this.opts?.eventOptions)
     )
     const { handlers: foundHandlers } = this.wooks.lookup('WF_FLOW', `/${schemaId}`)
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     const handlers = foundHandlers || (this.opts?.onNotFound && [this.opts.onNotFound]) || null
     if (handlers && handlers.length > 0) {
       let result: TFlowOutput<T, I, IR> = {} as TFlowOutput<T, I, IR>

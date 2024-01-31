@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-condition */
 /* eslint-disable sonarjs/no-duplicate-string */
 import type { TConsoleBase } from '@prostojs/logger'
 import { useEventLogger } from '@wooksjs/event-core'
@@ -113,7 +114,7 @@ export class BaseHttpResponse<BodyType = unknown> {
       ...this._headers,
     }
     const setCookie = [...newCookies, ...cookies()]
-    if (setCookie && setCookie.length > 0) {
+    if (setCookie.length > 0) {
       this._headers['set-cookie'] = setCookie
     }
     return this
@@ -143,7 +144,7 @@ export class BaseHttpResponse<BodyType = unknown> {
   async respond() {
     const { rawResponse, hasResponded } = useResponse()
     const { method, rawRequest } = useRequest()
-    const logger = useEventLogger('http-response')
+    const logger = useEventLogger('http-response') || console
     if (hasResponded()) {
       this.panic('The response was already sent.', logger)
     }
@@ -183,9 +184,11 @@ export class BaseHttpResponse<BodyType = unknown> {
       } else {
         const additionalHeaders: Record<string, string | string[]> = {}
         if (this.body.headers.get('content-length')) {
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           additionalHeaders['content-length'] = this.body.headers.get('content-length')!
         }
         if (this.body.headers.get('content-type')) {
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           additionalHeaders['content-type'] = this.body.headers.get('content-type')!
         }
         res.writeHead(this.status, {

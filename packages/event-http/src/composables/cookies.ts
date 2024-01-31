@@ -63,9 +63,9 @@ export function useSetCookie(name: string) {
       type: 'cookie',
     },
     {
-      get: () => getCookie(name).value,
+      get: () => getCookie(name)?.value,
       set: (value: string) => {
-        setCookie(name, value, getCookie(name).attrs)
+        setCookie(name, value, getCookie(name)?.attrs)
       },
     }
   )
@@ -73,9 +73,9 @@ export function useSetCookie(name: string) {
   return attachHook(
     valueHook,
     {
-      get: () => getCookie(name).attrs as TCookieAttributes,
+      get: () => getCookie(name)?.attrs as TCookieAttributes,
       set: (attrs: TCookieAttributes) => {
-        setCookie(name, getCookie(name).value || '', attrs)
+        setCookie(name, getCookie(name)?.value || '', attrs)
       },
     },
     'attrs'

@@ -67,7 +67,7 @@ export class Wooks {
   }
 }
 
-let gWooks: Wooks
+let gWooks: Wooks | undefined
 
 export function getGlobalWooks(logger?: TConsoleBase, routerOpts?: TWooksOptions['router']): Wooks {
   if (!gWooks) {

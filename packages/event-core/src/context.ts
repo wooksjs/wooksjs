@@ -91,12 +91,14 @@ function _getCtxHelpers<T>(cc: T) {
       getter: () => Required<Required<T>[K]>[K2]
     ): Required<Required<T>[K]>[K2] {
       if (hasNested(key2)) {
-        return getNested(key2)
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        return getNested(key2)!
       }
       return setNested(key2, getter())
     }
 
     function hook<K2 extends keyof Required<T>[K]>(key2: K2) {
+      // eslint-disable-next-line @typescript-eslint/no-shadow
       const obj = {
         value: null as Required<T>[K][K2],
         isDefined: null as unknown as boolean,
@@ -116,6 +118,7 @@ function _getCtxHelpers<T>(cc: T) {
     }
 
     function setNested<K2 extends keyof Required<T>[K]>(key2: K2, v: Required<T[K]>[K2]) {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (obj.value === undefined) {
         obj.value = {} as T[K]
       }
@@ -126,9 +129,10 @@ function _getCtxHelpers<T>(cc: T) {
       setNested(key2, undefined as Required<T[K]>[K2])
     }
     function getNested<K2 extends keyof Required<T>[K]>(key2: K2) {
-      return (obj.value || ({} as T[K]))[key2] as Required<T>[K][K2]
+      return (obj.value || ({} as T[K]))[key2] as Required<T>[K][K2] | undefined
     }
     function hasNested<K2 extends keyof Required<T>[K]>(key2: K2) {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       return (obj.value || ({} as T[K]))[key2] !== undefined
     }
     function entries() {

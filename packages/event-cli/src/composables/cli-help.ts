@@ -16,7 +16,8 @@ import { useCliOption } from './options'
  */
 export function useCliHelp() {
   const event = useCliContext().store('event')
-  const getCliHelp = () => event.get('cliHelp')
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  const getCliHelp = () => event.get('cliHelp')!
   const getEntry = () => getCliHelp().match(event.get('command')).main
   return {
     getCliHelp,
@@ -99,10 +100,11 @@ export function useAutoHelp(keys = ['help'], colors = true) {
  * ...
  */
 export function useCommandLookupHelp(lookupDepth = 3) {
-  const parts = useCliContext()
-    .store('event')
-    .get('pathParams')
-    .flatMap(p => `${p} `.split(':').map((s, i) => (i ? `:${s}` : s)))
+  const parts =
+    useCliContext()
+      .store('event')
+      .get('pathParams')
+      ?.flatMap(p => `${p} `.split(':').map((s, i) => (i ? `:${s}` : s))) || []
   const cliHelp = useCliHelp().getCliHelp()
   const cmd = cliHelp.getCliName()
   let data
@@ -134,7 +136,8 @@ export function useCommandLookupHelp(lookupDepth = 3) {
           .map(l => `<${l}>`)
           .join(', ')}`
       )
-    } else if (children && children.length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    } else if (children?.length > 0) {
       throw new Error(
         `Wrong command, did you mean:\n${children
           .slice(0, 7)

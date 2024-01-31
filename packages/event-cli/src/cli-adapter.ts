@@ -104,6 +104,7 @@ export class WooksCli extends WooksAdapterBase {
         .getArgs()
         .map(k => `:${k}`)
         .join('/')
+      // eslint-disable-next-line @typescript-eslint/no-shadow
       const targetPath = makePath(alias) + (vars ? `/${vars}` : '')
       this.on<ResType, ParamsType>('CLI', targetPath, handler)
       if (options.onRegister) {
@@ -189,6 +190,7 @@ export class WooksCli extends WooksAdapterBase {
       // overwriting command with firstStatic to properly search for help
       store('event').set('command', firstStatic.replace(/\//g, ' ').trim())
     }
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     const handlers = foundHandlers || (this.opts?.onNotFound && [this.opts.onNotFound]) || null
     if (handlers) {
       try {
@@ -203,7 +205,7 @@ export class WooksCli extends WooksAdapterBase {
             })
           } else if (response instanceof Error) {
             this.onError(response)
-          } else if (response && response) {
+          } else if (response) {
             console.log(JSON.stringify(response, null, '  '))
           }
         }
