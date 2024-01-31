@@ -92,23 +92,22 @@ export class WooksHttp extends WooksAdapterBase {
    *
    * Use this only if you rely on Wooks server.
    */
-  // @ts-expect-error
   public listen(
     port?: number,
     hostname?: string,
     backlog?: number,
     listeningListener?: () => void
-  ): this
-  public listen(port?: number, hostname?: string, listeningListener?: () => void): this
-  public listen(port?: number, backlog?: number, listeningListener?: () => void): this
-  public listen(port?: number, listeningListener?: () => void): this
-  public listen(path: string, backlog?: number, listeningListener?: () => void): this
-  public listen(path: string, listeningListener?: () => void): this
-  public listen(options: ListenOptions, listeningListener?: () => void): this
+  ): Promise<void>
+  public listen(port?: number, hostname?: string, listeningListener?: () => void): Promise<void>
+  public listen(port?: number, backlog?: number, listeningListener?: () => void): Promise<void>
+  public listen(port?: number, listeningListener?: () => void): Promise<void>
+  public listen(path: string, backlog?: number, listeningListener?: () => void): Promise<void>
+  public listen(path: string, listeningListener?: () => void): Promise<void>
+  public listen(options: ListenOptions, listeningListener?: () => void): Promise<void>
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public listen(handle: any, backlog?: number, listeningListener?: () => void): this
+  public listen(handle: any, backlog?: number, listeningListener?: () => void): Promise<void>
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public listen(handle: any, listeningListener?: () => void): this
+  public listen(handle: any, listeningListener?: () => void): Promise<void>
   public async listen(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     port?: number | string | ListenOptions | any,
