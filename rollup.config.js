@@ -3,8 +3,6 @@ import { readdirSync, rmSync, statSync } from 'node:fs'
 import { dye } from '@prostojs/dye'
 import { nodeResolve } from '@rollup/plugin-node-resolve'
 import replace from '@rollup/plugin-replace'
-
-// import commonJS from '@rollup/plugin-commonjs'
 import { createRequire } from 'module'
 import { dts } from 'rollup-plugin-dts'
 import typescript from 'rollup-plugin-typescript2'
@@ -27,7 +25,7 @@ const dyeModifiers = [
 ]
 const dyeColors = ['red', 'green', 'cyan', 'blue', 'yellow', 'white', 'magenta', 'black']
 
-const external = ['url', 'crypto', 'stream', 'packages/*/src', 'http']
+const external = ['url', 'crypto', 'stream', 'packages/*/src', 'http', 'net']
 
 const replacePlugin = replace({
   values: {

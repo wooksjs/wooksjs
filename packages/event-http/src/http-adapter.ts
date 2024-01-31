@@ -1,7 +1,9 @@
+/* eslint-disable @typescript-eslint/unified-signatures */
 import type { TConsoleBase } from '@prostojs/logger'
 import type { TEventOptions } from '@wooksjs/event-core'
 import type { IncomingMessage, Server, ServerResponse } from 'http'
 import http from 'http'
+import type { ListenOptions } from 'net'
 import type { TWooksHandler, TWooksOptions, Wooks } from 'wooks'
 import { WooksAdapterBase } from 'wooks'
 
@@ -90,12 +92,35 @@ export class WooksHttp extends WooksAdapterBase {
    *
    * Use this only if you rely on Wooks server.
    */
-  public async listen(...args: Parameters<Server['listen']>) {
+  // @ts-expect-error
+  public listen(
+    port?: number,
+    hostname?: string,
+    backlog?: number,
+    listeningListener?: () => void
+  ): this
+  public listen(port?: number, hostname?: string, listeningListener?: () => void): this
+  public listen(port?: number, backlog?: number, listeningListener?: () => void): this
+  public listen(port?: number, listeningListener?: () => void): this
+  public listen(path: string, backlog?: number, listeningListener?: () => void): this
+  public listen(path: string, listeningListener?: () => void): this
+  public listen(options: ListenOptions, listeningListener?: () => void): this
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public listen(handle: any, backlog?: number, listeningListener?: () => void): this
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public listen(handle: any, listeningListener?: () => void): this
+  public async listen(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    port?: number | string | ListenOptions | any,
+    hostname?: number | string | (() => void),
+    backlog?: number | (() => void),
+    listeningListener?: () => void
+  ) {
     const server = (this.server = http.createServer(this.getServerCb() as http.RequestListener))
     return new Promise((resolve, reject) => {
       server.once('listening', resolve)
       server.once('error', reject)
-      server.listen(...args)
+      server.listen(port as number, hostname as string, backlog as number, listeningListener)
     })
   }
 
