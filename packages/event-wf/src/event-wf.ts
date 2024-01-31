@@ -1,37 +1,28 @@
-import {
-    TEmpty,
-    TEventOptions,
-    createEventContext,
-    useEventContext,
-} from '@wooksjs/event-core'
-import { TWFContextStore, TWFEventData } from './types'
+import type { TEmpty, TEventOptions } from '@wooksjs/event-core'
+import { createEventContext, useEventContext } from '@wooksjs/event-core'
 
-export function createWfContext(
-    data: Omit<TWFEventData, 'type'>,
-    options: TEventOptions
-) {
-    return createEventContext<TWFContextStore, TWFEventData>({
-        event: {
-            ...data,
-            type: 'WF',
-        },
-        resume: false,
-        options,
-    })
+import type { TWFContextStore, TWFEventData } from './types'
+
+export function createWfContext(data: Omit<TWFEventData, 'type'>, options: TEventOptions) {
+  return createEventContext<TWFContextStore, TWFEventData>({
+    event: {
+      ...data,
+      type: 'WF',
+    },
+    resume: false,
+    options,
+  })
 }
 
-export function resumeWfContext(
-    data: Omit<TWFEventData, 'type'>,
-    options: TEventOptions
-) {
-    return createEventContext<TWFContextStore, TWFEventData>({
-        event: {
-            ...data,
-            type: 'WF',
-        },
-        resume: true,
-        options,
-    })
+export function resumeWfContext(data: Omit<TWFEventData, 'type'>, options: TEventOptions) {
+  return createEventContext<TWFContextStore, TWFEventData>({
+    event: {
+      ...data,
+      type: 'WF',
+    },
+    resume: true,
+    options,
+  })
 }
 
 /**
@@ -40,5 +31,5 @@ export function resumeWfContext(
  * @returns set of hooks { getCtx, restoreCtx, clearCtx, hookStore, getStore, setStore }
  */
 export function useWFContext<T extends TEmpty>() {
-    return useEventContext<TWFContextStore & T, TWFEventData>('WF')
+  return useEventContext<TWFContextStore & T, TWFEventData>('WF')
 }

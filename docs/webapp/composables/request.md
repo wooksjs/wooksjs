@@ -25,8 +25,8 @@ import { useRequest } from '@wooksjs/event-http'
 // const { useRequest } = require('@wooksjs/event-http')
 
 app.get('/test', () => {
-    const { rawRequest } = useRequest()
-    // Access the raw request instance if needed
+  const { rawRequest } = useRequest()
+  // Access the raw request instance if needed
 })
 ```
 
@@ -39,22 +39,21 @@ and are covered in the [Retrieving URI Parameters section](../routing.md#retriev
 
 The `useSearchParams` composable provides three functions for working with query parameters:
 
--   `urlSearchParams()` — returns an instance of `WooksURLSearchParams`, which extends the standard `URLSearchParams` with a `toJson` method that returns a **JSON** object of the query parameters.
--   `jsonSearchParams()` — is a shortcut for `urlSearchParams().toJson()`, returning the query parameters as a **JSON** object.
--   `rawSearchParams()` — returns the raw search parameter string, such as `?param1=value&...`.
+- `urlSearchParams()` — returns an instance of `WooksURLSearchParams`, which extends the standard `URLSearchParams` with a `toJson` method that returns a **JSON** object of the query parameters.
+- `jsonSearchParams()` — is a shortcut for `urlSearchParams().toJson()`, returning the query parameters as a **JSON** object.
+- `rawSearchParams()` — returns the raw search parameter string, such as `?param1=value&...`.
 
 ```js
 import { useSearchParams } from '@wooksjs/event-http'
 
 app.get('hello', () => {
-    const { urlSearchParams, jsonSearchParams, rawSearchParams } =
-        useSearchParams()
+  const { urlSearchParams, jsonSearchParams, rawSearchParams } = useSearchParams()
 
-    // curl http://localhost:3000/hello?name=World
-    console.log(jsonSearchParams()) // { name: 'World' }
-    console.log(rawSearchParams()) // ?name=World
+  // curl http://localhost:3000/hello?name=World
+  console.log(jsonSearchParams()) // { name: 'World' }
+  console.log(rawSearchParams()) // ?name=World
 
-    return `Hello ${urlSearchParams().get('name')}!`
+  return `Hello ${urlSearchParams().get('name')}!`
 })
 ```
 
@@ -73,16 +72,15 @@ The `useRequest` composable provides additional shortcuts for accessing useful d
 import { useRequest } from '@wooksjs/event-http'
 
 app.get('/test', async () => {
-    const {
-        url, // Request URL (string)
-        method, // Request method (string)
-        headers, // Request headers (object)
-        rawBody, // Request body (() => Promise<Buffer>)
-    } = useRequest()
+  const {
+    url, // Request URL (string)
+    method, // Request method (string)
+    headers, // Request headers (object)
+    rawBody, // Request body (() => Promise<Buffer>)
+  } = useRequest()
 
-    const body = await rawBody() // Body as a Buffer
+  const body = await rawBody() // Body as a Buffer
 })
-
 ```
 
 ## Cookies
@@ -93,13 +91,13 @@ Cookies are not automatically parsed unless requested. The `useCookies` composab
 import { useCookies } from '@wooksjs/event-http'
 
 app.get('/test', async () => {
-    const {
-        rawCookies, // Raw "cookie" from headers (string | undefined)
-        getCookie, // Cookie getter ((name) => string | null)
-    } = useCookies()
+  const {
+    rawCookies, // Raw "cookie" from headers (string | undefined)
+    getCookie, // Cookie getter ((name) => string | null)
+  } = useCookies()
 
-    console.log(getCookie('session'))
-    // Prints the value of the cookie with the name "session"
+  console.log(getCookie('session'))
+  // Prints the value of the cookie with the name "session"
 })
 ```
 
@@ -111,24 +109,24 @@ The `useAuthorization` function provides helpers for working with authorization 
 import { useAuthorization } from '@wooksjs/event-http'
 
 app.get('/test', async () => {
-    const {
-        authorization, // The raw value of the "authorization" header (string)
-        authType, // The authentication type (Bearer/Basic) (string)
-        authRawCredentials, // The authentication credentials that follow the auth type (string)
-        isBasic, // Returns true if authType === 'Basic' (() => boolean)
-        isBearer, // Returns true if authType === 'Bearer' (() => boolean)
-        basicCredentials, // Parsed basic auth credentials (() => { username: string, password: string })
-    } = useAuthorization()
+  const {
+    authorization, // The raw value of the "authorization" header (string)
+    authType, // The authentication type (Bearer/Basic) (string)
+    authRawCredentials, // The authentication credentials that follow the auth type (string)
+    isBasic, // Returns true if authType === 'Basic' (() => boolean)
+    isBearer, // Returns true if authType === 'Bearer' (() => boolean)
+    basicCredentials, // Parsed basic auth credentials (() => { username: string, password: string })
+  } = useAuthorization()
 
-    if (isBasic()) {
-        const { username, password } = basicCredentials()
-        console.log({ username, password })
-    } else if (isBearer()) {
-        const token = authRawCredentials
-        console.log({ token })
-    } else {
-        // Unknown or empty authorization header
-    }
+  if (isBasic()) {
+    const { username, password } = basicCredentials()
+    console.log({ username, password })
+  } else if (isBearer()) {
+    const token = authRawCredentials
+    console.log({ token })
+  } else {
+    // Unknown or empty authorization header
+  }
 })
 ```
 

@@ -1,9 +1,9 @@
-import { EventLogger } from './event-logger'
+import type { EventLogger } from './event-logger'
 
 export interface TGenericEvent {
-    type: string
-    logger?: EventLogger
-    id?: string
+  type: string
+  logger?: EventLogger
+  id?: string
 }
 
 export interface TEmpty {}

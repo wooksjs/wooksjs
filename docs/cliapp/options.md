@@ -1,4 +1,5 @@
 # Command Options
+
 <span class="cli-header"><span class="cli-path">/cliapp</span><span class="cli-invite">$</span> wooks cli --options<span class="cli-blink">|</span></span>
 
 Wooks CLI supports handling options in your CLI commands.
@@ -15,17 +16,20 @@ app.cli('my-command', {
     { keys: ['project', 'p'] },
   ],
   handler: () => {
-    const project = useCliOption('project');
-    return 'my command option project = ' + project;
+    const project = useCliOption('project')
+    return 'my command option project = ' + project
   },
-});
+})
 ```
 
 With the above command configuration, you can execute the command as follows:
+
 ```bash
 node your-script.js my-command --project=test
 ```
+
 Alternatively, you can use the shortcut for `project` option:
+
 ```bash
 node your-script.js my-command -p=test
 ```

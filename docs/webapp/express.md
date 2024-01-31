@@ -23,31 +23,30 @@ so that you can continue using the familiar Express app API while incorporating 
 Here's an example of how to use the Express Adapter with modified Express methods:
 
 ```ts
-import express from 'express';
-import { applyExpressAdapter } from '@wooksjs/express-adapter';
-import { useBody } from '@wooksjs/http-body';
-import { HttpError } from '@wooksjs/event-http';
-import { useRouteParams } from '@wooksjs/event-core';
+import express from 'express'
+import { applyExpressAdapter } from '@wooksjs/express-adapter'
+import { useBody } from '@wooksjs/http-body'
+import { HttpError } from '@wooksjs/event-http'
+import { useRouteParams } from '@wooksjs/event-core'
 
-const app = express();
-applyExpressAdapter(app);
+const app = express()
+applyExpressAdapter(app)
 
 app.get('/test/:param', () => {
-    const { get } = useRouteParams();
-    return { message: 'it works', param: get('param') };
-});
+  const { get } = useRouteParams()
+  return { message: 'it works', param: get('param') }
+})
 
 app.post('/post', () => {
-    const { parseBody } = useBody();
-    return parseBody();
-});
+  const { parseBody } = useBody()
+  return parseBody()
+})
 
 app.get('/error', () => {
-    throw new HttpError(400, 'test error');
-});
+  throw new HttpError(400, 'test error')
+})
 
-app.listen(3000, () => console.log('Listening on port 3000'));
-
+app.listen(3000, () => console.log('Listening on port 3000'))
 ```
 
 In the above example, the `applyExpressAdapter` function is used to apply the Express Adapter to the app object. This modifies the Express methods (`get`, `post`, etc.) to work with Wooks.
@@ -70,17 +69,17 @@ const expressApp = Express()
 const wooksApp = new WooksExpress(expressApp, { raise404: true })
 
 wooksApp.get('/test/:param', () => {
-    const { get } = useRouteParams()
-    return { message: 'it works', param: get('param') }
+  const { get } = useRouteParams()
+  return { message: 'it works', param: get('param') }
 })
 
 wooksApp.post('/post', () => {
-    const { parseBody } = useBody()
-    return parseBody()
+  const { parseBody } = useBody()
+  return parseBody()
 })
 
 wooksApp.get('/error', () => {
-    throw new HttpError(400, 'test error')
+  throw new HttpError(400, 'test error')
 })
 
 wooksApp.listen(3000, () => console.log('listening 3000'))

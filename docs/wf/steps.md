@@ -1,6 +1,6 @@
 # Steps
 
-A step is a specific function that can be utilized within flows. This document discusses how to define and interact with steps in Wooks Workflows. 
+A step is a specific function that can be utilized within flows. This document discusses how to define and interact with steps in Wooks Workflows.
 
 [[toc]]
 
@@ -10,8 +10,10 @@ Defining a step is straightforward. Utilize the `app.step()` function to declare
 
 ```ts
 app.step('step-name', {
-    // input: ...,
-    handler: () => { /* ... */ },
+  // input: ...,
+  handler: () => {
+    /* ... */
+  },
 })
 ```
 
@@ -25,13 +27,14 @@ In the context of a step, you can access the state associated with the current w
 import { useWfState } from '@wooksjs/event-wf'
 
 app.step('step-name', {
-    // input: ...,
-    handler: () => {
-        const { ctx } = useWfState()
-        const context = ctx<ContextType>() // ContextType should be replaced with the actual context type
-    },
+  // input: ...,
+  handler: () => {
+    const { ctx } = useWfState()
+    const context = ctx<ContextType>() // ContextType should be replaced with the actual context type
+  },
 })
 ```
+
 The `useWfState` function returns an object containing the context (`ctx`) of the current flow.
 
 ## Parametric Steps
@@ -42,14 +45,15 @@ A step can be made parametric by incorporating route parameters in its name. The
 import { useRouteParams } from '@wooksjs/event-core'
 
 app.step('step-name/:param1/:param2', {
-    // input: ...,
-    handler: () => {
-        const { get } = useRouteParams()
-        console.log(get('param1')) // prints value of param1
-        console.log(get('param2')) // prints value of param2
-    },
+  // input: ...,
+  handler: () => {
+    const { get } = useRouteParams()
+    console.log(get('param1')) // prints value of param1
+    console.log(get('param2')) // prints value of param2
+  },
 })
 ```
+
 In the example above, `:param1` and `:param2` in the step name are placeholders for the actual parameters.
 
 ## Requesting Inputs
@@ -105,11 +109,12 @@ A step can be configured to handle errors that can be retried. In the event of a
 import { StepRetriableError } from '@wooksjs/event-wf'
 
 app.step('step-with-input', {
-    handler: () => {
-        throw new StepRetriableError(new Error("test error"))
-    },
+  handler: () => {
+    throw new StepRetriableError(new Error('test error'))
+  },
 })
 ```
+
 Executing this step will interrupt the flow:
 
 ```ts

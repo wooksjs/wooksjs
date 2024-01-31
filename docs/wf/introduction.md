@@ -4,7 +4,7 @@ Wooks Workflows, made available through the `@wooksjs/event-wf` module, is a pow
 
 ## Why Use Workflows in this Manner?
 
-When building complex systems, especially in microservices architectures or similar distributed structures, you often encounter situations where tasks need to be executed in a specific order, or dependent on certain conditions. These tasks might require user inputs, be interdependent, or involve repeated execution. Describing and managing such tasks in code can become extremely complex and hard to maintain. 
+When building complex systems, especially in microservices architectures or similar distributed structures, you often encounter situations where tasks need to be executed in a specific order, or dependent on certain conditions. These tasks might require user inputs, be interdependent, or involve repeated execution. Describing and managing such tasks in code can become extremely complex and hard to maintain.
 
 Wooks Workflows address these issues by providing a means to define and manage these tasks declaratively. By using workflows, you gain a clearer, more organized structure that reduces complexity and makes your code easier to maintain and reason about. The structure of the workflow is also easier to visualize and understand, even for non-technical stakeholders.
 

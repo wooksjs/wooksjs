@@ -1,4 +1,5 @@
 # Quick Start Guide
+
 <span class="cli-header"><span class="cli-path">/cliapp</span><span class="cli-invite">$</span> wooks cli --quick-start<span class="cli-blink">|</span></span>
 
 ::: warning
@@ -28,34 +29,33 @@ Here's a step-by-step guide to using Wooks CLI:
 Start by importing the necessary modules and creating an instance of the Wooks CLI adapter:
 
 ::: code-group
+
 ```ts [plain]
 import { createCliApp } from '@wooksjs/event-cli'
 import { useRouteParams } from 'wooks'
 
 const app = createCliApp()
 ```
+
 ```ts [with auto-help]
-import {
-    createCliApp,
-    useAutoHelp,
-    useCommandLookupHelp,
-} from '@wooksjs/event-cli'
+import { createCliApp, useAutoHelp, useCommandLookupHelp } from '@wooksjs/event-cli'
 import { useRouteParams } from 'wooks'
 
 const app = createCliApp({
-    // Implementing onUnknownCommand hook
-    onUnknownCommand: (path, raiseError) => {
-        // Whenever cli command was not recognized by router
-        // this callback will be called        
-        if (!useAutoHelp()) {
-            // fallback to useCommandLookupHelp if command help was not found
-            useCommandLookupHelp()
-            // fallback to a standard error handling when command not recognized
-            raiseError()
-        }
-    },
+  // Implementing onUnknownCommand hook
+  onUnknownCommand: (path, raiseError) => {
+    // Whenever cli command was not recognized by router
+    // this callback will be called
+    if (!useAutoHelp()) {
+      // fallback to useCommandLookupHelp if command help was not found
+      useCommandLookupHelp()
+      // fallback to a standard error handling when command not recognized
+      raiseError()
+    }
+  },
 })
 ```
+
 :::
 
 ### Step 2: Define CLI commands
@@ -63,21 +63,23 @@ const app = createCliApp({
 Next, you can define your CLI commands using the cli() method provided by the Wooks CLI adapter.
 The cli() method allows you to register CLI commands along with their respective handlers.
 
-
 ::: code-group
+
 ```ts [plain]
 app.cli('command/:arg', () => {
   // Handle the command and its parameters
   return 'Command executed with argument:', useRouteParams().get('arg')
-});
+})
 ```
+
 ```ts [with auto-help]
 app.cli('command/:arg', () => {
-  useAutoHelp() && process.exit(0)  // Print help if --help option provided
+  useAutoHelp() && process.exit(0) // Print help if --help option provided
   // Handle the command and its parameters
   return 'Command executed with argument:', useRouteParams().get('arg')
-});
+})
 ```
+
 :::
 
 ### Step 3: Start command processing
@@ -104,10 +106,10 @@ This will execute the registered CLI command with the argument "test" and log th
 
 Wooks CLI provides additional features and options for building more complex CLIs. Some of the notable features include:
 
--   Defining command [aliases](/cliapp/cli-help#aliases)
--   Adding [descriptions](/cliapp/cli-help#command-description), [options](/cliapp/cli-help#options), and [examples](/cliapp/cli-help#examples) to commands
--   Handling unknown commands
--   Error handling and customization
+- Defining command [aliases](/cliapp/cli-help#aliases)
+- Adding [descriptions](/cliapp/cli-help#command-description), [options](/cliapp/cli-help#options), and [examples](/cliapp/cli-help#examples) to commands
+- Handling unknown commands
+- Error handling and customization
 
 That's it! You have completed the Quick Start Guide for Wooks CLI.
 You now have the basic knowledge and steps to start building your own CLI applications using Wooks CLI.

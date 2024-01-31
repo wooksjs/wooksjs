@@ -1,0 +1,17 @@
+ignoredRules:
+  - '@typescript-eslint/strict-boolean-expressions'
+  - '@typescript-eslint/class-methods-use-this'
+  - max-params
+  - no-return-assign
+  - complexity
+  - unicorn/consistent-function-scoping
+  - sonarjs/cognitive-complexity
+  - prefer-named-capture-group
+  - no-multi-assign
+  - no-continue
+  - unicorn/prefer-logical-operator-over-ternary
+  - unicorn/prefer-ternary
+
+relaxedRules:
+  - '@typescript-eslint/no-shadow'
+  - '@typescript-eslint/no-non-null-assertion'

@@ -41,9 +41,9 @@ Next, you can define your workflow steps using the `step()` method provided by t
 
 ```ts
 app.step('add/:n', {
-    handler: (ctx) => {
-        ctx.result += Number(useRouteParams().get('n'))
-    },
+  handler: ctx => {
+    ctx.result += Number(useRouteParams().get('n'))
+  },
 })
 ```
 
@@ -55,24 +55,25 @@ With steps defined, you can now create workflow flows using the `flow()` method.
 
 ```ts
 app.flow('adding', [
-    'add/5',
-    'add/2',
-    {
-        condition: 'result < 10',
-        steps: ['add/3', 'add/4'],
-    },
+  'add/5',
+  'add/2',
+  {
+    condition: 'result < 10',
+    steps: ['add/3', 'add/4'],
+  },
 ])
 ```
 
 Here we created a flow named `adding`, which consists of the following steps:
+
 1. add 5
 2. add 2
 3. if result < 10 then run a **Subflow**
 
 **Subflow**:
+
 1. add 3
 2. add 4
-
 
 ### Step 4: Start the Workflow
 
@@ -88,9 +89,9 @@ This will start the 'adding' flow with an initial `result` of 0, and follow the 
 
 ## Next steps
 
--   Learn how to define [parametric steps](/wf/routing#parametric-step-example)
--   Find out how to build [flows](/wf/flows)
--   Utilize [Conditional subflows](/wf/flows#conditional-subflows)
--   Benefit from [Loops](/wf/flows#loops)
+- Learn how to define [parametric steps](/wf/routing#parametric-step-example)
+- Find out how to build [flows](/wf/flows)
+- Utilize [Conditional subflows](/wf/flows#conditional-subflows)
+- Benefit from [Loops](/wf/flows#loops)
 
 😊 Happy workflow designing with Wooks Workflows!

@@ -1,2 +1,2 @@
-export * from './options'
 export * from './cli-help'
+export * from './options'

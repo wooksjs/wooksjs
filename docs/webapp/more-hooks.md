@@ -7,44 +7,44 @@ In this advanced guide, we will explore how to work with Event Context and creat
 As an example, let's create a composable that resolves the user profile.
 
 ```ts
-import { useAuthorization, useHttpContext } from '@wooksjs/event-http';
+import { useAuthorization, useHttpContext } from '@wooksjs/event-http'
 
 interface TUser {
-    username: string;
-    age: number;
-    // ...
+  username: string
+  age: number
+  // ...
 }
 
 export function useUserProfile() {
-    // 1. Get custom-typed context
-    const { store } = useHttpContext<{ user: TUser }>();
-    const user = store('user');
+  // 1. Get custom-typed context
+  const { store } = useHttpContext<{ user: TUser }>()
+  const user = store('user')
 
-    // 2. Use basic credentials approach to get the user name in this example
-    const { basicCredentials } = useAuthorization();
-    const username = basicCredentials()?.username;
+  // 2. Use basic credentials approach to get the user name in this example
+  const { basicCredentials } = useAuthorization()
+  const username = basicCredentials()?.username
 
-    // 3. User profile initializer
-    const userProfile = () => user.init('data', () => readUser(username))
+  // 3. User profile initializer
+  const userProfile = () => user.init('data', () => readUser(username))
 
-    // Abstract readUser function
-    function readUser(username: string): Promise<TUser> {
-        // Return the user profile from the database
-    }
+  // Abstract readUser function
+  function readUser(username: string): Promise<TUser> {
+    // Return the user profile from the database
+  }
 
-    return {
-        username,
-        userProfile,
-    };
+  return {
+    username,
+    userProfile,
+  }
 }
 
 // Example of usage of our useUserProfile composable
 app.get('/user', async () => {
-    const { username, userProfile } = useUserProfile();
-    console.log('username =', username);
-    const data = await userProfile();
-    return { user: data };
-});
+  const { username, userProfile } = useUserProfile()
+  console.log('username =', username)
+  const data = await userProfile()
+  return { user: data }
+})
 ```
 
 In the above example, we define the `useUserProfile` composable that makes use of the `useHttpContext` and `useAuthorization` hooks provided by Wooks HTTP.
@@ -55,31 +55,31 @@ The composable resolves the user profile by retrieving the user data from the ev
 Here's an example of a custom hook for setting headers.
 
 ```ts
-import { useSetHeaders } from '@wooksjs/event-http';
-import { attachHook } from '@wooksjs/event-core';
+import { useSetHeaders } from '@wooksjs/event-http'
+import { attachHook } from '@wooksjs/event-core'
 
 function useHeaderHook(name: string) {
-    const { setHeader, headers } = useSetHeaders();
+  const { setHeader, headers } = useSetHeaders()
 
-    return attachHook(
-        {
-            name,
-            type: 'header',
-        },
-        {
-            get: () => headers()[name] as string,
-            set: (value: string | number) => setHeader(name, value),
-        }
-    );
+  return attachHook(
+    {
+      name,
+      type: 'header',
+    },
+    {
+      get: () => headers()[name] as string,
+      set: (value: string | number) => setHeader(name, value),
+    }
+  )
 }
 
 // Usage
 app.get('/test', () => {
-    const myHeader = useHeaderHook('x-my-header');
-    myHeader.value = 'header value';
-    // *Please note that useSetHeader('x-my-header') will work similarly*
-    return 'ok';
-});
+  const myHeader = useHeaderHook('x-my-header')
+  myHeader.value = 'header value'
+  // *Please note that useSetHeader('x-my-header') will work similarly*
+  return 'ok'
+})
 
 // Result:
 // 200

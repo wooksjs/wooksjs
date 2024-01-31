@@ -19,22 +19,22 @@ Example:
 
 ```js
 app.get('string_response', () => {
-    return 'hello world!';
-    // responds with:
-    // 200
-    // Content-Length: 12
-    // Content-Type: text/plain
-    // hello world!
-});
+  return 'hello world!'
+  // responds with:
+  // 200
+  // Content-Length: 12
+  // Content-Type: text/plain
+  // hello world!
+})
 
 app.get('json_response', () => {
-    return { value: 'hello world!' };
-    // responds with:
-    // 200
-    // Content-Length: 24
-    // Content-Type: application/json
-    // {"value":"hello world!"}
-});
+  return { value: 'hello world!' }
+  // responds with:
+  // 200
+  // Content-Length: 24
+  // Content-Type: application/json
+  // {"value":"hello world!"}
+})
 ```
 
 **Supported response types:**
@@ -54,14 +54,14 @@ and the framework will not process the output of the handler in this case.
 Example:
 
 ```js
-import { useResponse } from '@wooksjs/event-http';
+import { useResponse } from '@wooksjs/event-http'
 
 app.get('test', () => {
-    const { rawResponse } = useResponse();
-    const res = rawResponse();
-    res.writeHead(200, {});
-    res.end('ok');
-});
+  const { rawResponse } = useResponse()
+  const res = rawResponse()
+  res.writeHead(200, {})
+  res.end('ok')
+})
 ```
 
 If you want to have a raw response instance but still let the framework process the output of the handler,
@@ -73,11 +73,11 @@ Example:
 import { useResponse } from '@wooksjs/event-http'
 
 app.get('test', () => {
-    const { rawResponse } = useResponse()
-    const res = rawResponse({
-        passthrough: true, // [!code hl]
-    })
-    return 'ok'
+  const { rawResponse } = useResponse()
+  const res = rawResponse({
+    passthrough: true, // [!code hl]
+  })
+  return 'ok'
 })
 ```
 
@@ -93,33 +93,33 @@ The `useSetHeaders` composable function provides various response header helpers
 Example:
 
 ```js
-import { useSetHeaders } from '@wooksjs/event-http';
+import { useSetHeaders } from '@wooksjs/event-http'
 
 app.get('test', async () => {
-    const {
-        setHeader, // sets header: (name: string, value: string | number) => void;
-        removeHeader, // removes header: (name: string) => void;
-        setContentType, // sets "Content-Type": (value: string) => void;
-        headers, // Object with response headers: Record<string, string>;
-        enableCors, // sets "Access-Control-Allow-Origin": (origin?: string) => void;
-    } = useSetHeaders();
+  const {
+    setHeader, // sets header: (name: string, value: string | number) => void;
+    removeHeader, // removes header: (name: string) => void;
+    setContentType, // sets "Content-Type": (value: string) => void;
+    headers, // Object with response headers: Record<string, string>;
+    enableCors, // sets "Access-Control-Allow-Origin": (origin?: string) => void;
+  } = useSetHeaders()
 
-    setContentType('application/json');
-    setHeader('server', 'My Awesome Server v1.0');
-    enableCors();
-    return '{ "value": "OK" }';
-});
+  setContentType('application/json')
+  setHeader('server', 'My Awesome Server v1.0')
+  enableCors()
+  return '{ "value": "OK" }'
+})
 ```
 
 Another hook for setting headers (works like `ref` from Vue):
 
 ```js
-import { useSetHeader } from '@wooksjs/event-http';
+import { useSetHeader } from '@wooksjs/event-http'
 
 app.get('test', async () => {
-    const server = useSetHeader('server');
-    server.value = 'My Awesome Server v1.0';
-});
+  const server = useSetHeader('server')
+  server.value = 'My Awesome Server v1.0'
+})
 ```
 
 ## Set Cookies
@@ -134,45 +134,46 @@ The `useSetCookies` composable function provides various helpers for setting coo
 Example:
 
 ```js
-import { useSetCookies } from '@wooksjs/event-http';
+import { useSetCookies } from '@wooksjs/event-http'
 
 app.get('test', async () => {
-    const {
-        setCookie, // sets cookie: (name: string, value: string, attrs?) => void;
-        removeCookie, // removes cookie from setlist: (name: string) => void;
-        clearCookies, // removes all cookies from setlist: () => void;
-        cookies, // returns the value of Set-Cookie header: () => string[];
-    } = useSetCookies();
+  const {
+    setCookie, // sets cookie: (name: string, value: string, attrs?) => void;
+    removeCookie, // removes cookie from setlist: (name: string) => void;
+    clearCookies, // removes all cookies from setlist: () => void;
+    cookies, // returns the value of Set-Cookie header: () => string[];
+  } = useSetCookies()
 
-    setCookie('session', 'value', {
-        expires: '2029-01-01', // Date | string | number;
-        maxAge: '1h', // number | TProstoTimeMultiString;
-        domain: 'my-domain', // string;
-        path: '/home', // string;
-        secure: true, // boolean;
-        httpOnly: false, // boolean;
-        sameSite: true, // boolean | 'Lax' | 'None' | 'Strict';
-    });
-});
+  setCookie('session', 'value', {
+    expires: '2029-01-01', // Date | string | number;
+    maxAge: '1h', // number | TProstoTimeMultiString;
+    domain: 'my-domain', // string;
+    path: '/home', // string;
+    secure: true, // boolean;
+    httpOnly: false, // boolean;
+    sameSite: true, // boolean | 'Lax' | 'None' | 'Strict';
+  })
+})
 ```
+
 An alternative hook for setting cookies (works like `ref` from Vue):
 
 ```js
-import { useSetCookie } from '@wooksjs/event-http';
+import { useSetCookie } from '@wooksjs/event-http'
 
 app.get('test', async () => {
-    const session = useSetCookie('session');
-    session.value = 'value';
-    session.attrs = {
-        expires: '2029-01-01', // Date | string | number;
-        maxAge: '1h', // number | TProstoTimeMultiString;
-        domain: 'my-domain', // string;
-        path: '/home', // string;
-        secure: true, // boolean;
-        httpOnly: false, // boolean;
-        sameSite: true, // boolean | 'Lax' | 'None' | 'Strict';
-    };
-});
+  const session = useSetCookie('session')
+  session.value = 'value'
+  session.attrs = {
+    expires: '2029-01-01', // Date | string | number;
+    maxAge: '1h', // number | TProstoTimeMultiString;
+    domain: 'my-domain', // string;
+    path: '/home', // string;
+    secure: true, // boolean;
+    httpOnly: false, // boolean;
+    sameSite: true, // boolean | 'Lax' | 'None' | 'Strict';
+  }
+})
 ```
 
 ## Status
@@ -182,23 +183,22 @@ You can control the response status using the `status` function available in `us
 Example:
 
 ```js
-import { useResponse } from '@wooksjs/event-http';
+import { useResponse } from '@wooksjs/event-http'
 
 app.get('test', async () => {
-    const { status } = useResponse();
+  const { status } = useResponse()
 
-    // use function calls:
-    status(201); // sets status 201 for the response
+  // use function calls:
+  status(201) // sets status 201 for the response
 
-    console.log(status()); // when called with no argument, returns the status
+  console.log(status()) // when called with no argument, returns the status
 
-    // also possible to use value:
-    // status.value = 201;
-    // console.log(status.value);
+  // also possible to use value:
+  // status.value = 201;
+  // console.log(status.value);
 
-    return 'response with status 201';
-});
-
+  return 'response with status 201'
+})
 ```
 
 ## Cache-Control
@@ -212,31 +212,30 @@ The `useSetCacheControl` function provides helpers for headers responsible for c
 Example:
 
 ```js
-import { useSetCacheControl } from '@wooksjs/event-http';
+import { useSetCacheControl } from '@wooksjs/event-http'
 
 app.get('static/*', () => {
-    const {
-        setAge, // sets Age (v: number | TProstoTimeMultiString) => void
-        setExpires, // sets Expires (v: Date | string | number) => void
-        setPragmaNoCache, // sets Pragma: no-cache (v: boolean) => void
-        setCacheControl, // sets Cache-Control (data: TCacheControl) => void
-    } = useSetCacheControl();
+  const {
+    setAge, // sets Age (v: number | TProstoTimeMultiString) => void
+    setExpires, // sets Expires (v: Date | string | number) => void
+    setPragmaNoCache, // sets Pragma: no-cache (v: boolean) => void
+    setCacheControl, // sets Cache-Control (data: TCacheControl) => void
+  } = useSetCacheControl()
 
-    setAge('2h 15m');
-    setExpires('2022-05-05');
-    setCacheControl({
-        mustRevalidate: true,
-        noCache: false,
-        noStore: false,
-        noTransform: true,
-        public: true,
-        private: 'field',
-        proxyRevalidate: true,
-        maxAge: '3h 30m 12s',
-        sMaxage: '2h 27m 54s',
-    });
-});
-
+  setAge('2h 15m')
+  setExpires('2022-05-05')
+  setCacheControl({
+    mustRevalidate: true,
+    noCache: false,
+    noStore: false,
+    noTransform: true,
+    public: true,
+    private: 'field',
+    proxyRevalidate: true,
+    maxAge: '3h 30m 12s',
+    sMaxage: '2h 27m 54s',
+  })
+})
 ```
 
 ## Proxy

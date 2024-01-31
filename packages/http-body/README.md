@@ -13,10 +13,10 @@ Wooks Body is composable body parser for [@wooksjs/event-http](https://github.co
 
 Supported content types:
 
--   ✅ application/json
--   ✅ text/\*
--   ✅ multipart/form-data
--   ✅ application/x-www-form-urlencoded
+- ✅ application/json
+- ✅ text/\*
+- ✅ multipart/form-data
+- ✅ application/x-www-form-urlencoded
 
 Body parser does not parse every request's body. The parsing happens only when you call `parseBody` function.
 
@@ -29,8 +29,8 @@ Body parser does not parse every request's body. The parsing happens only when y
 ```ts
 import { useBody } from '@wooksjs/http-body'
 app.post('test', async () => {
-    const { parseBody } = useBody()
-    const data = await parseBody()
+  const { parseBody } = useBody()
+  const data = await parseBody()
 })
 ```
 
@@ -39,27 +39,27 @@ app.post('test', async () => {
 ```ts
 import { useBody } from '@wooksjs/http-body'
 app.post('test', async () => {
-    const {
-        isJson, // checks if content-type is "application/json" : () => boolean;
-        isHtml, // checks if content-type is "text/html" : () => boolean;
-        isXml, // checks if content-type is "application/xml" : () => boolean;
-        isText, // checks if content-type is "text/plain" : () => boolean;
-        isBinary, // checks if content-type is binary : () => boolean;
-        isFormData, // checks if content-type is "multipart/form-data" : () => boolean;
-        isUrlencoded, // checks if content-type is "application/x-www-form-urlencoded" : () => boolean;
-        isCompressed, // checks content-encoding : () => boolean | undefined;
-        contentEncodings, // returns an array of encodings : () => string[];
-        parseBody, // parses body according to content-type : <T = unknown>() => Promise<T>;
-        rawBody, // returns raw body Buffer : () => Promise<Buffer>;
-    } = useBody()
+  const {
+    isJson, // checks if content-type is "application/json" : () => boolean;
+    isHtml, // checks if content-type is "text/html" : () => boolean;
+    isXml, // checks if content-type is "application/xml" : () => boolean;
+    isText, // checks if content-type is "text/plain" : () => boolean;
+    isBinary, // checks if content-type is binary : () => boolean;
+    isFormData, // checks if content-type is "multipart/form-data" : () => boolean;
+    isUrlencoded, // checks if content-type is "application/x-www-form-urlencoded" : () => boolean;
+    isCompressed, // checks content-encoding : () => boolean | undefined;
+    contentEncodings, // returns an array of encodings : () => string[];
+    parseBody, // parses body according to content-type : <T = unknown>() => Promise<T>;
+    rawBody, // returns raw body Buffer : () => Promise<Buffer>;
+  } = useBody()
 
-    // the handler got the control, but the body isn't loaded yet
-    //...
+  // the handler got the control, but the body isn't loaded yet
+  //...
 
-    console.log(await parseBody())
+  console.log(await parseBody())
 
-    // after `await parseBody()` the body was loaded and parsed
-    // ...
+  // after `await parseBody()` the body was loaded and parsed
+  // ...
 })
 ```
 

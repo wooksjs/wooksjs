@@ -1,4 +1,5 @@
 # Introduction to Wooks CLI
+
 <span class="cli-header"><span class="cli-path">/cliapp</span><span class="cli-invite">$</span> wooks cli --introduction<span class="cli-blink">|</span></span>
 
 The Wooks CLI adapter, `@wooksjs/event-cli`, is a package that provides functionality to process command-line interface (CLI)
@@ -19,6 +20,5 @@ It extends the `WooksAdapterBase` class from the wooks package and provides CLI-
 
 The adapter utilizes the following components:
 
--   CLI-specific context composable: `useCliContext()` - This composable allows accessing the CLI context within the event processing workflow.
--   CLI Help Renderer: [CliHelpRenderer](https://github.com/prostojs/cli-help) - This component is responsible for rendering CLI command help information.
-
+- CLI-specific context composable: `useCliContext()` - This composable allows accessing the CLI context within the event processing workflow.
+- CLI Help Renderer: [CliHelpRenderer](https://github.com/prostojs/cli-help) - This component is responsible for rendering CLI command help information.

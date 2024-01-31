@@ -17,8 +17,8 @@ The context is stored internally and can be accessed synchronously within the ru
 
 The context consists of two main parts:
 
--   `Event` Object: The event object contains information about the current event being executed. It can include properties such as the event type, payload, metadata, and any other relevant data specific to the event.
--   `Options`: The options object provides additional configuration for the event, including the event logger configuration and route parameters if applicable.
+- `Event` Object: The event object contains information about the current event being executed. It can include properties such as the event type, payload, metadata, and any other relevant data specific to the event.
+- `Options`: The options object provides additional configuration for the event, including the event logger configuration and route parameters if applicable.
 
 By using the `useEventContext` function within an event, you can retrieve the existing event context
 and perform operations on it.
@@ -39,32 +39,35 @@ Let's explore how to use custom stores in the event context.
 
 First, you need to define the structure of your custom stores using TypeScript interfaces.
 For example, let's define a custom store called `customStore` with a property named `prop1` of type number and custom event data with `customEventField` of type string:
+
 ```ts
 // defining custom stores for our event context
 interface TMyEventStores {
-    customStore: {
-        prop1?: number
-    }
+  customStore: {
+    prop1?: number
+  }
 }
 
 // defining custom additional fields to our event data
 interface TMyEventCustomData {
-    customEventField: string
+  customEventField: string
 }
 ```
+
 Once you have defined your custom stores,
 you can create an event context that includes your custom stores by calling the `createEventContext` function with the appropriate types.
 Here's an example:
+
 ```ts
 import { createEventContext } from '@wooksjs/event-core'
 
 createEventContext<TMyEventStores, TMyEventCustomData>({
-    event: {
-        type: 'MyEvent',
-        customEventField: 'event-value' // from TMyEventCustomData
-    },
-    options: { eventLogger: {} },
-    customStore: {}, // from TMyEventStores
+  event: {
+    type: 'MyEvent',
+    customEventField: 'event-value', // from TMyEventCustomData
+  },
+  options: { eventLogger: {} },
+  customStore: {}, // from TMyEventStores
 })
 ```
 
@@ -92,6 +95,7 @@ const getProp1 = () => store('customStore').init('prop1', () => a++)
 console.log(getProp1(), a) // 1, 2 (first time)
 console.log(getProp1(), a) // 1, 2 (second time the same)
 ```
+
 In the above example, we access the top-level properties (`event` and `customStore`) using the store function.
 We also demonstrate the init method to initialize a nested property (`prop1`) with a default value only if it's undefined.
 
@@ -103,7 +107,7 @@ This allows you to easily access and modify nested properties. Here's an example
 ```ts
 const prop1Hook = store('customStore').hook('prop1')
 prop1Hook.isDefined // true if prop1 !== undefined
-prop1Hook.value     // get prop1 value
+prop1Hook.value // get prop1 value
 prop1Hook.value = 6 // set prop1 value
 ```
 
@@ -116,9 +120,10 @@ into event specific functions like `useHttpContext` or `useCliContext`
 incapsulating the generic types inside of it.
 
 We can do the same for our custom store example:
+
 ```ts
 function useMyEventContext() {
-    return useEventContext<TMyEventStores, TMyEventCustomData>()
+  return useEventContext<TMyEventStores, TMyEventCustomData>()
 }
 ```
 

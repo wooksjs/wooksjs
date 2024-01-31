@@ -58,7 +58,6 @@ app.get('/static/*/test/*', () => 'ok')
 
 // Matches all URIs that start with `/static/[numbers]`
 app.get('/static/*(\\d+)', () => 'ok')
-
 ```
 
 ### Optional Parameters
@@ -93,11 +92,9 @@ The `useRouteParams` composable function from `wooks` provides a convenient way 
 It returns an object containing the params as `JSON` and a `get` function for accessing the values.
 
 ```ts
-function useRouteParams<
-    T extends object = Record<string, string | string[]>
->(): {
-    params: T
-    get: <K extends keyof T>(name: K) => T[K]
+function useRouteParams<T extends object = Record<string, string | string[]>>(): {
+  params: T
+  get: <K extends keyof T>(name: K) => T[K]
 }
 ```
 
@@ -108,16 +105,16 @@ Usage of `useRouteParams`
 ```js [ESM]
 import { useRouteParams } from 'wooks'
 app.get('hello/:name', () => {
-    const { get } = useRouteParams()
-    return `Hello ${get('name')}!`
+  const { get } = useRouteParams()
+  return `Hello ${get('name')}!`
 })
 ```
 
 ```js [CommonJS]
 const { useRouteParams } = require('wooks')
 app.get('hello/:name', () => {
-    const { get } = useRouteParams()
-    return `Hello ${get('name')}!`
+  const { get } = useRouteParams()
+  return `Hello ${get('name')}!`
 })
 ```
 
@@ -129,16 +126,16 @@ For repeated param names, it returns an array:
 ```js [ESM]
 import { useRouteParams } from 'wooks'
 app.get('hello/:name/:name', () => {
-    const { get } = useRouteParams()
-    return get('name') // Array of names
+  const { get } = useRouteParams()
+  return get('name') // Array of names
 })
 ```
 
 ```js [CommonJS]
 const { useRouteParams } = require('wooks')
 app.get('hello/:name/:name', () => {
-    const { get } = useRouteParams()
-    return get('name') // Array of names
+  const { get } = useRouteParams()
+  return get('name') // Array of names
 })
 ```
 
@@ -150,16 +147,16 @@ For wildcards, the name of the param is `*`:
 ```js [ESM]
 import { useRouteParams } from 'wooks'
 app.get('hello/*', () => {
-    const { get } = useRouteParams()
-    return get('*') // Returns everything that follows `hello/`
+  const { get } = useRouteParams()
+  return get('*') // Returns everything that follows `hello/`
 })
 ```
 
 ```js [CommonJS]
 const { useRouteParams } = require('wooks')
 app.get('hello/*', () => {
-    const { get } = useRouteParams()
-    return get('*') // returns everything that follows hello/
+  const { get } = useRouteParams()
+  return get('*') // returns everything that follows hello/
 })
 ```
 
@@ -180,24 +177,24 @@ console.log(pathBuilder()) // /api/path
 
 const { getPath: userPathBuilder } = app.get('/api/user/:name', () => 'ok')
 console.log(
-    userPathBuilder({
-        name: 'John',
-    })
+  userPathBuilder({
+    name: 'John',
+  })
 ) // /api/user/John
 
 const { getPath: wildcardBuilder } = app.get('/static/*', () => 'ok')
 console.log(
-    wildcardBuilder({
-        '*': 'index.html',
-    })
+  wildcardBuilder({
+    '*': 'index.html',
+  })
 ) // /static/index.html
 
 const { getPath: multiParamsBuilder } = app.get('/api/asset/:type/:type/:id', () => 'ok')
 console.log(
-    userPathBuilder({
-        type: ['CJ', 'REV'],
-        id: '443551',
-    })
+  userPathBuilder({
+    type: ['CJ', 'REV'],
+    id: '443551',
+  })
 ) // /api/asset/CJ/REV/443551
 ```
 

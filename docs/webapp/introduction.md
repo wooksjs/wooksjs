@@ -11,15 +11,15 @@ You can read an overview of how Wooks approaches the event processing in general
 Wooks HTTP allows you to create an HTTP server with the beauty of composable functions and fast [routing](../#event-routing).
 It ships with many HTTP-specific composables built-in, such as:
 
--   URL query params parser
--   Cookie parser
--   Body parser (many formats work out-of-the-box: `json`, `url-encoded`, `form`, ...)
--   Static files
--   Response Status
--   Response Cookies
--   Response Headers
--   Cache Control
--   ...
+- URL query params parser
+- Cookie parser
+- Body parser (many formats work out-of-the-box: `json`, `url-encoded`, `form`, ...)
+- Static files
+- Response Status
+- Response Cookies
+- Response Headers
+- Cache Control
+- ...
 
 None of these composables is triggered unless you want it. This makes Wooks HTTP extremely flexible and performant.
 

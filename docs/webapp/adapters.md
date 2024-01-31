@@ -10,16 +10,16 @@ The Wooks HTTP Context is a special object that stores various information relat
 To create a new Wooks HTTP Context, you can use the `createHttpContext` function.
 
 ```ts
-import { createHttpContext } from '@wooksjs/event-http';
+import { createHttpContext } from '@wooksjs/event-http'
 
 function requestHandler(req, res) {
-    const { restoreCtx, clearCtx, store } = createHttpContext({
-        req, // instance of the request
-        res, // instance of the response
-    });
+  const { restoreCtx, clearCtx, store } = createHttpContext({
+    req, // instance of the request
+    res, // instance of the response
+  })
 
-    // Use the created Wooks HTTP Context
-    // ...
+  // Use the created Wooks HTTP Context
+  // ...
 }
 ```
 
@@ -37,28 +37,28 @@ A responder is a function that takes the output of the request handler and trans
 processing headers, cookies, and formats. To create a responder, you can use the `createWooksResponder` function.
 
 ```ts
-import { createWooksResponder, createHttpContext } from '@wooksjs/event-http';
+import { createWooksResponder, createHttpContext } from '@wooksjs/event-http'
 
-const { createResponse, respond } = createWooksResponder();
+const { createResponse, respond } = createWooksResponder()
 
 async function requestHandler(req, res) {
-    const { restoreCtx, clearCtx } = createHttpContext({ req, res });
+  const { restoreCtx, clearCtx } = createHttpContext({ req, res })
 
-    // Process the request and get the output
-    const response = await processHandlers();
+  // Process the request and get the output
+  const response = await processHandlers()
 
-    // Restore the Wooks context
-    restoreCtx();
+  // Restore the Wooks context
+  restoreCtx()
 
-    // Respond to the request
-    respond(response);
+  // Respond to the request
+  respond(response)
 
-    // Clear the Wooks context
-    clearCtx();
+  // Clear the Wooks context
+  clearCtx()
 }
 
 async function processHandlers() {
-    // Routing, processing, handling, ...
+  // Routing, processing, handling, ...
 }
 ```
 
@@ -73,35 +73,36 @@ Once you have created the request handler and the responder, you can use them wi
 Here's an example using the http module.
 
 ```ts
-import http from 'http';    // [!code ++]
-import { createWooksResponder, createHttpContext } from '@wooksjs/event-http';
+import http from 'http' // [!code ++]
+import { createWooksResponder, createHttpContext } from '@wooksjs/event-http'
 
-const { createResponse, respond } = createWooksResponder();
+const { createResponse, respond } = createWooksResponder()
 
 async function requestHandler(req, res) {
-    const { restoreCtx, clearCtx } = createHttpContext({ req, res });
+  const { restoreCtx, clearCtx } = createHttpContext({ req, res })
 
-    // Process the request and get the output
-    const response = await processHandlers();
+  // Process the request and get the output
+  const response = await processHandlers()
 
-    // Restore the Wooks context
-    restoreCtx();
+  // Restore the Wooks context
+  restoreCtx()
 
-    // Respond to the request
-    respond(response);
+  // Respond to the request
+  respond(response)
 
-    // Clear the Wooks context
-    clearCtx();
+  // Clear the Wooks context
+  clearCtx()
 }
 
 async function processHandlers() {
-    // Routing, processing, handling, ...
+  // Routing, processing, handling, ...
 }
 
-const server = http.createServer(requestHandler)    // [!code ++]
-server.listen(3000, () => {                         // [!code ++]
-    console.log('Wooks Server is up on port 3000')  // [!code ++]
-})                                                  // [!code ++]
+const server = http.createServer(requestHandler) // [!code ++]
+server.listen(3000, () => {
+  // [!code ++]
+  console.log('Wooks Server is up on port 3000') // [!code ++]
+}) // [!code ++]
 ```
 
 In the above example, the `requestHandler` function is used as the request listener for the HTTP server.

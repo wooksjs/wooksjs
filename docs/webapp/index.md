@@ -31,7 +31,7 @@ app.on('GET', 'hello/:name', () => `Hello ${useRouteParams().get('name')}!`)
 // app.get('hello/:name', () => `Hello ${ useRouteParams().get('name') }!`)
 
 app.listen(3000, () => {
-    app.getLogger('App').log('Wooks Server is up on port 3000')
+  app.getLogger('App').log('Wooks Server is up on port 3000')
 })
 ```
 
@@ -47,7 +47,7 @@ app.on('GET', 'hello/:name', () => `Hello ${useRouteParams().get('name')}!`)
 // app.get('hello/:name', () => `Hello ${ useRouteParams().get('name') }!`)
 
 app.listen(3000, () => {
-    app.getLogger('App').log('Wooks Server is up on port 3000')
+  app.getLogger('App').log('Wooks Server is up on port 3000')
 })
 ```
 
@@ -79,7 +79,7 @@ const server = http.createServer(app.getServerCb()) // [!code ++]
 server.listen(3000, () => { // [!code ++]
 app.listen(3000, () => {    // [!code --]
     console.log('Wooks Server is up on port 3000')
-}) 
+})
 ```
 
 ```js [CommonJS]
@@ -97,10 +97,11 @@ app.listen(3000, () => {    // [!code --]
     console.log('Wooks Server is up on port 3000')
 })
 ```
+
 :::
 
 ## What's next?
 
--  Explore [Routing capabilities](/webapp/routing)
--  Find out how to use [Request Composables](/webapp/composables/request)
--  Learn how to work with [Response](/webapp/composables/response)
+- Explore [Routing capabilities](/webapp/routing)
+- Find out how to use [Request Composables](/webapp/composables/request)
+- Learn how to work with [Response](/webapp/composables/response)
