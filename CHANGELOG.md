@@ -1,3 +1,12 @@
+## [0.4.29](https://github.com/wooksjs/wooksjs/compare/v0.4.28...v0.4.29) (2024-01-31)
+
+
+### Bug Fixes
+
+* **event-http:** fix return type of method listen ([13af28f](https://github.com/wooksjs/wooksjs/commit/13af28f8216321997ee8a066d10916b861fbf83d))
+
+
+
 ## [0.4.28](https://github.com/wooksjs/wooksjs/compare/v0.4.26...v0.4.28) (2024-01-31)
 
 
