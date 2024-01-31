@@ -1,3 +1,12 @@
+## [0.4.28](https://github.com/wooksjs/wooksjs/compare/v0.4.26...v0.4.28) (2024-01-31)
+
+
+### Bug Fixes
+
+* **event-http:** properly type listen method ([06243cf](https://github.com/wooksjs/wooksjs/commit/06243cfda0c63f1e8f5cce82b7c4d9662cd78701))
+
+
+
 ## [0.4.26](https://github.com/wooksjs/wooksjs/compare/v0.4.24...v0.4.26) (2024-01-26)
 
 ## [0.4.25](https://github.com/wooksjs/wooksjs/compare/v0.4.24...v0.4.25) (2024-01-26)
