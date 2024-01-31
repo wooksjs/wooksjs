@@ -1,34 +1,29 @@
 {
-    "compilerOptions": {
-        "baseUrl": ".",
-        "outDir": "dist",
-        "moduleResolution": "node",
-        "esModuleInterop": true,
-        "target": "es2020",
-        "lib": ["ESNext", "DOM", "WebWorker", "DOM.Iterable"],
-        "noUnusedLocals": true,
-        "types": ["jest", "node"],
-        "declaration": false,
-        "declarationMap": false,
-        "resolveJsonModule": true,
-        "downlevelIteration": true,
-        "forceConsistentCasingInFileNames": true,
-        "strict": true,
-        "noImplicitAny": true,
-        "skipLibCheck": true,
-        "emitDecoratorMetadata": true,
-        "experimentalDecorators": true,
-        "removeComments": true,
-        "paths": {
-            "@wooksjs/*": ["packages/*/src"],
-            "wooks": ["packages/wooks/src"],
-            "common/*": ["common/*"]
-        }
+  "compilerOptions": {
+    "baseUrl": ".",
+    "outDir": "dist",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "target": "es2020",
+    "lib": ["ESNext", "DOM", "WebWorker", "DOM.Iterable"],
+    "noUnusedLocals": true,
+    "types": ["jest", "node"],
+    "declaration": false,
+    "declarationMap": false,
+    "resolveJsonModule": true,
+    "downlevelIteration": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "skipLibCheck": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "removeComments": true,
+    "paths": {
+      "@wooksjs/*": ["packages/*/src"],
+      "wooks": ["packages/wooks/src"],
+      "common/*": ["common/*"],
     },
-    "include": [
-        "packages/*/src",
-        "packages/*/__tests__",
-        "common/*.ts",
-        "explorations"
-    ]
+  },
+  "include": ["packages/*/src", "packages/*/__tests__", "common/*.ts", "explorations"],
 }

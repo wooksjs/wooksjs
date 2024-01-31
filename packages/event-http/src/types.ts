@@ -1,58 +1,62 @@
-import { IncomingMessage, ServerResponse } from 'http'
-import { TTimeMultiString } from './utils/time'
-import { EHttpStatusCode } from './utils/status-codes'
-import { WooksURLSearchParams } from './utils/url-search-params'
+import type { IncomingMessage, ServerResponse } from 'http'
+
+import type { EHttpStatusCode } from './utils/status-codes'
+import type { TTimeMultiString } from './utils/time'
+import type { WooksURLSearchParams } from './utils/url-search-params'
 
 export interface THttpEventData {
-    req: IncomingMessage
-    res: ServerResponse
+  req: IncomingMessage
+  res: ServerResponse
 }
 
 export interface THttpEvent {
-    type: 'HTTP'
+  type: 'HTTP'
 }
 
 export interface THttpContextStore {
-    searchParams?: TSearchParamsCache
-    cookies?: { [name: string]: string | null }
-    setCookies?: { [name: string]: TSetCookieData }
-    accept?: { [name: string]: boolean }
-    authorization?: TAuthCache
-    setHeader?: { [name: string]: string | string[] }
-    request?: TRequestCache
-    response?: { responded: boolean }
-    status?: { code: EHttpStatusCode }
+  searchParams?: TSearchParamsCache
+  cookies?: Record<string, string | null>
+  setCookies?: Record<string, TSetCookieData>
+  accept?: Record<string, boolean>
+  authorization?: TAuthCache
+  setHeader?: Record<string, string | string[]>
+  request?: TRequestCache
+  response?: { responded: boolean }
+  status?: { code: EHttpStatusCode }
 }
 
-export type TSetCookieData = { value: string; attrs: TCookieAttributesInput }
+export interface TSetCookieData {
+  value: string
+  attrs: TCookieAttributesInput
+}
 
 export type TCookieAttributesInput = Partial<TCookieAttributes>
 
 export interface TCookieAttributes {
-    expires: Date | string | number // date
-    maxAge: number | TTimeMultiString // seconds
-    domain: string
-    path: string
-    secure: boolean
-    httpOnly: boolean
-    sameSite: boolean | 'Lax' | 'None' | 'Strict'
+  expires: Date | string | number // date
+  maxAge: number | TTimeMultiString // seconds
+  domain: string
+  path: string
+  secure: boolean
+  httpOnly: boolean
+  sameSite: boolean | 'Lax' | 'None' | 'Strict'
 }
 
-export type TAuthCache = {
-    type: string | null
-    credentials: string | null
-    basicCredentials: { username: string; password: string } | null
+export interface TAuthCache {
+  type: string | null
+  credentials: string | null
+  basicCredentials: { username: string; password: string } | null
 }
 
-export type TRequestCache = {
-    rawBody: Promise<Buffer>
-    parsed: unknown
-    forwardedIp?: string
-    remoteIp?: string
-    ipList?: { remoteIp: string; forwarded: string[] }
+export interface TRequestCache {
+  rawBody: Promise<Buffer>
+  parsed: unknown
+  forwardedIp?: string
+  remoteIp?: string
+  ipList?: { remoteIp: string; forwarded: string[] }
 }
 
-export type TSearchParamsCache = {
-    raw?: string
-    urlSearchParams?: WooksURLSearchParams
+export interface TSearchParamsCache {
+  raw?: string
+  urlSearchParams?: WooksURLSearchParams
 }

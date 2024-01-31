@@ -13,10 +13,10 @@ Wooks Serve File is composable static file server for [@wooksjs/event-http](http
 
 `serveFile` returns a readable stream and prepares all the neccessary response headers (like content-length, content-type etc).
 
--   ✅ returns a readable stream
--   ✅ prepares all the neccessary response headers (like content-length, content-type etc)
--   ✅ can handle etag
--   ✅ can handle ranges
+- ✅ returns a readable stream
+- ✅ prepares all the neccessary response headers (like content-length, content-type etc)
+- ✅ can handle etag
+- ✅ can handle ranges
 
 ## Installation
 
@@ -67,8 +67,8 @@ serveFile(filePath, options)
 import { useRouteParams } from 'wooks'
 import { serveFile } from '@wooksjs/http-static'
 app.get('static/*', () => {
-    const { get } = useRouteParams()
-    return serveFile(get('*'), { cacheControl: { maxAge: '10m' } })
+  const { get } = useRouteParams()
+  return serveFile(get('*'), { cacheControl: { maxAge: '10m' } })
 })
 ```
 

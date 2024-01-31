@@ -1,6 +1,5 @@
-export * from './event-wf'
-export * from './wf-adapter'
-export * from './types'
 export * from './composables'
-export { TStepHandler, TWorkflowSchema } from '@prostojs/wf'
-
+export * from './event-wf'
+export * from './types'
+export * from './wf-adapter'
+export type { TStepHandler, TWorkflowSchema } from '@prostojs/wf'

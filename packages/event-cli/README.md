@@ -11,7 +11,7 @@
 
 As a part of `wooks` event processing framework, `@wooksjs/event-cli` implements CLI events and provides composables that let you:
 
--   access flags (- or --)
+- access flags (- or --)
 
 ## Installation
 
@@ -26,13 +26,13 @@ import { createCliApp, useCliOptions } from '@wooksjs/event-cli'
 const app = createCliApp()
 
 app.cli('test', () => {
-    console.log('options:')
-    return useCliOptions()
+  console.log('options:')
+  return useCliOptions()
 })
 
 app.cli(':arg', () => {
-    console.log('run argument:', useRouteParams().params)
-    return 'done'
+  console.log('run argument:', useRouteParams().params)
+  return 'done'
 })
 
 app.run()

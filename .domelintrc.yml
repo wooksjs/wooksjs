@@ -12,7 +12,6 @@ ignoredRules:
   - unicorn/prefer-logical-operator-over-ternary
   - unicorn/prefer-ternary
   - no-implicit-coercion
-  - '@typescript-eslint/no-unnecessary-condition'
   - unicorn/template-indent
   - max-classes-per-file
   - no-param-reassign
@@ -21,6 +20,7 @@ ignoredRules:
   - '@typescript-eslint/promise-function-async'
 
 relaxedRules:
+  - '@typescript-eslint/no-unnecessary-condition'
   - '@typescript-eslint/no-shadow'
   - '@typescript-eslint/no-non-null-assertion'
   - '@typescript-eslint/require-await'
