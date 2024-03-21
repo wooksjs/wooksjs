@@ -119,7 +119,12 @@ export class WooksHttp extends WooksAdapterBase {
     return new Promise((resolve, reject) => {
       server.once('listening', resolve)
       server.once('error', reject)
-      server.listen(port as number, hostname as string, backlog as number, listeningListener)
+      let args = [port as number, hostname as string, backlog as number, listeningListener]
+      const ui = args.indexOf(undefined)
+      if (ui >= 0) {
+        args = args.slice(0, ui)
+      }
+      server.listen(...args as [number])
     })
   }
 
