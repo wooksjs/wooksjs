@@ -1,3 +1,12 @@
+## [0.4.30](https://github.com/wooksjs/wooksjs/compare/v0.4.29...v0.4.30) (2024-03-21)
+
+
+### Bug Fixes
+
+* fix server.listen call ([a097c25](https://github.com/wooksjs/wooksjs/commit/a097c258e6360bce6cc8c417b2fdd8ac4a6564d3))
+
+
+
 ## [0.4.29](https://github.com/wooksjs/wooksjs/compare/v0.4.28...v0.4.29) (2024-01-31)
 
 
