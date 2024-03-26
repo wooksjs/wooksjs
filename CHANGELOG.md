@@ -1,3 +1,12 @@
+## [0.4.31](https://github.com/wooksjs/wooksjs/compare/v0.4.30...v0.4.31) (2024-03-26)
+
+
+### Features
+
+* add parent context ([d8a78c1](https://github.com/wooksjs/wooksjs/commit/d8a78c1096991048b404fb6e7b83ae06ab65a5d6))
+
+
+
 ## [0.4.30](https://github.com/wooksjs/wooksjs/compare/v0.4.29...v0.4.30) (2024-03-21)
 
 
