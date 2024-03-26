@@ -1,3 +1,12 @@
+## [0.4.32](https://github.com/wooksjs/wooksjs/compare/v0.4.31...v0.4.32) (2024-03-26)
+
+
+### Features
+
+* check parentCtx for matching event type ([9ca2092](https://github.com/wooksjs/wooksjs/commit/9ca20926f2fc6f76cc5f4a4734de064a05993715))
+
+
+
 ## [0.4.31](https://github.com/wooksjs/wooksjs/compare/v0.4.30...v0.4.31) (2024-03-26)
 
 
