@@ -44,16 +44,20 @@ export function useEventContext<S = TEmpty, EventType = TEmpty>(expectedTypes?: 
       'Event context does not exist. Use event context synchronously within the runtime of the event.'
     )
   }
-  const cc = currentContext as S & TGenericContextStore<EventType>
+  let cc = currentContext as S & TGenericContextStore<EventType>
   if (expectedTypes || typeof expectedTypes === 'string') {
     const type = cc.event.type
     const types = typeof expectedTypes === 'string' ? [expectedTypes] : expectedTypes
     if (!types.includes(type)) {
-      throw new Error(
-        `Event context type mismatch: expected ${types
-          .map(t => `"${t}"`)
-          .join(', ')}, received "${type}"`
-      )
+      if (cc.parentCtx?.event.type && types.includes(cc.parentCtx.event.type)) {
+        cc = cc.parentCtx as S & TGenericContextStore<EventType>
+      } else {
+        throw new Error(
+          `Event context type mismatch: expected ${types
+            .map(t => `"${t}"`)
+            .join(', ')}, received "${type}"`
+        )
+      }
     }
   }
 
