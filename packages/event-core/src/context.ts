@@ -11,6 +11,7 @@ export interface TEventOptions {
 export interface TGenericContextStore<CustomEventType = TEmpty> {
   event: CustomEventType & TGenericEvent
   options: TEventOptions
+  parentCtx?: TGenericContextStore
   routeParams?: Record<string, string | string[]>
 }
 
@@ -181,5 +182,9 @@ function _getCtxHelpers<T>(cc: T) {
     store,
     getStore: get,
     setStore: set,
+    setParentCtx: (parentCtx: unknown) => {
+      ;(cc as { parentCtx: unknown }).parentCtx = parentCtx
+    },
+    restoreParentCtx: () => (currentContext = (cc as TGenericContextStore).parentCtx || null),
   }
 }
