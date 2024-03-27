@@ -7,6 +7,7 @@ export function useWfState() {
     ctx: <T>() => event.get('inputContext') as T,
     input: <I>() => event.get('input') as I | undefined,
     schemaId: event.get('schemaId'),
+    stepId: () => event.get('stepId'),
     indexes: () => event.get('indexes'),
     resume: getCtx().resume,
   }
