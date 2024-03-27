@@ -1,3 +1,12 @@
+## [0.4.33](https://github.com/wooksjs/wooksjs/compare/v0.4.32...v0.4.33) (2024-03-27)
+
+
+### Features
+
+* **wf:** add stepId to wf context ([7161562](https://github.com/wooksjs/wooksjs/commit/716156293d6c6a3d7b4c34cc9dd1428926591496))
+
+
+
 ## [0.4.32](https://github.com/wooksjs/wooksjs/compare/v0.4.31...v0.4.32) (2024-03-26)
 
 
