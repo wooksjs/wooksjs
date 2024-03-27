@@ -102,6 +102,7 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
       {
         inputContext,
         schemaId,
+        stepId: null,
         indexes,
         input,
       },

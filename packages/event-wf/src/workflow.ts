@@ -12,9 +12,10 @@ export class WooksWorkflow<T, IR> extends Workflow<T, IR> {
   protected resolveStep<I, IR2>(stepId: string): Step<T, I, IR2> {
     const stepIdNorm = `/${stepId}`.replace(/\/\/+/g, '/')
     try {
-      useWFContext()
+      const store = useWFContext().store('event')
       const found = this.wooks.lookup('WF_STEP' as 'GET', stepIdNorm)
       if (found.handlers?.length) {
+        store.set('stepId', stepIdNorm)
         return found.handlers[0]() as Step<T, I, IR2>
       }
     } catch (error) {

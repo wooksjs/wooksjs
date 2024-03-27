@@ -1,5 +1,6 @@
 export interface TWFEventData {
   schemaId: string
+  stepId: string | null
   inputContext: unknown
   indexes?: number[]
   input?: unknown
