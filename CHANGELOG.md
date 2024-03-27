@@ -1,3 +1,12 @@
+## [0.4.34](https://github.com/wooksjs/wooksjs/compare/v0.4.33...v0.4.34) (2024-03-27)
+
+
+### Features
+
+* **wf:** add stepId getter to wf state ([279d26a](https://github.com/wooksjs/wooksjs/commit/279d26a6ca4bbee1771d5084d1c8f66d2b91d051))
+
+
+
 ## [0.4.33](https://github.com/wooksjs/wooksjs/compare/v0.4.32...v0.4.33) (2024-03-27)
 
 
