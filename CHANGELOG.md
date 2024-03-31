@@ -1,3 +1,12 @@
+## [0.4.35](https://github.com/wooksjs/wooksjs/compare/v0.4.34...v0.4.35) (2024-03-31)
+
+
+### Bug Fixes
+
+* process HttpError properly ([63e3b28](https://github.com/wooksjs/wooksjs/commit/63e3b28c53c54409c11a60b29e4b5f305a6a1404))
+
+
+
 ## [0.4.34](https://github.com/wooksjs/wooksjs/compare/v0.4.33...v0.4.34) (2024-03-27)
 
 
