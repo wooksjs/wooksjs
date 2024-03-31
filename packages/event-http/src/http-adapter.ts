@@ -124,7 +124,7 @@ export class WooksHttp extends WooksAdapterBase {
       if (ui >= 0) {
         args = args.slice(0, ui)
       }
-      server.listen(...args as [number])
+      server.listen(...(args as [number]))
     })
   }
 
@@ -230,10 +230,16 @@ export class WooksHttp extends WooksAdapterBase {
         clearCtx()
         break
       } catch (error) {
-        this.logger.error(
-          `Uncought route handler exception: ${store('event').get('req')?.url || ''}`,
-          error
-        )
+        if (error instanceof HttpError) {
+          this.logger.debug(
+            `${error.body.statusCode}: ${error.message} :: ${store('event').get('req')?.url || ''}`
+          )
+        } else {
+          this.logger.error(
+            `Uncought route handler exception: ${store('event').get('req')?.url || ''}`,
+            error
+          )
+        }
         if (isLastHandler) {
           restoreCtx()
           this.respond(error)
