@@ -1,5 +1,6 @@
 import type { TProstoLoggerOptions } from '@prostojs/logger'
 
+import { eventContextHooks } from './context-hooks'
 import type { TEventLoggerData } from './event-logger'
 import { attachHook } from './hook'
 import type { TEmpty, TGenericEvent } from './types'
@@ -28,6 +29,7 @@ export function createEventContext<S = TEmpty, EventTypeToCreate = TEmpty>(
 ) {
   const newContext = { ...data }
   currentContext = newContext as TGenericContextStore
+  eventContextHooks.fireStartEvent(data.event.type)
   return _getCtxHelpers<S & TGenericContextStore<EventTypeToCreate>>(newContext)
 }
 
@@ -179,10 +181,16 @@ function _getCtxHelpers<T>(cc: T) {
     getCtx()[key] = v
   }
 
+  const clearCtx = () => (cc === currentContext ? (currentContext = null) : null)
+
   return {
     getCtx,
     restoreCtx: () => (currentContext = cc as TGenericContextStore),
-    clearCtx: () => (cc === currentContext ? (currentContext = null) : null),
+    clearCtx,
+    endEvent: (abortReason?: string) => {
+      eventContextHooks.fireEndEvent((cc as TGenericContextStore).event.type, abortReason)
+      clearCtx()
+    },
     store,
     getStore: get,
     setStore: set,

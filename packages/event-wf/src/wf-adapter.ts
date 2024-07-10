@@ -98,7 +98,7 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
     cleanup?: () => void
   ) {
     const resume = !!indexes?.length
-    const { restoreCtx, clearCtx } = (resume ? resumeWfContext : createWfContext)(
+    const { restoreCtx, endEvent } = (resume ? resumeWfContext : createWfContext)(
       {
         inputContext,
         schemaId,
@@ -156,18 +156,19 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
         throw error
       }
       clean()
-      clearCtx()
+      endEvent()
       return result
     }
     clean()
+    endEvent(`Unknown schemaId: ${schemaId}`)
+    throw new Error(`Unknown schemaId: ${schemaId}`)
+
     function clean() {
       if (cleanup) {
         restoreCtx()
         cleanup()
       }
     }
-    clearCtx()
-    throw new Error(`Unknown schemaId: ${schemaId}`)
   }
 
   protected onError(e: Error) {

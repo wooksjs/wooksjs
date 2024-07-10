@@ -188,7 +188,7 @@ export class WooksHttp extends WooksAdapterBase {
    */
   getServerCb() {
     return async (req: IncomingMessage, res: ServerResponse) => {
-      const { restoreCtx, clearCtx } = createHttpContext(
+      const { restoreCtx, endEvent } = createHttpContext(
         { req, res },
         this.mergeEventOptions(this.opts?.eventOptions)
       )
@@ -202,20 +202,20 @@ export class WooksHttp extends WooksAdapterBase {
           this.logger.error('Internal error, please report', error)
           restoreCtx()
           this.respond(error)
-          clearCtx()
+          endEvent((error as Error).message)
         }
       } else {
         // not found
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         this.logger.debug(`404 Not found (${req.method!})${req.url!}`)
         this.respond(new HttpError(404))
-        clearCtx()
+        endEvent('Request handler not registered')
       }
     }
   }
 
   protected async processHandlers(handlers: TWooksHandler[]) {
-    const { restoreCtx, clearCtx, store } = useHttpContext()
+    const { restoreCtx, endEvent, clearCtx, store } = useHttpContext()
     for (const [i, handler] of handlers.entries()) {
       const isLastHandler = handlers.length === i + 1
       try {
@@ -227,7 +227,7 @@ export class WooksHttp extends WooksAdapterBase {
         // we still want to process it as a response
         restoreCtx()
         this.respond(result)
-        clearCtx()
+        endEvent()
         break
       } catch (error) {
         if (error instanceof HttpError) {
@@ -243,7 +243,7 @@ export class WooksHttp extends WooksAdapterBase {
         if (isLastHandler) {
           restoreCtx()
           this.respond(error)
-          clearCtx()
+          endEvent((error as Error).message)
         }
       }
     }

@@ -173,7 +173,7 @@ export class WooksCli extends WooksAdapterBase {
     const parsedFlags = minimist(argv, _opts)
     const pathParams = parsedFlags._
     const path = `/${pathParams.map(v => encodeURI(v).replace(/\//g, '%2F')).join('/')}`
-    const { restoreCtx, clearCtx, store } = createCliContext(
+    const { restoreCtx, endEvent, store } = createCliContext(
       {
         opts: _opts,
         argv,
@@ -212,10 +212,10 @@ export class WooksCli extends WooksAdapterBase {
       } catch (error) {
         this.onError(error as Error)
       }
-      clearCtx()
+      endEvent()
     } else {
       this.onUnknownCommand(pathParams)
-      clearCtx()
+      endEvent('Unknown command')
     }
   }
 
