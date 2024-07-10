@@ -1,3 +1,12 @@
+## [0.5.1](https://github.com/wooksjs/wooksjs/compare/v0.5.0...v0.5.1) (2024-07-10)
+
+
+### Bug Fixes
+
+* **event-core:** call start event hook in context ([e56f80a](https://github.com/wooksjs/wooksjs/commit/e56f80aa1e5947cee1153a01cf36a8a7b60503bd))
+
+
+
 # [0.5.0](https://github.com/wooksjs/wooksjs/compare/v0.4.37...v0.5.0) (2024-07-10)
 
 
