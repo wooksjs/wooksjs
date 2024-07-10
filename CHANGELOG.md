@@ -1,3 +1,12 @@
+## [0.5.3](https://github.com/wooksjs/wooksjs/compare/v0.5.2...v0.5.3) (2024-07-10)
+
+
+### Bug Fixes
+
+* **event-core:** extend AsyncResource to be Hookable ([988dd3b](https://github.com/wooksjs/wooksjs/commit/988dd3b1894992f3fa9a30017449f25aeb701cbd))
+
+
+
 ## [0.5.2](https://github.com/wooksjs/wooksjs/compare/v0.5.1...v0.5.2) (2024-07-10)
 
 
