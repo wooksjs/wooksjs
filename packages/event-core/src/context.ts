@@ -36,7 +36,10 @@ export function createAsyncEventContext<S = TEmpty, EventTypeToCreate = TEmpty>(
 ) {
   const newContext = { ...data }
   return <T>(cb: (...a: any[]) => T) => {
-    eventContextHooks.fireStartEvent(newContext.event.type)
+    asyncStorage.run(newContext, () => {
+      eventContextHooks.fireStartEvent(newContext.event.type)
+    })
+
     const result = asyncStorage.run(newContext, cb)
     if (result instanceof Promise) {
       result
@@ -50,12 +53,17 @@ export function createAsyncEventContext<S = TEmpty, EventTypeToCreate = TEmpty>(
     } else {
       endEvent(result)
     }
+
     function endEvent(output: any) {
       if (!newContext._ended) {
         if (output instanceof Error) {
-          eventContextHooks.fireEndEvent(newContext.event.type, output.message)
+          asyncStorage.run(newContext, () => {
+            eventContextHooks.fireEndEvent(newContext.event.type, output.message)
+          })
         } else {
-          eventContextHooks.fireEndEvent(newContext.event.type)
+          asyncStorage.run(newContext, () => {
+            eventContextHooks.fireEndEvent(newContext.event.type)
+          })
         }
       }
     }
