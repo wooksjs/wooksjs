@@ -1,3 +1,12 @@
+## [0.5.4](https://github.com/wooksjs/wooksjs/compare/v0.5.3...v0.5.4) (2024-07-10)
+
+
+### Bug Fixes
+
+* **event-core:** run hooks in context ([8626049](https://github.com/wooksjs/wooksjs/commit/8626049d8798f58c09539f69decf8e2bcc06ed52))
+
+
+
 ## [0.5.3](https://github.com/wooksjs/wooksjs/compare/v0.5.2...v0.5.3) (2024-07-10)
 
 
