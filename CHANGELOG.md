@@ -1,3 +1,12 @@
+# [0.5.0](https://github.com/wooksjs/wooksjs/compare/v0.4.37...v0.5.0) (2024-07-10)
+
+
+### Features
+
+* BREAKING use async storage for event context ([01fc253](https://github.com/wooksjs/wooksjs/commit/01fc253642a36192c65e384a817af25c987e5c33))
+
+
+
 ## [0.4.37](https://github.com/wooksjs/wooksjs/compare/v0.4.36...v0.4.37) (2024-07-10)
 
 
