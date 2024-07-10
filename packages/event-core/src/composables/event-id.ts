@@ -1,9 +1,9 @@
 import { randomUUID } from 'crypto'
 
-import { useEventContext } from '../context'
+import { useAsyncEventContext } from '../context'
 
 export function useEventId() {
-  const { store } = useEventContext()
+  const { store } = useAsyncEventContext()
   const { init } = store('event')
   const getId = () => init('id', () => randomUUID())
   return { getId }

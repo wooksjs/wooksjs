@@ -7,7 +7,7 @@ import minimist from 'minimist'
 import type { TWooksHandler, TWooksOptions, Wooks } from 'wooks'
 import { WooksAdapterBase } from 'wooks'
 
-import { createCliContext } from './event-cli'
+import { createCliContext, useCliContext } from './event-cli'
 import type { TCliHelpCustom, TCliHelpRenderer } from './types'
 
 export const cliShortcuts = {
@@ -173,7 +173,7 @@ export class WooksCli extends WooksAdapterBase {
     const parsedFlags = minimist(argv, _opts)
     const pathParams = parsedFlags._
     const path = `/${pathParams.map(v => encodeURI(v).replace(/\//g, '%2F')).join('/')}`
-    const { restoreCtx, endEvent, store } = createCliContext(
+    const runInContext = createCliContext(
       {
         opts: _opts,
         argv,
@@ -183,40 +183,41 @@ export class WooksCli extends WooksAdapterBase {
       },
       this.mergeEventOptions(this.opts?.eventOptions)
     )
-    store('flags').value = parsedFlags
-    this.computeAliases()
-    const { handlers: foundHandlers, firstStatic } = this.wooks.lookup('CLI', path)
-    if (typeof firstStatic === 'string') {
-      // overwriting command with firstStatic to properly search for help
-      store('event').set('command', firstStatic.replace(/\//g, ' ').trim())
-    }
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    const handlers = foundHandlers || (this.opts?.onNotFound && [this.opts.onNotFound]) || null
-    if (handlers) {
-      try {
-        for (const handler of handlers) {
-          restoreCtx()
-          const response = await handler()
-          if (typeof response === 'string') {
-            console.log(response)
-          } else if (Array.isArray(response)) {
-            response.forEach(r => {
-              console.log(typeof r === 'string' ? r : JSON.stringify(r, null, '  '))
-            })
-          } else if (response instanceof Error) {
-            this.onError(response)
-          } else if (response) {
-            console.log(JSON.stringify(response, null, '  '))
-          }
-        }
-      } catch (error) {
-        this.onError(error as Error)
+
+    return runInContext(async () => {
+      const { store } = useCliContext()
+      store('flags').value = parsedFlags
+      this.computeAliases()
+      const { handlers: foundHandlers, firstStatic } = this.wooks.lookup('CLI', path)
+      if (typeof firstStatic === 'string') {
+        // overwriting command with firstStatic to properly search for help
+        store('event').set('command', firstStatic.replace(/\//g, ' ').trim())
       }
-      endEvent()
-    } else {
-      this.onUnknownCommand(pathParams)
-      endEvent('Unknown command')
-    }
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      const handlers = foundHandlers || (this.opts?.onNotFound && [this.opts.onNotFound]) || null
+      if (handlers) {
+        try {
+          for (const handler of handlers) {
+            const response = await handler()
+            if (typeof response === 'string') {
+              console.log(response)
+            } else if (Array.isArray(response)) {
+              response.forEach(r => {
+                console.log(typeof r === 'string' ? r : JSON.stringify(r, null, '  '))
+              })
+            } else if (response instanceof Error) {
+              this.onError(response)
+            } else if (response) {
+              console.log(JSON.stringify(response, null, '  '))
+            }
+          }
+        } catch (error) {
+          this.onError(error as Error)
+        }
+      } else {
+        this.onUnknownCommand(pathParams)
+      }
+    })
   }
 
   protected onError(e: Error) {

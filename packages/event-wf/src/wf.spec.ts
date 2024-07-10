@@ -57,6 +57,7 @@ app.flow('init', ['add/1'], '', () => {
 describe('event-wf', () => {
   it('must run simple wf', async () => {
     const result = await app.start('adding', { result: 0 })
+    console.log(result)
     expect(result.state.context.result).toBe(14)
     const result2 = await app.start('adding', { result: 10 })
     expect(result2.state.context.result).toBe(17)

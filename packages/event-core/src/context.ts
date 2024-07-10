@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+import { AsyncLocalStorage } from 'node:async_hooks'
+
 import type { TProstoLoggerOptions } from '@prostojs/logger'
 
 import { eventContextHooks } from './context-hooks'
@@ -14,39 +17,59 @@ export interface TGenericContextStore<CustomEventType = TEmpty> {
   options: TEventOptions
   parentCtx?: TGenericContextStore
   routeParams?: Record<string, string | string[]>
+  _ended?: boolean
 }
 
-let currentContext: TGenericContextStore | null = null
+// let currentContext: TGenericContextStore | null = null
+
+// --=========== ASYNC CONTEXT =============--
 
 /**
- * Create a new event context
+ * AsyncLocalStorage instance
  *
- * @param data
- * @returns set of hooks { getCtx, restoreCtx, clearCtx, hookStore, getStore, setStore }
+ * Use on your own risk only if you know what you're doing
  */
-export function createEventContext<S = TEmpty, EventTypeToCreate = TEmpty>(
+export const asyncStorage = new AsyncLocalStorage()
+
+export function createAsyncEventContext<S = TEmpty, EventTypeToCreate = TEmpty>(
   data: S & TGenericContextStore<EventTypeToCreate>
 ) {
   const newContext = { ...data }
-  currentContext = newContext as TGenericContextStore
   eventContextHooks.fireStartEvent(data.event.type)
-  return _getCtxHelpers<S & TGenericContextStore<EventTypeToCreate>>(newContext)
+  return <T>(cb: (...a: any[]) => T) => {
+    const result = asyncStorage.run(newContext, cb)
+    if (result instanceof Promise) {
+      result
+        .then(r => {
+          endEvent(r)
+          return r
+        })
+        .catch(error => {
+          endEvent(error)
+        })
+    } else {
+      endEvent(result)
+    }
+    function endEvent(output: any) {
+      if (!newContext._ended) {
+        if (output instanceof Error) {
+          eventContextHooks.fireEndEvent(data.event.type, output.message)
+        } else {
+          eventContextHooks.fireEndEvent(data.event.type)
+        }
+      }
+    }
+    return result
+  }
 }
 
-/**
- * Use existing event context
- *
- * !Must be called syncronously while context is reachable
- *
- * @returns set of hooks { getCtx, restoreCtx, clearCtx, hookStore, getStore, setStore }
- */
-export function useEventContext<S = TEmpty, EventType = TEmpty>(expectedTypes?: string | string[]) {
-  if (!currentContext) {
-    throw new Error(
-      'Event context does not exist. Use event context synchronously within the runtime of the event.'
-    )
+export function useAsyncEventContext<S = TEmpty, EventType = TEmpty>(
+  expectedTypes?: string | string[]
+) {
+  let cc = asyncStorage.getStore() as (S & TGenericContextStore<EventType>) | undefined
+  if (!cc) {
+    throw new Error('Event context does not exist at this point.')
   }
-  let cc = currentContext as S & TGenericContextStore<EventType>
   if (expectedTypes || typeof expectedTypes === 'string') {
     const type = cc.event.type
     const types = typeof expectedTypes === 'string' ? [expectedTypes] : expectedTypes
@@ -66,6 +89,63 @@ export function useEventContext<S = TEmpty, EventType = TEmpty>(expectedTypes?: 
   return _getCtxHelpers(cc)
 }
 
+// --=========== ASYNC CONTEXT =============--
+
+/**
+ * Create a new event context
+ *
+ * @param data
+ * @returns set of hooks { getCtx, restoreCtx, clearCtx, hookStore, getStore, setStore }
+ */
+// export function _createEventContext<S = TEmpty, EventTypeToCreate = TEmpty>(
+//   data: S & TGenericContextStore<EventTypeToCreate>
+// ) {
+//   const newContext = { ...data }
+//   currentContext = newContext as TGenericContextStore
+//   eventContextHooks.fireStartEvent(data.event.type)
+//   return _getCtxHelpers<S & TGenericContextStore<EventTypeToCreate>>(newContext)
+// }
+
+/**
+ * Use existing event context
+ *
+ * !Must be called syncronously while context is reachable
+ *
+ * @returns set of hooks { getCtx, restoreCtx, clearCtx, hookStore, getStore, setStore }
+ */
+// export function _useEventContext<S = TEmpty, EventType = TEmpty>(
+//   expectedTypes?: string | string[]
+// ) {
+//   if (!currentContext) {
+//     throw new Error(
+//       'Event context does not exist. Use event context synchronously within the runtime of the event.'
+//     )
+//   }
+//   let cc = currentContext as S & TGenericContextStore<EventType>
+//   if (expectedTypes || typeof expectedTypes === 'string') {
+//     const type = cc.event.type
+//     const types = typeof expectedTypes === 'string' ? [expectedTypes] : expectedTypes
+//     if (!types.includes(type)) {
+//       if (cc.parentCtx?.event.type && types.includes(cc.parentCtx.event.type)) {
+//         cc = cc.parentCtx as S & TGenericContextStore<EventType>
+//       } else {
+//         throw new Error(
+//           `Event context type mismatch: expected ${types
+//             .map(t => `"${t}"`)
+//             .join(', ')}, received "${type}"`
+//         )
+//       }
+//     }
+//   }
+
+//   return _getCtxHelpers(cc)
+// }
+
+/**
+ *
+ * @param cc
+ * @returns
+ */
 function _getCtxHelpers<T>(cc: T) {
   /**
    * Hook to an event store property
@@ -181,19 +261,18 @@ function _getCtxHelpers<T>(cc: T) {
     getCtx()[key] = v
   }
 
-  const clearCtx = () => (cc === currentContext ? (currentContext = null) : null)
+  const hasParentCtx = () => !!(cc as TGenericContextStore).parentCtx
 
   return {
     getCtx,
-    restoreCtx: () => (currentContext = cc as TGenericContextStore),
-    clearCtx,
+    // restoreCtx: () => (currentContext = cc as TGenericContextStore),
     endEvent: (abortReason?: string) => {
-      if (cc) {
+      if (cc && !(cc as unknown as TGenericContextStore)._ended) {
+        ;(cc as unknown as TGenericContextStore)._ended = true
         eventContextHooks.fireEndEvent(
           (cc as unknown as TGenericContextStore).event.type,
           abortReason
         )
-        clearCtx()
       }
     },
     store,
@@ -202,6 +281,12 @@ function _getCtxHelpers<T>(cc: T) {
     setParentCtx: (parentCtx: unknown) => {
       ;(cc as { parentCtx: unknown }).parentCtx = parentCtx
     },
-    restoreParentCtx: () => (currentContext = (cc as TGenericContextStore).parentCtx || null),
+    hasParentCtx,
+    getParentCtx: <T2 = T>() => {
+      if (!hasParentCtx()) {
+        throw new Error('Parent context is not available')
+      }
+      return _getCtxHelpers((cc as { parentCtx: T2 }).parentCtx)
+    },
   }
 }

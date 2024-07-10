@@ -1,7 +1,7 @@
-import { useEventContext } from '../context'
+import { useAsyncEventContext } from '../context'
 
 export function useRouteParams<T extends object = Record<string, string | string[]>>() {
-  const { store } = useEventContext()
+  const { store } = useAsyncEventContext()
   const params = (store('routeParams').value || {}) as T
 
   function get<K extends keyof T>(name: K) {

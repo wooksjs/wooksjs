@@ -1,9 +1,12 @@
+/* eslint-disable @typescript-eslint/prefer-optional-chain */
+/* eslint-disable @typescript-eslint/no-unnecessary-condition */
+/* eslint-disable unicorn/explicit-length-check */
+/* eslint-disable radix */
 import type { TCacheControl } from '@wooksjs/event-http'
 import {
   BaseHttpResponse,
   HttpError,
   useHeaders,
-  useHttpContext,
   useRequest,
   useResponse,
   useSetCacheControl,
@@ -39,7 +42,6 @@ export async function serveFile(
     throw new Error('Parent Traversal ("/../") is not allowed.')
   }
 
-  const { restoreCtx } = useHttpContext()
   const { status } = useResponse()
   const { setHeader, removeHeader } = useSetHeaders()
   const headers = useHeaders()
@@ -55,7 +57,6 @@ export async function serveFile(
     if (options.defaultExt) {
       const ext = path.extname(filePath)
       if (!ext) {
-        restoreCtx()
         return serveFile(`${filePath}.${options.defaultExt}`)
       }
     }
@@ -95,13 +96,11 @@ export async function serveFile(
 
   if (fileStats.isDirectory()) {
     if (options.listDirectory) {
-      restoreCtx()
       return listDirectory(normalizedPath)
     } else if (options.index) {
       if (!filePath.endsWith('/') && url && !url.endsWith('/')) {
         return new BaseHttpResponse().setStatus(302).setHeader('location', `${url}/`)
       }
-      restoreCtx()
       return serveFile(path.join(filePath, options.index), {
         ...options,
         index: '',
@@ -126,7 +125,7 @@ export async function serveFile(
     start = Number.parseInt(s)
     end = e ? Number.parseInt(e) : size - 1
     end = Math.min(size - 1, end)
-    if (start > end || isNaN(start) || isNaN(end)) {
+    if (start > end || Number.isNaN(start) || Number.isNaN(end)) {
       throw new HttpError(416)
     }
     size = end - start + 1

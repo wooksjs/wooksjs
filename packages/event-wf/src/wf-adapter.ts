@@ -98,7 +98,7 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
     cleanup?: () => void
   ) {
     const resume = !!indexes?.length
-    const { restoreCtx, endEvent } = (resume ? resumeWfContext : createWfContext)(
+    const runInContext = (resume ? resumeWfContext : createWfContext)(
       {
         inputContext,
         schemaId,
@@ -108,67 +108,63 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
       },
       this.mergeEventOptions(this.opts?.eventOptions)
     )
-    const { handlers: foundHandlers } = this.wooks.lookup('WF_FLOW', `/${schemaId}`)
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    const handlers = foundHandlers || (this.opts?.onNotFound && [this.opts.onNotFound]) || null
-    if (handlers && handlers.length > 0) {
-      let result: TFlowOutput<T, I, IR> = {} as TFlowOutput<T, I, IR>
-      let firstStep = true
-      const _spy: TWorkflowSpy<T, I, IR> = (...args) => {
-        if (spy) {
-          spy(...args)
-        }
-        if (firstStep && args[0] === 'step') {
-          // cleanup input after the first step
-          firstStep = false
-          restoreCtx()
-          const { store } = useWFContext()
-          store('event').set('input', undefined)
-        }
-      }
-      try {
-        // eslint-disable-next-line no-unreachable-loop
-        for (const handler of handlers) {
-          restoreCtx()
-          const { id, init } = (await handler()) as {
-            init?: () => void | Promise<void>
-            id: string
+
+    return runInContext(async () => {
+      const { handlers: foundHandlers } = this.wooks.lookup('WF_FLOW', `/${schemaId}`)
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      const handlers = foundHandlers || (this.opts?.onNotFound && [this.opts.onNotFound]) || null
+      if (handlers && handlers.length > 0) {
+        let result: TFlowOutput<T, I, IR> = {} as TFlowOutput<T, I, IR>
+        let firstStep = true
+        const _spy: TWorkflowSpy<T, I, IR> = (...args) => {
+          if (spy) {
+            spy(...args)
           }
-          if (init) {
-            restoreCtx()
-            await init()
-          }
-          restoreCtx()
-          if (resume) {
-            result = await this.wf.resume<I>(
-              { schemaId: id, context: inputContext, indexes },
-              input as I,
-              _spy
-            )
-            break
-          } else {
-            result = await this.wf.start<I>(id, inputContext, input, _spy)
-            break
+          if (firstStep && args[0] === 'step') {
+            // cleanup input after the first step
+            firstStep = false
+            const { store } = useWFContext()
+            store('event').set('input', undefined)
           }
         }
-      } catch (error) {
+        try {
+          // eslint-disable-next-line no-unreachable-loop
+          for (const handler of handlers) {
+            const { id, init } = (await handler()) as {
+              init?: () => void | Promise<void>
+              id: string
+            }
+            if (init) {
+              await init()
+            }
+            if (resume) {
+              result = await this.wf.resume<I>(
+                { schemaId: id, context: inputContext, indexes },
+                input as I,
+                _spy
+              )
+              break
+            } else {
+              result = await this.wf.start<I>(id, inputContext, input, _spy)
+              break
+            }
+          }
+        } catch (error) {
+          clean()
+          throw error
+        }
         clean()
-        throw error
+        return result
       }
       clean()
-      endEvent()
-      return result
-    }
-    clean()
-    endEvent(`Unknown schemaId: ${schemaId}`)
-    throw new Error(`Unknown schemaId: ${schemaId}`)
+      throw new Error(`Unknown schemaId: ${schemaId}`)
 
-    function clean() {
-      if (cleanup) {
-        restoreCtx()
-        cleanup()
+      function clean() {
+        if (cleanup) {
+          cleanup()
+        }
       }
-    }
+    })
   }
 
   protected onError(e: Error) {

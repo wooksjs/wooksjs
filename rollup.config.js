@@ -25,7 +25,7 @@ const dyeModifiers = [
 ]
 const dyeColors = ['red', 'green', 'cyan', 'blue', 'yellow', 'white', 'magenta', 'black']
 
-const external = ['url', 'crypto', 'stream', 'packages/*/src', 'http', 'net']
+const external = ['url', 'crypto', 'stream', 'packages/*/src', 'http', 'net', 'node:async_hooks']
 
 const replacePlugin = replace({
   values: {

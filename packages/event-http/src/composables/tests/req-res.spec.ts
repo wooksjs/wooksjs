@@ -1,7 +1,7 @@
 import { useRouteParams } from '@wooksjs/event-core'
 import { IncomingMessage, ServerResponse } from 'http'
 
-import { setTestHttpContext } from '../../testing'
+import { prepareTestHttpContext } from '../../testing'
 import { useRequest } from '../request'
 import { useResponse } from '../response'
 
@@ -18,35 +18,44 @@ describe('compasble/req-res', () => {
   }
   const method = 'PUT'
 
+  let runInContext: ReturnType<typeof prepareTestHttpContext>
+
   beforeEach(() => {
-    setTestHttpContext({ url, params, headers, method })
+    runInContext = prepareTestHttpContext({ url, params, headers, method })
   })
 
   it('must return request', () => {
-    const { rawRequest, headers, method, getIp, getIpList, reqId } = useRequest()
-    expect(rawRequest).toBeInstanceOf(IncomingMessage)
-    expect(headers).toEqual({
-      'dummy': 'test',
-      'x-forwarded-for': '127.0.0.1, 192.168.0.251',
-    })
-    expect(method).toBe(method)
-    expect(reqId()).toMatch(/^[\da-f\-]{36}$/)
-    expect(getIp({ trustProxy: true })).toBe('127.0.0.1')
-    expect(getIp()).toBe('')
-    expect(getIpList()).toEqual({
-      remoteIp: '',
-      forwarded: ['127.0.0.1', '192.168.0.251'],
+    runInContext(() => {
+      const { rawRequest, headers, method, getIp, getIpList, reqId } = useRequest()
+      expect(rawRequest).toBeInstanceOf(IncomingMessage)
+      expect(headers).toEqual({
+        'dummy': 'test',
+        'x-forwarded-for': '127.0.0.1, 192.168.0.251',
+      })
+      expect(method).toBe(method)
+      // eslint-disable-next-line no-useless-escape
+      expect(reqId()).toMatch(/^[\da-f\-]{36}$/)
+      expect(getIp({ trustProxy: true })).toBe('127.0.0.1')
+      expect(getIp()).toBe('')
+      expect(getIpList()).toEqual({
+        remoteIp: '',
+        forwarded: ['127.0.0.1', '192.168.0.251'],
+      })
     })
   })
 
   it('must return response', () => {
-    const { rawResponse } = useResponse()
-    expect(rawResponse()).toBeInstanceOf(ServerResponse)
+    runInContext(() => {
+      const { rawResponse } = useResponse()
+      expect(rawResponse()).toBeInstanceOf(ServerResponse)
+    })
   })
 
   it('must return route-params', () => {
-    const { params, get } = useRouteParams()
-    expect(params).toBe(params)
-    expect(get('a')).toEqual('a1')
+    runInContext(() => {
+      const { params, get } = useRouteParams()
+      expect(params).toBe(params)
+      expect(get('a')).toEqual('a1')
+    })
   })
 })

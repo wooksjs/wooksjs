@@ -192,43 +192,41 @@ export class WooksHttp extends WooksAdapterBase {
    * ```
    */
   getServerCb() {
-    return async (req: IncomingMessage, res: ServerResponse) => {
-      const { restoreCtx } = createHttpContext(
+    return (req: IncomingMessage, res: ServerResponse) => {
+      const runInContext = createHttpContext(
         { req, res },
         this.mergeEventOptions(this.opts?.eventOptions)
       )
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      const { handlers } = this.wooks.lookup(req.method!, req.url!)
-      if (handlers || this.opts?.onNotFound) {
-        try {
-          // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain, @typescript-eslint/no-non-null-assertion
-          await this.processHandlers(handlers || [this.opts?.onNotFound!])
-        } catch (error) {
-          this.logger.error('Internal error, please report', error)
-          restoreCtx()
-          this.respond(error)
-        }
-      } else {
-        // not found
+      return runInContext(async () => {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        this.logger.debug(`404 Not found (${req.method!})${req.url!}`)
-        this.respond(new HttpError(404))
-      }
+        const { handlers } = this.wooks.lookup(req.method!, req.url!)
+        if (handlers || this.opts?.onNotFound) {
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain, @typescript-eslint/no-non-null-assertion
+            await this.processHandlers(handlers || [this.opts?.onNotFound!])
+          } catch (error) {
+            this.logger.error('Internal error, please report', error)
+            this.respond(error)
+          }
+        } else {
+          // not found
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          this.logger.debug(`404 Not found (${req.method!})${req.url!}`)
+          this.respond(new HttpError(404))
+        }
+      })
     }
   }
 
   protected async processHandlers(handlers: TWooksHandler[]) {
-    const { restoreCtx, clearCtx, store } = useHttpContext()
+    const { store } = useHttpContext()
     for (const [i, handler] of handlers.entries()) {
       const isLastHandler = handlers.length === i + 1
       try {
-        restoreCtx()
         const promise = handler() as Promise<unknown>
-        clearCtx()
         const result = await promise
         // even if the returned value is an Error instance
         // we still want to process it as a response
-        restoreCtx()
         this.respond(result)
         break
       } catch (error) {
@@ -243,7 +241,6 @@ export class WooksHttp extends WooksAdapterBase {
           )
         }
         if (isLastHandler) {
-          restoreCtx()
           this.respond(error)
         }
       }

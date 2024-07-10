@@ -1,10 +1,10 @@
 import type { TEmpty, TEventOptions } from '@wooksjs/event-core'
-import { createEventContext, useEventContext } from '@wooksjs/event-core'
+import { createAsyncEventContext, useAsyncEventContext } from '@wooksjs/event-core'
 
 import type { TWFContextStore, TWFEventData } from './types'
 
 export function createWfContext(data: Omit<TWFEventData, 'type'>, options: TEventOptions) {
-  return createEventContext<TWFContextStore, TWFEventData>({
+  return createAsyncEventContext<TWFContextStore, TWFEventData>({
     event: {
       ...data,
       type: 'WF',
@@ -15,7 +15,7 @@ export function createWfContext(data: Omit<TWFEventData, 'type'>, options: TEven
 }
 
 export function resumeWfContext(data: Omit<TWFEventData, 'type'>, options: TEventOptions) {
-  return createEventContext<TWFContextStore, TWFEventData>({
+  return createAsyncEventContext<TWFContextStore, TWFEventData>({
     event: {
       ...data,
       type: 'WF',
@@ -31,5 +31,5 @@ export function resumeWfContext(data: Omit<TWFEventData, 'type'>, options: TEven
  * @returns set of hooks { getCtx, restoreCtx, clearCtx, hookStore, getStore, setStore }
  */
 export function useWFContext<T extends TEmpty>() {
-  return useEventContext<TWFContextStore & T, TWFEventData>('WF')
+  return useAsyncEventContext<TWFContextStore & T, TWFEventData>('WF')
 }
