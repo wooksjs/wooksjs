@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-confusing-void-expression */
 /* eslint-disable @typescript-eslint/unified-signatures */
 import type { TConsoleBase } from '@prostojs/logger'
 import type { TEventOptions } from '@wooksjs/event-core'
@@ -169,9 +170,13 @@ export class WooksHttp extends WooksAdapterBase {
   protected responder = createWooksResponder()
 
   protected respond(data: unknown) {
-    void this.responder.respond(data)?.catch(e => {
-      this.logger.error('Uncought response exception', e)
-    })
+    const { endEvent } = useHttpContext()
+    void this.responder
+      .respond(data)
+      ?.catch(e => {
+        this.logger.error('Uncought response exception', e)
+      })
+      .finally(() => endEvent())
   }
 
   /**
@@ -188,7 +193,7 @@ export class WooksHttp extends WooksAdapterBase {
    */
   getServerCb() {
     return async (req: IncomingMessage, res: ServerResponse) => {
-      const { restoreCtx, endEvent } = createHttpContext(
+      const { restoreCtx } = createHttpContext(
         { req, res },
         this.mergeEventOptions(this.opts?.eventOptions)
       )
@@ -202,20 +207,18 @@ export class WooksHttp extends WooksAdapterBase {
           this.logger.error('Internal error, please report', error)
           restoreCtx()
           this.respond(error)
-          endEvent((error as Error).message)
         }
       } else {
         // not found
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         this.logger.debug(`404 Not found (${req.method!})${req.url!}`)
         this.respond(new HttpError(404))
-        endEvent('Request handler not registered')
       }
     }
   }
 
   protected async processHandlers(handlers: TWooksHandler[]) {
-    const { restoreCtx, endEvent, clearCtx, store } = useHttpContext()
+    const { restoreCtx, clearCtx, store } = useHttpContext()
     for (const [i, handler] of handlers.entries()) {
       const isLastHandler = handlers.length === i + 1
       try {
@@ -227,7 +230,6 @@ export class WooksHttp extends WooksAdapterBase {
         // we still want to process it as a response
         restoreCtx()
         this.respond(result)
-        endEvent()
         break
       } catch (error) {
         if (error instanceof HttpError) {
@@ -243,7 +245,6 @@ export class WooksHttp extends WooksAdapterBase {
         if (isLastHandler) {
           restoreCtx()
           this.respond(error)
-          endEvent((error as Error).message)
         }
       }
     }

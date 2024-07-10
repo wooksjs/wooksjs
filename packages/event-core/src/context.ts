@@ -188,8 +188,13 @@ function _getCtxHelpers<T>(cc: T) {
     restoreCtx: () => (currentContext = cc as TGenericContextStore),
     clearCtx,
     endEvent: (abortReason?: string) => {
-      eventContextHooks.fireEndEvent((cc as TGenericContextStore).event.type, abortReason)
-      clearCtx()
+      if (cc) {
+        eventContextHooks.fireEndEvent(
+          (cc as unknown as TGenericContextStore).event.type,
+          abortReason
+        )
+        clearCtx()
+      }
     },
     store,
     getStore: get,
