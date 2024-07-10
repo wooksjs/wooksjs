@@ -1,3 +1,13 @@
+## [0.4.36](https://github.com/wooksjs/wooksjs/compare/v0.4.35...v0.4.36) (2024-07-10)
+
+
+### Features
+
+* add event context hooks ([d61bf3d](https://github.com/wooksjs/wooksjs/commit/d61bf3d7db81248386fa2b8f7314d72078b1e477))
+* add event context hooks ([59dc8f5](https://github.com/wooksjs/wooksjs/commit/59dc8f5089fcab9b5b25bb80ad70b2404674c28d))
+
+
+
 ## [0.4.35](https://github.com/wooksjs/wooksjs/compare/v0.4.34...v0.4.35) (2024-03-31)
 
 
