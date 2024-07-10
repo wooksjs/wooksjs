@@ -1,4 +1,4 @@
-import { Hookable } from 'hookable'
+import { Hookable } from './hookable'
 
 class EventContextHooks extends Hookable {
   fireStartEvent(eventType: string) {
@@ -10,11 +10,11 @@ class EventContextHooks extends Hookable {
   }
 
   onStartEvent(cb: (eventType: string) => void) {
-    this.hook('start-event', cb)
+    return this.hook('start-event', cb)
   }
 
   onEndEvent(cb: (eventType: string, abortReason?: string) => void) {
-    this.hook('end-event', cb)
+    return this.hook('end-event', cb)
   }
 }
 

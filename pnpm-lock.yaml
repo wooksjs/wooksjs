@@ -91,9 +91,6 @@ devDependencies:
   execa:
     specifier: ^5.1.1
     version: 5.1.1
-  hookable:
-    specifier: ^5.5.3
-    version: 5.5.3
   jest:
     specifier: ^29.7.0
     version: 29.7.0(@types/node@18.19.10)
@@ -3540,10 +3537,6 @@ packages:
     engines: {node: '>= 0.4'}
     dependencies:
       function-bind: 1.1.2
-    dev: true
-
-  /hookable@5.5.3:
-    resolution: {integrity: sha512-Yc+BQe8SvoXH1643Qez1zqLRmbA5rCL+sSmk6TVos0LWVfNIB7PGncdlId77WzLGSIB5KaWgTaNTs2lNVEI6VQ==}
     dev: true
 
   /hosted-git-info@2.8.9:
