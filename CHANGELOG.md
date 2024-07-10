@@ -1,3 +1,12 @@
+## [0.4.37](https://github.com/wooksjs/wooksjs/compare/v0.4.36...v0.4.37) (2024-07-10)
+
+
+### Bug Fixes
+
+* **http:** call endEvent before res.end ([3c7f470](https://github.com/wooksjs/wooksjs/commit/3c7f470d635d15c198524f46cab69bf9ac939e0b))
+
+
+
 ## [0.4.36](https://github.com/wooksjs/wooksjs/compare/v0.4.35...v0.4.36) (2024-07-10)
 
 

@@ -1,6 +1,6 @@
 {
   "name": "@wooksjs/event-core",
-  "version": "0.4.36",
+  "version": "0.4.37",
   "description": "@wooksjs/event-core",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
