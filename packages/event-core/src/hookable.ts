@@ -1,7 +1,14 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
+
+import { AsyncResource } from 'node:async_hooks'
+
 type HookCallback = (...args: any[]) => any
 
-export class Hookable {
+export class Hookable extends AsyncResource {
+  constructor() {
+    super('hookable')
+  }
+
   private hooks: Record<string, HookCallback[]> = {}
 
   /**
@@ -28,7 +35,7 @@ export class Hookable {
     if (this.hooks[name]) {
       for (const cb of this.hooks[name]) {
         try {
-          cb(...args)
+          this.runInAsyncScope(cb, null, ...args)
         } catch (error) {
           console.error(`Error in hook ${name}:`, error)
         }
