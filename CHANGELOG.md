@@ -1,3 +1,12 @@
+## [0.5.5](https://github.com/wooksjs/wooksjs/compare/v0.5.4...v0.5.5) (2024-07-10)
+
+
+### Bug Fixes
+
+* **event-core:** remove AsyncResource from hookable ([827be41](https://github.com/wooksjs/wooksjs/commit/827be4123e4a13a84fd48050830822e7dcc0291a))
+
+
+
 ## [0.5.4](https://github.com/wooksjs/wooksjs/compare/v0.5.3...v0.5.4) (2024-07-10)
 
 
