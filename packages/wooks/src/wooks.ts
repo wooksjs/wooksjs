@@ -3,7 +3,7 @@ import { ProstoLogger } from '@prostojs/logger'
 import type { THttpMethod } from '@prostojs/router'
 import { ProstoRouter } from '@prostojs/router'
 import type { TEventOptions } from '@wooksjs/event-core'
-import { useAsyncEventContext } from '@wooksjs/event-core'
+import { getContextInjector, useAsyncEventContext } from '@wooksjs/event-core'
 import { getDefaultLogger } from 'common/logger'
 
 import type { TWooksHandler } from './types'
@@ -51,10 +51,16 @@ export class Wooks {
   public lookup(method: string, path: string) {
     const found = this.getRouter().lookup(method as THttpMethod, path || '')
     useAsyncEventContext().store('routeParams').value = found?.ctx?.params || {}
+    if (found?.route?.handlers.length) {
+      getContextInjector().hook('Handler:routed', found.route.path)
+    } else {
+      getContextInjector().hook('Handler:not_found')
+    }
     return {
       handlers: found?.route?.handlers || null,
       segments: found?.route?.segments || null,
       firstStatic: found?.route?.firstStatic || null,
+      path: found?.route?.path || null,
     }
   }
 
