@@ -44,17 +44,17 @@ export function createAsyncEventContext<S = TEmpty, EventTypeToCreate = TEmpty>(
     if (result instanceof Promise) {
       result
         .then(r => {
-          endEvent(r)
+          fireEndEvent(r)
           return r
         })
         .catch(error => {
-          endEvent(error)
+          fireEndEvent(error)
         })
     } else {
-      endEvent(result)
+      fireEndEvent(result)
     }
 
-    function endEvent(output: any) {
+    function fireEndEvent(output: any) {
       if (!newContext._ended) {
         if (output instanceof Error) {
           asyncStorage.run(newContext, () => {
@@ -273,16 +273,6 @@ function _getCtxHelpers<T>(cc: T) {
 
   return {
     getCtx,
-    // restoreCtx: () => (currentContext = cc as TGenericContextStore),
-    endEvent: (abortReason?: string) => {
-      if (cc && !(cc as unknown as TGenericContextStore)._ended) {
-        ;(cc as unknown as TGenericContextStore)._ended = true
-        eventContextHooks.fireEndEvent(
-          (cc as unknown as TGenericContextStore).event.type,
-          abortReason
-        )
-      }
-    },
     store,
     getStore: get,
     setStore: set,

@@ -6,7 +6,6 @@ import type { ServerResponse } from 'http'
 import { Readable } from 'stream'
 
 import { useRequest, useResponse, useSetCookies, useSetHeaders } from '../composables'
-import { useHttpContext } from '../event-http'
 import type { TCookieAttributes } from '../types'
 import type { TCacheControl } from '../utils/cache-control'
 import { renderCacheControl } from '../utils/cache-control'
@@ -143,7 +142,6 @@ export class BaseHttpResponse<BodyType = unknown> {
   }
 
   async respond() {
-    const { endEvent } = useHttpContext()
     const { rawResponse, hasResponded } = useResponse()
     const { method, rawRequest } = useRequest()
     const logger = useEventLogger('http-response') || console
@@ -163,19 +161,16 @@ export class BaseHttpResponse<BodyType = unknown> {
         stream.destroy()
       })
       if (method === 'HEAD') {
-        endEvent()
         stream.destroy()
         res.end()
       } else {
         return new Promise((resolve, reject) => {
           stream.on('error', e => {
-            endEvent()
             stream.destroy()
             res.end()
             reject(e)
           })
           stream.on('close', () => {
-            endEvent()
             stream.destroy()
             resolve(undefined)
           })
@@ -185,7 +180,6 @@ export class BaseHttpResponse<BodyType = unknown> {
     } else if (globalThis.Response && this.body instanceof Response /* Fetch Response */) {
       this.mergeFetchStatus(this.body.status)
       if (method === 'HEAD') {
-        endEvent()
         res.end()
       } else {
         const additionalHeaders: Record<string, string | string[]> = {}
@@ -197,7 +191,7 @@ export class BaseHttpResponse<BodyType = unknown> {
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           additionalHeaders['content-type'] = this.body.headers.get('content-type')!
         }
-        endEvent()
+
         res.writeHead(this.status, {
           ...additionalHeaders,
           ...this._headers,
@@ -207,7 +201,7 @@ export class BaseHttpResponse<BodyType = unknown> {
     } else {
       const renderedBody = this.renderer.render(this)
       this.mergeStatus(renderedBody)
-      endEvent()
+
       res
         .writeHead(this.status, {
           'content-length': Buffer.byteLength(renderedBody),

@@ -170,13 +170,9 @@ export class WooksHttp extends WooksAdapterBase {
   protected responder = createWooksResponder()
 
   protected respond(data: unknown) {
-    const { endEvent } = useHttpContext()
-    void this.responder
-      .respond(data)
-      ?.catch(e => {
-        this.logger.error('Uncought response exception', e)
-      })
-      .finally(() => endEvent())
+    void this.responder.respond(data)?.catch(e => {
+      this.logger.error('Uncought response exception', e)
+    })
   }
 
   /**
