@@ -227,12 +227,12 @@ export class WooksHttp extends WooksAdapterBase {
         // even if the returned value is an Error instance
         // we still want to process it as a response
         this.respond(result)
-        break
+        return result
       } catch (error) {
         if (error instanceof HttpError) {
-          this.logger.debug(
-            `${error.body.statusCode}: ${error.message} :: ${store('event').get('req')?.url || ''}`
-          )
+          // this.logger.debug(
+          //   `${error.body.statusCode}: ${error.message} :: ${store('event').get('req')?.url || ''}`
+          // )
         } else {
           this.logger.error(
             `Uncought route handler exception: ${store('event').get('req')?.url || ''}`,
@@ -241,6 +241,7 @@ export class WooksHttp extends WooksAdapterBase {
         }
         if (isLastHandler) {
           this.respond(error)
+          return error
         }
       }
     }
