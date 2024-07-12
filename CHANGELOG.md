@@ -1,3 +1,12 @@
+## [0.5.10](https://github.com/wooksjs/wooksjs/compare/v0.5.9...v0.5.10) (2024-07-12)
+
+
+### Bug Fixes
+
+* return response ([0858cd7](https://github.com/wooksjs/wooksjs/commit/0858cd732b182e09be7e76e9bc68374991623793))
+
+
+
 ## [0.5.9](https://github.com/wooksjs/wooksjs/compare/v0.5.8...v0.5.9) (2024-07-12)
 
 
