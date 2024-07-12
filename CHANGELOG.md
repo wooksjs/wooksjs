@@ -1,3 +1,12 @@
+## [0.5.7](https://github.com/wooksjs/wooksjs/compare/v0.5.6...v0.5.7) (2024-07-12)
+
+
+### Bug Fixes
+
+* first call asyncContext and then injected context ([3c1efa5](https://github.com/wooksjs/wooksjs/commit/3c1efa5b6f146f181a1cf85c47d52ce49dd62e8e))
+
+
+
 ## [0.5.6](https://github.com/wooksjs/wooksjs/compare/v0.5.5...v0.5.6) (2024-07-12)
 
 
