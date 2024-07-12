@@ -20,7 +20,7 @@ export class ContextInjector<N> {
     return fn()
   }
 
-  hook(name: 'Handler:not_found' | 'Handler:routed', route?: string): void {
+  hook(method: string, name: 'Handler:not_found' | 'Handler:routed', route?: string): void {
     //
   }
 }

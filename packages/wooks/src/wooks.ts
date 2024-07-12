@@ -52,9 +52,9 @@ export class Wooks {
     const found = this.getRouter().lookup(method as THttpMethod, path || '')
     useAsyncEventContext().store('routeParams').value = found?.ctx?.params || {}
     if (found?.route?.handlers.length) {
-      getContextInjector().hook('Handler:routed', found.route.path)
+      getContextInjector().hook(method, 'Handler:routed', found.route.path)
     } else {
-      getContextInjector().hook('Handler:not_found')
+      getContextInjector().hook(method, 'Handler:not_found')
     }
     return {
       handlers: found?.route?.handlers || null,
