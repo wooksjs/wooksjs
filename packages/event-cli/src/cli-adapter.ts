@@ -207,15 +207,18 @@ export class WooksCli extends WooksAdapterBase {
               })
             } else if (response instanceof Error) {
               this.onError(response)
+              return response
             } else if (response) {
               console.log(JSON.stringify(response, null, '  '))
             }
           }
         } catch (error) {
           this.onError(error as Error)
+          return error
         }
       } else {
         this.onUnknownCommand(pathParams)
+        return new Error('Unknown command')
       }
     })
   }

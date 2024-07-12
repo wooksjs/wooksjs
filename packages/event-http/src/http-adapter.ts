@@ -193,22 +193,25 @@ export class WooksHttp extends WooksAdapterBase {
         { req, res },
         this.mergeEventOptions(this.opts?.eventOptions)
       )
-      return runInContext(async () => {
+      runInContext(async () => {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const { handlers } = this.wooks.lookup(req.method!, req.url!)
         if (handlers || this.opts?.onNotFound) {
           try {
             // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain, @typescript-eslint/no-non-null-assertion
-            await this.processHandlers(handlers || [this.opts?.onNotFound!])
+            return await this.processHandlers(handlers || [this.opts?.onNotFound!])
           } catch (error) {
             this.logger.error('Internal error, please report', error)
             this.respond(error)
+            return error
           }
         } else {
           // not found
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           this.logger.debug(`404 Not found (${req.method!})${req.url!}`)
-          this.respond(new HttpError(404))
+          const error = new HttpError(404)
+          this.respond(error)
+          return error
         }
       })
     }
