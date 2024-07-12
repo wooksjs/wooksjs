@@ -37,7 +37,9 @@ export function createAsyncEventContext<S = TEmpty, EventTypeToCreate = TEmpty>(
   const newContext = { ...data }
   const ci = getContextInjector()
   return <T>(cb: (...a: any[]) => T) =>
-    asyncStorage.run(newContext, () => ci.with(`${newContext.event.type} event`, cb))
+    asyncStorage.run(newContext, () =>
+      ci.with('Event:start', { eventType: newContext.event.type }, cb)
+    )
 }
 
 export function useAsyncEventContext<S = TEmpty, EventType = TEmpty>(
