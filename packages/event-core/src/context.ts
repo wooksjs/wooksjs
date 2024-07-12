@@ -3,7 +3,7 @@ import { AsyncLocalStorage } from 'node:async_hooks'
 
 import type { TProstoLoggerOptions } from '@prostojs/logger'
 
-import { eventContextHooks } from './context-hooks'
+import { getContextInjector } from './context-injector'
 import type { TEventLoggerData } from './event-logger'
 import { attachHook } from './hook'
 import type { TEmpty, TGenericEvent } from './types'
@@ -35,40 +35,9 @@ export function createAsyncEventContext<S = TEmpty, EventTypeToCreate = TEmpty>(
   data: S & TGenericContextStore<EventTypeToCreate>
 ) {
   const newContext = { ...data }
-  return <T>(cb: (...a: any[]) => T) => {
-    asyncStorage.run(newContext, () => {
-      eventContextHooks.fireStartEvent(newContext.event.type)
-    })
-
-    const result = asyncStorage.run(newContext, cb)
-    if (result instanceof Promise) {
-      result
-        .then(r => {
-          fireEndEvent(r)
-          return r
-        })
-        .catch(error => {
-          fireEndEvent(error)
-        })
-    } else {
-      fireEndEvent(result)
-    }
-
-    function fireEndEvent(output: any) {
-      if (!newContext._ended) {
-        if (output instanceof Error) {
-          asyncStorage.run(newContext, () => {
-            eventContextHooks.fireEndEvent(newContext.event.type, output.message)
-          })
-        } else {
-          asyncStorage.run(newContext, () => {
-            eventContextHooks.fireEndEvent(newContext.event.type)
-          })
-        }
-      }
-    }
-    return result
-  }
+  const ci = getContextInjector()
+  return <T>(cb: (...a: any[]) => T) =>
+    ci.with(`${newContext.event.type} event`, () => asyncStorage.run(newContext, cb))
 }
 
 export function useAsyncEventContext<S = TEmpty, EventType = TEmpty>(
@@ -98,56 +67,6 @@ export function useAsyncEventContext<S = TEmpty, EventType = TEmpty>(
 }
 
 // --=========== ASYNC CONTEXT =============--
-
-/**
- * Create a new event context
- *
- * @param data
- * @returns set of hooks { getCtx, restoreCtx, clearCtx, hookStore, getStore, setStore }
- */
-// export function _createEventContext<S = TEmpty, EventTypeToCreate = TEmpty>(
-//   data: S & TGenericContextStore<EventTypeToCreate>
-// ) {
-//   const newContext = { ...data }
-//   currentContext = newContext as TGenericContextStore
-//   eventContextHooks.fireStartEvent(data.event.type)
-//   return _getCtxHelpers<S & TGenericContextStore<EventTypeToCreate>>(newContext)
-// }
-
-/**
- * Use existing event context
- *
- * !Must be called syncronously while context is reachable
- *
- * @returns set of hooks { getCtx, restoreCtx, clearCtx, hookStore, getStore, setStore }
- */
-// export function _useEventContext<S = TEmpty, EventType = TEmpty>(
-//   expectedTypes?: string | string[]
-// ) {
-//   if (!currentContext) {
-//     throw new Error(
-//       'Event context does not exist. Use event context synchronously within the runtime of the event.'
-//     )
-//   }
-//   let cc = currentContext as S & TGenericContextStore<EventType>
-//   if (expectedTypes || typeof expectedTypes === 'string') {
-//     const type = cc.event.type
-//     const types = typeof expectedTypes === 'string' ? [expectedTypes] : expectedTypes
-//     if (!types.includes(type)) {
-//       if (cc.parentCtx?.event.type && types.includes(cc.parentCtx.event.type)) {
-//         cc = cc.parentCtx as S & TGenericContextStore<EventType>
-//       } else {
-//         throw new Error(
-//           `Event context type mismatch: expected ${types
-//             .map(t => `"${t}"`)
-//             .join(', ')}, received "${type}"`
-//         )
-//       }
-//     }
-//   }
-
-//   return _getCtxHelpers(cc)
-// }
 
 /**
  *
