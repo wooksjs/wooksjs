@@ -1,3 +1,12 @@
+## [0.5.11](https://github.com/wooksjs/wooksjs/compare/v0.5.10...v0.5.11) (2024-07-12)
+
+
+### Bug Fixes
+
+* add method name to hook ([7721248](https://github.com/wooksjs/wooksjs/commit/7721248cd47fb39abea6306b5a82a91622f63663))
+
+
+
 ## [0.5.10](https://github.com/wooksjs/wooksjs/compare/v0.5.9...v0.5.10) (2024-07-12)
 
 
