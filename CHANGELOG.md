@@ -1,3 +1,12 @@
+## [0.5.9](https://github.com/wooksjs/wooksjs/compare/v0.5.8...v0.5.9) (2024-07-12)
+
+
+### Bug Fixes
+
+* add context injector hooks on routing ([c0ad482](https://github.com/wooksjs/wooksjs/commit/c0ad4828b0b64cd98190f31507c4d53ccbd29454))
+
+
+
 ## [0.5.8](https://github.com/wooksjs/wooksjs/compare/v0.5.7...v0.5.8) (2024-07-12)
 
 
