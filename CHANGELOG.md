@@ -1,3 +1,12 @@
+## [0.5.13](https://github.com/wooksjs/wooksjs/compare/v0.5.12...v0.5.13) (2024-07-23)
+
+
+### Features
+
+* **event-core:** set parent context automatically ([6931c05](https://github.com/wooksjs/wooksjs/commit/6931c05307f6cae3f32e335ced261d79a0765528))
+
+
+
 ## [0.5.12](https://github.com/wooksjs/wooksjs/compare/v0.5.11...v0.5.12) (2024-07-12)
 
 
