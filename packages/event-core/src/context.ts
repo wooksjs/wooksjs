@@ -35,6 +35,11 @@ export function createAsyncEventContext<S = TEmpty, EventTypeToCreate = TEmpty>(
   data: S & TGenericContextStore<EventTypeToCreate>
 ) {
   const newContext = { ...data }
+  const cc = asyncStorage.getStore() as TGenericContextStore | undefined
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (cc && typeof cc === 'object' && cc.event?.type) {
+    newContext.parentCtx = cc
+  }
   const ci = getContextInjector()
   return <T>(cb: (...a: any[]) => T) =>
     asyncStorage.run(newContext, () =>
@@ -67,7 +72,6 @@ export function useAsyncEventContext<S = TEmpty, EventType = TEmpty>(
 
   return _getCtxHelpers(cc)
 }
-
 // --=========== ASYNC CONTEXT =============--
 
 /**
