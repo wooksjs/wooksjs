@@ -13,9 +13,9 @@
     "lint": "eslint --ext .ts packages/**/src/**/**.ts",
     "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s",
     "version": "conventional-changelog -p angular -i CHANGELOG.md -s && git add CHANGELOG.md",
-    "docs": "vitepress dev docs",
+    "docs": "vitepress dev docs --host \"0.0.0.0\"",
     "docs-build": "vitepress build docs",
-    "docs-serve": "vitepress serve docs",
+    "docs-serve": "vitepress serve docs --host \"0.0.0.0\"",
     "jiti": "node ./scripts/jiti.js",
     "jiti:dev": "node ./scripts/jiti.js --dev"
   },
@@ -83,7 +83,7 @@
     "ts-jest": "^29.1.1",
     "tslib": "^2.6.2",
     "typescript": "^5.3.3",
-    "vitepress": "^1.0.0-rc.40",
+    "vitepress": "^1.5.0",
     "yorkie": "^2.0.0"
   },
   "dependencies": {

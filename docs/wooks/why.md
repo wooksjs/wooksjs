@@ -1,41 +1,53 @@
-# Why Wooks
+# Why Wooks?
 
-::: warning
-Wooks is an evolving framework. It's fully functional and ready for immediate use, but please note that certain APIs may be fine-tuned as we proceed.
-:::
+Building server-side applications with frameworks like Express or Fastify often leads to a familiar set of challenges covered below.
 
-Choosing the right framework for your web applications can be a daunting task. You might have considered Express for its simplicity, or Fastify for its high-speed server performance. Each of these has its merits, but also comes with its set of limitations. 
+## 1. A Tangle of Contextual Data
+In traditional frameworks, request data (such as parsed bodies, authenticated users, and custom properties) often ends up attached directly to the `req` object. While this may feel convenient at first, it quickly becomes unwieldy:
 
-## The Challenges 
+- **Hard-to-Manage Types:** Adding arbitrary properties to `req` muddles the type definitions, making it harder for TypeScript to guide you as your application grows.
+- **Namespace Collisions & Clutter:** As your codebase expands, `req` becomes a dumping ground, and distinguishing between built-in properties and custom fields can be confusing.
+- **Difficult to Reuse & Test:** Logic that deals with `req` and `res` directly is harder to isolate and test independently.
 
-Event processing, particularly with HTTP requests, poses several hurdles. An event usually carries payload, parts of which may need parsing or validation against various data sources. 
+### How Wooks Solves This 
+Wooks introduces **composables**, which provide a systematic way to access and manage contextual data without ever cluttering the request object. Instead of polluting `req`, you simply call functions like `useBody()` or `useParams()` that neatly pull their data from a context store managed by Wooks. This approach:
 
-Many existing frameworks tend to parse all potentially useful data every time an event is triggered, which can be wasteful when certain data elements are not needed. Moreover, once parsed or fetched, this data needs to be cached for later use. 
+- Ensures strong TypeScript support, so you know exactly what data you’re working with.
+- Keeps your application’s entry points tidy and maintainable.
+- Makes testing easier since you can exercise logic in a more controlled, context-driven manner.
 
-Traditional middleware-based frameworks tend to attach all this data to the request object, leading to a host of issues:
+## 2. Complexity in Middleware & Plugins**  
+Express and Fastify rely heavily on middleware chains and plugins to manage functionality like request parsing, logging, validation, and authentication. While these patterns are powerful, they can also become complicated in large projects:
 
--   The request object becomes overloaded with numerous properties.
--   Typing the request object with TypeScript becomes a guessing game.
--   The request object's widespread use may unintentionally result in memory leaks.
+- **Debugging Complexity:** When an issue arises, it can be tricky to identify which middleware broke the chain or modified the request incorrectly.
+- **Rigid Ordering & Coupling:** Middleware ordering matters. Accidentally placing a piece of middleware out of sequence can cause subtle bugs.
+- **Limited Reusability:** The middleware approach can make it difficult to share logic or apply it selectively across different event types.
 
-## The Wooks Solution 
+### How Wooks Solves This 
+By focusing on composable, context-based logic instead of a chain of middlewares, Wooks encourages you to write modular functions that can be reused anywhere. Since composables access the same contextual store, their execution doesn’t depend on a linear processing pipeline. This architectural clarity saves time, reduces guesswork, and keeps your code modular and discoverable.
 
-Wooks takes a different approach to solve these issues, using the power of **composable functions** (hooks). When a piece of data needs parsing, you just call the relevant composable function to do the job. The same applies to cookies and other data types. 
+## 3. Event-Driven, Not Just HTTP-Driven
+Both Express and Fastify were born primarily as HTTP frameworks. Extending them to work with other event types—like CLI commands or custom workflow triggers—can be cumbersome or require separate tooling and architectural decisions.
 
-Wooks maintains the integrity of the request object, and instead employs an **event context** for each event. This event context comes with accurate typing, and all interactions with it are strictly through the **event context API**. Composable functions use the event context and store parsed or fetched data there. 
+### How Wooks Solves This
+Wooks decouples the concept of “events” from the transport layer. HTTP requests, CLI commands, or any other form of event can be handled uniformly. This holistic approach:
 
-## Superior Routing with Wooks
+- Promotes code reuse across different parts of your application’s ecosystem.
+- Enables consistent logging, error handling, and context management, no matter the event type.
+- Future-proofs your architecture by allowing you to easily integrate new types of events as your application evolves.
 
-What elevates Wooks further is its use of the robust and fast [@prostojs/router](https://github.com/prostojs/router). It delivers performance on par with find-my-way and radix3, and significantly outperforms the Express router. 
+## 4. Strong TypeScript Integration & Developer Ergonomics 
+While both Express and Fastify have TypeScript definitions, they can still feel like a thin layer slapped onto an existing pattern. You might find yourself fighting against the type system rather than embracing it:
 
-But the superiority of `@prostojs/router` doesn't end with speed. It supports parameters and wildcards, even multiple wildcards, a feature that is hard to find among other routers. This level of flexibility and capability makes routing with Wooks an absolute breeze.
+- **Inconsistent Type Safety:** Adding custom properties or integrating complex middleware often leads to type gaps.
+- **Difficult Refactoring:** As the application grows, refactoring can be risky if the types don’t accurately represent the shape of your code.
 
-## Why Choose Wooks?
+### How Wooks Solves This  
+Wooks is built in TypeScript from the beginning, making typing a first-class concern rather than an afterthought. The composable pattern ensures that data requested through functions like `useBody()` is always strongly typed. This results in:
 
-So, what sets Wooks apart from the rest? 
+- More confident refactoring, as the type system will warn you of any contract violations.
+- Better integration with IDEs and code editors, giving you the benefits of smart autocomplete and inline documentation.
+- Reduced runtime bugs, since many errors are caught during development.
 
-Wooks provides a solution for on-demand parsing and data fetching, significantly reducing unnecessary workloads. By maintaining the original state of the request object, Wooks eliminates confusion and potential issues associated with data attachment. 
-
-With the high-speed, versatile routing provided by @prostojs/router, Wooks sets a new standard in efficient event processing. By introducing the concept of the event context, Wooks allows for efficient handling and storing of data, without any unintended consequences. 
-
-Choose Wooks and embrace a smoother, streamlined development experience!
+## Summary
+Wooks is not just a different syntax for the same patterns. It rethinks how we approach server-side development, taking lessons from frontend frameworks and applying them to the backend to achieve cleaner, more testable, and more maintainable solutions. If you’ve ever struggled with messy request objects, brittle middleware chains, poor type safety, or difficulty repurposing your code for different event sources, Wooks provides a fresh, powerful answer.

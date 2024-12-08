@@ -102,11 +102,19 @@ export default defineConfig({
                     text: 'Wooks',
                     items: [
                         {
+                            text: 'What is Wooks',
+                            link: '/wooks/what',
+                        },
+                        {
                             text: 'Why Wooks',
                             link: '/wooks/why',
                         },
                         {
-                            text: 'Introduction',
+                            text: 'Comparison',
+                            link: '/wooks/comparison',
+                        },
+                        {
+                            text: 'Get Started',
                             link: '/wooks/',
                         },
                         {
@@ -116,7 +124,15 @@ export default defineConfig({
                             items: [
                                 {
                                     text: 'Event Context',
-                                    link: '/wooks/advanced/context',
+                                    link: '/wooks/advanced/event-core',
+                                },
+                                {
+                                    text: 'Custom Event Context',
+                                    link: '/wooks/advanced/your-event',
+                                },
+                                {
+                                    text: 'Custom Wooks Adapter',
+                                    link: '/wooks/advanced/wooks-adapter',
                                 },
                                 {
                                     text: 'Logging in Wooks',
