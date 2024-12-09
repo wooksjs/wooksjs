@@ -8,9 +8,9 @@ When choosing a server-side framework, developers often reach for familiar solut
 In these frameworks, the request lifecycle is often heavily influenced by middleware. For example, body parsing is frequently done by a middleware layer before your handler runs. By the time your route handler is called, request bodies may already be parsed and attached to `req`, even if your logic doesn’t need them. If you discover that your route parameters are invalid and want to return an error immediately, the overhead of reading and parsing the body has already occurred, costing both performance and clarity.
 
 **Wooks:**  
-Wooks calls your event handler as soon as the event (e.g., an HTTP request) is generated—usually right after receiving headers. You decide if and when to parse the body by calling a composable like `useBody()` yourself. This allows you to:
+Wooks calls your event handler as soon as the event (e.g., an HTTP request) is generated — usually right after receiving headers. You decide if and when to parse the body by calling a composable like `useBody()` yourself. This allows you to:
 
-- **Validate Early:** Check route parameters, headers, or other conditions before touching the body. If invalid, respond with an error immediately—no wasted cycles on unnecessary body parsing.
+- **Validate Early:** Check route parameters, headers, or other conditions before touching the body. If invalid, respond with an error immediately — no wasted cycles on unnecessary body parsing.
 - **Conditional Parsing:** Only parse the body if it’s actually needed, improving performance and reducing overhead.
 - **Better Resource Management:** Achieve more explicit and efficient control over the request lifecycle, making your code both faster and more transparent.
 
@@ -33,7 +33,7 @@ Wooks uses `@prostojs/router`, a carefully designed, standalone routing library 
 - **On-the-Fly Parsers:** It generates parsing functions during registration, enabling parameter parsing to be done in a single efficient call.
 - **Predictable Encoding/Decoding:** It handles URI encoding/decoding in a clean, transparent manner, avoiding the quirks and bugs you might encounter elsewhere.
 
-This means you get **fast, predictable, and highly flexible routing** that easily handles complex URL patterns—something that can be awkward or inefficient in Express, Fastify, or h3.
+This means you get **fast, predictable, and highly flexible routing** that easily handles complex URL patterns — something that can be awkward or inefficient in Express, Fastify, or h3.
 
 Below is performance comparison for different routers ([benchmark source code](https://github.com/prostojs/router-benchmark)):
 

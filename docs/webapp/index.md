@@ -1,74 +1,57 @@
-# Quick Start a Web App
+# Get Started with Web App
 
-::: warning
-Work on Wooks is still in progress. It is already suitable for immediate use in HTTP events,
-but some APIs may still undergo changes.
+::: info
+Learn more about Wooks to understand its philosophy and advantages:
+
+- [What is Wooks?](/wooks/what)
+- [Why Wooks?](/wooks/why)
+- [Comparison with Express, Fastify, and h3](/wooks/comparison)
 :::
 
-[[toc]]
+Or you can get hands-on with the HTTP flavor of Wooks right now.
 
 ## Installation
 
 ```bash
-npm install wooks @wooksjs/event-http
+npm install @wooksjs/event-http
 ```
 
-## Your Wooks Web App
+This gives you access to the Wooks core library and the HTTP adapter, which provides a simple, Express-like API for creating HTTP servers while leveraging Wooks’ composable and context-driven patterns.
 
-Here's a `Hello World` example app. It spins up a server on port 3000 and replies `Hello World!`.
+## Creating Your First "Hello World" App
 
-::: code-group
+In this example, we’ll create an HTTP server that responds to `GET /hello/:name` with a personalized greeting.
 
-```js [ESM]
-import { useRouteParams } from 'wooks'
-import { createHttpApp } from '@wooksjs/event-http'
+**Example:**  
+```js
+import { createHttpApp, useRouteParams } from '@wooksjs/event-http'
 
 const app = createHttpApp()
 
-app.on('GET', 'hello/:name', () => `Hello ${useRouteParams().get('name')}!`)
+// Register a route handler using the GET method shortcut:
+app.get('hello/:name', () => `Hello ${useRouteParams().get('name')}!`)
 
-// or use a shortcut for the get method:
-// app.get('hello/:name', () => `Hello ${ useRouteParams().get('name') }!`)
-
+// Start the server on port 3000
 app.listen(3000, () => {
+    // Use the built-in logger to print a startup message
     app.getLogger('App').log('Wooks Server is up on port 3000')
 })
 ```
 
-```js [CommonJS]
-const { useRouteParams } = require('wooks')
-const { createHttpApp } = require('@wooksjs/event-http')
-
-const app = createHttpApp()
-
-app.on('GET', 'hello/:name', () => `Hello ${useRouteParams().get('name')}!`)
-
-// or use a shortcut for the get method:
-// app.get('hello/:name', () => `Hello ${ useRouteParams().get('name') }!`)
-
-app.listen(3000, () => {
-    app.getLogger('App').log('Wooks Server is up on port 3000')
-})
-```
-
-:::
-
-Call the endpoint to see the result:
-
+**Test It:**
 ```bash
 curl http://localhost:3000/hello/World
 # Hello World!
 ```
 
-## Use `http` directly
+## Using Node’s `http` Server Directly
 
 You can create http(s) server manually and pass the server callback from the Wooks HTTP app.
+Use `getServerCb()` to plug Wooks into an `http` server of your own.
 
-::: code-group
-
-```js [ESM]
-import { useRouteParams } from 'wooks'
-import { createHttpApp } from '@wooksjs/event-http'
+**Example:**  
+```js
+import { createHttpApp, useRouteParams } from '@wooksjs/event-http'
 import http from 'http'  // [!code ++]
 
 const app = createHttpApp()
@@ -82,25 +65,14 @@ app.listen(3000, () => {    // [!code --]
 }) 
 ```
 
-```js [CommonJS]
-const { useRouteParams } = require('wooks')
-const { createHttpApp } = require('@wooksjs/event-http')
-const http = require('http') // [!code ++]
-
-const app = createHttpApp()
-
-app.get('hello/:name', () => `Hello ${useRouteParams().get('name')}!`)
-
-const server = http.createServer(app.getServerCb()) // [!code ++]
-server.listen(3000, () => { // [!code ++]
-app.listen(3000, () => {    // [!code --]
-    console.log('Wooks Server is up on port 3000')
-})
+**Test It:**
+```bash
+curl http://localhost:3000/hello/Wooks
+# Hello Wooks!
 ```
-:::
 
-## What's next?
+## Next Steps
 
--  Explore [Routing capabilities](/webapp/routing)
--  Find out how to use [Request Composables](/webapp/composables/request)
--  Learn how to work with [Response](/webapp/composables/response)
+- **Working with Request:** Check out [Request Composables](/webapp/composables/request) to learn how to manipulate request data, read headers or cookies and more.
+- **Add Logging & Error Handling:** Integrate event loggers or custom error-handling composables to make debugging easier.
+- **Advance to Other Flavors:** Once comfortable with HTTP, consider exploring CLI or Workflow flavors for broader event-driven architectures.

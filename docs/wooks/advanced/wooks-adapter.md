@@ -1,7 +1,7 @@
 
 # Creating a Custom Wooks Adapter for Your Event Type
 
-Wooks is designed to handle various event types beyond just HTTP. You can create custom adapters that provide a similar developer experience for any event-driven scenario—such as workflows, jobs, or specialized protocols. The approach parallels what you’ve seen with the core concepts in `@wooksjs/event-core` and the built-in HTTP adapter.
+Wooks is designed to handle various event types beyond just HTTP. You can create custom adapters that provide a similar developer experience for any event-driven scenario — such as workflows, jobs, or specialized protocols. The approach parallels what you’ve seen with the core concepts in `@wooksjs/event-core` and the built-in HTTP adapter.
 
 ## Overview
 
@@ -150,5 +150,3 @@ class MyEventAdapter extends WooksAdapterBase {
 - **Create context functions:** `createMyContext()` and `useMyContext()` ensure each event runs within its own typed context.
 - **Use composables for logic:** Manage state with the `store` API to keep code clean and testable.
 - **Extend WooksAdapterBase:** Integrate with Wooks’ router to map event routes and handle triggers, creating a seamless developer experience similar to HTTP or workflow events.
-
-By following these guidelines and referencing the event-core concepts, you can build robust, custom Wooks adapters tailored to your event model.

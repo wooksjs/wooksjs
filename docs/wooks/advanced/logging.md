@@ -106,7 +106,6 @@ This can be useful for debugging, auditing, or displaying logs in a UI.
 
 ## Summary
 
-Wooks provides a convenient, integrated logging system through `@wooksjs/event-core` and `@prostojs/logger`. By configuring the logger globally and per-event, you gain fine-grained control over which messages appear, where they’re sent, and how they’re formatted. The `useEventLogger()` function ensures each event can be traced individually, while `app.getLogger()` gives you a topic-scoped logger for application-level logging.
+Wooks provides a convenient, integrated logging system through `@wooksjs/event-core` and `@prostojs/logger`. By configuring the logger globally and per-event, you gain fine-grained control over which messages appear, where they’re sent, and how they’re formatted. The `useEventLogger()` composable ensures each event can be traced individually, while `app.getLogger()` gives you a topic-scoped logger for application-level logging.
 
-Leverage these features to keep your application’s event handling transparent, debuggable, and easy to maintain.
 

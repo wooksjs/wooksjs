@@ -1,3 +1,3 @@
 export * from './types'
 export * from './wooks'
-export { useRouteParams } from '@wooksjs/event-core'
+export { useEventId, useEventLogger, useRouteParams } from '@wooksjs/event-core'

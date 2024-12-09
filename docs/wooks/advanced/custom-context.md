@@ -205,4 +205,4 @@ Here, we’ve demonstrated:
 - **Creating context functions:** `createJobContext()` and `useJobContext()` ensure type-safe and context-specific operations.
 - **Using `init`, `get`, `set`:** We lazily initialize values (like `status`, `metadata`), retrieve them, and update them as the job progresses.
 
-This pattern can be applied to any type of event in your application. By following these steps, you can build your own event contexts with strong typing, lazy initialization, and structured state management using the `store` APIs provided by `@wooksjs/event-core`.
+This pattern can be applied to any type of event in your application.

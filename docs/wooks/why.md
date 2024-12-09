@@ -16,7 +16,7 @@ Wooks introduces **composables**, which provide a systematic way to access and m
 - Keeps your application’s entry points tidy and maintainable.
 - Makes testing easier since you can exercise logic in a more controlled, context-driven manner.
 
-## 2. Complexity in Middleware & Plugins**  
+## 2. Complexity in Middleware & Plugins  
 Express and Fastify rely heavily on middleware chains and plugins to manage functionality like request parsing, logging, validation, and authentication. While these patterns are powerful, they can also become complicated in large projects:
 
 - **Debugging Complexity:** When an issue arises, it can be tricky to identify which middleware broke the chain or modified the request incorrectly.
@@ -27,7 +27,7 @@ Express and Fastify rely heavily on middleware chains and plugins to manage func
 By focusing on composable, context-based logic instead of a chain of middlewares, Wooks encourages you to write modular functions that can be reused anywhere. Since composables access the same contextual store, their execution doesn’t depend on a linear processing pipeline. This architectural clarity saves time, reduces guesswork, and keeps your code modular and discoverable.
 
 ## 3. Event-Driven, Not Just HTTP-Driven
-Both Express and Fastify were born primarily as HTTP frameworks. Extending them to work with other event types—like CLI commands or custom workflow triggers—can be cumbersome or require separate tooling and architectural decisions.
+Both Express and Fastify were born primarily as HTTP frameworks. Extending them to work with other event types — like CLI commands or custom workflow triggers — can be cumbersome or require separate tooling and architectural decisions.
 
 ### How Wooks Solves This
 Wooks decouples the concept of “events” from the transport layer. HTTP requests, CLI commands, or any other form of event can be handled uniformly. This holistic approach:

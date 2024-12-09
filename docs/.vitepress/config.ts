@@ -118,17 +118,21 @@ export default defineConfig({
                             link: '/wooks/',
                         },
                         {
+                            text: 'Generic Composables',
+                            link: '/wooks/generic-composables',
+                        },
+                        {
                             text: 'Advanced',
                             // collapsible: true,
                             collapsed: false,
                             items: [
                                 {
-                                    text: 'Event Context',
-                                    link: '/wooks/advanced/event-core',
+                                    text: 'Wooks Context',
+                                    link: '/wooks/advanced/wooks-context',
                                 },
                                 {
                                     text: 'Custom Event Context',
-                                    link: '/wooks/advanced/your-event',
+                                    link: '/wooks/advanced/custom-context',
                                 },
                                 {
                                     text: 'Custom Wooks Adapter',
@@ -194,22 +198,18 @@ export default defineConfig({
                                     text: 'Context and Hooks',
                                     link: '/webapp/more-hooks',
                                 },
-                                {
-                                    text: 'Create an Adapter',
-                                    link: '/webapp/adapters',
-                                },
                             ],
                         },
-                        {
-                            text: 'Adapters',
-                            collapsed: true,
-                            items: [
-                                {
-                                    text: 'Express Adapter',
-                                    link: '/webapp/express',
-                                },
-                            ]
-                        },
+                        // {
+                        //     text: 'Adapters',
+                        //     collapsed: true,
+                        //     items: [
+                        //         {
+                        //             text: 'Express Adapter',
+                        //             link: '/webapp/express',
+                        //         },
+                        //     ]
+                        // },
                         {
                             text: 'Logging in Wooks',
                             link: '/webapp/logging',

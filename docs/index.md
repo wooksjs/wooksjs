@@ -25,24 +25,26 @@ themeConfig:
 
 features:
     - icon: 💕
-      title: Harness the Power of Composables
-      details: Utilize Vue or React-style composables to interact with and modify the event state seamlessly, making your coding experience more efficient.
+      title: Leverage the Flexibility of Composables
+      link: /wooks/what#what-are-composables
+      details: Use Vue- or React-inspired composables to seamlessly interact with and adapt the event state, enabling efficient, maintainable code.
     - icon: 🕸
-      title: Craft Dynamic Web Applications
-      details: Harness the capabilities of @wooksjs/event-http to build vibrant web applications effortlessly and swiftly.
+      title: Build Dynamic Web Applications
+      details: Rapidly develop rich, responsive web applications with `@wooksjs/event-http`, streamlining everything from routing to composable logic.
       link: /webapp/
     - icon: 💻
-      title: Construct Powerful Command Line Interfaces
-      details: Leverage the potency of @wooksjs/event-cli to handle CLI events and create intuitive and responsive command-line interfaces.
+      title: Develop Robust Command-Line Interfaces
+      details: Harness `@wooksjs/event-cli` to effortlessly handle CLI events, delivering intuitive, responsive command-line tools.
       link: /cliapp/
     - icon: ⚡
-      title: Experience High-Speed, Reliable Routing
-      details: Utilize the speedy and reliable @prostojs/router for quick handler lookups and proper handling of %-encoding, thus enhancing your app's performance.
-      link: /webapp/routing
+      title: Achieve High-Performance Routing
+      details: Utilize `@prostojs/router` for swift, reliable route matching and proper URI decoding, ensuring fast and predictable request handling.
+      link: /wooks/comparison#_2-smarter-and-more-flexible-routing
     - icon: ✍
-      title: Create Custom Composables
-      details: Modularize your application logic by crafting distinct composables for easy reuse, thereby promoting clean and maintainable code.
+      title: Create Your Own Composables
+      link: /wooks/what#what-are-composables
+      details: Easily craft custom composables to modularize and reuse your logic, improving code clarity and maintainability.
     - icon: 🔑
-      title: TypeScript by Design
-      details: Enjoy the safety and clarity of fully typed APIs courtesy of TypeScript, enhancing development productivity and reducing runtime errors.
+      title: Embrace Type Safety
+      details: Build with TypeScript from the ground up, enjoying fully typed APIs that reduce runtime errors and enhance development productivity.
 ---

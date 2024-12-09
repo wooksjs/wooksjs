@@ -91,26 +91,3 @@ In the above example, we define the `useHeaderHook` function that creates a cust
 The hook utilizes the `useSetHeaders` composable provided by Wooks HTTP to access the `setHeader` and headers functions.
 It returns an `ref`-object that allows you to get and set the value of the specified header.
 
-## How to Restore the Event Context
-
-To restore the Event Context within a handler, you can use the `restoreCtx` and functions provided by the `useHttpContext` hook.
-
-```ts
-import { useHttpContext } from '@wooksjs/event-http';
-
-async function someHandler() {
-    const { restoreCtx, clearCtx } = useHttpContext();
-    await ... // Some async operations
-    restoreCtx();
-    // Here the Wooks Context is restored
-}
-```
-
-In the example above, within the `someHandler` function, we use the `useHttpContext` hook to retrieve the `restoreCtx` and `clearCtx` functions.
-After performing some async operations, we can call `restoreCtx()` to restore the Event Context.
-This allows subsequent operations within the handler to have access to the restored context.
-
-By using the `restoreCtx` function, you can ensure that the Event Context is maintained and accessible throughout the execution of your handler.
-
-That's how you can work with Event Context and create your own hooks in Wooks HTTP.
-Refer to the [Event Context](/wooks/advanced/context) for more details.

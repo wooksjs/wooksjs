@@ -70,7 +70,7 @@ app.start('adding', { result: 0 })
 
 ## Documentation
 
-For more detailed documentation, please visit [wooks.moost.org](https://wooks.moost.org/wfapp/).
+For more detailed documentation, please visit [wooks.moost.org](https://wooks.moost.org/wf/).
 
 ## Contributing
 

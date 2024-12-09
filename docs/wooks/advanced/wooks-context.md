@@ -1,5 +1,5 @@
 
-# Working with context
+# Wooks Context
 
 `@wooksjs/event-core` provides the low-level utilities for creating, managing, and accessing asynchronous event contexts in Wooks. It enables you to establish strongly typed, per-event storage that persists through async calls without manual propagation. This guide targets advanced users who want to understand `event-core` or create custom event integrations.
 
@@ -90,6 +90,5 @@ Calling `store(key)` returns a handle with methods to manage properties inside t
    Use `expectedTypes` in `useAsyncEventContext()` to ensure composables are only called within the correct event flow.
 
 5. **Graceful Error Handling:**  
-   If you call `useAsyncEventContext()` outside the correct context or after the event ends, it throws an error. Handle these scenarios as needed for your application.
+   If you call `useAsyncEventContext()` outside the correct context or after the event ends, it throws an error.
 
-By following these guidelines, you can build robust, type-safe custom event adapters with `@wooksjs/event-core`, tapping into the same powerful architectural patterns that Wooks uses for HTTP, CLI, and workflow events.
