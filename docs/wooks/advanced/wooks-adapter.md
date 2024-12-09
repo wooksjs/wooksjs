@@ -9,15 +9,15 @@ To create a custom adapter, you’ll need to:
 
 1. **Define Event and Context Types:**  
    Describe your event shape (including a `type`) and the state you want to store per-event.
-   *(See the [Custom Event Context](/wooks/advanced/your-event#_1-define-the-event-and-store-interfaces) for patterns and examples.)*
+   *(See the [Custom Event Context](/wooks/advanced/custom-context#_1-define-the-event-and-store-interfaces) for patterns and examples.)*
 
 2. **Create Context Functions:**  
    Write functions that create and access the event context using `createAsyncEventContext()` and `useAsyncEventContext()`.  
-   *(See the [Custom Event Context](/wooks/advanced/your-event#_2-create-context-creation-and-usage-functions) for patterns and examples.)*
+   *(See the [Custom Event Context](/wooks/advanced/custom-context#_2-create-context-creation-and-usage-functions) for patterns and examples.)*
 
 3. **Write Composables:**  
    Implement composables that use the `store` API (`init`, `get`, `set`, `del`) to interact with event-scoped data.  
-   *(See the [Custom Event Context](/wooks/advanced/your-event#_3-create-composables-using-the-store-api) for patterns and examples.)*
+   *(See the [Custom Event Context](/wooks/advanced/custom-context#_3-create-composables-using-the-store-api) for patterns and examples.)*
 
 4. **Extend WooksAdapterBase:**  
    Build a class extending `WooksAdapterBase` to:
@@ -31,7 +31,7 @@ Before coding, you need:
 - An **Event Data Interface**, e.g. `TMyEventData`, describing the event fields and `type`.
 - A **Context Store Interface**, e.g. `TMyContextStore`, describing the data you’ll store during event handling.
 
-Once you have those interfaces, follow the patterns described in the [Custom Event Context](/wooks/advanced/your-event) to:
+Once you have those interfaces, follow the patterns described in the [Custom Event Context](/wooks/advanced/custom-context) to:
 
 - Implement `createMyContext(data, options)` that sets up the async event context.
 - Implement `useMyContext()` that retrieves and manipulates that context.
@@ -39,7 +39,7 @@ Once you have those interfaces, follow the patterns described in the [Custom Eve
 ## Writing Composables
 
 With `useMyContext()` available, create composables that use `store('key')` to manage data. Use `init` for lazy loading and `get`/`set` for reading and updating state.  
-*(See the [Working with Stores](/wooks/advanced/event-core#working-with-stores) for more on the store pattern.)*
+*(See the [Working with Stores](/wooks/advanced/wooks-context#working-with-stores) for more on the store pattern.)*
 
 ## Extending `WooksAdapterBase`
 
@@ -146,7 +146,7 @@ class MyEventAdapter extends WooksAdapterBase {
 
 ## Summary
 
-- **Define event data and store types:** Refer to the [Custom Event Context](/wooks/advanced/your-event) for details.
+- **Define event data and store types:** Refer to the [Custom Event Context](/wooks/advanced/custom-context) for details.
 - **Create context functions:** `createMyContext()` and `useMyContext()` ensure each event runs within its own typed context.
 - **Use composables for logic:** Manage state with the `store` API to keep code clean and testable.
 - **Extend WooksAdapterBase:** Integrate with Wooks’ router to map event routes and handle triggers, creating a seamless developer experience similar to HTTP or workflow events.

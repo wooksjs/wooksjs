@@ -157,4 +157,4 @@ parser provided by `@wooksjs/http-body` for other content types.
 With the this approach, you can easily customize the body parsing logic based on your specific requirements.
 
 Please note that `store` and `init` functions that we used above are part of the Event Context API.
-For more details on using Wooks Event Context API, refer to the [Event Context](/wooks/advanced/context).
+For more details on using Wooks Event Context API, refer to the [Event Context](/wooks/advanced/wooks-context).

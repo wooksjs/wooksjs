@@ -10,7 +10,7 @@ Before diving in, you might want to read more about Wooks to understand its phil
 
 Because Wooks is designed to be event-agnostic, there isn’t a one-size-fits-all "get started" guide. Instead, the initial steps vary depending on the kind of events you want to handle. Wooks provides different “flavors” tailored for distinct event sources:
 
-- **[HTTP Events](/webapp/):** Ideal if you’re building REST APIs, websites, or GraphQL services. This flavor provides a familiar HTTP server interface, routing, and composables for working with request data and responses.
+- **[HTTP Events](/webapp/):** Ideal if you’re building REST APIs. This flavor provides a familiar HTTP server interface, routing, and composables for working with request data and responses.
 - **[CLI Events](/cliapp/):** Perfect for command-line tools and developer utilities, letting you define commands, arguments, and options just like routes. With Wooks, you can handle CLI inputs as structured events and apply the same composable patterns.
 - **[Workflow Events](/wf/):** Useful if you’re building custom pipelines or need a flexible way to handle various asynchronous triggers. This flavor allows you to structure your workflows as events and benefit from Wooks’ context management and composables.
 
