@@ -110,7 +110,10 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
     )
 
     return runInContext(async () => {
-      const { handlers: foundHandlers } = this.wooks.lookup('WF_FLOW', `/${schemaId}`)
+      const { handlers: foundHandlers } = this.wooks.lookup(
+        'WF_FLOW',
+        `/${schemaId}`.replace(/^\/+/, '/')
+      )
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       const handlers = foundHandlers || (this.opts?.onNotFound && [this.opts.onNotFound]) || null
       if (handlers && handlers.length > 0) {
@@ -154,6 +157,10 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
           throw error
         }
         clean()
+        if (result.resume) {
+          result.resume = (_input?: I) =>
+            this.resume(result.state, _input, spy, cleanup) as Promise<TFlowOutput<T, unknown, IR>>
+        }
         return result
       }
       clean()
