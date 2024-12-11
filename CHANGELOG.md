@@ -1,3 +1,12 @@
+## [0.5.15](https://github.com/wooksjs/wooksjs/compare/v0.5.14...v0.5.15) (2024-12-11)
+
+
+### Bug Fixes
+
+* **wf:** fix auto-resume ([1a9c29d](https://github.com/wooksjs/wooksjs/commit/1a9c29d4307e9fb253ba2c47c5f350352cea50cb))
+
+
+
 ## [0.5.14](https://github.com/wooksjs/wooksjs/compare/v0.5.13...v0.5.14) (2024-12-09)
 
 
