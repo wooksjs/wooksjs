@@ -45,6 +45,7 @@
   "homepage": "https://github.com/wooksjs/wooksjs#readme",
   "devDependencies": {
     "@prostojs/dye": "^0.3.0",
+    "@prostojs/cli-help": "^0.0.11",
     "@prostojs/logger": "^0.4.0",
     "@prostojs/router": "^0.2.1",
     "@prostojs/wf": "^0.0.18",
@@ -85,8 +86,5 @@
     "typescript": "^5.3.3",
     "vitepress": "^1.5.0",
     "yorkie": "^2.0.0"
-  },
-  "dependencies": {
-    "@prostojs/cli-help": "^0.0.10"
   }
 }
