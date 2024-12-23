@@ -1,3 +1,12 @@
+## [0.5.17](https://github.com/wooksjs/wooksjs/compare/v0.5.16...v0.5.17) (2024-12-23)
+
+
+### Features
+
+* getGlobalWooks cleanup ([bed9cc8](https://github.com/wooksjs/wooksjs/commit/bed9cc8c6ab1946b868ca6fb96811e452f1ee30f))
+
+
+
 ## [0.5.16](https://github.com/wooksjs/wooksjs/compare/v0.5.15...v0.5.16) (2024-12-12)
 
 
