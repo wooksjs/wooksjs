@@ -75,7 +75,14 @@ export class Wooks {
 
 let gWooks: Wooks | undefined
 
-export function getGlobalWooks(logger?: TConsoleBase, routerOpts?: TWooksOptions['router']): Wooks {
+export function getGlobalWooks(
+  logger?: TConsoleBase,
+  routerOpts?: TWooksOptions['router'],
+  cleanup?: 'cleanup' // cleanup global wooks instance, usefull for dev server restart
+): Wooks {
+  if (cleanup === 'cleanup') {
+    gWooks = undefined
+  }
   if (!gWooks) {
     gWooks = new Wooks({
       logger,
