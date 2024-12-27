@@ -27,7 +27,7 @@ export class WooksHttp extends WooksAdapterBase {
     wooks?: Wooks | WooksAdapterBase
   ) {
     super(wooks, opts?.logger, opts?.router)
-    this.logger = opts?.logger || this.getLogger('wooks-http')
+    this.logger = opts?.logger || this.getLogger(`${__DYE_CYAN_BRIGHT__}[wooks-http]`)
   }
 
   all<ResType = unknown, ParamsType = Record<string, string | string[]>>(

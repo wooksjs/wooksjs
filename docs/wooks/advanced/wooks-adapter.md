@@ -137,7 +137,7 @@ class MyEventAdapter extends WooksAdapterBase {
         }
       } else {
         // Handle not found scenario
-        // e.g. this.getLogger('MyEventAdapter').warn('No handler found for route', routeId)
+        // e.g. this.getLogger('[MyEventAdapter]').warn('No handler found for route', routeId)
       }
     })
   }

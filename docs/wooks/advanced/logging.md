@@ -44,7 +44,7 @@ You can retrieve a globally scoped logger from your Wooks application instance:
 
 ```ts
 const app = createHttpApp();
-const myLogger = app.getLogger('my-custom-topic');
+const myLogger = app.getLogger('[my-custom-topic]');
 
 // You can now log messages with this logger
 myLogger.log('This is a log message');

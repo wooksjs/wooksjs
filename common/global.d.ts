@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 /* eslint-disable no-var */
 // Global compile-time constants
 declare var __DEV__: boolean

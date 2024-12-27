@@ -39,7 +39,7 @@ export class WooksCli extends WooksAdapterBase {
     wooks?: Wooks | WooksAdapterBase
   ) {
     super(wooks, opts?.logger, opts?.router)
-    this.logger = opts?.logger || this.getLogger('wooks-cli')
+    this.logger = opts?.logger || this.getLogger(`${__DYE_CYAN_BRIGHT__}[wooks-cli]`)
     this.cliHelp =
       opts?.cliHelp instanceof CliHelpRenderer
         ? opts.cliHelp

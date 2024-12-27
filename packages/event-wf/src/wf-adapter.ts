@@ -33,7 +33,7 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
     wooks?: Wooks | WooksAdapterBase
   ) {
     super(wooks, opts?.logger, opts?.router)
-    this.logger = opts?.logger || this.getLogger('wooks-wf')
+    this.logger = opts?.logger || this.getLogger(`${__DYE_CYAN_BRIGHT__}[wooks-wf]`)
     this.wf = new WooksWorkflow(this.wooks)
   }
 

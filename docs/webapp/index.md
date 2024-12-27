@@ -34,7 +34,7 @@ app.get('hello/:name', () => `Hello ${useRouteParams().get('name')}!`)
 // Start the server on port 3000
 app.listen(3000, () => {
     // Use the built-in logger to print a startup message
-    app.getLogger('App').log('Wooks Server is up on port 3000')
+    app.getLogger('[App]').log('Wooks Server is up on port 3000')
 })
 ```
 

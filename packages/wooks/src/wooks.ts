@@ -27,7 +27,7 @@ export class Wooks {
       silent: true,
       ...opts?.router,
     })
-    this.logger = opts?.logger || getDefaultLogger('wooks')
+    this.logger = opts?.logger || getDefaultLogger(`${__DYE_CYAN_BRIGHT__}[wooks]`)
   }
 
   public getRouter() {
@@ -117,7 +117,7 @@ export class WooksAdapterBase {
    * Get logger instance for application logs
    * ```js
    * const app = createHttpApp()
-   * const logger = app.getLogger('app-logger')
+   * const logger = app.getLogger('[app-logger]')
    * logger.log('My App log message')
    * ```
    * @param topic topic for logger
