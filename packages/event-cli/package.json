@@ -1,6 +1,6 @@
 {
   "name": "@wooksjs/event-cli",
-  "version": "0.5.17",
+  "version": "0.5.18",
   "description": "@wooksjs/event-cli",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
@@ -39,14 +39,14 @@
     "url": "https://github.com/wooksjs/wooksjs/issues"
   },
   "peerDependencies": {
-    "wooks": "0.5.17",
-    "@wooksjs/event-core": "0.5.17"
+    "wooks": "0.5.18",
+    "@wooksjs/event-core": "0.5.18"
   },
   "dependencies": {
     "minimist": "^1.2.6",
     "@prostojs/cli-help": "^0.0.11",
     "@prostojs/router": "^0.2.1",
-    "@prostojs/logger": "^0.4.0"
+    "@prostojs/logger": "^0.4.3"
   },
   "devDependencies": {
     "@types/minimist": "^1.2.5"

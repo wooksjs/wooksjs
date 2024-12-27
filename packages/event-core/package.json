@@ -1,6 +1,6 @@
 {
   "name": "@wooksjs/event-core",
-  "version": "0.5.17",
+  "version": "0.5.18",
   "description": "@wooksjs/event-core",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
@@ -40,7 +40,7 @@
   },
   "dependencies": {
     "hookable": "^5.5.3",
-    "@prostojs/logger": "^0.4.0"
+    "@prostojs/logger": "^0.4.3"
   },
   "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/event-core#readme"
 }
