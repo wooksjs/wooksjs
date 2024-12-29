@@ -1,3 +1,12 @@
+## [0.5.19](https://github.com/wooksjs/wooksjs/compare/v0.5.18...v0.5.19) (2024-12-29)
+
+
+### Bug Fixes
+
+* add clearGlobalWooks ([59b3a9d](https://github.com/wooksjs/wooksjs/commit/59b3a9ddd9d3fffccad30fe27870625a64ea8a1f))
+
+
+
 ## [0.5.18](https://github.com/wooksjs/wooksjs/compare/v0.5.17...v0.5.18) (2024-12-27)
 
 
