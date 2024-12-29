@@ -75,14 +75,22 @@ export class Wooks {
 
 let gWooks: Wooks | undefined
 
-export function getGlobalWooks(
-  logger?: TConsoleBase,
-  routerOpts?: TWooksOptions['router'],
-  cleanup?: 'cleanup' // cleanup global wooks instance, usefull for dev server restart
-): Wooks {
-  if (cleanup === 'cleanup') {
-    gWooks = undefined
-  }
+/**
+ * Clear global wooks instance
+ *
+ * (useful for tests or dev-mode)
+ */
+export function clearGlobalWooks() {
+  gWooks = undefined
+}
+
+/**
+ * Creates global wooks singleton instance to share across adapters
+ * @param logger
+ * @param routerOpts
+ * @returns
+ */
+export function getGlobalWooks(logger?: TConsoleBase, routerOpts?: TWooksOptions['router']): Wooks {
   if (!gWooks) {
     gWooks = new Wooks({
       logger,
