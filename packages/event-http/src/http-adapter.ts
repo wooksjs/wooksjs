@@ -171,7 +171,7 @@ export class WooksHttp extends WooksAdapterBase {
 
   protected respond(data: unknown) {
     void this.responder.respond(data)?.catch(e => {
-      this.logger.error('Uncought response exception', e)
+      this.logger.error('Uncaught response exception', e)
     })
   }
 
@@ -235,7 +235,7 @@ export class WooksHttp extends WooksAdapterBase {
           // )
         } else {
           this.logger.error(
-            `Uncought route handler exception: ${store('event').get('req')?.url || ''}`,
+            `Uncaught route handler exception: ${store('event').get('req')?.url || ''}`,
             error
           )
         }
