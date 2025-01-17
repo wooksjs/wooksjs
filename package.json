@@ -1,6 +1,6 @@
 {
   "name": "wooksjs",
-  "version": "0.5.22",
+  "version": "0.5.23",
   "description": "wooksjs - web app framework with hooks",
   "main": "index.js",
   "type": "module",
@@ -16,7 +16,8 @@
     "test:cov": "vitest run --coverage",
     "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s",
     "version": "pnpm changelog && git add CHANGELOG.md && git commit -m 'chore: update changelog'",
-    "release": "pnpm test && pnpm lint && pnpm build && pnpm version patch && git push --follow-tags && pnpm publish -r --access public",
+    "release": "pnpm build && pnpm lint && pnpm test && pnpm version patch && git push --follow-tags && pnpm publish -r --access public",
+    "sync": "node ./scripts/versions",
     "prepare": "husky"
   },
   "repository": {
@@ -61,6 +62,7 @@
     "eslint-plugin-unicorn": "49.0.0",
     "eslint-plugin-yml": "1.10.0",
     "husky": "^9.1.7",
+    "inquirer": "^12.3.2",
     "oxlint": "^0.15.6",
     "prettier": "3.1.1",
     "rolldown": "1.0.0-beta.1",

@@ -1,6 +1,6 @@
 {
   "name": "@wooksjs/http-static",
-  "version": "0.5.20",
+  "version": "0.5.23",
   "description": "@wooksjs/http-static",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
