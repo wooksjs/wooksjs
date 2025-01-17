@@ -16,6 +16,9 @@
       "types": "./dist/index.d.ts"
     }
   },
+  "scripts": {
+    "build": "rolldown -c ../../rolldown.config.mjs"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/wooksjs/wooksjs.git",
@@ -39,17 +42,19 @@
     "url": "https://github.com/wooksjs/wooksjs/issues"
   },
   "peerDependencies": {
-    "wooks": "0.5.20",
-    "@wooksjs/event-core": "0.5.20"
+    "@wooksjs/event-core": "workspace:^",
+    "wooks": "workspace:^"
   },
   "dependencies": {
-    "minimist": "^1.2.6",
     "@prostojs/cli-help": "^0.0.11",
+    "@prostojs/logger": "^0.4.3",
     "@prostojs/router": "^0.2.1",
-    "@prostojs/logger": "^0.4.3"
+    "minimist": "^1.2.6"
   },
   "devDependencies": {
-    "@types/minimist": "^1.2.5"
+    "@types/minimist": "^1.2.5",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
   },
   "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/event-cli#readme"
 }

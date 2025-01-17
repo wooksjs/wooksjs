@@ -19,7 +19,7 @@ export class CookiesIterable extends IterableRecords {
 
   constructor(cookiesString: string) {
     super()
-    this.cookies = cookiesString.split(/,\s(?!\d{2}[\s-])/)
+    this.cookies = cookiesString.split(/,\s(?!\d{2}[\s-])/u)
   }
 
   next(): IteratorResult<[string, string]> {

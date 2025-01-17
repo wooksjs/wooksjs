@@ -10,3 +10,4 @@ temp
 .npmrc
 docs/.vitepress/cache
 # <<< domelint-end
+**/*.spec.ts

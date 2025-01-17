@@ -1,3 +1,5 @@
+import { beforeEach, describe, expect, it } from 'vitest'
+
 import { useRequest, useResponse } from '../composables'
 import type { BaseHttpResponse } from '../response'
 import { createWooksResponder } from '../response'
@@ -83,7 +85,7 @@ describe('response', () => {
       ).toEqual(
         '<html style="background-color: #333; color: #bbb;"><head><title>405 Method Not Allowed</title>' +
           '</head><body><center><h1>405 Method Not Allowed</h1></center><center><h4>test message</h1></center>' +
-          '<hr color="#666"><center style="color: #666;"> Wooks vJEST_TEST </center></body></html>'
+          '<hr color="#666"><center style="color: #666;"> Wooks v0.1.2 </center></body></html>'
       )
     })
   })

@@ -1,4 +1,6 @@
+// eslint-disable no-console
 import { useRouteParams } from '@wooksjs/event-core'
+import { describe, expect, it } from 'vitest'
 
 import { useWfState } from './composables'
 import { createWfApp } from './wf-adapter'

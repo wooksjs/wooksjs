@@ -1,5 +1,6 @@
 import { useRouteParams } from '@wooksjs/event-core'
 import { IncomingMessage, ServerResponse } from 'http'
+import { beforeEach, describe, expect, it } from 'vitest'
 
 import { prepareTestHttpContext } from '../../testing'
 import { useRequest } from '../request'
@@ -34,7 +35,7 @@ describe('compasble/req-res', () => {
       })
       expect(method).toBe(method)
       // eslint-disable-next-line no-useless-escape
-      expect(reqId()).toMatch(/^[\da-f\-]{36}$/)
+      expect(reqId()).toMatch(/^[\-0-9a-f]{36}$/u)
       expect(getIp({ trustProxy: true })).toBe('127.0.0.1')
       expect(getIp()).toBe('')
       expect(getIpList()).toEqual({

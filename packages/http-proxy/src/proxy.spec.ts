@@ -1,3 +1,5 @@
+import { describe, expect, it } from 'vitest'
+
 import { applyProxyControls, CookiesIterable, HeadersIterable } from './proxy-utils'
 
 describe('event-http/proxy', () => {
@@ -62,14 +64,14 @@ describe('event-http/proxy', () => {
     it('must filter by allowList (regexp[])', () => {
       expect(
         applyProxyControls(new HeadersIterable(headers), {
-          allow: [/^a/],
+          allow: [/^a/u],
         })
       ).toEqual({ accept: '*' })
     })
     it('must filter by allowList (regexp | stirng[])', () => {
       expect(
         applyProxyControls(new HeadersIterable(headers), {
-          allow: [/type$/, 'accept'],
+          allow: [/type$/u, 'accept'],
         })
       ).toEqual({ 'accept': '*', 'content-type': 'application/json' })
     })
@@ -85,7 +87,7 @@ describe('event-http/proxy', () => {
       expect(
         applyProxyControls(new HeadersIterable(headers), {
           allow: '*',
-          block: [/content/],
+          block: [/content/u],
         })
       ).toEqual({ accept: '*' })
     })
@@ -93,7 +95,7 @@ describe('event-http/proxy', () => {
       expect(
         applyProxyControls(new HeadersIterable(headers), {
           allow: '*',
-          block: [/type$/, /length$/],
+          block: [/type$/u, /length$/u],
         })
       ).toEqual({ accept: '*' })
     })

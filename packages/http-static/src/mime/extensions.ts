@@ -1,3 +1,4 @@
+// eslint-disable max-lines
 /* eslint-disable sonarjs/no-duplicate-string */
 /* eslint-disable @typescript-eslint/naming-convention */
 export const extensions = {

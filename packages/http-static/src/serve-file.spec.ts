@@ -2,6 +2,7 @@ import { createHttpContext } from '@wooksjs/event-http'
 import { IncomingMessage, ServerResponse } from 'http'
 import { Socket } from 'net'
 import path from 'path'
+import { beforeEach, describe, expect, it } from 'vitest'
 
 import { normalizePath } from './utils/path-norm'
 

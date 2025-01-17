@@ -1,3 +1,4 @@
+// eslint-disable no-console
 import type { TConsoleBase } from '@prostojs/logger'
 import type { Step, TFlowOutput, TStepHandler, TWorkflowSchema, TWorkflowSpy } from '@prostojs/wf'
 import { createStep } from '@prostojs/wf'
@@ -71,6 +72,7 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
   }
 
   public start<I>(
+    // eslint-disable-next-line max-params
     schemaId: string,
     inputContext: T,
     input?: I,
@@ -90,6 +92,7 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
   }
 
   protected async _start<I>(
+    // eslint-disable-next-line max-params
     schemaId: string,
     inputContext: T,
     indexes?: number[],
@@ -112,7 +115,7 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
     return runInContext(async () => {
       const { handlers: foundHandlers } = this.wooks.lookup(
         'WF_FLOW',
-        `/${schemaId}`.replace(/^\/+/, '/')
+        `/${schemaId}`.replace(/^\/+/u, '/')
       )
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       const handlers = foundHandlers || (this.opts?.onNotFound && [this.opts.onNotFound]) || null

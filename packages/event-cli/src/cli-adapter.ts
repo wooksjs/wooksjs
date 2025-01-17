@@ -1,3 +1,4 @@
+// eslint-disable no-console
 /* eslint-disable sonarjs/no-nested-template-literals */
 import type { TCliEntry, TCliHelpOptions } from '@prostojs/cli-help'
 import { CliHelpRenderer } from '@prostojs/cli-help'
@@ -89,7 +90,7 @@ export class WooksCli extends WooksAdapterBase {
     const options: TWooksCliEntry<ResType> =
       typeof _options === 'function' ? { handler: _options } : _options
     const handler = typeof _options === 'function' ? _options : _options.handler
-    const makePath = (s: string) => `/${s.replace(/\s+/g, '/')}`
+    const makePath = (s: string) => `/${s.replace(/\s+/gu, '/')}`
 
     // register handler
     const targetPath = makePath(path)
@@ -113,7 +114,7 @@ export class WooksCli extends WooksAdapterBase {
     }
 
     // register helpCli entry
-    const command = routed.getStaticPart().replace(/\//g, ' ').trim()
+    const command = routed.getStaticPart().replace(/\//gu, ' ').trim()
     const args: TWooksCliEntry<ResType>['args'] = {
       ...options.args,
     }
@@ -124,7 +125,7 @@ export class WooksCli extends WooksAdapterBase {
     }
     this.cliHelp.addEntry({
       command,
-      aliases: options.aliases?.map(alias => alias.replace(/\\:/g, ':')), // unescape ":" character
+      aliases: options.aliases?.map(alias => alias.replace(/\\:/gu, ':')), // unescape ":" character
       args,
       description: options.description,
       examples: options.examples,
@@ -145,7 +146,7 @@ export class WooksCli extends WooksAdapterBase {
           const vars = Object.keys(entry.args || {})
             .map(k => `:${k}`)
             .join('/')
-          const path = `/${alias.replace(/\s+/g, '/').replace(/:/g, '\\:')}${
+          const path = `/${alias.replace(/\s+/gu, '/').replace(/:/gu, '\\:')}${
             vars ? `/${vars}` : ''
           }`
           this.on('CLI', path, entry.custom.handler)
@@ -172,14 +173,14 @@ export class WooksCli extends WooksAdapterBase {
     const argv = _argv || process.argv.slice(2)
     const parsedFlags = minimist(argv, _opts)
     const pathParams = parsedFlags._
-    const path = `/${pathParams.map(v => encodeURI(v).replace(/\//g, '%2F')).join('/')}`
+    const path = `/${pathParams.map(v => encodeURI(v).replace(/\//gu, '%2F')).join('/')}`
     const runInContext = createCliContext(
       {
         opts: _opts,
         argv,
         pathParams,
         cliHelp: this.cliHelp,
-        command: path.replace(/\//g, ' ').trim(),
+        command: path.replace(/\//gu, ' ').trim(),
       },
       this.mergeEventOptions(this.opts?.eventOptions)
     )
@@ -191,7 +192,7 @@ export class WooksCli extends WooksAdapterBase {
       const { handlers: foundHandlers, firstStatic } = this.wooks.lookup('CLI', path)
       if (typeof firstStatic === 'string') {
         // overwriting command with firstStatic to properly search for help
-        store('event').set('command', firstStatic.replace(/\//g, ' ').trim())
+        store('event').set('command', firstStatic.replace(/\//gu, ' ').trim())
       }
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       const handlers = foundHandlers || (this.opts?.onNotFound && [this.opts.onNotFound]) || null

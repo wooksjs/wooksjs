@@ -1,3 +1,6 @@
+/* eslint-disable unicorn/no-await-expression-member */
+/* eslint-disable no-sparse-arrays */
+/* eslint-disable max-depth */
 import {
   EHttpStatusCode,
   HttpError,
@@ -88,7 +91,7 @@ export function useBody() {
   }
 
   function formDataParser(v: string): Record<string, unknown> {
-    const boundary = `--${(/boundary=([^;]+)(?:;|$)/.exec(contentType || '') || [, ''])[1]}`
+    const boundary = `--${(/boundary=([^;]+)(?:;|$)/u.exec(contentType || '') || [, ''])[1]}`
     if (!boundary) {
       throw new HttpError(EHttpStatusCode.BadRequest, 'form-data boundary not recognized')
     }
@@ -103,11 +106,12 @@ export function useBody() {
       let valueMode = false
       const lines = part
         .trim()
-        .split(/\n/g)
+        .split(/\n/u)
         .map(s => s.trim())
       for (const line of lines) {
         if (valueMode) {
           if (result[key]) {
+            // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
             result[key] += `\n${line}`
           } else {
             result[key] = line
@@ -116,7 +120,7 @@ export function useBody() {
           if (!line || line === '--') {
             valueMode = !!key
             if (valueMode) {
-              key = key.replace(/^["']/, '').replace(/["']$/, '')
+              key = key.replace(/^["']/u, '').replace(/["']$/u, '')
             }
             continue
           }

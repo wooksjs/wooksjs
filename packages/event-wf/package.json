@@ -16,6 +16,9 @@
       "types": "./dist/index.d.ts"
     }
   },
+  "scripts": {
+    "build": "rolldown -c ../../rolldown.config.mjs"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/wooksjs/wooksjs.git",
@@ -33,8 +36,8 @@
   "author": "Artem Maltsev",
   "license": "MIT",
   "peerDependencies": {
-    "wooks": "0.5.20",
-    "@wooksjs/event-core": "0.5.20"
+    "@wooksjs/event-core": "workspace:^",
+    "wooks": "workspace:^"
   },
   "dependencies": {
     "@prostojs/logger": "^0.4.3",
@@ -43,5 +46,9 @@
   "bugs": {
     "url": "https://github.com/wooksjs/wooksjs/issues"
   },
-  "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/event-wf#readme"
+  "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/event-wf#readme",
+  "devDependencies": {
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
+  }
 }

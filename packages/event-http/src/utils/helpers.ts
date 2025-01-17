@@ -1,5 +1,5 @@
 export function escapeRegex(s: string): string {
-  return s.replace(/[$()*+./?[\\\]^{|}-]/g, '\\$&')
+  return s.replace(/[$()*+\-./?[\\\]^{|}]/gu, '\\$&')
 }
 
 function safeDecode(f: (s: string) => string, v: string): string {

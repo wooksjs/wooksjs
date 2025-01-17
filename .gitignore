@@ -6,3 +6,4 @@ dist
 temp
 .npmrc
 docs/.vitepress/cache
+.types

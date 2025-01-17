@@ -1,3 +1,5 @@
+import { Buffer } from 'buffer'
+
 import { useHttpContext } from '../event-http'
 import { useHeaders } from './headers'
 

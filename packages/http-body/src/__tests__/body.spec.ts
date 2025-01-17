@@ -1,3 +1,5 @@
+import { describe, expect, it } from 'vitest'
+
 import { prepareTestHttpContext } from '../../../event-http/src/testing'
 import { useBody } from '../body'
 

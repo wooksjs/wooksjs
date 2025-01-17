@@ -1,3 +1,5 @@
+import { describe, expect, it } from 'vitest'
+
 import { WooksURLSearchParams } from '../url-search-params'
 
 describe('url-search-params', () => {

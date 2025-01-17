@@ -10,7 +10,7 @@ export function attachHook<
     set?: (value: V) => void
   },
   name?: P
-) {
+): T & THook<V, P> {
   Object.defineProperty(target, name || 'value', {
     get: opts.get,
     set: opts.set,

@@ -59,6 +59,9 @@ export function prepareTestHttpContext(options: TTestHttpContext) {
             }
             break
           }
+          default: {
+            throw new Error(`Unknown cached context key: ${key}`)
+          }
         }
       }
     }

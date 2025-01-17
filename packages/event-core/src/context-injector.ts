@@ -29,11 +29,11 @@ type TContextInjectorCallback<T> = () => T
 
 let ci = new ContextInjector()
 
-export function getContextInjector<N = TContextInjectorHooks>() {
+export function getContextInjector<N = TContextInjectorHooks>(): ContextInjector<N> {
   return ci as ContextInjector<N>
 }
 
-export function replaceContextInjector(newCi: ContextInjector<string>) {
+export function replaceContextInjector(newCi: ContextInjector<string>): void {
   ci = newCi
 }
 

@@ -105,5 +105,5 @@ export class HttpErrorRenderer extends BaseHttpResponseRenderer<TWooksErrorBodyE
 }
 
 function escapeQuotes(s: string | number): string {
-  return (typeof s === 'number' ? s : s || '').toString().replace(/"/g, '\\"')
+  return (typeof s === 'number' ? s : s || '').toString().replace(/"/gu, '\\"')
 }

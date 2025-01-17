@@ -1,4 +1,5 @@
 import { IncomingMessage, ServerResponse } from 'http'
+import { describe, expect, it } from 'vitest'
 
 import { useHttpContext } from '../../event-http'
 import { prepareTestHttpContext } from '../../testing'

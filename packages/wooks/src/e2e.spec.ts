@@ -11,6 +11,7 @@ import {
 import { useBody } from '@wooksjs/http-body'
 import type { IncomingMessage, OutgoingHttpHeaders } from 'http'
 import http from 'http'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 const PORT = 3043
 
@@ -143,6 +144,7 @@ describe('Wooks E2E', () => {
   })
 
   it('must set cookie in response', async () => {
+    // eslint-disable-next-line unicorn/no-await-expression-member
     expect((await get('set-cookie')).headers['set-cookie']).toEqual([
       'my-cookie=test; Max-Age=86400',
     ])

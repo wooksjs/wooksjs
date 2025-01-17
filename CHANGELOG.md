@@ -1,247 +1,161 @@
 ## [0.5.20](https://github.com/wooksjs/wooksjs/compare/v0.5.19...v0.5.20) (2025-01-05)
 
-
-
 ## [0.5.19](https://github.com/wooksjs/wooksjs/compare/v0.5.18...v0.5.19) (2024-12-29)
-
 
 ### Bug Fixes
 
-* add clearGlobalWooks ([59b3a9d](https://github.com/wooksjs/wooksjs/commit/59b3a9ddd9d3fffccad30fe27870625a64ea8a1f))
-
-
+- add clearGlobalWooks ([59b3a9d](https://github.com/wooksjs/wooksjs/commit/59b3a9ddd9d3fffccad30fe27870625a64ea8a1f))
 
 ## [0.5.18](https://github.com/wooksjs/wooksjs/compare/v0.5.17...v0.5.18) (2024-12-27)
 
-
-
 ## [0.5.17](https://github.com/wooksjs/wooksjs/compare/v0.5.16...v0.5.17) (2024-12-23)
-
 
 ### Features
 
-* getGlobalWooks cleanup ([bed9cc8](https://github.com/wooksjs/wooksjs/commit/bed9cc8c6ab1946b868ca6fb96811e452f1ee30f))
-
-
+- getGlobalWooks cleanup ([bed9cc8](https://github.com/wooksjs/wooksjs/commit/bed9cc8c6ab1946b868ca6fb96811e452f1ee30f))
 
 ## [0.5.16](https://github.com/wooksjs/wooksjs/compare/v0.5.15...v0.5.16) (2024-12-12)
 
-
-
 ## [0.5.15](https://github.com/wooksjs/wooksjs/compare/v0.5.14...v0.5.15) (2024-12-11)
-
 
 ### Bug Fixes
 
-* **wf:** fix auto-resume ([1a9c29d](https://github.com/wooksjs/wooksjs/commit/1a9c29d4307e9fb253ba2c47c5f350352cea50cb))
-
-
+- **wf:** fix auto-resume ([1a9c29d](https://github.com/wooksjs/wooksjs/commit/1a9c29d4307e9fb253ba2c47c5f350352cea50cb))
 
 ## [0.5.14](https://github.com/wooksjs/wooksjs/compare/v0.5.13...v0.5.14) (2024-12-09)
 
-
-
 ## [0.5.13](https://github.com/wooksjs/wooksjs/compare/v0.5.12...v0.5.13) (2024-07-23)
-
 
 ### Features
 
-* **event-core:** set parent context automatically ([6931c05](https://github.com/wooksjs/wooksjs/commit/6931c05307f6cae3f32e335ced261d79a0765528))
-
-
+- **event-core:** set parent context automatically ([6931c05](https://github.com/wooksjs/wooksjs/commit/6931c05307f6cae3f32e335ced261d79a0765528))
 
 ## [0.5.12](https://github.com/wooksjs/wooksjs/compare/v0.5.11...v0.5.12) (2024-07-12)
 
-
 ### Bug Fixes
 
-* return http result ([5173305](https://github.com/wooksjs/wooksjs/commit/5173305714da0d0d5930520fee3f40c136a7512e))
-
-
+- return http result ([5173305](https://github.com/wooksjs/wooksjs/commit/5173305714da0d0d5930520fee3f40c136a7512e))
 
 ## [0.5.11](https://github.com/wooksjs/wooksjs/compare/v0.5.10...v0.5.11) (2024-07-12)
 
-
 ### Bug Fixes
 
-* add method name to hook ([7721248](https://github.com/wooksjs/wooksjs/commit/7721248cd47fb39abea6306b5a82a91622f63663))
-
-
+- add method name to hook ([7721248](https://github.com/wooksjs/wooksjs/commit/7721248cd47fb39abea6306b5a82a91622f63663))
 
 ## [0.5.10](https://github.com/wooksjs/wooksjs/compare/v0.5.9...v0.5.10) (2024-07-12)
 
-
 ### Bug Fixes
 
-* return response ([0858cd7](https://github.com/wooksjs/wooksjs/commit/0858cd732b182e09be7e76e9bc68374991623793))
-
-
+- return response ([0858cd7](https://github.com/wooksjs/wooksjs/commit/0858cd732b182e09be7e76e9bc68374991623793))
 
 ## [0.5.9](https://github.com/wooksjs/wooksjs/compare/v0.5.8...v0.5.9) (2024-07-12)
 
-
 ### Bug Fixes
 
-* add context injector hooks on routing ([c0ad482](https://github.com/wooksjs/wooksjs/commit/c0ad4828b0b64cd98190f31507c4d53ccbd29454))
-
-
+- add context injector hooks on routing ([c0ad482](https://github.com/wooksjs/wooksjs/commit/c0ad4828b0b64cd98190f31507c4d53ccbd29454))
 
 ## [0.5.8](https://github.com/wooksjs/wooksjs/compare/v0.5.7...v0.5.8) (2024-07-12)
 
-
-
 ## [0.5.7](https://github.com/wooksjs/wooksjs/compare/v0.5.6...v0.5.7) (2024-07-12)
-
 
 ### Bug Fixes
 
-* first call asyncContext and then injected context ([3c1efa5](https://github.com/wooksjs/wooksjs/commit/3c1efa5b6f146f181a1cf85c47d52ce49dd62e8e))
-
-
+- first call asyncContext and then injected context ([3c1efa5](https://github.com/wooksjs/wooksjs/commit/3c1efa5b6f146f181a1cf85c47d52ce49dd62e8e))
 
 ## [0.5.6](https://github.com/wooksjs/wooksjs/compare/v0.5.5...v0.5.6) (2024-07-12)
 
-
-
 ## [0.5.5](https://github.com/wooksjs/wooksjs/compare/v0.5.4...v0.5.5) (2024-07-10)
-
 
 ### Bug Fixes
 
-* **event-core:** remove AsyncResource from hookable ([827be41](https://github.com/wooksjs/wooksjs/commit/827be4123e4a13a84fd48050830822e7dcc0291a))
-
-
+- **event-core:** remove AsyncResource from hookable ([827be41](https://github.com/wooksjs/wooksjs/commit/827be4123e4a13a84fd48050830822e7dcc0291a))
 
 ## [0.5.4](https://github.com/wooksjs/wooksjs/compare/v0.5.3...v0.5.4) (2024-07-10)
 
-
 ### Bug Fixes
 
-* **event-core:** run hooks in context ([8626049](https://github.com/wooksjs/wooksjs/commit/8626049d8798f58c09539f69decf8e2bcc06ed52))
-
-
+- **event-core:** run hooks in context ([8626049](https://github.com/wooksjs/wooksjs/commit/8626049d8798f58c09539f69decf8e2bcc06ed52))
 
 ## [0.5.3](https://github.com/wooksjs/wooksjs/compare/v0.5.2...v0.5.3) (2024-07-10)
 
-
 ### Bug Fixes
 
-* **event-core:** extend AsyncResource to be Hookable ([988dd3b](https://github.com/wooksjs/wooksjs/commit/988dd3b1894992f3fa9a30017449f25aeb701cbd))
-
-
+- **event-core:** extend AsyncResource to be Hookable ([988dd3b](https://github.com/wooksjs/wooksjs/commit/988dd3b1894992f3fa9a30017449f25aeb701cbd))
 
 ## [0.5.2](https://github.com/wooksjs/wooksjs/compare/v0.5.1...v0.5.2) (2024-07-10)
 
-
-
 ## [0.5.1](https://github.com/wooksjs/wooksjs/compare/v0.5.0...v0.5.1) (2024-07-10)
-
 
 ### Bug Fixes
 
-* **event-core:** call start event hook in context ([e56f80a](https://github.com/wooksjs/wooksjs/commit/e56f80aa1e5947cee1153a01cf36a8a7b60503bd))
-
-
+- **event-core:** call start event hook in context ([e56f80a](https://github.com/wooksjs/wooksjs/commit/e56f80aa1e5947cee1153a01cf36a8a7b60503bd))
 
 # [0.5.0](https://github.com/wooksjs/wooksjs/compare/v0.4.37...v0.5.0) (2024-07-10)
 
-
 ### Features
 
-* BREAKING use async storage for event context ([01fc253](https://github.com/wooksjs/wooksjs/commit/01fc253642a36192c65e384a817af25c987e5c33))
-
-
+- BREAKING use async storage for event context ([01fc253](https://github.com/wooksjs/wooksjs/commit/01fc253642a36192c65e384a817af25c987e5c33))
 
 ## [0.4.37](https://github.com/wooksjs/wooksjs/compare/v0.4.36...v0.4.37) (2024-07-10)
 
-
 ### Bug Fixes
 
-* **http:** call endEvent before res.end ([3c7f470](https://github.com/wooksjs/wooksjs/commit/3c7f470d635d15c198524f46cab69bf9ac939e0b))
-
-
+- **http:** call endEvent before res.end ([3c7f470](https://github.com/wooksjs/wooksjs/commit/3c7f470d635d15c198524f46cab69bf9ac939e0b))
 
 ## [0.4.36](https://github.com/wooksjs/wooksjs/compare/v0.4.35...v0.4.36) (2024-07-10)
 
-
 ### Features
 
-* add event context hooks ([d61bf3d](https://github.com/wooksjs/wooksjs/commit/d61bf3d7db81248386fa2b8f7314d72078b1e477))
-* add event context hooks ([59dc8f5](https://github.com/wooksjs/wooksjs/commit/59dc8f5089fcab9b5b25bb80ad70b2404674c28d))
-
-
+- add event context hooks ([d61bf3d](https://github.com/wooksjs/wooksjs/commit/d61bf3d7db81248386fa2b8f7314d72078b1e477))
+- add event context hooks ([59dc8f5](https://github.com/wooksjs/wooksjs/commit/59dc8f5089fcab9b5b25bb80ad70b2404674c28d))
 
 ## [0.4.35](https://github.com/wooksjs/wooksjs/compare/v0.4.34...v0.4.35) (2024-03-31)
 
-
 ### Bug Fixes
 
-* process HttpError properly ([63e3b28](https://github.com/wooksjs/wooksjs/commit/63e3b28c53c54409c11a60b29e4b5f305a6a1404))
-
-
+- process HttpError properly ([63e3b28](https://github.com/wooksjs/wooksjs/commit/63e3b28c53c54409c11a60b29e4b5f305a6a1404))
 
 ## [0.4.34](https://github.com/wooksjs/wooksjs/compare/v0.4.33...v0.4.34) (2024-03-27)
 
-
 ### Features
 
-* **wf:** add stepId getter to wf state ([279d26a](https://github.com/wooksjs/wooksjs/commit/279d26a6ca4bbee1771d5084d1c8f66d2b91d051))
-
-
+- **wf:** add stepId getter to wf state ([279d26a](https://github.com/wooksjs/wooksjs/commit/279d26a6ca4bbee1771d5084d1c8f66d2b91d051))
 
 ## [0.4.33](https://github.com/wooksjs/wooksjs/compare/v0.4.32...v0.4.33) (2024-03-27)
 
-
 ### Features
 
-* **wf:** add stepId to wf context ([7161562](https://github.com/wooksjs/wooksjs/commit/716156293d6c6a3d7b4c34cc9dd1428926591496))
-
-
+- **wf:** add stepId to wf context ([7161562](https://github.com/wooksjs/wooksjs/commit/716156293d6c6a3d7b4c34cc9dd1428926591496))
 
 ## [0.4.32](https://github.com/wooksjs/wooksjs/compare/v0.4.31...v0.4.32) (2024-03-26)
 
-
 ### Features
 
-* check parentCtx for matching event type ([9ca2092](https://github.com/wooksjs/wooksjs/commit/9ca20926f2fc6f76cc5f4a4734de064a05993715))
-
-
+- check parentCtx for matching event type ([9ca2092](https://github.com/wooksjs/wooksjs/commit/9ca20926f2fc6f76cc5f4a4734de064a05993715))
 
 ## [0.4.31](https://github.com/wooksjs/wooksjs/compare/v0.4.30...v0.4.31) (2024-03-26)
 
-
 ### Features
 
-* add parent context ([d8a78c1](https://github.com/wooksjs/wooksjs/commit/d8a78c1096991048b404fb6e7b83ae06ab65a5d6))
-
-
+- add parent context ([d8a78c1](https://github.com/wooksjs/wooksjs/commit/d8a78c1096991048b404fb6e7b83ae06ab65a5d6))
 
 ## [0.4.30](https://github.com/wooksjs/wooksjs/compare/v0.4.29...v0.4.30) (2024-03-21)
 
-
 ### Bug Fixes
 
-* fix server.listen call ([a097c25](https://github.com/wooksjs/wooksjs/commit/a097c258e6360bce6cc8c417b2fdd8ac4a6564d3))
-
-
+- fix server.listen call ([a097c25](https://github.com/wooksjs/wooksjs/commit/a097c258e6360bce6cc8c417b2fdd8ac4a6564d3))
 
 ## [0.4.29](https://github.com/wooksjs/wooksjs/compare/v0.4.28...v0.4.29) (2024-01-31)
 
-
 ### Bug Fixes
 
-* **event-http:** fix return type of method listen ([13af28f](https://github.com/wooksjs/wooksjs/commit/13af28f8216321997ee8a066d10916b861fbf83d))
-
-
+- **event-http:** fix return type of method listen ([13af28f](https://github.com/wooksjs/wooksjs/commit/13af28f8216321997ee8a066d10916b861fbf83d))
 
 ## [0.4.28](https://github.com/wooksjs/wooksjs/compare/v0.4.26...v0.4.28) (2024-01-31)
 
-
 ### Bug Fixes
 
-* **event-http:** properly type listen method ([06243cf](https://github.com/wooksjs/wooksjs/commit/06243cfda0c63f1e8f5cce82b7c4d9662cd78701))
-
-
+- **event-http:** properly type listen method ([06243cf](https://github.com/wooksjs/wooksjs/commit/06243cfda0c63f1e8f5cce82b7c4d9662cd78701))
 
 ## [0.4.26](https://github.com/wooksjs/wooksjs/compare/v0.4.24...v0.4.26) (2024-01-26)
 

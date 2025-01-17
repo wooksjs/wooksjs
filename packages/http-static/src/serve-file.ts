@@ -119,7 +119,7 @@ export async function serveFile(
   if (range) {
     const rangeParts = range
       .trim()
-      .replace(/bytes=/, '')
+      .replace(/bytes=/u, '')
       .split('-')
     const [s, e] = rangeParts
     start = Number.parseInt(s)

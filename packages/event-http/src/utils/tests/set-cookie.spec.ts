@@ -1,3 +1,6 @@
+/* eslint-disable sonarjs/no-duplicate-string */
+import { describe, expect, it } from 'vitest'
+
 import { renderCookie } from '../set-cookie'
 
 describe('set-cookie', () => {

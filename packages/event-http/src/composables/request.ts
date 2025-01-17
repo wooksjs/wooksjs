@@ -1,4 +1,5 @@
 import { useEventId } from '@wooksjs/event-core'
+import { Buffer } from 'buffer'
 
 import { useHttpContext } from '../event-http'
 

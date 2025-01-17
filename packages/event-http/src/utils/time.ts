@@ -8,7 +8,7 @@ export function convertTime(time: number | TTimeMultiString, unit: TTimeUnit = '
   if (typeof time === 'number') {
     return time / units[unit]
   }
-  const rg = /(\d+)(\w+)/g
+  const rg = /(\d+)(\w+)/gu
   let t = 0
   let r
   while ((r = rg.exec(time))) {

@@ -1,10 +1,9 @@
 import type { TConsoleBase, TProstoLoggerOptions } from '@prostojs/logger'
-import { ProstoLogger } from '@prostojs/logger'
-import type { THttpMethod } from '@prostojs/router'
+import { coloredConsole, createConsoleTransort, ProstoLogger } from '@prostojs/logger'
+import type { THttpMethod, TParsedSegment, TProstoRouterPathHandle } from '@prostojs/router'
 import { ProstoRouter } from '@prostojs/router'
 import type { TEventOptions } from '@wooksjs/event-core'
 import { getContextInjector, useAsyncEventContext } from '@wooksjs/event-core'
-import { getDefaultLogger } from 'common/logger'
 
 import type { TWooksHandler } from './types'
 
@@ -15,6 +14,20 @@ export interface TWooksOptions {
     ignoreCase?: boolean
     cacheLimit?: number
   }
+}
+
+function getDefaultLogger(topic: string) {
+  return new ProstoLogger(
+    {
+      level: 4,
+      transports: [
+        createConsoleTransort({
+          format: coloredConsole,
+        }),
+      ],
+    },
+    topic
+  )
 }
 
 export class Wooks {
@@ -30,11 +43,11 @@ export class Wooks {
     this.logger = opts?.logger || getDefaultLogger(`${__DYE_CYAN_BRIGHT__}[wooks]`)
   }
 
-  public getRouter() {
+  public getRouter(): ProstoRouter<TWooksHandler> {
     return this.router
   }
 
-  public getLogger(topic: string) {
+  public getLogger(topic: string): TConsoleBase {
     if (this.logger instanceof ProstoLogger) {
       return this.logger.createTopic(topic)
     }
@@ -48,7 +61,15 @@ export class Wooks {
     return {} as TProstoLoggerOptions
   }
 
-  public lookup(method: string, path: string) {
+  public lookup(
+    method: string,
+    path: string
+  ): {
+    handlers: TWooksHandler[] | null
+    segments: TParsedSegment[] | null
+    firstStatic: string | null
+    path: string | null
+  } {
     const found = this.getRouter().lookup(method as THttpMethod, path || '')
     useAsyncEventContext().store('routeParams').value = found?.ctx?.params || {}
     if (found?.route?.handlers.length) {
@@ -68,7 +89,7 @@ export class Wooks {
     method: string,
     path: string,
     handler: TWooksHandler<ResType>
-  ) {
+  ): TProstoRouterPathHandle<ParamsType> {
     return this.router.on<ParamsType, TWooksHandler>(method as THttpMethod, path, handler)
   }
 }
@@ -80,7 +101,7 @@ let gWooks: Wooks | undefined
  *
  * (useful for tests or dev-mode)
  */
-export function clearGlobalWooks() {
+export function clearGlobalWooks(): void {
   gWooks = undefined
 }
 
@@ -117,7 +138,7 @@ export class WooksAdapterBase {
     }
   }
 
-  public getWooks() {
+  public getWooks(): Wooks {
     return this.wooks
   }
 
@@ -131,11 +152,11 @@ export class WooksAdapterBase {
    * @param topic topic for logger
    * @returns logger instance
    */
-  public getLogger(topic: string) {
+  public getLogger(topic: string): TConsoleBase {
     return this.getWooks().getLogger(topic)
   }
 
-  protected getLoggerOptions() {
+  protected getLoggerOptions(): TProstoLoggerOptions {
     return this.getWooks().getLoggerOptions()
   }
 
@@ -153,7 +174,7 @@ export class WooksAdapterBase {
     method: string,
     path: string,
     handler: TWooksHandler<ResType>
-  ) {
+  ): TProstoRouterPathHandle<ParamsType> {
     return this.wooks.on<ResType, ParamsType>(method as THttpMethod, path, handler)
   }
 }

@@ -11,10 +11,13 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
+      "types": "./dist/index.d.ts",
       "require": "./dist/index.cjs",
-      "import": "./dist/index.mjs",
-      "types": "./dist/index.d.ts"
+      "import": "./dist/index.mjs"
     }
+  },
+  "scripts": {
+    "build": "rolldown -c ../../rolldown.config.mjs"
   },
   "repository": {
     "type": "git",
@@ -39,8 +42,12 @@
     "url": "https://github.com/wooksjs/wooksjs/issues"
   },
   "dependencies": {
-    "hookable": "^5.5.3",
     "@prostojs/logger": "^0.4.3"
   },
-  "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/event-core#readme"
+  "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/event-core#readme",
+  "devDependencies": {
+    "dts-bundle-generator": "^9.5.1",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
+  }
 }

@@ -29,13 +29,17 @@ export interface TGenericContextStore<CustomEventType = TEmpty> {
  *
  * Use on your own risk only if you know what you're doing
  */
-export const asyncStorage = new AsyncLocalStorage()
+export const asyncStorage: AsyncLocalStorage<TGenericContextStore> =
+  new AsyncLocalStorage<TGenericContextStore>()
 
+/**
+ * Create Wooks Context
+ */
 export function createAsyncEventContext<S = TEmpty, EventTypeToCreate = TEmpty>(
   data: S & TGenericContextStore<EventTypeToCreate>
-) {
-  const newContext = { ...data }
-  const cc = asyncStorage.getStore() as TGenericContextStore | undefined
+): <T>(cb: (...a: any[]) => T) => T {
+  const newContext = { ...data } as TGenericContextStore
+  const cc = asyncStorage.getStore()
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (cc && typeof cc === 'object' && cc.event?.type) {
     newContext.parentCtx = cc
@@ -47,9 +51,12 @@ export function createAsyncEventContext<S = TEmpty, EventTypeToCreate = TEmpty>(
     )
 }
 
+/**
+ * Use Wooks Context
+ */
 export function useAsyncEventContext<S = TEmpty, EventType = TEmpty>(
   expectedTypes?: string | string[]
-) {
+): TCtxHelpers<S & TGenericContextStore<EventType>> {
   let cc = asyncStorage.getStore() as (S & TGenericContextStore<EventType>) | undefined
   if (!cc) {
     throw new Error('Event context does not exist at this point.')
@@ -70,16 +77,46 @@ export function useAsyncEventContext<S = TEmpty, EventType = TEmpty>(
     }
   }
 
-  return _getCtxHelpers(cc)
+  return _getCtxHelpers<S & TGenericContextStore<EventType>>(cc)
 }
 // --=========== ASYNC CONTEXT =============--
+
+export interface TCtxHelpers<T> {
+  getCtx: () => T
+  store: <K extends keyof Required<T>>(
+    key: K
+  ) => {
+    value: T[K]
+    hook: <K2 extends keyof Required<T>[K]>(
+      key2: K2
+    ) => {
+      value: Required<T>[K][K2]
+      isDefined: boolean
+    }
+    init: <K2 extends keyof Required<T>[K]>(
+      key2: K2,
+      getter: () => Required<Required<T>[K]>[K2]
+    ) => Required<Required<T>[K]>[K2]
+    set: <K2 extends keyof Required<T>[K]>(key2: K2, v: Required<T[K]>[K2]) => Required<T[K]>[K2]
+    get: <K2 extends keyof Required<T>[K]>(key2: K2) => Required<T>[K][K2] | undefined
+    has: <K2 extends keyof Required<T>[K]>(key2: K2) => boolean
+    del: <K2 extends keyof Required<T>[K]>(key2: K2) => void
+    entries: () => Array<[string, unknown]>
+    clear: () => void
+  }
+  getStore: <K extends keyof T>(key: K) => T[K]
+  setStore: <K extends keyof T>(key: K, v: T[K]) => void
+  setParentCtx: (parentCtx: unknown) => void
+  hasParentCtx: () => boolean
+  getParentCtx: <T2 = T>() => TCtxHelpers<T2>
+}
 
 /**
  *
  * @param cc
  * @returns
  */
-function _getCtxHelpers<T>(cc: T) {
+function _getCtxHelpers<T>(cc: T): TCtxHelpers<T> {
   /**
    * Hook to an event store property
    *
