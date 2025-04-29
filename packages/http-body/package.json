@@ -41,9 +41,9 @@
   "bugs": {
     "url": "https://github.com/wooksjs/wooksjs/issues"
   },
-  "peerDependencies": {},
   "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/http-body#readme",
   "devDependencies": {
+    "@types/node": "^22.10.6",
     "@wooksjs/event-http": "workspace:^",
     "typescript": "^5.7.3",
     "vitest": "^2.1.8"

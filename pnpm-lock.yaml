@@ -195,6 +195,9 @@ importers:
 
   packages/http-body:
     devDependencies:
+      '@types/node':
+        specifier: ^22.10.6
+        version: 22.10.6
       '@wooksjs/event-http':
         specifier: workspace:^
         version: link:../event-http

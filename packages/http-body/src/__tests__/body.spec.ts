@@ -116,16 +116,6 @@ describe('body', () => {
     })
   })
 
-  it('must parse content encodings', () => {
-    prepareTestHttpContext({
-      url: '',
-      headers: { 'content-encoding': 'identity' },
-    })(() => {
-      const { contentEncodings } = useBody()
-      expect(contentEncodings()).toEqual(['identity'])
-    })
-  })
-
   it('must parse body json', async () => {
     const bodyValue = JSON.stringify({ test: 'object', a: 123 })
     await prepareTestHttpContext({

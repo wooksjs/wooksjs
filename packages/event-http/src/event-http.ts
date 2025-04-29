@@ -1,4 +1,4 @@
-import type { TEmpty, TEventOptions } from '@wooksjs/event-core'
+import type { TCtxHelpers, TEmpty, TEventOptions, TGenericContextStore } from '@wooksjs/event-core'
 import { createAsyncEventContext, useAsyncEventContext } from '@wooksjs/event-core'
 
 import type { THttpContextStore, THttpEventData } from './types'
@@ -17,6 +17,8 @@ export function createHttpContext(data: THttpEventData, options: TEventOptions) 
  * Wrapper on useEventContext with HTTP event types
  * @returns set of hooks { getCtx, restoreCtx, clearCtx, hookStore, getStore, setStore }
  */
-export function useHttpContext<T extends TEmpty>() {
+export function useHttpContext<T extends TEmpty>(): TCtxHelpers<
+  THttpContextStore & T & TGenericContextStore<THttpEventData>
+> {
   return useAsyncEventContext<THttpContextStore & T, THttpEventData>('HTTP')
 }
