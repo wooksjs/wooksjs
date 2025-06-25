@@ -19,7 +19,7 @@
     "noImplicitAny": true,
     "skipLibCheck": true,
     "experimentalDecorators": true,
-    "removeComments": true,
+    "removeComments": false,
     "outDir": ".types"
   },
   "include": ["packages/*/src/**/*.ts", "globals.d.ts"],
