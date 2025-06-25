@@ -1,3 +1,12 @@
+# [0.6.0](https://github.com/wooksjs/wooksjs/compare/v0.5.25...v0.6.0) (2025-04-29)
+
+
+### Features
+
+* add zlib support; improve security ([ee485f7](https://github.com/wooksjs/wooksjs/commit/ee485f74a1e0e08c0ab71169b3085475008ca435))
+
+
+
 ## [0.5.25](https://github.com/wooksjs/wooksjs/compare/v0.5.24...v0.5.25) (2025-01-17)
 
 

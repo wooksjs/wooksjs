@@ -8,7 +8,7 @@ import { rolldown } from 'rolldown'
 import dyePlugin from '@prostojs/dye/rolldown'
 import dts from 'rollup-plugin-dts'
 import { writeFileSync } from 'fs'
-import pkg from '../package.json' assert { type: 'json' }
+import pkg from '../package.json' with { type: 'json' }
 let i = 1
 
 const info = dye('blue').attachConsole()

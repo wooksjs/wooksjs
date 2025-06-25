@@ -54,6 +54,14 @@ export interface TRequestCache {
   forwardedIp?: string
   remoteIp?: string
   ipList?: { remoteIp: string; forwarded: string[] }
+  contentEncodings?: string[]
+  isCompressed?: boolean
+
+  // limits
+  maxCompressed?: number
+  maxInflated?: number
+  maxRatio?: number
+  readTimeoutMs?: number
 }
 
 export interface TSearchParamsCache {

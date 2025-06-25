@@ -10,8 +10,7 @@ import {
   WooksURLSearchParams,
 } from '@wooksjs/event-http'
 
-import type { TBodyCompressor } from './utils/body-compressor'
-import { compressors, uncompressBody } from './utils/body-compressor'
+import { safeJsonParse } from './utils/safe-json'
 
 interface TBodyStore {
   parsed?: Promise<unknown>
@@ -22,15 +21,13 @@ interface TBodyStore {
   isXml?: boolean
   isFormData?: boolean
   isUrlencoded?: boolean
-  isCompressed?: boolean
-  contentEncodings?: string[]
 }
 
 export function useBody() {
   const { store } = useHttpContext<{ request: TBodyStore }>()
   const { init } = store('request')
   const { rawBody } = useRequest()
-  const { 'content-type': contentType, 'content-encoding': contentEncoding } = useHeaders()
+  const { 'content-type': contentType } = useHeaders()
 
   function contentIs(type: string) {
     return (contentType || '').includes(type)
@@ -44,44 +41,27 @@ export function useBody() {
   const isFormData = () => init('isFormData', () => contentIs('multipart/form-data'))
   const isUrlencoded = () =>
     init('isUrlencoded', () => contentIs('application/x-www-form-urlencoded'))
-  const isCompressed = () =>
-    init('isCompressed', () => {
-      const parts = contentEncodings()
-      for (const p of parts) {
-        if (['deflate', 'gzip', 'br'].includes(p)) {
-          return true
-        }
-      }
-      return false
-    })
-
-  const contentEncodings = () =>
-    init('contentEncodings', () =>
-      (contentEncoding || '')
-        .split(',')
-        .map(p => p.trim())
-        .filter(p => !!p)
-    )
 
   const parseBody = <T>() =>
     init('parsed', async () => {
-      const body = await uncompressBody(contentEncodings(), (await rawBody()).toString())
+      const body = await rawBody()
+      const sBody = body.toString()
       if (isJson()) {
-        return jsonParser(body)
+        return jsonParser(sBody)
       } else if (isFormData()) {
-        return formDataParser(body)
+        return formDataParser(sBody)
       } else if (isUrlencoded()) {
-        return urlEncodedParser(body)
+        return urlEncodedParser(sBody)
       } else if (isBinary()) {
-        return textParser(body)
+        return textParser(sBody)
       } else {
-        return textParser(body)
+        return textParser(sBody)
       }
     }) as Promise<T>
 
   function jsonParser(v: string): Record<string, unknown> | unknown[] {
     try {
-      return JSON.parse(v) as Record<string, unknown> | unknown[]
+      return safeJsonParse<Record<string, unknown> | unknown[]>(v)
     } catch (error) {
       throw new HttpError(400, (error as Error).message)
     }
@@ -91,69 +71,95 @@ export function useBody() {
   }
 
   function formDataParser(v: string): Record<string, unknown> {
+    /* ───── per-request limits ───── */
+    const MAX_PARTS = 255 // total fields
+    const MAX_KEY_LENGTH = 100 // bytes
+    const MAX_VALUE_LENGTH = 100 * 1024 // 100 KB per field
+
+    /* boundary detection (unchanged) */
     const boundary = `--${(/boundary=([^;]+)(?:;|$)/u.exec(contentType || '') || [, ''])[1]}`
     if (!boundary) {
       throw new HttpError(EHttpStatusCode.BadRequest, 'form-data boundary not recognized')
     }
+
     const parts = v.trim().split(boundary)
-    const result: Record<string, unknown> = {}
+    const result = Object.create(null) as Record<string, unknown>
+
     let key = ''
     let partContentType = 'text/plain'
+    let partCount = 0
+
+    /* ───── iterate over parts ───── */
     for (const part of parts) {
-      parsePart()
+      parsePart() // flush previous part
       key = ''
       partContentType = 'text/plain'
+
+      if (!part.trim() || part.trim() === '--') {
+        continue
+      }
+
+      partCount++
+      if (partCount > MAX_PARTS) {
+        throw new HttpError(413, 'Too many form fields')
+      }
+
       let valueMode = false
       const lines = part
         .trim()
         .split(/\n/u)
-        .map(s => s.trim())
+        .map(l => l.trim())
+
       for (const line of lines) {
         if (valueMode) {
-          if (result[key]) {
-            // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
-            result[key] += `\n${line}`
-          } else {
-            result[key] = line
+          /*  ─ value collection ─ */
+          if (line.length + String(result[key] ?? '').length > MAX_VALUE_LENGTH) {
+            throw new HttpError(413, `Field "${key}" is too large`)
           }
-        } else {
-          if (!line || line === '--') {
-            valueMode = !!key
-            if (valueMode) {
-              key = key.replace(/^["']/u, '').replace(/["']$/u, '')
-            }
-            continue
+          result[key] = (result[key] ? `${result[key] as string}\n` : '') + line
+          continue
+        }
+
+        /*  ─ header parsing ─ */
+        if (!line) {
+          valueMode = !!key
+          continue
+        }
+
+        if (line.toLowerCase().startsWith('content-disposition: form-data;')) {
+          key = (/name=([^;]+)/.exec(line) || [])[1].replace(/^["']|["']$/g, '') ?? ''
+          if (!key) {
+            throw new HttpError(400, `Could not read multipart name: ${line}`)
           }
-          if (line.toLowerCase().startsWith('content-disposition: form-data;')) {
-            key = (/name=([^;]+)/.exec(line) || [])[1]
-            if (!key) {
-              throw new HttpError(
-                EHttpStatusCode.BadRequest,
-                `Could not read multipart name: ${line}`
-              )
-            }
-            continue
+          if (key.length > MAX_KEY_LENGTH) {
+            throw new HttpError(413, 'Field name too long')
           }
-          if (line.toLowerCase().startsWith('content-type:')) {
-            partContentType = (/content-type:\s?([^;]+)/i.exec(line) || [])[1]
-            if (!partContentType) {
-              throw new HttpError(
-                EHttpStatusCode.BadRequest,
-                `Could not read content-type: ${line}`
-              )
-            }
-            continue
+          if (['__proto__', 'constructor', 'prototype'].includes(key)) {
+            throw new HttpError(400, `Illegal key name "${key}"`)
           }
+          // we concatenate if keys are the same
+          // if (key in result && !Array.isArray(result[key])) {
+          //   throw new HttpError(400, `Duplicate key "${key}"`)
+          // }
+          continue
+        }
+
+        if (line.toLowerCase().startsWith('content-type:')) {
+          partContentType = (/content-type:\s?([^;]+)/i.exec(line) || [])[1] ?? ''
+          continue
         }
       }
     }
-    parsePart()
+    parsePart() // flush last part
+
+    return result
+
+    /* ─ helper converts JSON sub-parts safely ─ */
     function parsePart() {
-      if (key && partContentType.includes('application/json')) {
-        result[key] = JSON.parse(result[key] as string)
+      if (key && partContentType.includes('application/json') && typeof result[key] === 'string') {
+        result[key] = safeJsonParse(result[key] as string)
       }
     }
-    return result
   }
 
   function urlEncodedParser(v: string): Record<string, unknown> {
@@ -168,16 +174,7 @@ export function useBody() {
     isBinary,
     isFormData,
     isUrlencoded,
-    isCompressed,
-    contentEncodings,
     parseBody,
     rawBody,
   }
-}
-
-export function registerBodyCompressor(name: string, compressor: TBodyCompressor) {
-  if (compressors[name]) {
-    throw new Error(`Body compressor "${name}" already registered.`)
-  }
-  compressors[name] = compressor
 }

@@ -4,17 +4,10 @@
     "moduleResolution": "node",
     "esModuleInterop": true,
     "target": "es2020",
-    "lib": [
-      "ESNext",
-      "DOM",
-      "WebWorker",
-      "DOM.Iterable"
-    ],
+    "module": "es2020",
+    "lib": ["ESNext", "DOM", "WebWorker", "DOM.Iterable"],
     "noUnusedLocals": true,
-    "types": [
-      "node",
-      "@prostojs/dye/global"
-    ],
+    "types": ["node", "@prostojs/dye/global"],
     "declaration": true,
     "emitDeclarationOnly": true,
     "emitDecoratorMetadata": true,
@@ -29,11 +22,6 @@
     "removeComments": true,
     "outDir": ".types"
   },
-  "include": [
-    "packages/*/src/**/*.ts",
-    "globals.d.ts"
-  ],
-  "exclude": [
-    "**/*.spec.ts"
-  ]
+  "include": ["packages/*/src/**/*.ts", "globals.d.ts"],
+  "exclude": ["**/*.spec.ts"]
 }
