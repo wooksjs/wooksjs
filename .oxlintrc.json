@@ -10,10 +10,14 @@
     "browser": false
   },
   "globals": {
+    "Response": "readonly",
+    "setTimeout": "readonly",
+    "clearTimeout": "readonly",
     "fetch": "readonly",
     "process": "readonly",
     "console": "readonly",
     "Buffer": "readonly",
+    "__VERSION__": "readonly",
     "__DYE_RESET__": "readonly",
     "__DYE_COLOR_OFF__": "readonly",
     "__DYE_BG_OFF__": "readonly",
