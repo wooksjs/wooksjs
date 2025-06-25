@@ -1,6 +1,7 @@
+import { URL } from 'node:url'
+
 import { useEventLogger } from '@wooksjs/event-core'
 import { useHttpContext, useSetHeaders, useStatus } from '@wooksjs/event-http'
-import { fetch } from 'node-fetch-native'
 
 import { applyProxyControls, CookiesIterable, HeadersIterable } from './proxy-utils'
 import type { TWooksProxyOptions } from './types'
@@ -13,7 +14,9 @@ const reqHeadersToBlock = [
   'cookie',
 ]
 
-const resHeadersToBlock = ['transfer-encoding', 'content-encoding', 'set-cookie']
+const SET_COOKIE = 'set-cookie'
+
+const resHeadersToBlock = ['transfer-encoding', 'content-encoding', SET_COOKIE]
 
 export function useProxy() {
   const status = useStatus()
@@ -69,7 +72,9 @@ export function useProxy() {
 
     if (opts?.debug) {
       logger.info(
-        `${resp.status} ${__DYE_GREEN__}${req.method!} ${req.url!}${__DYE_YELLOW__} → ${__DYE_CYAN__}${method!} ${url}${__DYE_YELLOW__}`
+        `${
+          resp.status
+        } ${__DYE_GREEN__}${req.method!} ${req.url!}${__DYE_YELLOW__} → ${__DYE_CYAN__}${method!} ${url}${__DYE_YELLOW__}`
       )
       logger.info(`${__DYE_YELLOW__}response headers:${__DYE_COLOR_OFF__}`)
     }
@@ -79,10 +84,7 @@ export function useProxy() {
       ? applyProxyControls(resp.headers.entries(), opts.resHeaders, resHeadersToBlock)
       : null
     const resCookies = opts?.resCookies
-      ? applyProxyControls(
-          new CookiesIterable(resp.headers.get('set-cookie') || ''),
-          opts.resCookies
-        )
+      ? applyProxyControls(new CookiesIterable(resp.headers.get(SET_COOKIE) || ''), opts.resCookies)
       : null
 
     if (resHeaders) {
@@ -97,13 +99,13 @@ export function useProxy() {
     }
 
     if (resCookies) {
-      setHeadersObject['set-cookie'] = (setHeadersObject['set-cookie'] || []) as string[]
+      setHeadersObject[SET_COOKIE] = (setHeadersObject[SET_COOKIE] || []) as string[]
       for (const [name, value] of Object.entries(resCookies)) {
         if (name) {
-          setHeadersObject['set-cookie'].push(`${name}=${value}`)
+          setHeadersObject[SET_COOKIE].push(`${name}=${value}`)
           if (opts?.debug) {
             logger.info(
-              `\t${__DYE_BOLD__}${__DYE_YELLOW__}set-cookie=${__DYE_GREEN__}${name}=${value}${__DYE_RESET__}`
+              `\t${__DYE_BOLD__}${__DYE_YELLOW__}${SET_COOKIE}=${__DYE_GREEN__}${name}=${value}${__DYE_RESET__}`
             )
           }
         }

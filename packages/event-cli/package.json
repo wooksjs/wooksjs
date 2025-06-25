@@ -43,18 +43,18 @@
   },
   "peerDependencies": {
     "@wooksjs/event-core": "workspace:^",
+    "@prostojs/logger": "^0.4.3",
+    "@prostojs/router": "^0.2.1",
     "wooks": "workspace:^"
   },
   "dependencies": {
     "@prostojs/cli-help": "^0.0.11",
-    "@prostojs/logger": "^0.4.3",
-    "@prostojs/router": "^0.2.1",
-    "minimist": "^1.2.6"
+    "minimist": "^1.2.8"
   },
   "devDependencies": {
     "@types/minimist": "^1.2.5",
-    "typescript": "^5.7.3",
-    "vitest": "^2.1.8"
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
   },
   "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/event-cli#readme"
 }

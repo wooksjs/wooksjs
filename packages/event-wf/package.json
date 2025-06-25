@@ -37,10 +37,10 @@
   "license": "MIT",
   "peerDependencies": {
     "@wooksjs/event-core": "workspace:^",
+    "@prostojs/logger": "^0.4.3",
     "wooks": "workspace:^"
   },
   "dependencies": {
-    "@prostojs/logger": "^0.4.3",
     "@prostojs/wf": "^0.0.18"
   },
   "bugs": {
@@ -48,7 +48,7 @@
   },
   "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/event-wf#readme",
   "devDependencies": {
-    "typescript": "^5.7.3",
-    "vitest": "^2.1.8"
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
   }
 }

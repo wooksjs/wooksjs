@@ -48,9 +48,9 @@
   },
   "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/wooks#readme",
   "devDependencies": {
-    "typescript": "^5.7.3",
-    "vitest": "^2.1.8",
     "@wooksjs/event-http": "workspace:^",
-    "@wooksjs/http-body": "workspace:^"
+    "@wooksjs/http-body": "workspace:^",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
   }
 }

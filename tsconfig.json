@@ -17,6 +17,7 @@
     ],
     "declaration": true,
     "emitDeclarationOnly": true,
+    "emitDecoratorMetadata": true,
     "declarationMap": false,
     "resolveJsonModule": true,
     "downlevelIteration": true,
@@ -24,7 +25,6 @@
     "strict": true,
     "noImplicitAny": true,
     "skipLibCheck": true,
-    "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "removeComments": true,
     "outDir": ".types"

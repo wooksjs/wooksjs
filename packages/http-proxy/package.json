@@ -45,12 +45,10 @@
     "@wooksjs/event-core": "workspace:^",
     "@wooksjs/event-http": "workspace:^"
   },
-  "dependencies": {
-    "node-fetch-native": "^1.0.1"
-  },
+  "dependencies": {},
   "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/http-proxy#readme",
   "devDependencies": {
-    "typescript": "^5.7.3",
-    "vitest": "^2.1.8"
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
   }
 }

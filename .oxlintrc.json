@@ -10,6 +10,7 @@
     "browser": false
   },
   "globals": {
+    "fetch": "readonly",
     "process": "readonly",
     "console": "readonly",
     "Buffer": "readonly",
