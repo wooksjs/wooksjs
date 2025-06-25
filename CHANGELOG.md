@@ -1,3 +1,12 @@
+## [0.6.1](https://github.com/wooksjs/wooksjs/compare/v0.6.0...v0.6.1) (2025-06-25)
+
+
+### Bug Fixes
+
+* keep jsdocs ([3a9a557](https://github.com/wooksjs/wooksjs/commit/3a9a55786e213ffc9daa884380e51fc9a1fac220))
+
+
+
 # [0.6.0](https://github.com/wooksjs/wooksjs/compare/v0.5.25...v0.6.0) (2025-04-29)
 
 
