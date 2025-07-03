@@ -1,6 +1,6 @@
 {
   "name": "wooks",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "wooks",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
