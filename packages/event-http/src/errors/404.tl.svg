@@ -1,0 +1,47 @@
+<svg height="64" viewBox="0 20 100 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <path id="sheet" d="M86.5 36.5V47.5H97.5V92.5H52.5V36.5H86.5ZM63 68.5H87V67.5H63V68.5ZM63 63.5H87V62.5H63V63.5ZM63 58.5H87V57.5H63V58.5ZM96.793 46.5H87.5V37.207L96.793 46.5Z" fill="#88888833" stroke="#888888aa"/>
+  </defs>
+
+  <g id="queue" transform="translate(-5 -10)">
+    <use href="#sheet" opacity="0">
+      <animateTransform attributeName="transform" type="translate"
+                        dur="3s" repeatCount="indefinite"
+                        keyTimes="0;0.1;0.32;0.42;1"
+                        values="30 0; -20 0; -20 0; -70 0; -70 0" />
+      <animate attributeName="opacity"
+               dur="3s" repeatCount="indefinite"
+                        keyTimes="0;0.1;0.32;0.42;1"
+               values="0;1;1;0;0" />
+    </use>
+
+    <use href="#sheet" opacity="0">
+      <animateTransform attributeName="transform" type="translate"
+                        dur="3s" begin="1s" repeatCount="indefinite"
+                        keyTimes="0;0.1;0.32;0.42;1"
+                        values="30 0; -20 0; -20 0; -70 0; -70 0" />
+      <animate attributeName="opacity"
+               dur="3s" begin="1s" repeatCount="indefinite"
+                        keyTimes="0;0.1;0.32;0.42;1"
+               values="0;1;1;0;0" />
+    </use>
+
+    <use href="#sheet" opacity="0">
+      <animateTransform attributeName="transform" type="translate"
+                        dur="3s" begin="2s" repeatCount="indefinite"
+                        keyTimes="0;0.1;0.32;0.42;1"
+                        values="30 0; -20 0; -20 0; -70 0; -70 0" />
+      <animate attributeName="opacity"
+               dur="3s" begin="2s" repeatCount="indefinite"
+                        keyTimes="0;0.1;0.32;0.42;1"
+               values="0;1;1;0;0" />
+    </use>
+  </g>
+
+  <g>
+    <path d="M49.5 32.5C58.3366 32.5 65.5 39.6634 65.5 48.5C65.5 54.4781 62.222 59.6923 57.3584 62.4404C55.0386 63.7512 52.3591 64.5 49.5 64.5C40.6634 64.5 33.5 57.3366 33.5 48.5C33.5 39.6634 40.6634 32.5 49.5 32.5Z" fill="#ffffff50" stroke="#888888" stroke-width="3"/>
+
+    <path d="M62.7101 74.5691C63.117 75.2907 64.0318 75.5459 64.7534 75.139C65.4751 74.7321 65.7302 73.8173 65.3233 73.0957L62.7101 74.5691ZM58.05 63.25L56.7434 63.9867L62.7101 74.5691L64.0167 73.8324L65.3233 73.0957L59.3567 62.5133L58.05 63.25Z" fill="#888888"/>
+  </g>
+</svg>
+

@@ -9,6 +9,7 @@ import dyePlugin from '@prostojs/dye/rolldown'
 import dts from 'rollup-plugin-dts'
 import { writeFileSync } from 'fs'
 import pkg from '../package.json' with { type: 'json' }
+import { templatePlugin } from './template.plugin.js'
 let i = 1
 
 const info = dye('blue').attachConsole()
@@ -87,7 +88,7 @@ async function rolldownPackages(ws) {
         define: {
             __VERSION__: JSON.stringify(pkg.version),
         },
-        plugins: [dplg],
+        plugins: [dplg, templatePlugin()],
     }
     const bundle = await rolldown(inputOptions)
     const { output: esOut } = await bundle.generate(ESM);

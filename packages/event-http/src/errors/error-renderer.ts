@@ -3,47 +3,58 @@ import { useAccept } from '../composables'
 import type { BaseHttpResponse } from '../response/core'
 import { BaseHttpResponseRenderer } from '../response/renderer'
 import { httpStatusCodes } from '../utils/status-codes'
+import svg403 from './403.tl.svg'
+import svg404 from './404.tl.svg'
+import svg500 from './500.tl.svg'
+import errorTemplate from './error.tl.html'
 import type { TWooksErrorBodyExt } from './http-error'
 
-const preStyles =
-  'font-family: monospace;' +
-  'width: 100%;' +
-  'max-width: 900px;' +
-  'padding: 10px;' +
-  'margin: 20px auto;' +
-  'border-radius: 8px;' +
-  'background-color: #494949;' +
-  'box-shadow: 0px 0px 3px 2px rgb(255 255 255 / 20%);'
+const icons = {
+  401: svg403({}),
+  403: svg403({}),
+  404: svg404({}),
+}
+
+let framework: { version: string; poweredBy: string; link: string; image: string } = {
+  version: __VERSION__,
+  poweredBy: `wooksjs`,
+  link: `https://wooks.moost.org/`,
+  image: `https://wooks.moost.org/wooks-full-logo.png`,
+}
 
 export class HttpErrorRenderer extends BaseHttpResponseRenderer<TWooksErrorBodyExt> {
+  constructor(
+    protected opts?: { version: string; poweredBy: string; link: string; image: string }
+  ) {
+    super()
+  }
+
+  static registerFramework(opts: {
+    version: string
+    poweredBy: string
+    link: string
+    image: string
+  }) {
+    framework = opts
+  }
+
   renderHtml(response: BaseHttpResponse<TWooksErrorBodyExt>): string {
     const data = response.body || ({} as TWooksErrorBodyExt)
     response.setContentType('text/html')
-    const keys = Object.keys(data).filter(
-      key => !['statusCode', 'error', 'message'].includes(key)
-    ) as Array<keyof typeof data>
-    return (
-      '<html style="background-color: #333; color: #bbb;">' +
-      `<head><title>${data.statusCode} ${httpStatusCodes[data.statusCode]}</title></head>` +
-      `<body><center><h1>${data.statusCode} ${httpStatusCodes[data.statusCode]}</h1></center>` +
-      `<center><h4>${data.message}</h1></center><hr color="#666">` +
-      `<center style="color: #666;"> Wooks v${__VERSION__} </center>` +
-      `${
-        keys.length > 0
-          ? `<pre style="${preStyles}">${JSON.stringify(
-              {
-                ...data,
-                statusCode: undefined,
-                message: undefined,
-                error: undefined,
-              },
-              null,
-              '  '
-            )}</pre>`
-          : ''
-      }` +
-      '</body></html>'
-    )
+    const hasDetails = Object.keys(data).length > 3
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unnecessary-condition
+    const icon = data.statusCode >= 500 ? svg500({}) : icons[data.statusCode as 403] || ''
+    return errorTemplate({
+      icon,
+      statusCode: data.statusCode,
+      statusMessage: httpStatusCodes[data.statusCode],
+      message: data.message,
+      details: hasDetails ? JSON.stringify(data, null, '  ') : '',
+      version: (this.opts || framework).version,
+      poweredBy: (this.opts || framework).poweredBy,
+      link: (this.opts || framework).link,
+      image: (this.opts || framework).image,
+    })
   }
 
   renderText(response: BaseHttpResponse<TWooksErrorBodyExt>): string {

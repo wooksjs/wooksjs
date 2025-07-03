@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>${statusCode} ${statusMessage}</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu,
+          Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        min-height: 100vh;
+        margin: 0;
+        padding: 0 20px;
+        box-sizing: border-box;
+        transition:
+          background-color 0.3s ease,
+          color 0.3s ease;
+      }
+
+      .error-container {
+        padding: 48px;
+        padding-bottom: 12px !important;
+        background-color: #ffffff;
+        border-radius: 0 0 12px 12px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+        text-align: center;
+        max-width: 650px;
+        width: 100%;
+        transition:
+          background-color 0.3s ease,
+          border-color 0.3s ease,
+          box-shadow 0.3s ease;
+      }
+
+      .status-code {
+        font-size: 5rem;
+        font-weight: 900;
+        margin-bottom: 5px;
+        line-height: 1;
+        transition: color 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        position: relative;
+        margin-right: 24px;
+      }
+
+      .status-text {
+        font-size: 2.25rem;
+        font-weight: 700;
+        margin-bottom: 25px;
+        transition: color 0.3s ease;
+      }
+
+      .error-message {
+        font-size: 1.25rem;
+        margin-bottom: 40px;
+        line-height: 1.7;
+        transition: color 0.3s ease;
+      }
+
+      .json-details-container {
+        padding: 20px;
+        border-radius: 8px;
+        text-align: left;
+        overflow-x: auto;
+        font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+        font-size: 0.9rem;
+        border: 1px solid;
+        transition:
+          background-color 0.3s ease,
+          color 0.3s ease,
+          border-color 0.3s ease;
+      }
+
+      .json-details-container pre {
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-all;
+      }
+
+      .json-details-container code {
+        display: block;
+      }
+
+      body {
+        background-color: #f8fafc;
+        color: #1f2937;
+      }
+      .error-container {
+        background-color: #ffffff;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+      }
+      .status-code {
+        color: #dc2626;
+      }
+      .status-text {
+        color: #1f2937;
+      }
+      .error-message {
+        color: #4b5563;
+      }
+      .json-details-container {
+        background-color: #f0f4f8;
+        color: #374151;
+        border-color: #d1d5db;
+      }
+      .json-details-container p {
+        color: #6b7280;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body {
+          background-color: #2d3748;
+          color: #e2e8f0;
+        }
+        .error-container {
+          background-color: #1a202c;
+          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+        .status-code {
+          color: #f56565;
+        }
+        .status-text {
+          color: #cbd5e1;
+        }
+        .error-message {
+          color: #a0aec0;
+        }
+        .json-details-container {
+          background-color: #2d3748;
+          color: #e2e8f0;
+          border-color: #4a5568;
+        }
+        .json-details-container p {
+          color: #a0aec0;
+        }
+      }
+
+      .footer {
+        display: flex;
+        gap: 0.25rem;
+        font-size: 0.6em;
+        justify-content: flex-end;
+        align-items: center;
+        margin-top: 12px;
+        opacity: 0.5;
+        transition: 0.25s ease-in-out;
+      }
+
+      .footer img {
+        filter: grayscale(0.5);
+        transition: 0.25s ease-in-out;
+      }
+
+      .footer:hover {
+        opacity: 1;
+      }
+      .footer:hover img {
+        filter: grayscale(0);
+      }
+
+      @media (max-width: 768px) {
+        body {
+          padding: 15px;
+        }
+        .error-container {
+          padding: 32px;
+        }
+        .status-code {
+          font-size: 4rem;
+        }
+        .status-text {
+          font-size: 1.8rem;
+        }
+        .error-message {
+          font-size: 1.1rem;
+          margin-bottom: 30px;
+        }
+        .json-details-container {
+          font-size: 0.85rem;
+        }
+      }
+
+      @media (max-width: 480px) {
+        body {
+          padding: 10px;
+        }
+        .error-container {
+          padding: 24px;
+          border-radius: 8px;
+        }
+        .status-code {
+          font-size: 3rem;
+        }
+        .status-text {
+          font-size: 1.5rem;
+          margin-bottom: 20px;
+        }
+        .error-message {
+          font-size: 1rem;
+          margin-bottom: 25px;
+        }
+        .json-details-container {
+          padding: 15px;
+          font-size: 0.8rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="error-container">
+      <div id="statusCode" class="status-code">${icon} ${statusCode}</div>
+
+      <div id="statusText" class="status-text">${statusMessage}</div>
+
+      <p id="errorMessage" class="error-message">${message}</p>
+
+      <!-- prettier-ignore -->
+      <div class="json-details-container"style="display: ${ details ? 'block' : 'none' };">
+        <p class="text-sm">Technical Details:</p>
+        <pre><code id="jsonDetails">${details}</code></pre>
+      </div>
+      <div class="footer">
+        Powered by
+        <a href="${link}" target="_blank">
+          <img height="20" alt="%{poweredBy}" src="${image}" />
+        </a>
+        v${version}
+      </div>
+    </div>
+  </body>
+</html>
