@@ -1,3 +1,12 @@
+## [0.6.2](https://github.com/wooksjs/wooksjs/compare/v0.6.1...v0.6.2) (2025-07-03)
+
+
+### Features
+
+* **http:** improve error html ([a842ed8](https://github.com/wooksjs/wooksjs/commit/a842ed877962996f762699f66e72ac1c28ec1f95))
+
+
+
 ## [0.6.1](https://github.com/wooksjs/wooksjs/compare/v0.6.0...v0.6.1) (2025-06-25)
 
 
