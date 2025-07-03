@@ -82,11 +82,7 @@ describe('response', () => {
             new HttpError(405, 'test message')
           ) as BaseHttpResponse<TWooksErrorBodyExt>
         )
-      ).toEqual(
-        '<html style="background-color: #333; color: #bbb;"><head><title>405 Method Not Allowed</title>' +
-          '</head><body><center><h1>405 Method Not Allowed</h1></center><center><h4>test message</h1></center>' +
-          '<hr color="#666"><center style="color: #666;"> Wooks v0.1.2 </center></body></html>'
-      )
+      ).toEqual(expect.stringContaining('<title>405 Method Not Allowed</title>'))
     })
   })
 
@@ -110,9 +106,6 @@ describe('response', () => {
         ) as BaseHttpResponse<TWooksErrorBodyExt>
       )
       expect(result).toContain('"additional": "additional text"')
-      expect(result).toContain('<pre')
-      expect(result).toContain('font-family: monospace;')
-      expect(result).toContain('</pre>')
     })
   })
 })

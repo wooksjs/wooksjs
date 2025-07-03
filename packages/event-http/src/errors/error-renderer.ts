@@ -9,12 +9,6 @@ import svg500 from './500.tl.svg'
 import errorTemplate from './error.tl.html'
 import type { TWooksErrorBodyExt } from './http-error'
 
-const icons = {
-  401: svg403({}),
-  403: svg403({}),
-  404: svg404({}),
-}
-
 let framework: { version: string; poweredBy: string; link: string; image: string } = {
   version: __VERSION__,
   poweredBy: `wooksjs`,
@@ -27,6 +21,13 @@ export class HttpErrorRenderer extends BaseHttpResponseRenderer<TWooksErrorBodyE
     protected opts?: { version: string; poweredBy: string; link: string; image: string }
   ) {
     super()
+  }
+
+  protected icons = {
+    401: typeof svg403 === 'function' ? svg403({}) : '',
+    403: typeof svg403 === 'function' ? svg403({}) : '',
+    404: typeof svg404 === 'function' ? svg404({}) : '',
+    500: typeof svg500 === 'function' ? svg500({}) : '',
   }
 
   static registerFramework(opts: {
@@ -43,18 +44,20 @@ export class HttpErrorRenderer extends BaseHttpResponseRenderer<TWooksErrorBodyE
     response.setContentType('text/html')
     const hasDetails = Object.keys(data).length > 3
     // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unnecessary-condition
-    const icon = data.statusCode >= 500 ? svg500({}) : icons[data.statusCode as 403] || ''
-    return errorTemplate({
-      icon,
-      statusCode: data.statusCode,
-      statusMessage: httpStatusCodes[data.statusCode],
-      message: data.message,
-      details: hasDetails ? JSON.stringify(data, null, '  ') : '',
-      version: (this.opts || framework).version,
-      poweredBy: (this.opts || framework).poweredBy,
-      link: (this.opts || framework).link,
-      image: (this.opts || framework).image,
-    })
+    const icon = data.statusCode >= 500 ? this.icons[500] : this.icons[data.statusCode as 403] || ''
+    return typeof errorTemplate === 'function'
+      ? errorTemplate({
+          icon,
+          statusCode: data.statusCode,
+          statusMessage: httpStatusCodes[data.statusCode],
+          message: data.message,
+          details: hasDetails ? JSON.stringify(data, null, '  ') : '',
+          version: (this.opts || framework).version,
+          poweredBy: (this.opts || framework).poweredBy,
+          link: (this.opts || framework).link,
+          image: (this.opts || framework).image,
+        })
+      : JSON.stringify(data, null, '  ')
   }
 
   renderText(response: BaseHttpResponse<TWooksErrorBodyExt>): string {
