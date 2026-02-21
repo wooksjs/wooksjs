@@ -43,6 +43,7 @@
     "build": "rolldown -c ../../rolldown.config.mjs"
   },
   "devDependencies": {
+    "@wooksjs/event-http": "workspace:^",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   },

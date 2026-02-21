@@ -1,13 +1,23 @@
 {
   "compilerOptions": {
     "baseUrl": ".",
-    "moduleResolution": "node",
+    "paths": {
+      "@wooksjs/event-core": ["packages/event-core/src"],
+      "@wooksjs/event-http": ["packages/event-http/src"],
+      "@wooksjs/event-cli": ["packages/event-cli/src"],
+      "@wooksjs/event-wf": ["packages/event-wf/src"],
+      "@wooksjs/http-body": ["packages/http-body/src"],
+      "@wooksjs/http-static": ["packages/http-static/src"],
+      "@wooksjs/http-proxy": ["packages/http-proxy/src"],
+      "wooks": ["packages/wooks/src"]
+    },
+    "moduleResolution": "bundler",
     "esModuleInterop": true,
     "target": "es2020",
     "module": "es2020",
     "lib": ["ESNext", "DOM", "WebWorker", "DOM.Iterable"],
     "noUnusedLocals": true,
-    "types": ["node", "@prostojs/dye/global"],
+    "types": ["node"],
     "declaration": true,
     "emitDeclarationOnly": true,
     "emitDecoratorMetadata": true,
@@ -22,6 +32,6 @@
     "removeComments": false,
     "outDir": ".types"
   },
-  "include": ["packages/*/src/**/*.ts", "globals.d.ts"],
+  "include": ["packages/*/src/**/*.ts", "globals.d.ts", "node_modules/@prostojs/dye/global.d.ts"],
   "exclude": ["**/*.spec.ts"]
 }

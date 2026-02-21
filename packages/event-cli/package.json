@@ -48,6 +48,8 @@
   },
   "devDependencies": {
     "@types/minimist": "^1.2.5",
+    "@wooksjs/event-core": "workspace:^",
+    "wooks": "workspace:^",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   },

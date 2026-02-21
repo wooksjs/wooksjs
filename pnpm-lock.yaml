@@ -77,25 +77,25 @@ importers:
       '@prostojs/router':
         specifier: ^0.2.1
         version: 0.2.1
-      '@wooksjs/event-core':
-        specifier: workspace:^
-        version: link:../event-core
       minimist:
         specifier: ^1.2.8
         version: 1.2.8
-      wooks:
-        specifier: workspace:^
-        version: link:../wooks
     devDependencies:
       '@types/minimist':
         specifier: ^1.2.5
         version: 1.2.5
+      '@wooksjs/event-core':
+        specifier: workspace:^
+        version: link:../event-core
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/node@22.19.11)(jiti@2.6.1)(yaml@2.8.2)
+      wooks:
+        specifier: workspace:^
+        version: link:../wooks
 
   packages/event-core:
     dependencies:
@@ -118,19 +118,19 @@ importers:
       '@prostojs/router':
         specifier: ^0.2.1
         version: 0.2.1
+    devDependencies:
       '@wooksjs/event-core':
         specifier: workspace:^
         version: link:../event-core
-      wooks:
-        specifier: workspace:^
-        version: link:../wooks
-    devDependencies:
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/node@22.19.11)(jiti@2.6.1)(yaml@2.8.2)
+      wooks:
+        specifier: workspace:^
+        version: link:../wooks
 
   packages/event-wf:
     dependencies:
@@ -140,26 +140,25 @@ importers:
       '@prostojs/wf':
         specifier: ^0.0.18
         version: 0.0.18
+    devDependencies:
       '@wooksjs/event-core':
         specifier: workspace:^
         version: link:../event-core
-      wooks:
-        specifier: workspace:^
-        version: link:../wooks
-    devDependencies:
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/node@22.19.11)(jiti@2.6.1)(yaml@2.8.2)
+      wooks:
+        specifier: workspace:^
+        version: link:../wooks
 
   packages/http-body:
-    dependencies:
+    devDependencies:
       '@wooksjs/event-http':
         specifier: workspace:^
         version: link:../event-http
-    devDependencies:
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -168,14 +167,13 @@ importers:
         version: 3.2.4(@types/node@22.19.11)(jiti@2.6.1)(yaml@2.8.2)
 
   packages/http-proxy:
-    dependencies:
+    devDependencies:
       '@wooksjs/event-core':
         specifier: workspace:^
         version: link:../event-core
       '@wooksjs/event-http':
         specifier: workspace:^
         version: link:../event-http
-    devDependencies:
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -184,11 +182,10 @@ importers:
         version: 3.2.4(@types/node@22.19.11)(jiti@2.6.1)(yaml@2.8.2)
 
   packages/http-static:
-    dependencies:
+    devDependencies:
       '@wooksjs/event-http':
         specifier: workspace:^
         version: link:../event-http
-    devDependencies:
       typescript:
         specifier: ^5.9.3
         version: 5.9.3

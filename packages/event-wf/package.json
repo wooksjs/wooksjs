@@ -43,6 +43,8 @@
     "@prostojs/wf": "^0.0.18"
   },
   "devDependencies": {
+    "@wooksjs/event-core": "workspace:^",
+    "wooks": "workspace:^",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   },
