@@ -341,6 +341,7 @@
     "temp",
     ".npmrc",
     "docs/.vitepress/cache",
-    ".commitlintrc.*"
+    ".commitlintrc.*",
+    "**/scripts/setup-skills.js"
   ]
 }
