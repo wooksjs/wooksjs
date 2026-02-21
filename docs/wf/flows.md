@@ -188,7 +188,7 @@ let output = await app.start('my-first-flow', { result: 0 })
 console.log(output.finished) // false
 console.log(output.inputRequired) // "number"
 if (output.inputRequired) {
-    output = app.resume('my-first-flow', output.state, 5) // resuming with input = 5
+    output = await app.resume(output.state, 5) // resuming with input = 5
     // resume shortcut:
     // output = output.resume(5)
 }

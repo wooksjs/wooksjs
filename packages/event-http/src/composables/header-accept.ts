@@ -1,6 +1,7 @@
 import { useHttpContext } from '../event-http'
 import { useHeaders } from './headers'
 
+/** Provides helpers to check the request's Accept header for supported MIME types. */
 export function useAccept() {
   const { store } = useHttpContext()
   const { accept } = useHeaders()

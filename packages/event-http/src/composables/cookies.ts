@@ -6,6 +6,14 @@ import { escapeRegex, safeDecodeURIComponent } from '../utils/helpers'
 import { renderCookie } from '../utils/set-cookie'
 import { useHeaders } from './headers'
 
+/**
+ * Provides access to parsed request cookies.
+ * @example
+ * ```ts
+ * const { getCookie, rawCookies } = useCookies()
+ * const sessionId = getCookie('session_id')
+ * ```
+ */
 export function useCookies() {
   const { store } = useHttpContext()
   const { cookie } = useHeaders()
@@ -27,6 +35,7 @@ export function useCookies() {
   }
 }
 
+/** Provides methods to set, get, remove, and clear outgoing response cookies. */
 export function useSetCookies() {
   const { store } = useHttpContext()
   const cookiesStore = store('setCookies')
@@ -54,6 +63,7 @@ export function useSetCookies() {
   }
 }
 
+/** Returns a hookable accessor for a single outgoing cookie by name. */
 export function useSetCookie(name: string) {
   const { setCookie, getCookie } = useSetCookies()
 
@@ -82,4 +92,5 @@ export function useSetCookie(name: string) {
   )
 }
 
+/** Hook type returned by {@link useSetCookie}. */
 export type TCookieHook = ReturnType<typeof useSetCookie>

@@ -51,8 +51,6 @@ app.post('test', async () => {
         isBinary, // checks if the content type is binary : () => boolean;
         isFormData, // checks if the content type is "multipart/form-data" : () => boolean;
         isUrlencoded, // checks if the content type is "application/x-www-form-urlencoded" : () => boolean;
-        isCompressed, // checks the content-encoding : () => boolean | undefined;
-        contentEncodings, // returns an array of encodings : () => string[];
         parseBody, // parses the body according to the content type : <T = unknown>() => Promise<T>;
         rawBody, // returns the raw body buffer : () => Promise<Buffer>;
     } = useBody();
@@ -97,7 +95,8 @@ Example:
 ::: code-group
 
 ```ts [custom-parser-composable.ts]
-import { useBody, useHttpContext } from '@wooksjs/http-body';
+import { useBody } from '@wooksjs/http-body';
+import { useHttpContext, useHeaders } from '@wooksjs/event-http';
 
 // Describing the type of the context store
 type TBodyStore = {

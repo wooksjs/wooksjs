@@ -39,8 +39,11 @@ function useAsyncEventContext<StoreType, EventType extends TGenericEvent>(
   expectedTypes?: string | string[]
 ): {
   getCtx: () => (StoreType & { event: EventType, options: TEventOptions }),
-  store: <K extends keyof StoreType>(key: K) => StoreStoreHandle<StoreType[K]>,
-  ...
+  store: <K extends keyof StoreType>(key: K) => StoreHandle<StoreType[K]>,
+  getStore: <K extends keyof StoreType>(key: K) => StoreType[K],
+  setStore: <K extends keyof StoreType>(key: K, v: StoreType[K]) => void,
+  hasParentCtx: () => boolean,
+  getParentCtx: <T2>() => TCtxHelpers<T2>,
 }
 ```
 
@@ -63,11 +66,14 @@ function useAsyncEventContext<StoreType, EventType extends TGenericEvent>(
 
 Calling `store(key)` returns a handle with methods to manage properties inside that store object:
 
-- **`init(propName, getter)`:** Initialize a property if it’s not set. Useful for lazy loading or expensive operations.  
-- **`get(propName)`:** Retrieve the property’s value.  
-- **`set(propName, value)`:** Set or update the property’s value.  
-- **`del(propName)`:** Delete the property’s value.  
-- **`entries()`:** Return an array of `[propName, value]` pairs for all properties.  
+- **`value`:** Reactive property that holds the current store object value.
+- **`hook(propName)`:** Returns a reactive hook `{ value, isDefined }` for a nested property.
+- **`init(propName, getter)`:** Initialize a property if it’s not set. Useful for lazy loading or expensive operations.
+- **`get(propName)`:** Retrieve the property’s value.
+- **`set(propName, value)`:** Set or update the property’s value.
+- **`has(propName)`:** Check whether a property is defined.
+- **`del(propName)`:** Delete the property’s value.
+- **`entries()`:** Return an array of `[propName, value]` pairs for all properties.
 - **`clear()`:** Remove all properties from the store object.
 
 **Key Points:**

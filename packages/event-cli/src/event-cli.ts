@@ -3,6 +3,7 @@ import { createAsyncEventContext, useAsyncEventContext } from '@wooksjs/event-co
 
 import type { TCliContextStore, TCliEventData } from './types'
 
+/** Creates a new async event context for a CLI command invocation. */
 export function createCliContext(data: Omit<TCliEventData, 'type'>, options: TEventOptions) {
   return createAsyncEventContext<TCliContextStore, TCliEventData>({
     event: {

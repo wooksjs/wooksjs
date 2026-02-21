@@ -11,8 +11,10 @@ Each step in the workflow is identified by a route, rather than a simple name. T
 A static step doesn't include any parameters or wildcards in its route:
 
 ```ts
-app.step('step-name', () => {
-    // do something
+app.step('step-name', {
+    handler: () => {
+        // do something
+    },
 });
 ```
 
@@ -23,9 +25,11 @@ A parametric step includes one or more route parameters in its route:
 ```ts
 import { useRouteParams } from '@wooksjs/event-core';
 
-app.step('add/:a/:b', (ctx) => {
-    const { get } = useRouteParams();
-    ctx.result = get('a') + get('b');
+app.step('add/:a/:b', {
+    handler: (ctx) => {
+        const { get } = useRouteParams();
+        ctx.result = get('a') + get('b');
+    },
 });
 ```
 
@@ -38,9 +42,11 @@ A wildcard step includes a wildcard (`*`) in its route:
 ```ts
 import { useRouteParams } from '@wooksjs/event-core';
 
-app.step('log/*', (ctx) => {
-    const { get } = useRouteParams();
-    console.log(get('*'));
+app.step('log/*', {
+    handler: (ctx) => {
+        const { get } = useRouteParams();
+        console.log(get('*'));
+    },
 });
 ```
 
@@ -51,8 +57,10 @@ In this case, the wildcard `*` captures all parameters following `log/` in the r
 A route parameter can be marked as optional by appending a question mark (`?`) to the parameter name:
 
 ```ts
-app.step('optional/:param?', (ctx) => {
-    // do something
+app.step('optional/:param?', {
+    handler: (ctx) => {
+        // do something
+    },
 });
 ```
 

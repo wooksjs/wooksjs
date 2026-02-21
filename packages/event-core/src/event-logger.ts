@@ -3,10 +3,12 @@ import { coloredConsole, createConsoleTransort, ProstoLogger } from '@prostojs/l
 
 import type { TEventOptions } from './context'
 
+/** Data shape passed through logger transports, carrying the event ID. */
 export interface TEventLoggerData {
   eventId: string
 }
 
+/** Logger scoped to a single event, automatically tagging messages with the event ID. */
 export class EventLogger extends ProstoLogger<TEventLoggerData> {
   constructor(eventId: string, opts?: TEventOptions['eventLogger']) {
     const _opts: TProstoLoggerOptions<TEventLoggerData> =

@@ -77,7 +77,7 @@ Example:
 
 ```js
 import { useProxy } from '@wooksjs/http-proxy';
-import { useRequest } from '@wooksjs/composables';
+import { useRequest } from '@wooksjs/event-http';
 
 app.get('*', async () => {
     const proxy = useProxy();

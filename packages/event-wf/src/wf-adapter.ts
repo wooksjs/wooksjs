@@ -8,11 +8,13 @@ import { WooksAdapterBase } from 'wooks'
 import { createWfContext, resumeWfContext, useWFContext } from './event-wf'
 import { WooksWorkflow } from './workflow'
 
+/** Shortcut mappings for workflow event methods. */
 export const wfShortcuts = {
   flow: 'WF_FLOW',
   step: 'WF_STEP',
 }
 
+/** Configuration options for the WooksWf adapter. */
 export interface TWooksWfOptions {
   onError?: (e: Error) => void
   onNotFound?: TWooksHandler
@@ -22,6 +24,7 @@ export interface TWooksWfOptions {
   router?: TWooksOptions['router']
 }
 
+/** Wooks adapter for defining and executing workflow schemas with step-based routing. */
 export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
   protected logger: TConsoleBase
 
@@ -36,14 +39,17 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
     this.wf = new WooksWorkflow(this.wooks)
   }
 
+  /** Attaches a spy function to observe workflow step execution. */
   public attachSpy<I>(fn: TWorkflowSpy<T, I, IR>) {
     return this.wf.attachSpy<I>(fn)
   }
 
+  /** Removes a previously attached workflow spy function. */
   public detachSpy<I>(fn: TWorkflowSpy<T, I, IR>) {
     this.wf.detachSpy<I>(fn)
   }
 
+  /** Registers a workflow step with the given id and handler. */
   public step<I = any>(
     id: string,
     opts: {
@@ -55,6 +61,7 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
     return this.on<Step<T, I, IR>>('WF_STEP', id, () => step)
   }
 
+  /** Registers a workflow flow schema with the given id. */
   public flow(
     id: string,
     schema: TWorkflowSchema<T>,
@@ -68,6 +75,7 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
     }))
   }
 
+  /** Starts a new workflow execution from the beginning. */
   public start<I>(
     schemaId: string,
     inputContext: T,
@@ -78,6 +86,7 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
     return this._start(schemaId, inputContext, undefined, input, spy, cleanup)
   }
 
+  /** Resumes a previously paused workflow from saved state. */
   public resume<I>(
     state: { schemaId: string; indexes: number[]; context: T },
     input?: I,
@@ -189,10 +198,17 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
 }
 
 /**
- * Factory for WooksWf App
- * @param opts TWooksWfOptions
- * @param wooks Wooks | WooksAdapterBase
- * @returns WooksWf
+ * Creates a new WooksWf application instance for workflow execution.
+ * @param opts - Workflow adapter configuration options
+ * @param wooks - Optional existing Wooks or adapter instance to attach to
+ * @returns A new WooksWf instance
+ * @example
+ * ```ts
+ * const app = createWfApp()
+ * app.step('process', { handler: (ctx) => ctx })
+ * app.flow('my-flow', [{ step: 'process' }])
+ * await app.start('my-flow', { data: 'hello' })
+ * ```
  */
 export function createWfApp<T>(opts?: TWooksWfOptions, wooks?: Wooks | WooksAdapterBase) {
   return new WooksWf<T>(opts, wooks)

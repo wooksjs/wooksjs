@@ -2,6 +2,7 @@ import type { EHttpStatusCode, THttpErrorCodes } from '../utils/status-codes'
 import { httpStatusCodes } from '../utils/status-codes'
 import type { HttpErrorRenderer } from './error-renderer'
 
+/** Represents an HTTP error with a status code and optional structured body. */
 export class HttpError<T extends TWooksErrorBody = TWooksErrorBody> extends Error {
   name = 'HttpError'
 
@@ -38,12 +39,14 @@ export class HttpError<T extends TWooksErrorBody = TWooksErrorBody> extends Erro
   }
 }
 
+/** Base shape for an HTTP error response body. */
 export interface TWooksErrorBody {
   message: string
   statusCode: EHttpStatusCode
   error?: string
 }
 
+/** Extended error body that always includes the error description string. */
 export interface TWooksErrorBodyExt extends TWooksErrorBody {
   error: string
 }

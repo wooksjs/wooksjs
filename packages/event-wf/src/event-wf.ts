@@ -3,6 +3,7 @@ import { createAsyncEventContext, useAsyncEventContext } from '@wooksjs/event-co
 
 import type { TWFContextStore, TWFEventData } from './types'
 
+/** Creates a new async event context for a fresh workflow execution. */
 export function createWfContext(data: Omit<TWFEventData, 'type'>, options: TEventOptions) {
   return createAsyncEventContext<TWFContextStore, TWFEventData>({
     event: {
@@ -14,6 +15,7 @@ export function createWfContext(data: Omit<TWFEventData, 'type'>, options: TEven
   })
 }
 
+/** Creates an async event context for resuming a paused workflow. */
 export function resumeWfContext(data: Omit<TWFEventData, 'type'>, options: TEventOptions) {
   return createAsyncEventContext<TWFContextStore, TWFEventData>({
     event: {

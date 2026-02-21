@@ -62,10 +62,9 @@ app.flow('adding-parametric', [
     },
 ])
 
-app.run()
-
 // Run the 'adding' workflow
-app.start('adding', { result: 0 })
+const output = await app.start('adding', { result: 0 })
+console.log(output.state.context) // { result: 14 }
 ```
 
 ## Documentation

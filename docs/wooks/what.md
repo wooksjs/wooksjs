@@ -14,7 +14,7 @@ If you are familiar with frontend frameworks like Vue.js or React, you might hav
 For example, to access the parsed request body in an HTTP event, you might write something like:
 
 ```ts
-import { useBody } from '@wooksjs/event-http'
+import { useBody } from '@wooksjs/http-body'
 
 app.post('/submit', async () => {
   const { parseBody } = useBody()

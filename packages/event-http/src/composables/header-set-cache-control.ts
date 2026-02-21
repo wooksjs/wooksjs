@@ -9,7 +9,7 @@ const renderExpires = (v: Date | string | number) =>
   typeof v === 'string' || typeof v === 'number' ? new Date(v).toUTCString() : v.toUTCString()
 const renderPragmaNoCache = (v: boolean) => (v ? 'no-cache' : '')
 
-// rfc7234#section-5.2.2
+/** Provides helpers to set cache-related response headers (Cache-Control, Expires, Age, Pragma). */
 export function useSetCacheControl() {
   const { setHeader } = useSetHeaders()
 

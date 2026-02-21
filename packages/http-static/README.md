@@ -72,7 +72,7 @@ app.get('static/*', () => {
 })
 ```
 
-`cacheControl` here is the same object as used in `useSetCacheControl().setCacheControl({ ... })` from `@wooksjs/composables`
+`cacheControl` here is the same object as used in `useSetCacheControl().setCacheControl({ ... })` from `@wooksjs/event-http`
 
 ## Documentation
 

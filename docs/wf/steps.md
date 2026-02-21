@@ -90,7 +90,7 @@ let output = await app.start('flow-with-input', {})
 console.log(output.finished) // false
 console.log(output.inputRequired) // input schema
 if (output.inputRequired) {
-    output = app.resume('my-first-flow', output.state, <some input>) // resuming with input
+    output = app.resume(output.state, <some input>) // resuming with input
     // resume shortcut:
     // output = output.resume(<some input>)
 }
@@ -113,12 +113,12 @@ app.step('step-with-input', {
 Executing this step will interrupt the flow:
 
 ```ts
-let output = await app.flow('flow-with-resumable-error', {})
+let output = await app.start('flow-with-resumable-error', {})
 console.log(output.finished) // false
-console.log(output.error) // "test error"
+console.log(output.error?.message) // "test error"
 
 // to retry we can resume flow:
-output = await app.resume('flow-with-resumable-error', output.state)
+output = await app.resume(output.state)
 // retry shortcut:
 // output = await output.retry()
 ```

@@ -15,6 +15,7 @@ let framework: { version: string; poweredBy: string; link: string; image: string
   image: `https://wooks.moost.org/wooks-full-logo.png`,
 }
 
+/** Renders HTTP error responses in HTML, JSON, or plain text based on the Accept header. */
 export class HttpErrorRenderer extends BaseHttpResponseRenderer<TWooksErrorBodyExt> {
   constructor(
     protected opts?: { version: string; poweredBy: string; link: string; image: string },

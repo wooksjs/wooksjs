@@ -3,6 +3,7 @@ import type { TProstoRouterPathHandle } from '@prostojs/router'
 import type minimist from 'minimist'
 import type { TWooksHandler } from 'wooks'
 
+/** Event data describing a CLI command invocation. */
 export interface TCliEventData {
   argv: string[]
   pathParams: string[]
@@ -12,10 +13,12 @@ export interface TCliEventData {
   cliHelp: TCliHelpRenderer
 }
 
+/** Context store for CLI events, holding parsed flags. */
 export interface TCliContextStore {
   flags?: Record<string, boolean | string>
 }
 
+/** Custom data attached to CLI help entries for handler resolution. */
 export interface TCliHelpCustom {
   handler: TWooksHandler<any>
   /**
@@ -26,4 +29,5 @@ export interface TCliHelpCustom {
    */
   cb?: <T>(path: string, aliasType: number, route?: TProstoRouterPathHandle<T>) => void
 }
+/** CLI help renderer type parameterized with custom help data. */
 export type TCliHelpRenderer = CliHelpRenderer<TCliHelpCustom>

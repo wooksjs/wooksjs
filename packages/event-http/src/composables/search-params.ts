@@ -2,6 +2,14 @@ import { useHttpContext } from '../event-http'
 import { WooksURLSearchParams } from '../utils/url-search-params'
 import { useRequest } from './request'
 
+/**
+ * Provides access to URL search (query) parameters from the request.
+ * @example
+ * ```ts
+ * const { urlSearchParams, jsonSearchParams } = useSearchParams()
+ * const page = urlSearchParams().get('page')
+ * ```
+ */
 export function useSearchParams() {
   const { store } = useHttpContext()
   const url = useRequest().url || ''

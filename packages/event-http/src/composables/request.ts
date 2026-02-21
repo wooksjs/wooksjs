@@ -12,6 +12,7 @@ import { useHttpContext } from '../event-http'
 
 const xForwardedFor = 'x-forwarded-for'
 
+/** Default safety limits for request body reading (size, ratio, timeout). */
 export const DEFAULT_LIMITS = {
   maxCompressed: 1 * 1024 * 1024, // 1 MB
   maxInflated: 10 * 1024 * 1024, // 10 MB
@@ -19,6 +20,14 @@ export const DEFAULT_LIMITS = {
   readTimeoutMs: 10_000, // 10 s
 } as const
 
+/**
+ * Provides access to the incoming HTTP request (method, url, headers, body, IP).
+ * @example
+ * ```ts
+ * const { method, url, rawBody, getIp } = useRequest()
+ * const body = await rawBody()
+ * ```
+ */
 export function useRequest() {
   const { store } = useHttpContext()
   const { init, get, set } = store('request')

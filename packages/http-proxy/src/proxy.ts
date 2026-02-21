@@ -18,6 +18,23 @@ const SET_COOKIE = 'set-cookie'
 
 const resHeadersToBlock = ['transfer-encoding', 'content-encoding', SET_COOKIE]
 
+/**
+ * Composable that returns a `proxy` function for forwarding HTTP requests to a target URL.
+ *
+ * @example
+ * ```ts
+ * app.get('/api/*', async () => {
+ *   const proxy = useProxy()
+ *   const response = await proxy('https://backend.example.com/api', {
+ *     reqHeaders: { allow: '*' },
+ *     resHeaders: { allow: '*' },
+ *   })
+ *   return response
+ * })
+ * ```
+ *
+ * @returns An async `proxy(target, opts?)` function that forwards the current request to the given target URL.
+ */
 export function useProxy() {
   const status = useStatus()
   const { setHeader, headers: getSetHeaders } = useSetHeaders()

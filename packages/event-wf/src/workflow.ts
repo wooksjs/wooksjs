@@ -4,6 +4,7 @@ import type { Wooks } from 'wooks'
 
 import { useWFContext } from './event-wf'
 
+/** Workflow engine that resolves steps via Wooks router lookup. */
 export class WooksWorkflow<T, IR> extends Workflow<T, IR> {
   constructor(protected wooks: Wooks) {
     super([])

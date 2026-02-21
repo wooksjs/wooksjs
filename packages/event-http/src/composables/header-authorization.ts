@@ -3,6 +3,14 @@ import { Buffer } from 'buffer'
 import { useHttpContext } from '../event-http'
 import { useHeaders } from './headers'
 
+/**
+ * Provides parsed access to the Authorization header (type, credentials, Basic decoding).
+ * @example
+ * ```ts
+ * const { isBearer, authRawCredentials, basicCredentials } = useAuthorization()
+ * if (isBearer()) { const token = authRawCredentials() }
+ * ```
+ */
 export function useAuthorization() {
   const { store } = useHttpContext()
   const { authorization } = useHeaders()

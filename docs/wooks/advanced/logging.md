@@ -67,17 +67,13 @@ app.get('/some-path', () => {
   eventLogger.log('log message');
   eventLogger.error('error message');
 
-  // Retrieve persisted messages (only those at or above persistLevel are stored)
-  const persistedMessages = eventLogger.getMessages();
-  console.log('Persisted Messages:', persistedMessages);
-
   return 'Check your console for logs';
 });
 ```
 
 **Key points:**
 
-- `useEventLogger(topic?: string)` returns an `EventLogger` instance associated with the current event context.
+- `useEventLogger(topic?: string)` returns a `TConsoleBase` logger instance associated with the current event context.
 - The logger automatically includes `eventId` in all messages, helping you track logs per event.
 - The `topic` parameter allows you to categorize or namespace your logs.
 
@@ -96,10 +92,13 @@ The `level` number controls which of these methods produce output. For instance,
 
 ## Persisting and Retrieving Messages
 
-If you set a `persistLevel`, any log messages at or above that level are stored in memory. You can retrieve them with:
+If you set a `persistLevel`, any log messages at or above that level are stored in memory. The underlying `EventLogger` (which extends `ProstoLogger`) supports `getMessages()` for retrieval. To access it, cast the logger returned by `useEventLogger()`:
 
 ```ts
-const persisted = eventLogger.getMessages();
+import { EventLogger } from '@wooksjs/event-core'
+
+const eventLogger = useEventLogger('myTopic') as EventLogger
+const persisted = eventLogger.getMessages()
 ```
 
 This can be useful for debugging, auditing, or displaying logs in a UI.

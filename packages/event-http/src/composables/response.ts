@@ -7,6 +7,14 @@ interface TUseResponseOptions {
   passthrough: boolean // when true: keep building response via framework
 }
 
+/**
+ * Provides access to the raw HTTP response and status code management.
+ * @example
+ * ```ts
+ * const { status, rawResponse, hasResponded } = useResponse()
+ * status(200)
+ * ```
+ */
 export function useResponse() {
   const { store } = useHttpContext()
   const event = store('event')
@@ -35,9 +43,11 @@ export function useResponse() {
   }
 }
 
+/** Returns a hookable accessor for the response status code. */
 export function useStatus() {
   const { store } = useHttpContext()
   return store('status').hook('code')
 }
 
+/** Hook type returned by {@link useStatus}. */
 export type TStatusHook = ReturnType<typeof useStatus>

@@ -9,10 +9,12 @@ import { WooksAdapterBase } from 'wooks'
 import { createCliContext, useCliContext } from './event-cli'
 import type { TCliHelpCustom, TCliHelpRenderer } from './types'
 
+/** Shortcut mappings for CLI event methods. */
 export const cliShortcuts = {
   cli: 'CLI',
 }
 
+/** Configuration options for the WooksCli adapter. */
 export interface TWooksCliOptions {
   onError?: (e: Error) => void
   onNotFound?: TWooksHandler
@@ -23,11 +25,13 @@ export interface TWooksCliOptions {
   router?: TWooksOptions['router']
 }
 
+/** Entry definition for registering a CLI command with its handler and help metadata. */
 export interface TWooksCliEntry<T> extends Omit<TCliEntry<TWooksHandler<T>>, 'custom' | 'command'> {
   onRegister?: TCliHelpCustom['cb']
   handler: TWooksHandler<T>
 }
 
+/** Wooks adapter for building CLI applications with command routing and help generation. */
 export class WooksCli extends WooksAdapterBase {
   protected logger: TConsoleBase
 
@@ -255,10 +259,16 @@ export class WooksCli extends WooksAdapterBase {
 }
 
 /**
- * Factory for WooksCli App
- * @param opts TWooksCliOptions
- * @param wooks Wooks | WooksAdapterBase
- * @returns WooksCli
+ * Creates a new WooksCli application instance.
+ * @param opts - CLI adapter configuration options
+ * @param wooks - Optional existing Wooks or adapter instance to attach to
+ * @returns A new WooksCli instance
+ * @example
+ * ```ts
+ * const app = createCliApp()
+ * app.cli('greet/:name', () => `Hello, ${useRouteParams().get('name')}!`)
+ * app.run()
+ * ```
  */
 export function createCliApp(opts?: TWooksCliOptions, wooks?: Wooks | WooksAdapterBase) {
   return new WooksCli(opts, wooks)

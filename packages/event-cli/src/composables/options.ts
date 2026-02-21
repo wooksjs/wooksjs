@@ -23,6 +23,13 @@ export function useCliOptions() {
  *
  * @param name name of the option
  * @returns value of a CLI option
+ * @example
+ * ```ts
+ * const verbose = useCliOption('verbose')
+ * if (verbose) {
+ *   console.log('Verbose mode enabled')
+ * }
+ * ```
  */
 export function useCliOption(name: string) {
   try {

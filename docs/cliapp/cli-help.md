@@ -118,6 +118,8 @@ app.cli('my-command', {
 ## Automatic Help Display
 To enable automatic help display when the `--help` option is used, you can use the `useAutoHelp` composable function within your command's handler. Here's an example:
 ```js
+import { useAutoHelp, useCliOption } from '@wooksjs/event-cli'
+
 app.cli('root/:arg', {
   args: { arg: 'First argument' },
   description: 'Root Command Descr',
@@ -151,6 +153,8 @@ Inside the `onUnknownCommand` hook, you can use the `useAutoHelp` function to ch
 ensuring that the user receives the necessary guidance even when the input doesn't match due to missing arguments.
 Here's an example:
 ```js
+import { createCliApp, useAutoHelp, useCommandLookupHelp } from '@wooksjs/event-cli'
+
 // Create a CLI app with onUnknownCommand hook
 const app = createCliApp({
     // This callback is triggered when the CLI command is not recognized by the router

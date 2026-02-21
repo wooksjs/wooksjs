@@ -29,10 +29,12 @@ type TContextInjectorCallback<T> = () => T
 
 let ci = new ContextInjector()
 
+/** Returns the current global `ContextInjector` instance. */
 export function getContextInjector<N = TContextInjectorHooks>(): ContextInjector<N> {
   return ci as ContextInjector<N>
 }
 
+/** Replaces the global `ContextInjector` instance (e.g., to integrate with OpenTelemetry). */
 export function replaceContextInjector(newCi: ContextInjector<string>): void {
   ci = newCi
 }

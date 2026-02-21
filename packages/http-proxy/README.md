@@ -48,7 +48,7 @@ It's easy as `proxy` returns fetch response
 import { useProxy } from '@wooksjs/http-proxy'
 app.get('/to-proxy', async () => {
   const proxy = useProxy()
-  const response = proxy('https://mayapi.com/json-api')
+  const response = await proxy('https://mayapi.com/json-api')
   const data = { ...(await response.json()), newField: 'new value' }
   return data
 })
@@ -58,7 +58,7 @@ app.get('/to-proxy', async () => {
 
 ```ts
 import { useProxy } from '@wooksjs/http-proxy'
-import { useRequest } from '@wooksjs/composables'
+import { useRequest } from '@wooksjs/event-http'
 //...
 app.get('*', async () => {
   const proxy = useProxy()

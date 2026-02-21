@@ -10,6 +10,7 @@ import { HttpError } from './errors'
 import { createHttpContext, useHttpContext } from './event-http'
 import { createWooksResponder } from './response'
 
+/** Configuration options for the WooksHttp adapter. */
 export interface TWooksHttpOptions {
   logger?: TConsoleBase
   eventOptions?: TEventOptions
@@ -17,6 +18,7 @@ export interface TWooksHttpOptions {
   router?: TWooksOptions['router']
 }
 
+/** HTTP adapter for Wooks that provides route registration, server lifecycle, and request handling. */
 export class WooksHttp extends WooksAdapterBase {
   protected logger: TConsoleBase
 
@@ -28,6 +30,7 @@ export class WooksHttp extends WooksAdapterBase {
     this.logger = opts?.logger || this.getLogger(`${__DYE_CYAN_BRIGHT__}[wooks-http]`)
   }
 
+  /** Registers a handler for all HTTP methods on the given path. */
   all<ResType = unknown, ParamsType = Record<string, string | string[]>>(
     path: string,
     handler: TWooksHandler<ResType>,
@@ -35,6 +38,7 @@ export class WooksHttp extends WooksAdapterBase {
     return this.on<ResType, ParamsType>('*', path, handler)
   }
 
+  /** Registers a GET route handler. */
   get<ResType = unknown, ParamsType = Record<string, string | string[]>>(
     path: string,
     handler: TWooksHandler<ResType>,
@@ -42,6 +46,7 @@ export class WooksHttp extends WooksAdapterBase {
     return this.on<ResType, ParamsType>('GET', path, handler)
   }
 
+  /** Registers a POST route handler. */
   post<ResType = unknown, ParamsType = Record<string, string | string[]>>(
     path: string,
     handler: TWooksHandler<ResType>,
@@ -49,6 +54,7 @@ export class WooksHttp extends WooksAdapterBase {
     return this.on<ResType, ParamsType>('POST', path, handler)
   }
 
+  /** Registers a PUT route handler. */
   put<ResType = unknown, ParamsType = Record<string, string | string[]>>(
     path: string,
     handler: TWooksHandler<ResType>,
@@ -56,6 +62,7 @@ export class WooksHttp extends WooksAdapterBase {
     return this.on<ResType, ParamsType>('PUT', path, handler)
   }
 
+  /** Registers a PATCH route handler. */
   patch<ResType = unknown, ParamsType = Record<string, string | string[]>>(
     path: string,
     handler: TWooksHandler<ResType>,
@@ -63,6 +70,7 @@ export class WooksHttp extends WooksAdapterBase {
     return this.on<ResType, ParamsType>('PATCH', path, handler)
   }
 
+  /** Registers a DELETE route handler. */
   delete<ResType = unknown, ParamsType = Record<string, string | string[]>>(
     path: string,
     handler: TWooksHandler<ResType>,
@@ -70,6 +78,7 @@ export class WooksHttp extends WooksAdapterBase {
     return this.on<ResType, ParamsType>('DELETE', path, handler)
   }
 
+  /** Registers a HEAD route handler. */
   head<ResType = unknown, ParamsType = Record<string, string | string[]>>(
     path: string,
     handler: TWooksHandler<ResType>,
@@ -77,6 +86,7 @@ export class WooksHttp extends WooksAdapterBase {
     return this.on<ResType, ParamsType>('HEAD', path, handler)
   }
 
+  /** Registers an OPTIONS route handler. */
   options<ResType = unknown, ParamsType = Record<string, string | string[]>>(
     path: string,
     handler: TWooksHandler<ResType>,
@@ -241,10 +251,13 @@ export class WooksHttp extends WooksAdapterBase {
 }
 
 /**
- * Factory for WooksHttp App
- * @param opts TWooksHttpOptions
- * @param wooks Wooks | WooksAdapterBase
- * @returns WooksHttp
+ * Creates a new WooksHttp application instance.
+ * @example
+ * ```ts
+ * const app = createHttpApp()
+ * app.get('/hello', () => 'Hello World!')
+ * app.listen(3000)
+ * ```
  */
 export function createHttpApp(opts?: TWooksHttpOptions, wooks?: Wooks | WooksAdapterBase) {
   return new WooksHttp(opts, wooks)

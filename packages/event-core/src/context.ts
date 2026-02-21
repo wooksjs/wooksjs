@@ -7,10 +7,12 @@ import type { TEventLoggerData } from './event-logger'
 import { attachHook } from './hook'
 import type { TEmpty, TGenericEvent } from './types'
 
+/** Configuration options for event context creation. */
 export interface TEventOptions {
   eventLogger?: { topic?: string } & TProstoLoggerOptions<TEventLoggerData>
 }
 
+/** Shape of the context store that holds event data, options, and route params. */
 export interface TGenericContextStore<CustomEventType = TEmpty> {
   event: CustomEventType & TGenericEvent
   options: TEventOptions
@@ -32,7 +34,10 @@ export const asyncStorage: AsyncLocalStorage<TGenericContextStore> =
   new AsyncLocalStorage<TGenericContextStore>()
 
 /**
- * Create Wooks Context
+ * Creates a new async event context and returns a runner function to execute callbacks within it.
+ *
+ * @param data - Initial context store data including the event object and options.
+ * @returns A function that runs a callback within the created async context.
  */
 export function createAsyncEventContext<S = TEmpty, EventTypeToCreate = TEmpty>(
   data: S & TGenericContextStore<EventTypeToCreate>,
@@ -50,7 +55,10 @@ export function createAsyncEventContext<S = TEmpty, EventTypeToCreate = TEmpty>(
 }
 
 /**
- * Use Wooks Context
+ * Retrieves the current async event context and returns helpers for reading/writing the store.
+ *
+ * @param expectedTypes - Optional event type(s) to validate the context against.
+ * @throws If no event context exists or if the event type does not match.
  */
 export function useAsyncEventContext<S = TEmpty, EventType = TEmpty>(
   expectedTypes?: string | string[],
@@ -79,6 +87,7 @@ export function useAsyncEventContext<S = TEmpty, EventType = TEmpty>(
 }
 // --=========== ASYNC CONTEXT =============--
 
+/** Helper methods returned by `useAsyncEventContext` for interacting with the context store. */
 export interface TCtxHelpers<T> {
   getCtx: () => T
   store: <K extends keyof Required<T>>(
@@ -109,11 +118,6 @@ export interface TCtxHelpers<T> {
   getParentCtx: <T2 = T>() => TCtxHelpers<T2>
 }
 
-/**
- *
- * @param cc
- * @returns
- */
 function _getCtxHelpers<T>(cc: T): TCtxHelpers<T> {
   /**
    * Hook to an event store property

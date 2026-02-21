@@ -3,6 +3,7 @@ import { createAsyncEventContext, useAsyncEventContext } from '@wooksjs/event-co
 
 import type { THttpContextStore, THttpEventData } from './types'
 
+/** Creates an async event context for an incoming HTTP request/response pair. */
 export function createHttpContext(data: THttpEventData, options: TEventOptions) {
   return createAsyncEventContext<THttpContextStore, THttpEventData>({
     event: {

@@ -20,6 +20,22 @@ interface TBodyStore {
   isUrlencoded?: boolean
 }
 
+/**
+ * Composable that provides request body parsing utilities for various content types.
+ *
+ * @example
+ * ```ts
+ * app.post('/api/data', async () => {
+ *   const { parseBody, isJson } = useBody()
+ *   if (isJson()) {
+ *     const data = await parseBody<{ name: string }>()
+ *     return { received: data.name }
+ *   }
+ * })
+ * ```
+ *
+ * @returns Object with content-type checkers (`isJson`, `isHtml`, `isXml`, `isText`, `isBinary`, `isFormData`, `isUrlencoded`), a `parseBody` function, and `rawBody` accessor.
+ */
 export function useBody() {
   const { store } = useHttpContext<{ request: TBodyStore }>()
   const { init } = store('request')

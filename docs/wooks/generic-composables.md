@@ -41,11 +41,11 @@ console.log('Current Event ID:', getId())
 
 **Signature:**
 ```ts
-function useEventLogger(topic?: string): EventLogger
+function useEventLogger(topic?: string): TConsoleBase
 ```
 
 **Description:**
-Returns an `EventLogger` instance associated with the current event. The logger inherits the event’s unique ID and configuration (logging level, transports, etc.). If a `topic` is provided, a sub-topic logger is returned, allowing you to categorize logs further.
+Returns a logger instance (typed as `TConsoleBase` from `@prostojs/logger`) associated with the current event. The logger inherits the event’s unique ID and configuration (logging level, transports, etc.). If a `topic` is provided, a sub-topic logger is returned, allowing you to categorize logs further.
 
 **How It Works:**
 - Fetches `eventLogger` options from the context.
@@ -56,15 +56,9 @@ Returns an `EventLogger` instance associated with the current event. The logger 
 
 **Example:**
 ```ts
-const eventLogger = useEventLogger('my-feature')
-eventLogger.debug('This is a debug log for the current event')
-eventLogger.error('An error occurred')
-```
-
-You can also retrieve persisted messages if `persistLevel` is set:
-```ts
-const messages = eventLogger.getMessages()
-console.log('Persisted Messages:', messages)
+const eventLogger = useEventLogger(‘my-feature’)
+eventLogger.debug(‘This is a debug log for the current event’)
+eventLogger.error(‘An error occurred’)
 ```
 
 ## `useRouteParams<T extends object = Record<string, string | string[]>>()`
@@ -99,7 +93,17 @@ function useAsyncEventContext<S = TEmpty, EventType = TEmpty>(
   expectedTypes?: string | string[]
 ): {
   getCtx(): S & TGenericContextStore<EventType>,
-  store<K extends keyof S>(key: K): StoreHandle<S[K]>,
+  store<K extends keyof S>(key: K): {
+    value: S[K],
+    hook<K2 extends keyof S[K]>(key2: K2): { value: S[K][K2], isDefined: boolean },
+    init<K2 extends keyof S[K]>(key2: K2, getter: () => S[K][K2]): S[K][K2],
+    get<K2 extends keyof S[K]>(key2: K2): S[K][K2] | undefined,
+    set<K2 extends keyof S[K]>(key2: K2, v: S[K][K2]): S[K][K2],
+    has<K2 extends keyof S[K]>(key2: K2): boolean,
+    del<K2 extends keyof S[K]>(key2: K2): void,
+    entries(): Array<[string, unknown]>,
+    clear(): void,
+  },
   // ...other helpers
 }
 ```

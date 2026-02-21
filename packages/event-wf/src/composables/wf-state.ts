@@ -1,5 +1,14 @@
 import { useWFContext } from '../event-wf'
 
+/**
+ * Composable that provides access to the current workflow execution state.
+ * @example
+ * ```ts
+ * const { ctx, input, schemaId, stepId } = useWfState()
+ * const context = ctx<MyContext>()
+ * const stepInput = input<MyInput>()
+ * ```
+ */
 export function useWfState() {
   const { store, getCtx } = useWFContext()
   const event = store('event')

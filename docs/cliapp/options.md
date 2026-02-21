@@ -7,7 +7,7 @@ Options are typically defined with a double hyphen (`--`) or a single hyphen (`-
 To define options in Wooks CLI, you can use the options property when registering your command. Here's an example:
 
 ```js
-import { useCliOption } from '../../packages/event-cli'
+import { useCliOption } from '@wooksjs/event-cli'
 
 app.cli('my-command', {
   options: [

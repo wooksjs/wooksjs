@@ -18,18 +18,45 @@ import { normalizePath } from './utils/path-norm'
 
 const { stat, readdir } = fsPromises
 
+/** Options for configuring static file serving behavior. */
 interface TServeFileOptions {
+  /** Additional response headers to set. */
   headers?: Record<string, string>
+  /** Cache-Control header directives. */
   cacheControl?: TCacheControl
+  /** Expires header value as a Date, string, or timestamp. */
   expires?: Date | string | number
+  /** When true, sets `Pragma: no-cache`. */
   pragmaNoCache?: boolean
+  /** Base directory to resolve relative file paths against. */
   baseDir?: string
+  /** Default file extension appended when the path has none. */
   defaultExt?: string
+  /** When true, renders an HTML directory listing for directory paths. */
   listDirectory?: boolean
+  /** Index filename (e.g. `'index.html'`) served when the path is a directory. */
   index?: string
+  /** When true, allows `../` parent traversal in file paths. */
   allowDotDot?: boolean
 }
 
+/**
+ * Serves a static file with support for ETags, range requests, cache control, and directory listing.
+ *
+ * @example
+ * ```ts
+ * app.get('/files/*', () => {
+ *   return serveFile('public/readme.txt', {
+ *     baseDir: '/var/www',
+ *     cacheControl: { maxAge: 3600 },
+ *   })
+ * })
+ * ```
+ *
+ * @param filePath - Path to the file or directory to serve.
+ * @param options - Optional configuration for headers, caching, and directory behavior.
+ * @returns A readable stream, string body, or HTML directory listing.
+ */
 export async function serveFile(
   filePath: string,
   options: TServeFileOptions = {},
