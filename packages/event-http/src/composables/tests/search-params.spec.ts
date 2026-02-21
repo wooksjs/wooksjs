@@ -16,9 +16,9 @@ describe('compasble/search-params', () => {
       const { jsonSearchParams } = useSearchParams()
       expect(jsonSearchParams()).toEqual({
         'a[]': ['1', '2'],
-        'b': '3',
-        'c': '4',
-        'encoded': '~ %',
+        b: '3',
+        c: '4',
+        encoded: '~ %',
       })
     })
   })

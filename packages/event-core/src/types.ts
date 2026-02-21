@@ -6,5 +6,5 @@ export interface TGenericEvent {
   id?: string
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface TEmpty {}
+// eslint-disable-next-line typescript/no-empty-interface -- intentional empty base type
+export type TEmpty = Record<string, never>

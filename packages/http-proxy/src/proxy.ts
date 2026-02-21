@@ -44,7 +44,7 @@ export function useProxy() {
 
     if (cookies) {
       headers.cookie = Object.entries(cookies)
-        .map(v => v.join('='))
+        .map((v) => v.join('='))
         .join('; ')
     }
 
@@ -53,12 +53,12 @@ export function useProxy() {
     // actual request
     if (opts?.debug) {
       logger.info(
-        `${__DYE_GREEN__}${req.method!} ${req.url!}${__DYE_YELLOW__} → ${__DYE_CYAN__}${method!} ${url}${__DYE_YELLOW__}`
+        `${__DYE_GREEN__}${req.method!} ${req.url!}${__DYE_YELLOW__} → ${__DYE_CYAN__}${method!} ${url}${__DYE_YELLOW__}`,
       )
       logger.info(
         `${__DYE_YELLOW__}headers:`,
         JSON.stringify(headers, null, '  '),
-        __DYE_COLOR_OFF__
+        __DYE_COLOR_OFF__,
       )
     }
     const resp = await fetch(url, {
@@ -74,7 +74,7 @@ export function useProxy() {
       logger.info(
         `${
           resp.status
-        } ${__DYE_GREEN__}${req.method!} ${req.url!}${__DYE_YELLOW__} → ${__DYE_CYAN__}${method!} ${url}${__DYE_YELLOW__}`
+        } ${__DYE_GREEN__}${req.method!} ${req.url!}${__DYE_YELLOW__} → ${__DYE_CYAN__}${method!} ${url}${__DYE_YELLOW__}`,
       )
       logger.info(`${__DYE_YELLOW__}response headers:${__DYE_COLOR_OFF__}`)
     }
@@ -105,7 +105,7 @@ export function useProxy() {
           setHeadersObject[SET_COOKIE].push(`${name}=${value}`)
           if (opts?.debug) {
             logger.info(
-              `\t${__DYE_BOLD__}${__DYE_YELLOW__}${SET_COOKIE}=${__DYE_GREEN__}${name}=${value}${__DYE_RESET__}`
+              `\t${__DYE_BOLD__}${__DYE_YELLOW__}${SET_COOKIE}=${__DYE_GREEN__}${name}=${value}${__DYE_RESET__}`,
             )
           }
         }

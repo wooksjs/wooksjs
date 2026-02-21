@@ -29,7 +29,7 @@ describe('time', () => {
   })
   it('must convert complex time', () => {
     expect(convertTime('2h 13m 16s 14ms')).toEqual(
-      16 * 1000 + 13 * 1000 * 60 + 2 * 1000 * 60 * 60 + 14
+      16 * 1000 + 13 * 1000 * 60 + 2 * 1000 * 60 * 60 + 14,
     )
   })
   it('must convert number', () => {

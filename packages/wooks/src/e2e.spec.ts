@@ -21,7 +21,7 @@ let accept = '*/*'
 let contentType = 'text/plain'
 
 const sendRequest = (method: string, path: string, body?: string): Promise<IncomingMessage> =>
-  new Promise(resolve => {
+  new Promise((resolve) => {
     const headers: OutgoingHttpHeaders = { cookie, accept }
     if (body) {
       headers['content-type'] = contentType
@@ -30,10 +30,10 @@ const sendRequest = (method: string, path: string, body?: string): Promise<Incom
     const req = http.request(
       `http://localhost:${PORT.toString()}/${path}`,
       { method, headers },
-      res => {
+      (res) => {
         // console.log(res.headers)
         resolve(res)
-      }
+      },
     )
     if (body) {
       req.write(body)
@@ -50,10 +50,10 @@ async function getBody(path: string, postBody?: string): Promise<string> {
   const req = await (postBody ? post(path, postBody) : get(path))
   let body = Buffer.from('')
   return new Promise((resolve, reject) => {
-    req.on('data', chunk => {
+    req.on('data', (chunk) => {
       body = Buffer.concat([body, chunk])
     })
-    req.on('error', err => {
+    req.on('error', (err) => {
       reject(err)
     })
     req.on('end', () => {
@@ -144,7 +144,6 @@ describe('Wooks E2E', () => {
   })
 
   it('must set cookie in response', async () => {
-    // eslint-disable-next-line unicorn/no-await-expression-member
     expect((await get('set-cookie')).headers['set-cookie']).toEqual([
       'my-cookie=test; Max-Age=86400',
     ])
@@ -165,7 +164,7 @@ describe('Wooks E2E', () => {
   it('must respond 404 for non-existing route', async () => {
     accept = 'application/json'
     expect(await getBody('non-existing')).toEqual(
-      '{"statusCode":404,"error":"Not Found","message":""}'
+      '{"statusCode":404,"error":"Not Found","message":""}',
     )
     accept = 'text/plain'
     expect(await getBody('non-existing')).toContain('404 Not Found\n')
@@ -182,7 +181,7 @@ describe('Wooks E2E', () => {
   it('must catch error', async () => {
     accept = 'application/json'
     expect(await getBody('error')).toEqual(
-      '{"statusCode":500,"error":"Internal Server Error","message":"test error"}'
+      '{"statusCode":500,"error":"Internal Server Error","message":"test error"}',
     )
   })
 
@@ -190,7 +189,7 @@ describe('Wooks E2E', () => {
     contentType = 'application/json'
     accept = 'application/json'
     expect(await getBody('post', JSON.stringify({ a: 'a', b: [1, 2, 3] }))).toEqual(
-      '{"a":"a","b":[1,2,3]}'
+      '{"a":"a","b":[1,2,3]}',
     )
   })
 
@@ -198,7 +197,7 @@ describe('Wooks E2E', () => {
     contentType = 'application/json'
     accept = 'application/json'
     expect(await getBody('post', JSON.stringify({ a: 'a', b: [1, 2, 3] }).slice(0, 5))).toEqual(
-      '{"statusCode":400,"error":"Bad Request","message":"Unexpected end of JSON input"}'
+      '{"statusCode":400,"error":"Bad Request","message":"Unexpected end of JSON input"}',
     )
   })
 

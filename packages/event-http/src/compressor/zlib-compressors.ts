@@ -1,8 +1,3 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
-/* eslint-disable unicorn/no-await-expression-member */
-/* eslint-disable require-atomic-updates */
-/* eslint-disable @typescript-eslint/consistent-type-imports */
-
 import { pipeline as _pipeline, Readable } from 'node:stream'
 import { promisify } from 'node:util'
 import {
@@ -33,7 +28,7 @@ type DestroyableStream = NodeJS.ReadWriteStream & {
 /* ---------- pump ------------------------------------------ */
 function pump(
   src: AsyncIterable<Buffer>,
-  transform: DestroyableStream // <- destroy guaranteed
+  transform: DestroyableStream, // <- destroy guaranteed
 ): AsyncIterable<Buffer> {
   // start the pipe in background; ignore its promise
   pipeline(iterableToReadable(src), transform, (err: unknown) => {
@@ -50,13 +45,13 @@ function pump(
 function addStreamCodec(
   name: 'gzip' | 'deflate' | 'br',
   createDeflater: () => DestroyableStream,
-  createInflater: () => DestroyableStream
+  createInflater: () => DestroyableStream,
 ) {
-  const c = compressors[name] ?? (compressors[name] = { compress: v => v, uncompress: v => v })
+  const c = compressors[name] ?? (compressors[name] = { compress: (v) => v, uncompress: (v) => v })
 
   c.stream = {
-    compress: async src => pump(src, createDeflater()),
-    uncompress: async src => pump(src, createInflater()),
+    compress: async (src) => pump(src, createDeflater()),
+    uncompress: async (src) => pump(src, createInflater()),
   }
 }
 
@@ -85,9 +80,8 @@ interface PZlib {
 let zp: PZlib | undefined
 async function zlib(): Promise<PZlib> {
   if (!zp) {
-    const { gzip, gunzip, deflate, inflate, brotliCompress, brotliDecompress } = await import(
-      'node:zlib'
-    )
+    const { gzip, gunzip, deflate, inflate, brotliCompress, brotliDecompress } =
+      await import('node:zlib')
 
     zp = {
       gzip: promisify(gzip),
@@ -102,11 +96,11 @@ async function zlib(): Promise<PZlib> {
 }
 
 /* buffer-oriented API -------------------------------------- */
-compressors.gzip!.compress = async b => (await zlib()).gzip(b)
-compressors.gzip!.uncompress = async b => (await zlib()).gunzip(b)
+compressors.gzip!.compress = async (b) => (await zlib()).gzip(b)
+compressors.gzip!.uncompress = async (b) => (await zlib()).gunzip(b)
 
-compressors.deflate!.compress = async b => (await zlib()).deflate(b)
-compressors.deflate!.uncompress = async b => (await zlib()).inflate(b)
+compressors.deflate!.compress = async (b) => (await zlib()).deflate(b)
+compressors.deflate!.uncompress = async (b) => (await zlib()).inflate(b)
 
-compressors.br!.compress = async b => (await zlib()).brotliCompress(b)
-compressors.br!.uncompress = async b => (await zlib()).brotliDecompress(b)
+compressors.br!.compress = async (b) => (await zlib()).brotliCompress(b)
+compressors.br!.uncompress = async (b) => (await zlib()).brotliDecompress(b)

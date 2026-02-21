@@ -14,7 +14,7 @@ describe('compasble/req-res', () => {
     c: ['1', '2', '3'],
   }
   const headers = {
-    'dummy': 'test',
+    dummy: 'test',
     'x-forwarded-for': '127.0.0.1, 192.168.0.251',
   }
   const method = 'PUT'
@@ -30,12 +30,11 @@ describe('compasble/req-res', () => {
       const { rawRequest, headers, method, getIp, getIpList, reqId } = useRequest()
       expect(rawRequest).toBeInstanceOf(IncomingMessage)
       expect(headers).toEqual({
-        'dummy': 'test',
+        dummy: 'test',
         'x-forwarded-for': '127.0.0.1, 192.168.0.251',
       })
       expect(method).toBe(method)
-      // eslint-disable-next-line no-useless-escape
-      expect(reqId()).toMatch(/^[\-0-9a-f]{36}$/u)
+      expect(reqId()).toMatch(/^[-0-9a-f]{36}$/u)
       expect(getIp({ trustProxy: true })).toBe('127.0.0.1')
       expect(getIp()).toBe('')
       expect(getIpList()).toEqual({

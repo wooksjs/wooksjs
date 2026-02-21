@@ -27,7 +27,7 @@ export function useCliOptions() {
 export function useCliOption(name: string) {
   try {
     const options = useCliHelp().getEntry().options || []
-    const opt = options.find(o => o.keys.includes(name))
+    const opt = options.find((o) => o.keys.includes(name))
     if (opt) {
       for (const key of opt.keys) {
         if (useCliOptions()[key]) {
@@ -35,7 +35,7 @@ export function useCliOption(name: string) {
         }
       }
     }
-  } catch (error) {
+  } catch {
     //
   }
   return useCliOptions()[name]

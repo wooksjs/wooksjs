@@ -10,7 +10,6 @@ interface TUseResponseOptions {
 export function useResponse() {
   const { store } = useHttpContext()
   const event = store('event')
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const res = event.get('res')!
   const responded = store('response').hook('responded')
   const statusCode = store('status').hook('code')

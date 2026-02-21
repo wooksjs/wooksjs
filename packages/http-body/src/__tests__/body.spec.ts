@@ -154,7 +154,7 @@ Content-Disposition: form-data; name="x2[]"
       const { parseBody } = useBody()
       expect(await parseBody()).toEqual({
         'x2[]': '22\n44%25',
-        'x3': '33',
+        x3: '33',
       })
     })
   })

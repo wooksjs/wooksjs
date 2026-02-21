@@ -1,0 +1,22 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "printWidth": 100,
+  "tabWidth": 2,
+  "useTabs": false,
+  "semi": false,
+  "singleQuote": true,
+  "trailingComma": "all",
+  "insertFinalNewline": true,
+  "endOfLine": "lf",
+  "ignorePatterns": [
+    "docs",
+    "scripts",
+    "explorations",
+    "package-lock.json",
+    "packages/**/dist",
+    "dist",
+    "temp",
+    ".npmrc",
+    "docs/.vitepress/cache"
+  ]
+}

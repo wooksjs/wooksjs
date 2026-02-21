@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
 import { AsyncLocalStorage } from 'node:async_hooks'
 
 import type { TProstoLoggerOptions } from '@prostojs/logger'
@@ -36,18 +35,17 @@ export const asyncStorage: AsyncLocalStorage<TGenericContextStore> =
  * Create Wooks Context
  */
 export function createAsyncEventContext<S = TEmpty, EventTypeToCreate = TEmpty>(
-  data: S & TGenericContextStore<EventTypeToCreate>
+  data: S & TGenericContextStore<EventTypeToCreate>,
 ): <T>(cb: (...a: any[]) => T) => T {
   const newContext = { ...data } as TGenericContextStore
   const cc = asyncStorage.getStore()
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (cc && typeof cc === 'object' && cc.event?.type) {
     newContext.parentCtx = cc
   }
   const ci = getContextInjector()
   return <T>(cb: (...a: any[]) => T) =>
     asyncStorage.run(newContext, () =>
-      ci.with('Event:start', { eventType: newContext.event.type }, cb)
+      ci.with('Event:start', { eventType: newContext.event.type }, cb),
     )
 }
 
@@ -55,7 +53,7 @@ export function createAsyncEventContext<S = TEmpty, EventTypeToCreate = TEmpty>(
  * Use Wooks Context
  */
 export function useAsyncEventContext<S = TEmpty, EventType = TEmpty>(
-  expectedTypes?: string | string[]
+  expectedTypes?: string | string[],
 ): TCtxHelpers<S & TGenericContextStore<EventType>> {
   let cc = asyncStorage.getStore() as (S & TGenericContextStore<EventType>) | undefined
   if (!cc) {
@@ -70,8 +68,8 @@ export function useAsyncEventContext<S = TEmpty, EventType = TEmpty>(
       } else {
         throw new Error(
           `Event context type mismatch: expected ${types
-            .map(t => `"${t}"`)
-            .join(', ')}, received "${type}"`
+            .map((t) => `"${t}"`)
+            .join(', ')}, received "${type}"`,
         )
       }
     }
@@ -84,18 +82,18 @@ export function useAsyncEventContext<S = TEmpty, EventType = TEmpty>(
 export interface TCtxHelpers<T> {
   getCtx: () => T
   store: <K extends keyof Required<T>>(
-    key: K
+    key: K,
   ) => {
     value: T[K]
     hook: <K2 extends keyof Required<T>[K]>(
-      key2: K2
+      key2: K2,
     ) => {
       value: Required<T>[K][K2]
       isDefined: boolean
     }
     init: <K2 extends keyof Required<T>[K]>(
       key2: K2,
-      getter: () => Required<Required<T>[K]>[K2]
+      getter: () => Required<Required<T>[K]>[K2],
     ) => Required<Required<T>[K]>[K2]
     set: <K2 extends keyof Required<T>[K]>(key2: K2, v: Required<T[K]>[K2]) => Required<T[K]>[K2]
     get: <K2 extends keyof Required<T>[K]>(key2: K2) => Required<T>[K][K2] | undefined
@@ -137,7 +135,7 @@ function _getCtxHelpers<T>(cc: T): TCtxHelpers<T> {
     }
 
     attachHook(obj, {
-      set: v => {
+      set: (v) => {
         set(key, v)
       },
       get: () => get(key),
@@ -145,23 +143,21 @@ function _getCtxHelpers<T>(cc: T): TCtxHelpers<T> {
 
     function init<K2 extends keyof Required<T>[K]>(
       key2: K2,
-      getter: () => Required<Required<T>[K]>[K2]
+      getter: () => Required<Required<T>[K]>[K2],
     ): Required<Required<T>[K]>[K2] {
       if (hasNested(key2)) {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         return getNested(key2)!
       }
       return setNested(key2, getter())
     }
 
     function hook<K2 extends keyof Required<T>[K]>(key2: K2) {
-      // eslint-disable-next-line @typescript-eslint/no-shadow
       const obj = {
         value: null as Required<T>[K][K2],
         isDefined: null as unknown as boolean,
       }
       attachHook(obj, {
-        set: v => setNested(key2, v as T[K][K2]),
+        set: (v) => setNested(key2, v as T[K][K2]),
         get: () => getNested(key2),
       })
       attachHook(
@@ -169,13 +165,12 @@ function _getCtxHelpers<T>(cc: T): TCtxHelpers<T> {
         {
           get: () => hasNested(key2),
         },
-        'isDefined'
+        'isDefined',
       )
       return obj
     }
 
     function setNested<K2 extends keyof Required<T>[K]>(key2: K2, v: Required<T[K]>[K2]) {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (obj.value === undefined) {
         obj.value = {} as T[K]
       }
@@ -189,7 +184,6 @@ function _getCtxHelpers<T>(cc: T): TCtxHelpers<T> {
       return (obj.value || ({} as T[K]))[key2] as Required<T>[K][K2] | undefined
     }
     function hasNested<K2 extends keyof Required<T>[K]>(key2: K2) {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       return (obj.value || ({} as T[K]))[key2] !== undefined
     }
     function entries() {

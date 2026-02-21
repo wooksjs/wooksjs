@@ -18,7 +18,7 @@ export class WooksWorkflow<T, IR> extends Workflow<T, IR> {
         store.set('stepId', stepIdNorm)
         return found.handlers[0]() as Step<T, I, IR2>
       }
-    } catch (error) {
+    } catch {
       const router = this.wooks.getRouter()
       const found = router.lookup('WF_STEP' as 'GET', stepIdNorm)
       if (found?.route?.handlers.length) {

@@ -20,7 +20,7 @@ export function renderCacheControl(data: TCacheControl) {
       continue
     }
     const func: (v: unknown) => string = cacheControlFunc[a as keyof typeof cacheControlFunc] as (
-      v: unknown
+      v: unknown,
     ) => string
     if (typeof func === 'function') {
       const val = func(v)

@@ -1,49 +1,30 @@
 ## [0.6.2](https://github.com/wooksjs/wooksjs/compare/v0.6.1...v0.6.2) (2025-07-03)
 
-
 ### Features
 
-* **http:** improve error html ([a842ed8](https://github.com/wooksjs/wooksjs/commit/a842ed877962996f762699f66e72ac1c28ec1f95))
-
-
+- **http:** improve error html ([a842ed8](https://github.com/wooksjs/wooksjs/commit/a842ed877962996f762699f66e72ac1c28ec1f95))
 
 ## [0.6.1](https://github.com/wooksjs/wooksjs/compare/v0.6.0...v0.6.1) (2025-06-25)
 
-
 ### Bug Fixes
 
-* keep jsdocs ([3a9a557](https://github.com/wooksjs/wooksjs/commit/3a9a55786e213ffc9daa884380e51fc9a1fac220))
-
-
+- keep jsdocs ([3a9a557](https://github.com/wooksjs/wooksjs/commit/3a9a55786e213ffc9daa884380e51fc9a1fac220))
 
 # [0.6.0](https://github.com/wooksjs/wooksjs/compare/v0.5.25...v0.6.0) (2025-04-29)
 
-
 ### Features
 
-* add zlib support; improve security ([ee485f7](https://github.com/wooksjs/wooksjs/commit/ee485f74a1e0e08c0ab71169b3085475008ca435))
-
-
+- add zlib support; improve security ([ee485f7](https://github.com/wooksjs/wooksjs/commit/ee485f74a1e0e08c0ab71169b3085475008ca435))
 
 ## [0.5.25](https://github.com/wooksjs/wooksjs/compare/v0.5.24...v0.5.25) (2025-01-17)
 
-
-
 ## [0.5.24](https://github.com/wooksjs/wooksjs/compare/v0.5.23...v0.5.24) (2025-01-17)
-
-
 
 ## [0.5.23](https://github.com/wooksjs/wooksjs/compare/v0.5.22...v0.5.23) (2025-01-17)
 
-
-
 ## [0.5.22](https://github.com/wooksjs/wooksjs/compare/v0.5.21...v0.5.22) (2025-01-17)
 
-
-
 ## [0.5.21](https://github.com/wooksjs/wooksjs/compare/v0.5.20...v0.5.21) (2025-01-17)
-
-
 
 ## [0.5.20](https://github.com/wooksjs/wooksjs/compare/v0.5.19...v0.5.20) (2025-01-05)
 

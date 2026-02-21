@@ -2,12 +2,35 @@
   "name": "wooks",
   "version": "0.6.2",
   "description": "wooks",
-  "main": "dist/index.cjs",
-  "module": "dist/index.mjs",
-  "types": "dist/index.d.ts",
+  "keywords": [
+    "api",
+    "app",
+    "composables",
+    "framework",
+    "http",
+    "prostojs",
+    "rest",
+    "restful",
+    "web",
+    "wooks"
+  ],
+  "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/wooks#readme",
+  "bugs": {
+    "url": "https://github.com/wooksjs/wooksjs/issues"
+  },
+  "license": "MIT",
+  "author": "Artem Maltsev",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wooksjs/wooksjs.git",
+    "directory": "packages/wooks"
+  },
   "files": [
     "dist"
   ],
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
   "exports": {
     "./package.json": "./package.json",
     ".": {
@@ -19,38 +42,15 @@
   "scripts": {
     "build": "rolldown -c ../../rolldown.config.mjs"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/wooksjs/wooksjs.git",
-    "directory": "packages/wooks"
-  },
-  "keywords": [
-    "http",
-    "wooks",
-    "composables",
-    "web",
-    "framework",
-    "app",
-    "api",
-    "rest",
-    "restful",
-    "prostojs"
-  ],
-  "author": "Artem Maltsev",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/wooksjs/wooksjs/issues"
-  },
   "dependencies": {
     "@prostojs/logger": "^0.4.3",
     "@prostojs/router": "^0.2.1",
     "@wooksjs/event-core": "workspace:^"
   },
-  "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/wooks#readme",
   "devDependencies": {
     "@wooksjs/event-http": "workspace:^",
     "@wooksjs/http-body": "workspace:^",
-    "typescript": "^5.8.3",
+    "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   }
 }

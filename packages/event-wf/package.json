@@ -2,53 +2,53 @@
   "name": "@wooksjs/event-wf",
   "version": "0.6.2",
   "description": "@wooksjs/event-wf",
-  "main": "dist/index.cjs",
-  "module": "dist/index.mjs",
-  "types": "dist/index.d.ts",
-  "files": [
-    "dist"
+  "keywords": [
+    "app",
+    "composables",
+    "framework",
+    "http",
+    "prostojs",
+    "wooks",
+    "workflow"
   ],
-  "exports": {
-    "./package.json": "./package.json",
-    ".": {
-      "require": "./dist/index.cjs",
-      "import": "./dist/index.mjs",
-      "types": "./dist/index.d.ts"
-    }
+  "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/event-wf#readme",
+  "bugs": {
+    "url": "https://github.com/wooksjs/wooksjs/issues"
   },
-  "scripts": {
-    "build": "rolldown -c ../../rolldown.config.mjs"
-  },
+  "license": "MIT",
+  "author": "Artem Maltsev",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/wooksjs/wooksjs.git",
     "directory": "packages/event-wf"
   },
-  "keywords": [
-    "http",
-    "wooks",
-    "composables",
-    "framework",
-    "app",
-    "workflow",
-    "prostojs"
+  "files": [
+    "dist"
   ],
-  "author": "Artem Maltsev",
-  "license": "MIT",
-  "peerDependencies": {
-    "@wooksjs/event-core": "workspace:^",
-    "@prostojs/logger": "^0.4.3",
-    "wooks": "workspace:^"
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "scripts": {
+    "build": "rolldown -c ../../rolldown.config.mjs"
   },
   "dependencies": {
     "@prostojs/wf": "^0.0.18"
   },
-  "bugs": {
-    "url": "https://github.com/wooksjs/wooksjs/issues"
-  },
-  "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/event-wf#readme",
   "devDependencies": {
-    "typescript": "^5.8.3",
+    "typescript": "^5.9.3",
     "vitest": "^3.2.4"
+  },
+  "peerDependencies": {
+    "@prostojs/logger": "^0.4.3",
+    "@wooksjs/event-core": "workspace:^",
+    "wooks": "workspace:^"
   }
 }

@@ -1,5 +1,3 @@
-// eslint-disable no-console
-/* eslint-disable sonarjs/no-nested-template-literals */
 import type { TCliEntry, TCliHelpOptions } from '@prostojs/cli-help'
 import { CliHelpRenderer } from '@prostojs/cli-help'
 import type { TConsoleBase } from '@prostojs/logger'
@@ -37,7 +35,7 @@ export class WooksCli extends WooksAdapterBase {
 
   constructor(
     protected opts?: TWooksCliOptions,
-    wooks?: Wooks | WooksAdapterBase
+    wooks?: Wooks | WooksAdapterBase,
   ) {
     super(wooks, opts?.logger, opts?.router)
     this.logger = opts?.logger || this.getLogger(`${__DYE_CYAN_BRIGHT__}[wooks-cli]`)
@@ -85,7 +83,7 @@ export class WooksCli extends WooksAdapterBase {
    */
   public cli<ResType = unknown, ParamsType = Record<string, string | string[]>>(
     path: string,
-    _options: TWooksCliEntry<ResType> | TWooksHandler<ResType>
+    _options: TWooksCliEntry<ResType> | TWooksHandler<ResType>,
   ) {
     const options: TWooksCliEntry<ResType> =
       typeof _options === 'function' ? { handler: _options } : _options
@@ -103,9 +101,8 @@ export class WooksCli extends WooksAdapterBase {
     for (const alias of options.aliases || []) {
       const vars = routed
         .getArgs()
-        .map(k => `:${k}`)
+        .map((k) => `:${k}`)
         .join('/')
-      // eslint-disable-next-line @typescript-eslint/no-shadow
       const targetPath = makePath(alias) + (vars ? `/${vars}` : '')
       this.on<ResType, ParamsType>('CLI', targetPath, handler)
       if (options.onRegister) {
@@ -125,7 +122,7 @@ export class WooksCli extends WooksAdapterBase {
     }
     this.cliHelp.addEntry({
       command,
-      aliases: options.aliases?.map(alias => alias.replace(/\\:/gu, ':')), // unescape ":" character
+      aliases: options.aliases?.map((alias) => alias.replace(/\\:/gu, ':')), // unescape ":" character
       args,
       description: options.description,
       examples: options.examples,
@@ -144,7 +141,7 @@ export class WooksCli extends WooksAdapterBase {
       for (const [alias, entry] of Object.entries(aliases)) {
         if (entry.custom) {
           const vars = Object.keys(entry.args || {})
-            .map(k => `:${k}`)
+            .map((k) => `:${k}`)
             .join('/')
           const path = `/${alias.replace(/\s+/gu, '/').replace(/:/gu, '\\:')}${
             vars ? `/${vars}` : ''
@@ -173,7 +170,7 @@ export class WooksCli extends WooksAdapterBase {
     const argv = _argv || process.argv.slice(2)
     const parsedFlags = minimist(argv, _opts)
     const pathParams = parsedFlags._
-    const path = `/${pathParams.map(v => encodeURI(v).replace(/\//gu, '%2F')).join('/')}`
+    const path = `/${pathParams.map((v) => encodeURI(v).replace(/\//gu, '%2F')).join('/')}`
     const runInContext = createCliContext(
       {
         opts: _opts,
@@ -182,7 +179,7 @@ export class WooksCli extends WooksAdapterBase {
         cliHelp: this.cliHelp,
         command: path.replace(/\//gu, ' ').trim(),
       },
-      this.mergeEventOptions(this.opts?.eventOptions)
+      this.mergeEventOptions(this.opts?.eventOptions),
     )
 
     return runInContext(async () => {
@@ -194,7 +191,6 @@ export class WooksCli extends WooksAdapterBase {
         // overwriting command with firstStatic to properly search for help
         store('event').set('command', firstStatic.replace(/\//gu, ' ').trim())
       }
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       const handlers = foundHandlers || (this.opts?.onNotFound && [this.opts.onNotFound]) || null
       if (handlers) {
         try {
@@ -203,7 +199,7 @@ export class WooksCli extends WooksAdapterBase {
             if (typeof response === 'string') {
               console.log(response)
             } else if (Array.isArray(response)) {
-              response.forEach(r => {
+              response.forEach((r) => {
                 console.log(typeof r === 'string' ? r : JSON.stringify(r, null, '  '))
               })
             } else if (response instanceof Error) {

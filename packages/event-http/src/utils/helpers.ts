@@ -5,7 +5,7 @@ export function escapeRegex(s: string): string {
 function safeDecode(f: (s: string) => string, v: string): string {
   try {
     return f(v)
-  } catch (error) {
+  } catch {
     return v
   }
 }

@@ -14,7 +14,7 @@ export class EventLogger extends ProstoLogger<TEventLoggerData> {
         level: 4,
       }
     if (!_opts.mapper) {
-      _opts.mapper = msg => ({
+      _opts.mapper = (msg) => ({
         ...msg,
         eventId,
       })

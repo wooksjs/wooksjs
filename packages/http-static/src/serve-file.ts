@@ -1,7 +1,3 @@
-/* eslint-disable @typescript-eslint/prefer-optional-chain */
-/* eslint-disable @typescript-eslint/no-unnecessary-condition */
-/* eslint-disable unicorn/explicit-length-check */
-/* eslint-disable radix */
 import type { TCacheControl } from '@wooksjs/event-http'
 import {
   BaseHttpResponse,
@@ -36,7 +32,7 @@ interface TServeFileOptions {
 
 export async function serveFile(
   filePath: string,
-  options: TServeFileOptions = {}
+  options: TServeFileOptions = {},
 ): Promise<Readable | string | string[] | unknown> {
   if (!options.allowDotDot && (filePath.includes('/../') || filePath.startsWith('../'))) {
     throw new Error('Parent Traversal ("/../") is not allowed.')
@@ -53,7 +49,7 @@ export async function serveFile(
   let fileStats: Stats
   try {
     fileStats = await stat(normalizedPath)
-  } catch (error) {
+  } catch {
     if (options.defaultExt) {
       const ext = path.extname(filePath)
       if (!ext) {
@@ -74,7 +70,7 @@ export async function serveFile(
       etag,
       lastModified,
       headers['if-none-match'] || '',
-      headers['if-modified-since'] || ''
+      headers['if-modified-since'] || '',
     )
   ) {
     status(304)
@@ -122,8 +118,8 @@ export async function serveFile(
       .replace(/bytes=/u, '')
       .split('-')
     const [s, e] = rangeParts
-    start = Number.parseInt(s)
-    end = e ? Number.parseInt(e) : size - 1
+    start = Number.parseInt(s, 10)
+    end = e ? Number.parseInt(e, 10) : size - 1
     end = Math.min(size - 1, end)
     if (start > end || Number.isNaN(start) || Number.isNaN(end)) {
       throw new HttpError(416)
@@ -177,10 +173,10 @@ function isNotModified(
   etag: string,
   lastModified: Date,
   clientEtag: string,
-  clientLM: string
+  clientLM: string,
 ): boolean {
   if (clientEtag) {
-    const parts = clientEtag.split(',').map(v => v.trim())
+    const parts = clientEtag.split(',').map((v) => v.trim())
     for (const p of parts) {
       if (etag === p) {
         return true
@@ -222,8 +218,8 @@ async function listDirectory(dirPath: string) {
       dir: data.isDirectory(),
     })
   }
-  detailedList = detailedList.sort((a, b) =>
-    a.dir === b.dir ? (a.name > b.name ? 1 : -1) : a.dir > b.dir ? -1 : 1
+  detailedList = detailedList.toSorted((a, b) =>
+    a.dir === b.dir ? (a.name > b.name ? 1 : -1) : a.dir > b.dir ? -1 : 1,
   )
   detailedList.unshift({ name: '..', dir: true } as {
     name: string
@@ -243,7 +239,7 @@ async function listDirectory(dirPath: string) {
     '\n</style>'
   return `<html><head><title>Dir</title> ${styles} </head><body><ul>${detailedList
     .map(
-      d =>
+      (d) =>
         `<li> <span class="icon">${d.dir ? '&#128193;' : '&#128462;'}</span>` +
         `<a href="${path.join(url || '', d.name)}"><span class="name text">${d.name}</span></a>` +
         `<span class="size text">${
@@ -253,7 +249,7 @@ async function listDirectory(dirPath: string) {
               : `${Math.round(d.size / 1024).toString()}Kb`)) ||
           ''
         }</span>` +
-        `<span class="date text">${(d.mtime && d.mtime.toISOString()) || ''}</li>`
+        `<span class="date text">${(d.mtime && d.mtime.toISOString()) || ''}</li>`,
     )
     .join('\n')}</ul></body></html>`
 }

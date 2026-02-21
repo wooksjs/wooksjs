@@ -5,7 +5,7 @@ export function renderCookie(key: string, data: TSetCookieData) {
   let attrs = ''
   for (const [a, v] of Object.entries(data.attrs)) {
     const func: (v: unknown) => string = cookieAttrFunc[a as keyof typeof cookieAttrFunc] as (
-      v: unknown
+      v: unknown,
     ) => string
     if (typeof func === 'function') {
       const val = func(v)

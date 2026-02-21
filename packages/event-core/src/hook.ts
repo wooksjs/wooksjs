@@ -1,6 +1,5 @@
 export function attachHook<
   V = unknown,
-  // eslint-disable-next-line @typescript-eslint/ban-types
   T extends object | Function = object,
   P extends PropertyKey = 'value',
 >(
@@ -9,7 +8,7 @@ export function attachHook<
     get: () => V | undefined
     set?: (value: V) => void
   },
-  name?: P
+  name?: P,
 ): T & THook<V, P> {
   Object.defineProperty(target, name || 'value', {
     get: opts.get,
@@ -18,6 +17,4 @@ export function attachHook<
   return target as T & THook<V, P>
 }
 
-export type THook<T = string, K extends PropertyKey = 'value'> = {
-  [key in K]: T
-}
+export type THook<T = string, K extends PropertyKey = 'value'> = Record<K, T>

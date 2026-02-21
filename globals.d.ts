@@ -3,5 +3,3 @@
 declare global {
   declare var __VERSION__: string
 }
-
-export {}

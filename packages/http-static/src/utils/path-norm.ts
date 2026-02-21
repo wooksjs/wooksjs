@@ -5,7 +5,7 @@ export function normalizePath(filePath: string, baseDir?: string) {
     path.join(
       filePath.startsWith('/') || (baseDir && baseDir.startsWith('/')) ? '' : process.cwd(),
       baseDir || '',
-      filePath
-    )
+      filePath,
+    ),
   )
 }

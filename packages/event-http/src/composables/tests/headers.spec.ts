@@ -80,7 +80,7 @@ describe('event-http/headers useSetHeaders', () => {
     runInContext = prepareTestHttpContext({
       url: '',
       headers: {
-        'accept': 'application/json',
+        accept: 'application/json',
         'content-type': 'application/json',
       },
     })

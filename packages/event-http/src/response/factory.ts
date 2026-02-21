@@ -7,10 +7,8 @@ import type { TWooksResponseRenderer } from './renderer'
 import { BaseHttpResponseRenderer } from './renderer'
 
 export function createWooksResponder(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   renderer: TWooksResponseRenderer<any> = new BaseHttpResponseRenderer(),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  errorRenderer: TWooksResponseRenderer<any> = new HttpErrorRenderer()
+  errorRenderer: TWooksResponseRenderer<any> = new HttpErrorRenderer(),
 ) {
   function createResponse<T = unknown>(data: T): BaseHttpResponse<T | TWooksErrorBodyExt> | null {
     const { hasResponded } = useResponse()

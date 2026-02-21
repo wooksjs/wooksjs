@@ -8,19 +8,19 @@ export class ContextInjector<N> {
   with<T>(
     name: N,
     attributes: Record<string, string | number | boolean>,
-    cb: TContextInjectorCallback<T>
+    cb: TContextInjectorCallback<T>,
   ): T
   with<T>(name: N, cb: TContextInjectorCallback<T>): T
   with<T>(
     name: N,
     attributes: Record<string, string | number | boolean> | TContextInjectorCallback<T>,
-    cb?: TContextInjectorCallback<T>
+    cb?: TContextInjectorCallback<T>,
   ): T {
     const fn = typeof attributes === 'function' ? attributes : cb!
     return fn()
   }
 
-  hook(method: string, name: 'Handler:not_found' | 'Handler:routed', route?: string): void {
+  hook(_method: string, _name: 'Handler:not_found' | 'Handler:routed', _route?: string): void {
     //
   }
 }

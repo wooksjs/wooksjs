@@ -16,7 +16,6 @@ import { useCliOption } from './options'
  */
 export function useCliHelp() {
   const event = useCliContext().store('event')
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const getCliHelp = () => event.get('cliHelp')!
   const getEntry = () => getCliHelp().match(event.get('command')).main
   return {
@@ -104,7 +103,7 @@ export function useCommandLookupHelp(lookupDepth = 3) {
     useCliContext()
       .store('event')
       .get('pathParams')
-      ?.flatMap(p => `${p} `.split(':').map((s, i) => (i ? `:${s}` : s))) || []
+      ?.flatMap((p) => `${p} `.split(':').map((s, i) => (i ? `:${s}` : s))) || []
   const cliHelp = useCliHelp().getCliHelp()
   const cmd = cliHelp.getCliName()
   let data
@@ -122,8 +121,9 @@ export function useCommandLookupHelp(lookupDepth = 3) {
         throw new Error(
           `Wrong command, did you mean:\n${variants
             .slice(0, 7)
-            .map(c => `  $ ${cmd} ${c.main.command}`)
-            .join('\n')}`
+            .map((c) => `  $ ${cmd} ${c.main.command}`)
+            .join('\n')}`,
+          { cause: error },
         )
       }
     }
@@ -133,16 +133,15 @@ export function useCommandLookupHelp(lookupDepth = 3) {
     if (main.args && Object.keys(main.args).length > 0) {
       throw new Error(
         `Arguments expected: ${Object.keys(main.args)
-          .map(l => `<${l}>`)
-          .join(', ')}`
+          .map((l) => `<${l}>`)
+          .join(', ')}`,
       )
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     } else if (children?.length > 0) {
       throw new Error(
         `Wrong command, did you mean:\n${children
           .slice(0, 7)
-          .map(c => `  $ ${cmd} ${c.command}`)
-          .join('\n')}`
+          .map((c) => `  $ ${cmd} ${c.command}`)
+          .join('\n')}`,
       )
     }
   }

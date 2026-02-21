@@ -52,7 +52,7 @@ export class HeadersIterable extends IterableRecords {
 export function applyProxyControls(
   records: IterableIterator<[string, string]>,
   controls: TWooksProxyControls,
-  additionalBlockers?: string[]
+  additionalBlockers?: string[],
 ): Record<string, string> {
   let result: Record<string, string> = {}
   const { allow, block, overwrite } = controls
@@ -64,14 +64,14 @@ export function applyProxyControls(
         (!additionalBlockers || !additionalBlockers.includes(name)) &&
         (defaultedAllow === '*' ||
           defaultedAllow.find(
-            item =>
+            (item) =>
               (typeof item === 'string' && name.toLowerCase() === item.toLowerCase()) ||
-              (item instanceof RegExp && item.test(name))
+              (item instanceof RegExp && item.test(name)),
           )) &&
         !block?.find(
-          item =>
+          (item) =>
             (typeof item === 'string' && name.toLowerCase() === item.toLowerCase()) ||
-            (item instanceof RegExp && item.test(name))
+            (item instanceof RegExp && item.test(name)),
         )
       if (add) {
         result[name] = value

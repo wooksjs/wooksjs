@@ -53,8 +53,8 @@ export function prepareTestHttpContext(options: TTestHttpContext) {
             break
           }
           case 'raw': {
-            for (const [key, value] of Object.entries(options.cachedContext.raw!)) {
-              store<keyof THttpContextStore>(key as keyof THttpContextStore).value =
+            for (const [rawKey, value] of Object.entries(options.cachedContext.raw!)) {
+              store<keyof THttpContextStore>(rawKey as keyof THttpContextStore).value =
                 value as THttpContextStore[keyof THttpContextStore]
             }
             break
@@ -67,6 +67,5 @@ export function prepareTestHttpContext(options: TTestHttpContext) {
     }
     return getCtx()
   })
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return <T>(cb: (...a: any[]) => T) => asyncStorage.run(ctx, cb)
 }

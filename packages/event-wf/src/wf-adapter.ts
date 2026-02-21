@@ -1,4 +1,3 @@
-// eslint-disable no-console
 import type { TConsoleBase } from '@prostojs/logger'
 import type { Step, TFlowOutput, TStepHandler, TWorkflowSchema, TWorkflowSpy } from '@prostojs/wf'
 import { createStep } from '@prostojs/wf'
@@ -23,7 +22,6 @@ export interface TWooksWfOptions {
   router?: TWooksOptions['router']
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
   protected logger: TConsoleBase
 
@@ -31,7 +29,7 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
 
   constructor(
     protected opts?: TWooksWfOptions,
-    wooks?: Wooks | WooksAdapterBase
+    wooks?: Wooks | WooksAdapterBase,
   ) {
     super(wooks, opts?.logger, opts?.router)
     this.logger = opts?.logger || this.getLogger(`${__DYE_CYAN_BRIGHT__}[wooks-wf]`)
@@ -46,13 +44,12 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
     this.wf.detachSpy<I>(fn)
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public step<I = any>(
     id: string,
     opts: {
       input?: I
       handler: string | TStepHandler<T, I, IR>
-    }
+    },
   ) {
     const step = createStep<T, I, IR>(id, opts)
     return this.on<Step<T, I, IR>>('WF_STEP', id, () => step)
@@ -62,7 +59,7 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
     id: string,
     schema: TWorkflowSchema<T>,
     prefix?: string,
-    init?: () => void | Promise<void>
+    init?: () => void | Promise<void>,
   ) {
     this.wf.register(id, schema, prefix)
     return this.on<{ init?: () => void | Promise<void>; id: string }>('WF_FLOW', id, () => ({
@@ -72,12 +69,11 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
   }
 
   public start<I>(
-    // eslint-disable-next-line max-params
     schemaId: string,
     inputContext: T,
     input?: I,
     spy?: TWorkflowSpy<T, I, IR>,
-    cleanup?: () => void
+    cleanup?: () => void,
   ) {
     return this._start(schemaId, inputContext, undefined, input, spy, cleanup)
   }
@@ -86,19 +82,18 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
     state: { schemaId: string; indexes: number[]; context: T },
     input?: I,
     spy?: TWorkflowSpy<T, I, IR>,
-    cleanup?: () => void
+    cleanup?: () => void,
   ) {
     return this._start(state.schemaId, state.context, state.indexes, input, spy, cleanup)
   }
 
   protected async _start<I>(
-    // eslint-disable-next-line max-params
     schemaId: string,
     inputContext: T,
     indexes?: number[],
     input?: I,
     spy?: TWorkflowSpy<T, I, IR>,
-    cleanup?: () => void
+    cleanup?: () => void,
   ) {
     const resume = !!indexes?.length
     const runInContext = (resume ? resumeWfContext : createWfContext)(
@@ -109,15 +104,14 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
         indexes,
         input,
       },
-      this.mergeEventOptions(this.opts?.eventOptions)
+      this.mergeEventOptions(this.opts?.eventOptions),
     )
 
     return runInContext(async () => {
       const { handlers: foundHandlers } = this.wooks.lookup(
         'WF_FLOW',
-        `/${schemaId}`.replace(/^\/+/u, '/')
+        `/${schemaId}`.replace(/^\/+/u, '/'),
       )
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       const handlers = foundHandlers || (this.opts?.onNotFound && [this.opts.onNotFound]) || null
       if (handlers && handlers.length > 0) {
         let result: TFlowOutput<T, I, IR> = {} as TFlowOutput<T, I, IR>
@@ -134,7 +128,6 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
           }
         }
         try {
-          // eslint-disable-next-line no-unreachable-loop
           for (const handler of handlers) {
             const { id, init } = (await handler()) as {
               init?: () => void | Promise<void>
@@ -147,7 +140,7 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
               result = await this.wf.resume<I>(
                 { schemaId: id, context: inputContext, indexes },
                 input as I,
-                _spy
+                _spy,
               )
               break
             } else {

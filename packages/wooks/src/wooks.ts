@@ -26,7 +26,7 @@ function getDefaultLogger(topic: string) {
         }),
       ],
     },
-    topic
+    topic,
   )
 }
 
@@ -63,7 +63,7 @@ export class Wooks {
 
   public lookup(
     method: string,
-    path: string
+    path: string,
   ): {
     handlers: TWooksHandler[] | null
     segments: TParsedSegment[] | null
@@ -88,7 +88,7 @@ export class Wooks {
   public on<ResType = unknown, ParamsType = Record<string, string | string[]>>(
     method: string,
     path: string,
-    handler: TWooksHandler<ResType>
+    handler: TWooksHandler<ResType>,
   ): TProstoRouterPathHandle<ParamsType> {
     return this.router.on<ParamsType, TWooksHandler>(method as THttpMethod, path, handler)
   }
@@ -127,7 +127,7 @@ export class WooksAdapterBase {
   constructor(
     wooks?: Wooks | WooksAdapterBase,
     logger?: TConsoleBase,
-    routerOpts?: TWooksOptions['router']
+    routerOpts?: TWooksOptions['router'],
   ) {
     if (wooks && wooks instanceof WooksAdapterBase) {
       this.wooks = wooks.getWooks()
@@ -173,7 +173,7 @@ export class WooksAdapterBase {
   public on<ResType = unknown, ParamsType = Record<string, string | string[]>>(
     method: string,
     path: string,
-    handler: TWooksHandler<ResType>
+    handler: TWooksHandler<ResType>,
   ): TProstoRouterPathHandle<ParamsType> {
     return this.wooks.on<ResType, ParamsType>(method as THttpMethod, path, handler)
   }

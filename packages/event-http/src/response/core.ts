@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-condition */
-/* eslint-disable sonarjs/no-duplicate-string */
 import type { TConsoleBase } from '@prostojs/logger'
 import { useEventLogger } from '@wooksjs/event-core'
 import type { ServerResponse } from 'http'
@@ -165,7 +163,7 @@ export class BaseHttpResponse<BodyType = unknown> {
         res.end()
       } else {
         return new Promise((resolve, reject) => {
-          stream.on('error', e => {
+          stream.on('error', (e) => {
             stream.destroy()
             res.end()
             reject(e)
@@ -184,11 +182,9 @@ export class BaseHttpResponse<BodyType = unknown> {
       } else {
         const additionalHeaders: Record<string, string | string[]> = {}
         if (this.body.headers.get('content-length')) {
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           additionalHeaders['content-length'] = this.body.headers.get('content-length')!
         }
         if (this.body.headers.get('content-type')) {
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           additionalHeaders['content-type'] = this.body.headers.get('content-type')!
         }
 
@@ -218,7 +214,7 @@ async function respondWithFetch(fetchBody: ReadableStream<Uint8Array> | null, re
       for await (const chunk of fetchBody as unknown as AsyncIterable<Uint8Array>) {
         res.write(chunk)
       }
-    } catch (error) {
+    } catch {
       // ?
     }
   }

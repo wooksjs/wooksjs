@@ -1,4 +1,3 @@
-/* eslint-disable sonarjs/no-nested-template-literals */
 import { useAccept } from '../composables'
 import type { BaseHttpResponse } from '../response/core'
 import { BaseHttpResponseRenderer } from '../response/renderer'
@@ -18,7 +17,7 @@ let framework: { version: string; poweredBy: string; link: string; image: string
 
 export class HttpErrorRenderer extends BaseHttpResponseRenderer<TWooksErrorBodyExt> {
   constructor(
-    protected opts?: { version: string; poweredBy: string; link: string; image: string }
+    protected opts?: { version: string; poweredBy: string; link: string; image: string },
   ) {
     super()
   }
@@ -43,7 +42,6 @@ export class HttpErrorRenderer extends BaseHttpResponseRenderer<TWooksErrorBodyE
     const data = response.body || ({} as TWooksErrorBodyExt)
     response.setContentType('text/html')
     const hasDetails = Object.keys(data).length > 3
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unnecessary-condition
     const icon = data.statusCode >= 500 ? this.icons[500] : this.icons[data.statusCode as 403] || ''
     return typeof errorTemplate === 'function'
       ? errorTemplate({
@@ -64,7 +62,7 @@ export class HttpErrorRenderer extends BaseHttpResponseRenderer<TWooksErrorBodyE
     const data = response.body || ({} as TWooksErrorBodyExt)
     response.setContentType('text/plain')
     const keys = Object.keys(data).filter(
-      key => !['statusCode', 'error', 'message'].includes(key)
+      (key) => !['statusCode', 'error', 'message'].includes(key),
     ) as Array<keyof typeof data>
     return (
       `${data.statusCode} ${httpStatusCodes[data.statusCode]}\n${data.message}` +
@@ -78,7 +76,7 @@ export class HttpErrorRenderer extends BaseHttpResponseRenderer<TWooksErrorBodyE
                 error: undefined,
               },
               null,
-              '  '
+              '  ',
             )}`
           : ''
       }`
@@ -89,7 +87,7 @@ export class HttpErrorRenderer extends BaseHttpResponseRenderer<TWooksErrorBodyE
     const data = response.body || ({} as TWooksErrorBodyExt)
     response.setContentType('application/json')
     const keys = Object.keys(data).filter(
-      key => !['statusCode', 'error', 'message'].includes(key)
+      (key) => !['statusCode', 'error', 'message'].includes(key),
     ) as Array<keyof typeof data>
     return (
       `{"statusCode":${escapeQuotes(data.statusCode)},` +
@@ -97,7 +95,7 @@ export class HttpErrorRenderer extends BaseHttpResponseRenderer<TWooksErrorBodyE
       `"message":"${escapeQuotes(data.message)}"` +
       `${
         keys.length > 0
-          ? `,${keys.map(k => `"${escapeQuotes(k)}":${JSON.stringify(data[k])}`).join(',')}`
+          ? `,${keys.map((k) => `"${escapeQuotes(k)}":${JSON.stringify(data[k])}`).join(',')}`
           : ''
       }}`
     )

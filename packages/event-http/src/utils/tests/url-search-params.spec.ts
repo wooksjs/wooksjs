@@ -8,9 +8,9 @@ describe('url-search-params', () => {
   it('must parse search params', () => {
     expect(sp.toJson()).toEqual({
       'a[]': ['1', '2'],
-      'b': '3',
-      'c': '4',
-      'encoded': '~ %',
+      b: '3',
+      c: '4',
+      encoded: '~ %',
     })
   })
 })

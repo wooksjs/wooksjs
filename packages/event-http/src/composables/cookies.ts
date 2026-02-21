@@ -41,7 +41,7 @@ export function useSetCookies() {
   function cookies(): string[] {
     return cookiesStore
       .entries()
-      .filter(a => !!a[1])
+      .filter((a) => !!a[1])
       .map(([key, value]) => renderCookie(key, value as TSetCookieData))
   }
 
@@ -67,7 +67,7 @@ export function useSetCookie(name: string) {
       set: (value: string) => {
         setCookie(name, value, getCookie(name)?.attrs)
       },
-    }
+    },
   )
 
   return attachHook(
@@ -78,7 +78,7 @@ export function useSetCookie(name: string) {
         setCookie(name, getCookie(name)?.value || '', attrs)
       },
     },
-    'attrs'
+    'attrs',
   )
 }
 

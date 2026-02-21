@@ -1,6 +1,3 @@
-/* eslint-disable unicorn/no-await-expression-member */
-/* eslint-disable no-sparse-arrays */
-/* eslint-disable max-depth */
 import {
   EHttpStatusCode,
   HttpError,
@@ -108,7 +105,7 @@ export function useBody() {
       const lines = part
         .trim()
         .split(/\n/u)
-        .map(l => l.trim())
+        .map((l) => l.trim())
 
       for (const line of lines) {
         if (valueMode) {

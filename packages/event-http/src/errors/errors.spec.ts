@@ -27,9 +27,9 @@ describe('response', () => {
       expect(
         renderer.render(
           createWooksResponder().createResponse(
-            new HttpError(405, 'test message')
-          ) as BaseHttpResponse<TWooksErrorBodyExt>
-        )
+            new HttpError(405, 'test message'),
+          ) as BaseHttpResponse<TWooksErrorBodyExt>,
+        ),
       ).toEqual('{"statusCode":405,"error":"Method Not Allowed","message":"test message"}')
     })
   })
@@ -51,11 +51,11 @@ describe('response', () => {
               message: 'message text',
               error: 'error text',
               additional: 'additional text',
-            })
-          ) as BaseHttpResponse<TWooksErrorBodyExt>
-        )
+            }),
+          ) as BaseHttpResponse<TWooksErrorBodyExt>,
+        ),
       ).toEqual(
-        '{"statusCode":405,"error":"Method Not Allowed","message":"message text","additional":"additional text"}'
+        '{"statusCode":405,"error":"Method Not Allowed","message":"message text","additional":"additional text"}',
       )
     })
   })
@@ -66,9 +66,9 @@ describe('response', () => {
       expect(
         renderer.render(
           createWooksResponder().createResponse(
-            new HttpError(405, 'test message')
-          ) as BaseHttpResponse<TWooksErrorBodyExt>
-        )
+            new HttpError(405, 'test message'),
+          ) as BaseHttpResponse<TWooksErrorBodyExt>,
+        ),
       ).toContain('405 Method Not Allowed\ntest message')
     })
   })
@@ -79,9 +79,9 @@ describe('response', () => {
       expect(
         renderer.render(
           createWooksResponder().createResponse(
-            new HttpError(405, 'test message')
-          ) as BaseHttpResponse<TWooksErrorBodyExt>
-        )
+            new HttpError(405, 'test message'),
+          ) as BaseHttpResponse<TWooksErrorBodyExt>,
+        ),
       ).toEqual(expect.stringContaining('<title>405 Method Not Allowed</title>'))
     })
   })
@@ -102,8 +102,8 @@ describe('response', () => {
             message: 'message text',
             error: 'error text',
             additional: 'additional text',
-          })
-        ) as BaseHttpResponse<TWooksErrorBodyExt>
+          }),
+        ) as BaseHttpResponse<TWooksErrorBodyExt>,
       )
       expect(result).toContain('"additional": "additional text"')
     })

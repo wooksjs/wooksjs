@@ -5,8 +5,8 @@ export interface TBodyCompressor {
 
 export const compressors: Record<string, TBodyCompressor | undefined> = {
   identity: {
-    compress: v => v,
-    uncompress: v => v,
+    compress: (v) => v,
+    uncompress: (v) => v,
   },
 }
 
@@ -24,7 +24,7 @@ export async function compressBody(encodings: string[], body: string): Promise<s
 
 export async function uncompressBody(encodings: string[], body: string): Promise<string> {
   let newBody = body
-  for (const e of encodings.reverse()) {
+  for (const e of encodings.toReversed()) {
     const cmp = compressors[e]
     if (!cmp) {
       throw new Error(`Usupported compression type "${e}".`)

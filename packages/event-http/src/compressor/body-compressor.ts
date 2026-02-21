@@ -1,22 +1,21 @@
-/* eslint-disable func-names */
 // https://nodejs.org/docs/latest-v16.x/api/zlib.html#zlib
 export interface TBodyCompressor {
   compress: (data: Buffer) => Buffer | Promise<Buffer>
   uncompress: (data: Buffer) => Buffer | Promise<Buffer>
   stream?: {
     compress: (
-      data: AsyncIterable<Buffer> // do we really need AsyncIterable? Maybe just Buffer?
+      data: AsyncIterable<Buffer>, // do we really need AsyncIterable? Maybe just Buffer?
     ) => AsyncIterable<Buffer> | Promise<AsyncIterable<Buffer>>
     uncompress: (
-      data: AsyncIterable<Buffer> // do we really need AsyncIterable? Maybe just Buffer?
+      data: AsyncIterable<Buffer>, // do we really need AsyncIterable? Maybe just Buffer?
     ) => AsyncIterable<Buffer> | Promise<AsyncIterable<Buffer>>
   }
 }
 
 export const compressors: Record<string, TBodyCompressor | undefined> = {
   identity: {
-    compress: v => v,
-    uncompress: v => v,
+    compress: (v) => v,
+    uncompress: (v) => v,
     stream: {
       compress: (data: AsyncIterable<Buffer>) => data,
       uncompress: (data: AsyncIterable<Buffer>) => data,
@@ -25,7 +24,7 @@ export const compressors: Record<string, TBodyCompressor | undefined> = {
 }
 
 export function encodingSupportsStream(encodings: string[]) {
-  return encodings.every(enc => compressors[enc]?.stream)
+  return encodings.every((enc) => compressors[enc]?.stream)
 }
 
 export async function compressBody(encodings: string[], body: Buffer): Promise<Buffer> {
@@ -44,7 +43,7 @@ export async function uncompressBody(encodings: string[], compressed: Buffer): P
   let buf = compressed // progressive buffer
 
   // Decompress in reverse order: br, gzip  =>  gunzip, brotlidec
-  for (const enc of encodings.slice().reverse()) {
+  for (const enc of encodings.slice().toReversed()) {
     const c = compressors[enc]
     if (!c) {
       throw new Error(`Unsupported compression type "${enc}".`)
@@ -58,7 +57,7 @@ export async function uncompressBody(encodings: string[], compressed: Buffer): P
 
 export async function compressBodyStream(
   encodings: string[],
-  src: AsyncIterable<Buffer>
+  src: AsyncIterable<Buffer>,
 ): Promise<AsyncIterable<Buffer>> {
   if (!encodingSupportsStream(encodings)) {
     throw new Error('Some encodings lack a streaming compressor')
@@ -73,14 +72,14 @@ export async function compressBodyStream(
 
 export async function uncompressBodyStream(
   encodings: string[],
-  src: AsyncIterable<Buffer>
+  src: AsyncIterable<Buffer>,
 ): Promise<AsyncIterable<Buffer>> {
   if (!encodingSupportsStream(encodings)) {
     throw new Error('Some encodings lack a streaming decompressor')
   }
 
   let out: AsyncIterable<Buffer> = src
-  for (const enc of Array.from(encodings).reverse()) {
+  for (const enc of Array.from(encodings).toReversed()) {
     out = await compressors[enc]!.stream!.uncompress(out)
   }
   return out

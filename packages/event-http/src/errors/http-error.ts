@@ -7,7 +7,7 @@ export class HttpError<T extends TWooksErrorBody = TWooksErrorBody> extends Erro
 
   constructor(
     protected code: THttpErrorCodes = 500,
-    protected _body: string | T = ''
+    protected _body: string | T = '',
   ) {
     super(typeof _body === 'string' ? _body : _body.message)
   }

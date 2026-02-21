@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-confusing-void-expression */
-/* eslint-disable @typescript-eslint/unified-signatures */
 import type { TConsoleBase } from '@prostojs/logger'
 import type { TEventOptions } from '@wooksjs/event-core'
 import type { IncomingMessage, Server, ServerResponse } from 'http'
@@ -24,7 +22,7 @@ export class WooksHttp extends WooksAdapterBase {
 
   constructor(
     protected opts?: TWooksHttpOptions,
-    wooks?: Wooks | WooksAdapterBase
+    wooks?: Wooks | WooksAdapterBase,
   ) {
     super(wooks, opts?.logger, opts?.router)
     this.logger = opts?.logger || this.getLogger(`${__DYE_CYAN_BRIGHT__}[wooks-http]`)
@@ -32,56 +30,56 @@ export class WooksHttp extends WooksAdapterBase {
 
   all<ResType = unknown, ParamsType = Record<string, string | string[]>>(
     path: string,
-    handler: TWooksHandler<ResType>
+    handler: TWooksHandler<ResType>,
   ) {
     return this.on<ResType, ParamsType>('*', path, handler)
   }
 
   get<ResType = unknown, ParamsType = Record<string, string | string[]>>(
     path: string,
-    handler: TWooksHandler<ResType>
+    handler: TWooksHandler<ResType>,
   ) {
     return this.on<ResType, ParamsType>('GET', path, handler)
   }
 
   post<ResType = unknown, ParamsType = Record<string, string | string[]>>(
     path: string,
-    handler: TWooksHandler<ResType>
+    handler: TWooksHandler<ResType>,
   ) {
     return this.on<ResType, ParamsType>('POST', path, handler)
   }
 
   put<ResType = unknown, ParamsType = Record<string, string | string[]>>(
     path: string,
-    handler: TWooksHandler<ResType>
+    handler: TWooksHandler<ResType>,
   ) {
     return this.on<ResType, ParamsType>('PUT', path, handler)
   }
 
   patch<ResType = unknown, ParamsType = Record<string, string | string[]>>(
     path: string,
-    handler: TWooksHandler<ResType>
+    handler: TWooksHandler<ResType>,
   ) {
     return this.on<ResType, ParamsType>('PATCH', path, handler)
   }
 
   delete<ResType = unknown, ParamsType = Record<string, string | string[]>>(
     path: string,
-    handler: TWooksHandler<ResType>
+    handler: TWooksHandler<ResType>,
   ) {
     return this.on<ResType, ParamsType>('DELETE', path, handler)
   }
 
   head<ResType = unknown, ParamsType = Record<string, string | string[]>>(
     path: string,
-    handler: TWooksHandler<ResType>
+    handler: TWooksHandler<ResType>,
   ) {
     return this.on<ResType, ParamsType>('HEAD', path, handler)
   }
 
   options<ResType = unknown, ParamsType = Record<string, string | string[]>>(
     path: string,
-    handler: TWooksHandler<ResType>
+    handler: TWooksHandler<ResType>,
   ) {
     return this.on<ResType, ParamsType>('OPTIONS', path, handler)
   }
@@ -97,7 +95,7 @@ export class WooksHttp extends WooksAdapterBase {
     port?: number,
     hostname?: string,
     backlog?: number,
-    listeningListener?: () => void
+    listeningListener?: () => void,
   ): Promise<void>
   public listen(port?: number, hostname?: string, listeningListener?: () => void): Promise<void>
   public listen(port?: number, backlog?: number, listeningListener?: () => void): Promise<void>
@@ -105,16 +103,13 @@ export class WooksHttp extends WooksAdapterBase {
   public listen(path: string, backlog?: number, listeningListener?: () => void): Promise<void>
   public listen(path: string, listeningListener?: () => void): Promise<void>
   public listen(options: ListenOptions, listeningListener?: () => void): Promise<void>
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public listen(handle: any, backlog?: number, listeningListener?: () => void): Promise<void>
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public listen(handle: any, listeningListener?: () => void): Promise<void>
   public async listen(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     port?: number | string | ListenOptions | any,
     hostname?: number | string | (() => void),
     backlog?: number | (() => void),
-    listeningListener?: () => void
+    listeningListener?: () => void,
   ) {
     const server = (this.server = http.createServer(this.getServerCb() as http.RequestListener))
     return new Promise((resolve, reject) => {
@@ -136,7 +131,7 @@ export class WooksHttp extends WooksAdapterBase {
   public close(server?: Server) {
     const srv = server || this.server
     return new Promise((resolve, reject) => {
-      srv?.close(err => {
+      srv?.close((err) => {
         if (err) {
           reject(err)
           return
@@ -170,8 +165,8 @@ export class WooksHttp extends WooksAdapterBase {
   protected responder = createWooksResponder()
 
   protected respond(data: unknown) {
-    void this.responder.respond(data)?.catch(e => {
-      this.logger.error('Uncaught response exception', e)
+    void this.responder.respond(data)?.catch((error) => {
+      this.logger.error('Uncaught response exception', error)
     })
   }
 
@@ -191,14 +186,12 @@ export class WooksHttp extends WooksAdapterBase {
     return (req: IncomingMessage, res: ServerResponse) => {
       const runInContext = createHttpContext(
         { req, res },
-        this.mergeEventOptions(this.opts?.eventOptions)
+        this.mergeEventOptions(this.opts?.eventOptions),
       )
       runInContext(async () => {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const { handlers } = this.wooks.lookup(req.method!, req.url!)
         if (handlers || this.opts?.onNotFound) {
           try {
-            // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain, @typescript-eslint/no-non-null-assertion
             return await this.processHandlers(handlers || [this.opts?.onNotFound!])
           } catch (error) {
             this.logger.error('Internal error, please report', error)
@@ -207,7 +200,6 @@ export class WooksHttp extends WooksAdapterBase {
           }
         } else {
           // not found
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           this.logger.debug(`404 Not found (${req.method!})${req.url!}`)
           const error = new HttpError(404)
           this.respond(error)
@@ -236,7 +228,7 @@ export class WooksHttp extends WooksAdapterBase {
         } else {
           this.logger.error(
             `Uncaught route handler exception: ${store('event').get('req')?.url || ''}`,
-            error
+            error,
           )
         }
         if (isLastHandler) {

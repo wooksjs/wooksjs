@@ -23,7 +23,6 @@ export function useRequest() {
   const { store } = useHttpContext()
   const { init, get, set } = store('request')
   const event = store('event')
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const req = event.get('req')!
 
   const contentEncoding = req.headers['content-encoding']
@@ -32,8 +31,8 @@ export function useRequest() {
     init('contentEncodings', () =>
       (contentEncoding || '')
         .split(',')
-        .map(p => p.trim())
-        .filter(p => !!p)
+        .map((p) => p.trim())
+        .filter((p) => !!p),
     )
 
   const isCompressed = () =>
@@ -165,7 +164,6 @@ export function useRequest() {
   const forwardedIp = () =>
     init('forwardedIp', () => {
       if (typeof req.headers[xForwardedFor] === 'string' && req.headers[xForwardedFor]) {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain, @typescript-eslint/no-non-null-assertion
         return req.headers[xForwardedFor].split(',').shift()?.trim()!
       } else {
         return ''
@@ -173,7 +171,6 @@ export function useRequest() {
     })
 
   const remoteIp = () =>
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     init('remoteIp', () => req.socket.remoteAddress || req.connection.remoteAddress || '')!
 
   function getIp(options?: { trustProxy: boolean }): string {
@@ -187,7 +184,7 @@ export function useRequest() {
   const getIpList = () =>
     init('ipList', () => ({
       remoteIp: req.socket.remoteAddress || req.connection.remoteAddress || '',
-      forwarded: ((req.headers[xForwardedFor] as string) || '').split(',').map(s => s.trim()),
+      forwarded: ((req.headers[xForwardedFor] as string) || '').split(',').map((s) => s.trim()),
     }))
 
   return {
