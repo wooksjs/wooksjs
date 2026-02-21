@@ -134,7 +134,7 @@
     "no-array-constructor": "error",
     "no-useless-escape": "error",
     "no-useless-catch": "error",
-    "max-params": ["warn", { "max": 4 }],
+    "max-params": "off",
     "prefer-template": "error",
     "no-alert": "error",
     "no-caller": "error",
@@ -210,7 +210,7 @@
 
     "promise/no-new-statics": "error",
     "promise/no-return-wrap": "error",
-    "promise/param-names": "error",
+    "promise/param-names": "off",
     "promise/valid-params": "error",
 
     "unicorn/better-regex": "error",

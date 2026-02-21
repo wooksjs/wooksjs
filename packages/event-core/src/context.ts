@@ -228,12 +228,14 @@ function _getCtxHelpers<T>(cc: T): TCtxHelpers<T> {
     // --- Optimization 4: no empty object allocation on fallback ---
     function getNested<K2 extends keyof Required<T>[K]>(key2: K2) {
       const section = getSection()
+      // oxlint-disable-next-line no-negated-condition
       return (section !== undefined ? (section as any)[key2] : undefined) as
         | Required<T>[K][K2]
         | undefined
     }
     function hasNested<K2 extends keyof Required<T>[K]>(key2: K2) {
       const section = getSection()
+      // oxlint-disable-next-line no-negated-condition
       return section !== undefined ? (section as any)[key2] !== undefined : false
     }
     function entries() {
