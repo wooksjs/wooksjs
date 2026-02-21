@@ -25,13 +25,30 @@ export interface TGenericContextStore<CustomEventType = TEmpty> {
 
 // --=========== ASYNC CONTEXT =============--
 
+const STORAGE_KEY = Symbol.for('wooks.asyncStorage')
+const VERSION_KEY = Symbol.for('wooks.asyncStorage.version')
+const CURRENT_VERSION = '0.6.2'
+
+const _g = globalThis as Record<symbol, unknown>
+if (_g[STORAGE_KEY]) {
+  if (_g[VERSION_KEY] !== CURRENT_VERSION) {
+    console.warn(
+      `${__DYE_YELLOW__}[wooks] Multiple versions of @wooksjs/event-core detected: ` +
+        `existing v${_g[VERSION_KEY] as string}, current v${CURRENT_VERSION}. ` +
+        `Reusing existing asyncStorage to avoid runtime errors.${__DYE_RESET__}`,
+    )
+  }
+} else {
+  _g[STORAGE_KEY] = new AsyncLocalStorage<TGenericContextStore>()
+  _g[VERSION_KEY] = CURRENT_VERSION
+}
+
 /**
  * AsyncLocalStorage instance
  *
  * Use on your own risk only if you know what you're doing
  */
-export const asyncStorage: AsyncLocalStorage<TGenericContextStore> =
-  new AsyncLocalStorage<TGenericContextStore>()
+export const asyncStorage = _g[STORAGE_KEY] as AsyncLocalStorage<TGenericContextStore>
 
 /** Symbol key for caching store accessors directly on the context object */
 const _storeCacheKey = Symbol('storeCache')
