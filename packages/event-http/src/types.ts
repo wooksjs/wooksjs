@@ -7,6 +7,7 @@ import type { WooksURLSearchParams } from './utils/url-search-params'
 export interface THttpEventData {
   req: IncomingMessage
   res: ServerResponse
+  requestLimits?: TRequestLimits
 }
 
 export interface THttpEvent {
@@ -48,6 +49,20 @@ export interface TAuthCache {
   basicCredentials: { username: string; password: string } | null
 }
 
+/** App-level request body limits (all optional, defaults apply when omitted). */
+export interface TRequestLimits {
+  /** Max compressed body size in bytes (default: 1 MB). */
+  maxCompressed?: number
+  /** Max inflated (decompressed) body size in bytes (default: 10 MB). */
+  maxInflated?: number
+  /** Max compression ratio, e.g. 100 means 100× expansion (default: 100). */
+  maxRatio?: number
+  /** Body read timeout in milliseconds (default: 10 000). */
+  readTimeoutMs?: number
+  /** Internal flag: true when this object is a per-request clone (copy-on-write). */
+  perRequest?: boolean
+}
+
 export interface TRequestCache {
   rawBody: Promise<Buffer>
   parsed: unknown
@@ -56,12 +71,6 @@ export interface TRequestCache {
   ipList?: { remoteIp: string; forwarded: string[] }
   contentEncodings?: string[]
   isCompressed?: boolean
-
-  // limits
-  maxCompressed?: number
-  maxInflated?: number
-  maxRatio?: number
-  readTimeoutMs?: number
 }
 
 export interface TSearchParamsCache {

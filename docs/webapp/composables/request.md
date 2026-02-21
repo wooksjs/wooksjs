@@ -132,6 +132,59 @@ app.get('/test', async () => {
 })
 ```
 
+## Body Size Limits
+
+Request body reading is protected by configurable limits:
+
+| Limit | Default | Description |
+|-------|---------|-------------|
+| `maxCompressed` | 1 MB | Max compressed body size in bytes |
+| `maxInflated` | 10 MB | Max decompressed body size in bytes |
+| `maxRatio` | 100 | Max compression ratio (zip-bomb protection) |
+| `readTimeoutMs` | 10 000 ms | Body read timeout |
+
+### App-level configuration
+
+```js
+import { createHttpApp } from '@wooksjs/event-http'
+
+const app = createHttpApp({
+    requestLimits: {
+        maxCompressed: 50 * 1024 * 1024,  // 50 MB
+        maxInflated: 100 * 1024 * 1024,   // 100 MB
+        maxRatio: 200,
+        readTimeoutMs: 30_000,
+    },
+})
+```
+
+### Per-request overrides
+
+Override limits inside a handler before reading the body:
+
+```js
+import { useRequest } from '@wooksjs/event-http'
+
+app.post('/upload', async () => {
+    const {
+        setMaxCompressed,
+        setMaxInflated,
+        setMaxRatio,
+        setReadTimeoutMs,
+        rawBody,
+    } = useRequest()
+
+    // Raise limits for this route only
+    setMaxCompressed(50 * 1024 * 1024)  // 50 MB
+    setMaxInflated(100 * 1024 * 1024)   // 100 MB
+
+    const body = await rawBody()
+    return { size: body.length }
+})
+```
+
+Per-request setters use copy-on-write — they do not mutate the app-level configuration.
+
 ## Body Parser
 
 The implementation of the body parser is isolated into a separate package

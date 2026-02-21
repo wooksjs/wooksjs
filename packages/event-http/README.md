@@ -51,6 +51,30 @@ app.listen(3000, () => {
 })
 ```
 
+## AI Agent Skills
+
+This package ships with structured skill files for AI coding agents (Claude Code, Cursor, Windsurf, Codex, etc.).
+
+```bash
+# Project-local (recommended — version-locked, commits with your repo)
+npx @wooksjs/event-http setup-skills
+
+# Global (available across all your projects)
+npx @wooksjs/event-http setup-skills --global
+```
+
+To keep skills automatically up-to-date, add a postinstall script to your `package.json`:
+
+```json
+{
+  "scripts": {
+    "postinstall": "npx @wooksjs/event-http setup-skills --postinstall"
+  }
+}
+```
+
+This ensures the skill files are refreshed whenever dependencies are installed, without needing a separate command.
+
 ## Documentation
 
 To check out docs, visit [wooks.moost.org](https://wooks.moost.org/webapp/).

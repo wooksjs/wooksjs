@@ -75,6 +75,30 @@ For more detailed documentation, please visit [wooks.moost.org](https://wooks.mo
 
 Contributions to the `@wooksjs/event-wf` project are welcome. If you find any bugs or have a feature request, please open an issue on [the GitHub repository](https://github.com/wooksjs/wooksjs).
 
+## AI Agent Skills
+
+This package ships with structured skill files for AI coding agents (Claude Code, Cursor, Windsurf, Codex, etc.).
+
+```bash
+# Project-local (recommended — version-locked, commits with your repo)
+npx @wooksjs/event-wf setup-skills
+
+# Global (available across all your projects)
+npx @wooksjs/event-wf setup-skills --global
+```
+
+To keep skills automatically up-to-date, add a postinstall script to your `package.json`:
+
+```json
+{
+  "scripts": {
+    "postinstall": "npx @wooksjs/event-wf setup-skills --postinstall"
+  }
+}
+```
+
+This ensures the skill files are refreshed whenever dependencies are installed, without needing a separate command.
+
 ## License
 
 `@wooksjs/event-wf` is licensed under the [MIT license](https://github.com/wooksjs/wooksjs/blob/main/LICENSE).

@@ -86,6 +86,28 @@ console.log(output.state.context) // { result: 14 }
 
 This will start the 'adding' flow with an initial `result` of 0, and follow the steps defined in the flow.
 
+## AI Agent Skills
+
+`@wooksjs/event-wf` ships with skill files for AI coding agents (Claude Code, Cursor, Windsurf, Codex, etc.) that provide context-aware assistance.
+
+```bash
+# Project-local (recommended — version-locked, commits with your repo)
+npx @wooksjs/event-wf setup-skills
+
+# Global (available across all your projects)
+npx @wooksjs/event-wf setup-skills --global
+```
+
+To keep skills automatically up-to-date, add a postinstall script to your `package.json`:
+
+```json
+{
+  "scripts": {
+    "postinstall": "npx @wooksjs/event-wf setup-skills --postinstall"
+  }
+}
+```
+
 ## Next steps
 
 -   Learn how to define [parametric steps](/wf/routing#parametric-step-example)
@@ -93,4 +115,4 @@ This will start the 'adding' flow with an initial `result` of 0, and follow the 
 -   Utilize [Conditional subflows](/wf/flows#conditional-subflows)
 -   Benefit from [Loops](/wf/flows#loops)
 
-😊 Happy workflow designing with Wooks Workflows!
+Happy workflow designing with Wooks Workflows!

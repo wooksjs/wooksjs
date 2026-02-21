@@ -71,6 +71,28 @@ curl http://localhost:3000/hello/Wooks
 # Hello Wooks!
 ```
 
+## AI Agent Skills
+
+`@wooksjs/event-http` ships with skill files for AI coding agents (Claude Code, Cursor, Windsurf, Codex, etc.) that provide context-aware assistance.
+
+```bash
+# Project-local (recommended — version-locked, commits with your repo)
+npx @wooksjs/event-http setup-skills
+
+# Global (available across all your projects)
+npx @wooksjs/event-http setup-skills --global
+```
+
+To keep skills automatically up-to-date, add a postinstall script to your `package.json`:
+
+```json
+{
+  "scripts": {
+    "postinstall": "npx @wooksjs/event-http setup-skills --postinstall"
+  }
+}
+```
+
 ## Next Steps
 
 - **Working with Request:** Check out [Request Composables](/webapp/composables/request) to learn how to manipulate request data, read headers or cookies and more.

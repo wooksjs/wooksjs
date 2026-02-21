@@ -1,7 +1,16 @@
 import type { TCookieAttributes, TSetCookieData } from '../types'
 import { convertTime } from './time'
 
+const COOKIE_NAME_RE = /^[\w!#$%&'*+\-.^`|~]+$/
+
+function sanitizeCookieAttrValue(v: string): string {
+  return v.replace(/[;\r\n]/g, '')
+}
+
 export function renderCookie(key: string, data: TSetCookieData) {
+  if (!COOKIE_NAME_RE.test(key)) {
+    throw new TypeError(`Invalid cookie name "${key}"`)
+  }
   let attrs = ''
   for (const [a, v] of Object.entries(data.attrs)) {
     const func: (v: unknown) => string = cookieAttrFunc[a as keyof typeof cookieAttrFunc] as (
@@ -23,8 +32,8 @@ const cookieAttrFunc = {
       typeof v === 'string' || typeof v === 'number' ? new Date(v).toUTCString() : v.toUTCString()
     }`,
   maxAge: (v: TCookieAttributes['maxAge']) => `Max-Age=${convertTime(v, 's').toString()}`,
-  domain: (v: TCookieAttributes['domain']) => `Domain=${v}`,
-  path: (v: TCookieAttributes['path']) => `Path=${v}`,
+  domain: (v: TCookieAttributes['domain']) => `Domain=${sanitizeCookieAttrValue(String(v))}`,
+  path: (v: TCookieAttributes['path']) => `Path=${sanitizeCookieAttrValue(String(v))}`,
   secure: (v: TCookieAttributes['secure']) => (v ? 'Secure' : ''),
   httpOnly: (v: TCookieAttributes['httpOnly']) => (v ? 'HttpOnly' : ''),
   sameSite: (v: TCookieAttributes['sameSite']) =>

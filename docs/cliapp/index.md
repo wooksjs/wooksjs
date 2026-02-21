@@ -109,6 +109,28 @@ Wooks CLI provides additional features and options for building more complex CLI
 -   Handling unknown commands
 -   Error handling and customization
 
+## AI Agent Skills
+
+`@wooksjs/event-cli` ships with skill files for AI coding agents (Claude Code, Cursor, Windsurf, Codex, etc.) that provide context-aware assistance.
+
+```bash
+# Project-local (recommended — version-locked, commits with your repo)
+npx @wooksjs/event-cli setup-skills
+
+# Global (available across all your projects)
+npx @wooksjs/event-cli setup-skills --global
+```
+
+To keep skills automatically up-to-date, add a postinstall script to your `package.json`:
+
+```json
+{
+  "scripts": {
+    "postinstall": "npx @wooksjs/event-cli setup-skills --postinstall"
+  }
+}
+```
+
 That's it! You have completed the Quick Start Guide for Wooks CLI.
 You now have the basic knowledge and steps to start building your own CLI applications using Wooks CLI.
 Feel free to explore the documentation and experiment with different configurations and options to suit your specific requirements.

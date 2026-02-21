@@ -3,5 +3,5 @@
   "compilerOptions": {
     "outDir": ".types"
   },
-  "include": ["src", "../../globals.d.ts"]
+  "include": ["src", "../../globals.d.ts", "../../node_modules/@prostojs/dye/global.d.ts"]
 }

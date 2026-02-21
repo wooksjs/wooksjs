@@ -3,13 +3,14 @@ import { IncomingMessage, ServerResponse } from 'http'
 import { Socket } from 'net'
 
 import { createHttpContext, useHttpContext } from './event-http'
-import type { TAuthCache, THttpContextStore } from './types'
+import type { TAuthCache, THttpContextStore, TRequestLimits } from './types'
 
 export interface TTestHttpContext {
   params?: Record<string, string | string[]>
   url: string
   headers?: Record<string, string>
   method?: string
+  requestLimits?: TRequestLimits
   cachedContext?: {
     cookies?: Record<string, string | null>
     authorization?: TAuthCache
@@ -29,7 +30,7 @@ export function prepareTestHttpContext(options: TTestHttpContext) {
   req.headers = options.headers || {}
   req.url = options.url
   const res = new ServerResponse(req)
-  const runInContext = createHttpContext({ req, res }, {})
+  const runInContext = createHttpContext({ req, res, requestLimits: options.requestLimits }, {})
   const ctx = runInContext(() => {
     const { store, getCtx } = useHttpContext()
     store('routeParams').value = options.params

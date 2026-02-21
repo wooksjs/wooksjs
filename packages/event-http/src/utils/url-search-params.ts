@@ -2,6 +2,8 @@ import { URLSearchParams } from 'url'
 
 import { HttpError } from '../errors'
 
+const ILLEGAL_KEYS = new Set(['__proto__', 'constructor', 'prototype'])
+
 export class WooksURLSearchParams extends URLSearchParams {
   toJson<T = unknown>(): T {
     const json = Object.create(null) as Record<string, unknown>
@@ -10,7 +12,7 @@ export class WooksURLSearchParams extends URLSearchParams {
         const a = (json[key] = (json[key] || []) as string[])
         a.push(value)
       } else {
-        if (key === '__proto__') {
+        if (ILLEGAL_KEYS.has(key)) {
           throw new HttpError(400, `Illegal key name "${key}"`)
         }
         if (key in json) {

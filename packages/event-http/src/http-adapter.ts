@@ -9,6 +9,7 @@ import { WooksAdapterBase } from 'wooks'
 import { HttpError } from './errors'
 import { createHttpContext, useHttpContext } from './event-http'
 import { createWooksResponder } from './response'
+import type { TRequestLimits } from './types'
 
 /** Configuration options for the WooksHttp adapter. */
 export interface TWooksHttpOptions {
@@ -16,6 +17,8 @@ export interface TWooksHttpOptions {
   eventOptions?: TEventOptions
   onNotFound?: TWooksHandler
   router?: TWooksOptions['router']
+  /** Default request body limits applied to every request (overridable per-request via `useRequest()`). */
+  requestLimits?: Omit<TRequestLimits, 'perRequest'>
 }
 
 /** HTTP adapter for Wooks that provides route registration, server lifecycle, and request handling. */
@@ -195,7 +198,7 @@ export class WooksHttp extends WooksAdapterBase {
   getServerCb() {
     return (req: IncomingMessage, res: ServerResponse) => {
       const runInContext = createHttpContext(
-        { req, res },
+        { req, res, requestLimits: this.opts?.requestLimits },
         this.mergeEventOptions(this.opts?.eventOptions),
       )
       runInContext(async () => {

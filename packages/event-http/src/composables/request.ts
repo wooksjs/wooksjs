@@ -30,7 +30,7 @@ export const DEFAULT_LIMITS = {
  */
 export function useRequest() {
   const { store } = useHttpContext()
-  const { init, get, set } = store('request')
+  const { init } = store('request')
   const event = store('event')
   const req = event.get('req')!
 
@@ -55,15 +55,24 @@ export function useRequest() {
       return false
     })
 
-  const getMaxCompressed = () => get('maxCompressed') ?? DEFAULT_LIMITS.maxCompressed
-  const setMaxCompressed = (limit: number) => set('maxCompressed', limit)
-  const getReadTimeoutMs = () => get('readTimeoutMs') ?? DEFAULT_LIMITS.readTimeoutMs
-  const setReadTimeoutMs = (limit: number) => set('readTimeoutMs', limit)
+  const limits = () => event.get('requestLimits')
+  const setLimit = (key: keyof typeof DEFAULT_LIMITS, value: number) => {
+    let obj = limits()
+    if (!obj?.perRequest) {
+      obj = { ...obj, perRequest: true }
+      event.set('requestLimits', obj)
+    }
+    obj[key] = value
+  }
 
-  const getMaxInflated = () => get('maxInflated') ?? DEFAULT_LIMITS.maxInflated
-  const setMaxInflated = (limit: number) => set('maxInflated', limit)
-  // const getMaxRatio = () => get('maxRatio') ?? DEFAULT_LIMITS.maxRatio
-  // const setMaxRatio = (limit: number) => set('maxRatio', limit)
+  const getMaxCompressed = () => limits()?.maxCompressed ?? DEFAULT_LIMITS.maxCompressed
+  const setMaxCompressed = (limit: number) => setLimit('maxCompressed', limit)
+  const getMaxInflated = () => limits()?.maxInflated ?? DEFAULT_LIMITS.maxInflated
+  const setMaxInflated = (limit: number) => setLimit('maxInflated', limit)
+  const getMaxRatio = () => limits()?.maxRatio ?? DEFAULT_LIMITS.maxRatio
+  const setMaxRatio = (limit: number) => setLimit('maxRatio', limit)
+  const getReadTimeoutMs = () => limits()?.readTimeoutMs ?? DEFAULT_LIMITS.readTimeoutMs
+  const setReadTimeoutMs = (limit: number) => setLimit('readTimeoutMs', limit)
 
   const rawBody = () =>
     init('rawBody', async (): Promise<Buffer> => {
@@ -74,7 +83,7 @@ export function useRequest() {
 
       const maxCompressed = getMaxCompressed()
       const maxInflated = getMaxInflated()
-      // const maxRatio = getMaxRatio()
+      const maxRatio = getMaxRatio()
       const timeoutMs = getReadTimeoutMs()
 
       /* fast-fail by Content-Length, if header present */
@@ -165,6 +174,11 @@ export function useRequest() {
         }
       }
 
+      /* ───── compression ratio check (zip-bomb mitigation) ──────── */
+      if (isZip && rawBytes > 0 && inflatedBytes / rawBytes > maxRatio) {
+        throw new HttpError(413, 'Compression ratio too high')
+      }
+
       return body // always decompressed
     })
 
@@ -214,7 +228,7 @@ export function useRequest() {
     setReadTimeoutMs,
     getMaxInflated,
     setMaxInflated,
-    // getMaxRatio,
-    // setMaxRatio,
+    getMaxRatio,
+    setMaxRatio,
   }
 }

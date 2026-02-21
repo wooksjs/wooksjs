@@ -1,0 +1,399 @@
+# Core Concepts — @wooksjs/event-wf
+
+> Covers workflow app creation, starting and resuming workflows, how the workflow adapter integrates with the event context system, error handling, spies, testing, and logging.
+
+For the underlying event context store API (`init`, `get`, `set`, `hook`, etc.) and how to create custom composables, see [event-core.md](event-core.md).
+
+## Mental Model
+
+`@wooksjs/event-wf` is the workflow adapter for Wooks. It wraps the `@prostojs/wf` workflow engine, adding composable context management via `AsyncLocalStorage`. Each workflow execution gets its own isolated context store, and step handlers can call composable functions (`useWfState()`, `useRouteParams()`, etc.) from anywhere.
+
+Key principles:
+1. **Steps are route handlers** — Steps are registered with IDs that are resolved via the Wooks router, supporting parametric step IDs (`:param`), wildcards, and regex constraints.
+2. **Flows are schemas** — Flows define the execution order of steps, with conditions, loops, and branching.
+3. **Pause and resume** — Workflows can pause for user input and resume from saved state.
+4. **String-based handlers** — Step handlers can be JavaScript strings (e.g., `'ctx.result += input'`), making them storable in databases.
+
+## Installation
+
+```bash
+npm install wooks @wooksjs/event-wf
+```
+
+## Creating a Workflow App
+
+```ts
+import { createWfApp } from '@wooksjs/event-wf'
+
+const app = createWfApp<{ result: number }>()
+
+app.step('increment', {
+  handler: (ctx) => { ctx.result++ },
+})
+
+app.flow('my-flow', [{ id: 'increment' }])
+
+const output = await app.start('my-flow', { result: 0 })
+console.log(output.state.context.result) // 1
+```
+
+`createWfApp<T>(opts?, wooks?)` returns a `WooksWf<T>` instance. The generic `T` is the workflow context type.
+
+Options:
+
+```ts
+interface TWooksWfOptions {
+  onError?: (e: Error) => void          // custom error handler
+  onNotFound?: TWooksHandler             // handler when flow not found
+  onUnknownFlow?: (schemaId: string, raiseError: () => void) => unknown
+  logger?: TConsoleBase                  // custom logger
+  eventOptions?: TEventOptions           // event-level logger config
+  router?: {
+    ignoreTrailingSlash?: boolean
+    ignoreCase?: boolean
+    cacheLimit?: number
+  }
+}
+```
+
+## Starting a Workflow
+
+### `app.start(schemaId, inputContext, input?, spy?, cleanup?)`
+
+Starts a new workflow execution from the beginning:
+
+```ts
+const output = await app.start('my-flow', { result: 0 })
+```
+
+**Parameters:**
+- `schemaId` — The flow ID registered with `app.flow()`
+- `inputContext` — The initial context object (`T`)
+- `input` — Optional input for the first step
+- `spy` — Optional spy function to observe step execution
+- `cleanup` — Optional cleanup function called when execution ends
+
+**Return value (`TFlowOutput<T, I, IR>`):**
+
+```ts
+interface TFlowOutput<T, I, IR> {
+  finished: boolean              // true if workflow completed
+  state: {
+    schemaId: string             // flow ID
+    indexes: number[]            // position in schema (for resume)
+    context: T                   // final context state
+  }
+  inputRequired?: {              // present if paused for input
+    type: string                 // expected input type
+    schemaId: string             // step requiring input
+  }
+  stepResult?: IR                // last step's return value
+  resume?: (input?: I) => Promise<TFlowOutput<T, I, IR>>  // resume function
+}
+```
+
+### Checking completion
+
+```ts
+const output = await app.start('my-flow', { result: 0 })
+
+if (output.finished) {
+  console.log('Final result:', output.state.context)
+} else if (output.inputRequired) {
+  console.log('Workflow paused, needs:', output.inputRequired.type)
+  // Save output.state for later resume
+}
+```
+
+## Resuming a Workflow
+
+### `app.resume(state, input?, spy?, cleanup?)`
+
+Resumes a previously paused workflow from saved state:
+
+```ts
+// Resume with user-provided input
+const resumed = await app.resume(output.state, userInput)
+```
+
+### Using the `resume()` function on output
+
+The output object includes a convenience `resume()` method:
+
+```ts
+const output = await app.start('login-flow', {})
+if (!output.finished && output.resume) {
+  const final = await output.resume(userCredentials)
+}
+```
+
+### Full pause/resume pattern
+
+```ts
+const app = createWfApp<{ username?: string; authenticated?: boolean }>()
+
+app.step('get-credentials', {
+  input: '{ username: string, password: string }',
+  handler: (ctx, input) => {
+    ctx.username = input.username
+    ctx.authenticated = validate(input.username, input.password)
+  },
+})
+
+app.step('welcome', {
+  handler: (ctx) => console.log(`Welcome, ${ctx.username}!`),
+})
+
+app.flow('login', [
+  { id: 'get-credentials' },
+  { id: 'welcome' },
+])
+
+// Start — pauses at get-credentials because input is required
+const output = await app.start('login', {})
+// output.finished === false
+// output.inputRequired === { type: '{ username: string, password: string }', schemaId: 'get-credentials' }
+
+// Save state (e.g., to database)
+const savedState = JSON.stringify(output.state)
+
+// Later, resume with user input
+const state = JSON.parse(savedState)
+const final = await app.resume(state, { username: 'alice', password: 'secret' })
+// final.finished === true
+```
+
+## How Workflow Context Works
+
+When `start()` or `resume()` is called, the adapter creates a workflow-specific event context:
+
+```
+app.start(schemaId, inputContext)
+  → createWfContext({ inputContext, schemaId, stepId, indexes, input }, options)
+    → AsyncLocalStorage.run(wfContextStore, handler)
+      → router matches flow ID → handler runs
+        → workflow engine executes steps sequentially
+          → each step can call useWfState(), useRouteParams(), etc.
+            → composables call useWFContext()
+              → reads/writes the WF context store
+```
+
+### The WF Context Store
+
+```ts
+interface TWFContextStore {
+  resume: boolean   // true if this is a resumed execution
+}
+
+interface TWFEventData {
+  schemaId: string       // flow ID being executed
+  stepId: string | null  // current step ID (set during step execution)
+  inputContext: unknown   // the workflow context object (T)
+  indexes?: number[]     // position for resume
+  input?: unknown        // input for current step
+  type: 'WF'
+}
+```
+
+### Extending the WF Store for Custom Composables
+
+```ts
+import { useWFContext } from '@wooksjs/event-wf'
+
+interface TMyStore {
+  metrics?: {
+    startTime?: number
+    stepCount?: number
+  }
+}
+
+export function useWorkflowMetrics() {
+  const { store } = useWFContext<TMyStore>()
+  const { init, get, set } = store('metrics')
+
+  const startTimer = () => init('startTime', () => Date.now())
+  const incrementSteps = () => set('stepCount', (get('stepCount') || 0) + 1)
+  const getElapsed = () => Date.now() - (get('startTime') || Date.now())
+
+  return { startTimer, incrementSteps, getElapsed }
+}
+```
+
+For the full context store API and composable patterns, see [event-core.md](event-core.md).
+
+## Workflow Spies
+
+Spies observe step execution without modifying behavior. Attach globally or per-execution:
+
+### Global spy (all workflows)
+
+```ts
+const spy = (event, data) => {
+  console.log(`[${event}]`, data)
+}
+
+app.attachSpy(spy)
+
+// Later, remove it:
+app.detachSpy(spy)
+```
+
+### Per-execution spy
+
+```ts
+const output = await app.start('my-flow', { result: 0 }, undefined, (event, ...args) => {
+  if (event === 'step') {
+    console.log('Step executed:', args)
+  }
+})
+```
+
+The spy function receives:
+- `event` — Event type (e.g., `'step'`)
+- Additional arguments vary by event type
+
+## Error Handling
+
+### Default behavior
+
+By default, errors call `console.error` and `process.exit(1)`.
+
+### Custom error handler
+
+```ts
+const app = createWfApp({
+  onError: (error) => {
+    console.error(`Workflow error: ${error.message}`)
+    // Don't exit — handle gracefully
+  },
+})
+```
+
+### Errors in workflows
+
+Errors thrown in step handlers propagate up from `app.start()` / `app.resume()`:
+
+```ts
+try {
+  const output = await app.start('my-flow', { result: 0 })
+} catch (error) {
+  console.error('Workflow failed:', error.message)
+}
+```
+
+### `StepRetriableError`
+
+A special error type that signals the workflow can be retried with input:
+
+```ts
+import { StepRetriableError } from '@wooksjs/event-wf'
+
+app.step('validate', {
+  handler: (ctx) => {
+    if (!ctx.token) {
+      throw new StepRetriableError('Token required', {
+        inputRequired: { type: 'string', schemaId: 'validate' },
+      })
+    }
+  },
+})
+```
+
+## Sharing Router Between Adapters
+
+Multiple adapters can share the same Wooks router:
+
+```ts
+import { Wooks } from 'wooks'
+import { createWfApp } from '@wooksjs/event-wf'
+
+const wooks = new Wooks()
+const app1 = createWfApp({}, wooks)
+const app2 = createWfApp({}, wooks)  // shares the same routes
+```
+
+Or share with another adapter (e.g., HTTP):
+
+```ts
+import { createHttpApp } from '@wooksjs/event-http'
+import { createWfApp } from '@wooksjs/event-wf'
+
+const httpApp = createHttpApp()
+const wfApp = createWfApp({}, httpApp)  // shares httpApp's router
+```
+
+## Testing
+
+Test workflows by calling `app.start()` directly with explicit contexts:
+
+```ts
+import { createWfApp } from '@wooksjs/event-wf'
+
+const app = createWfApp<{ count: number }>()
+
+app.step('increment', {
+  handler: (ctx) => { ctx.count++ },
+})
+
+app.flow('test-flow', [
+  { id: 'increment' },
+  { id: 'increment' },
+])
+
+// Test:
+const output = await app.start('test-flow', { count: 0 })
+expect(output.state.context.count).toBe(2)
+expect(output.finished).toBe(true)
+```
+
+### Testing resume
+
+```ts
+app.step('needs-input', {
+  input: 'number',
+  handler: 'ctx.count += input',
+})
+
+app.flow('resume-flow', [{ id: 'needs-input' }])
+
+const output = await app.start('resume-flow', { count: 0 })
+expect(output.finished).toBe(false)
+
+const final = await app.resume(output.state, 42)
+expect(final.state.context.count).toBe(42)
+expect(final.finished).toBe(true)
+```
+
+## Logging
+
+Inside a step handler, use the event-scoped logger:
+
+```ts
+import { useEventLogger } from '@wooksjs/event-core'
+
+app.step('process', {
+  handler: (ctx) => {
+    const logger = useEventLogger('process-step')
+    logger.log('Processing...')
+    ctx.processed = true
+  },
+})
+```
+
+## Best Practices
+
+- **Use `createWfApp<T>()` with a typed context** — The generic `T` gives type safety for all step handlers and flow output.
+- **Use string handlers for storable logic** — When workflows are defined in a database, use string handlers like `'ctx.result += input'`.
+- **Use function handlers for complex logic** — When handlers need imports, async operations, or composables, use function handlers.
+- **Save state for resume** — `output.state` is serializable. Store it in a database to resume later.
+- **Use spies for logging/monitoring** — Don't add logging inside every step; attach a spy instead.
+- **Use `flow` init functions** — The optional `init` callback in `app.flow()` runs before the first step, useful for context setup.
+
+## Gotchas
+
+- **Composables must be called within a step handler** (inside the async context). Calling them at module load time throws.
+- **`start()` and `resume()` return promises** — Always `await` them.
+- **Input is cleared after the first step** — When starting with `input`, it's only available to the first step. Subsequent steps don't see it unless the workflow pauses and resumes with new input.
+- **String handlers run in a restricted environment** — They can't access `require`, `import`, `process`, or other Node.js globals. Use function handlers for those.
+- **Step resolution uses the router** — Step IDs are looked up via the Wooks router. If a step ID contains `/`, it's treated as path segments for routing.
+- **Flow IDs also use routing** — You can have parametric flow IDs like `'process/:type'` and use `useRouteParams()` inside the flow's init function.

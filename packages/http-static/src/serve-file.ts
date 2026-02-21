@@ -16,6 +16,15 @@ import type { Readable } from 'stream'
 import { getMimeType } from './mime'
 import { normalizePath } from './utils/path-norm'
 
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 const { stat, readdir } = fsPromises
 
 /** Options for configuring static file serving behavior. */
@@ -61,10 +70,6 @@ export async function serveFile(
   filePath: string,
   options: TServeFileOptions = {},
 ): Promise<Readable | string | string[] | unknown> {
-  if (!options.allowDotDot && (filePath.includes('/../') || filePath.startsWith('../'))) {
-    throw new Error('Parent Traversal ("/../") is not allowed.')
-  }
-
   const { status } = useResponse()
   const { setHeader, removeHeader } = useSetHeaders()
   const headers = useHeaders()
@@ -72,6 +77,13 @@ export async function serveFile(
   const { setCacheControl, setExpires, setPragmaNoCache } = useSetCacheControl()
 
   const normalizedPath: string = normalizePath(filePath, options.baseDir)
+
+  if (!options.allowDotDot) {
+    const resolvedBase = path.resolve(options.baseDir || process.cwd())
+    if (!normalizedPath.startsWith(resolvedBase + path.sep) && normalizedPath !== resolvedBase) {
+      throw new HttpError(403, 'Path traversal is not allowed')
+    }
+  }
 
   let fileStats: Stats
   try {
@@ -268,7 +280,7 @@ async function listDirectory(dirPath: string) {
     .map(
       (d) =>
         `<li> <span class="icon">${d.dir ? '&#128193;' : '&#128462;'}</span>` +
-        `<a href="${path.join(url || '', d.name)}"><span class="name text">${d.name}</span></a>` +
+        `<a href="${escapeHtml(path.join(url || '', d.name))}"><span class="name text">${escapeHtml(d.name)}</span></a>` +
         `<span class="size text">${
           (d.size &&
             (d.size > 10000
