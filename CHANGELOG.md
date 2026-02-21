@@ -1,3 +1,12 @@
+## [0.6.4](https://github.com/wooksjs/wooksjs/compare/v0.6.3...v0.6.4) (2026-02-21)
+
+
+### Bug Fixes
+
+* fix skill setup ([f6fdda5](https://github.com/wooksjs/wooksjs/commit/f6fdda5841bd3b3fd107fa2680efa90d0393fe8a))
+
+
+
 ## [0.6.3](https://github.com/wooksjs/wooksjs/compare/v0.6.2...v0.6.3) (2026-02-21)
 
 
