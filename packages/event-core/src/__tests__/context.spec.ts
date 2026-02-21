@@ -547,3 +547,79 @@ describe('context isolation', () => {
     expect(asyncStorage.getStore()).toBeUndefined()
   })
 })
+
+describe('optimization: store caching', () => {
+  it('must return the same store accessor for the same key', () => {
+    const run = createTestContext()
+    run(() => {
+      const { store } = useAsyncEventContext()
+      const s1 = store('routeParams')
+      const s2 = store('routeParams')
+      expect(s1).toBe(s2)
+    })
+  })
+
+  it('must return the same store accessor across different helpers instances', () => {
+    const run = createTestContext()
+    run(() => {
+      const s1 = useAsyncEventContext().store('routeParams')
+      const s2 = useAsyncEventContext().store('routeParams')
+      expect(s1).toBe(s2)
+    })
+  })
+
+  it('must return different store accessors for different keys', () => {
+    const run = createTestContext()
+    run(() => {
+      const { store } = useAsyncEventContext()
+      const s1 = store('event')
+      const s2 = store('routeParams')
+      expect(s1).not.toBe(s2)
+    })
+  })
+
+  it('must not share store cache between different contexts', () => {
+    let s1: any
+    let s2: any
+    const run1 = createAsyncEventContext({ event: { type: 'A' }, options: {} })
+    run1(() => {
+      s1 = useAsyncEventContext().store('event')
+      s1.set('id', 'ctx-a')
+    })
+    const run2 = createAsyncEventContext({ event: { type: 'B' }, options: {} })
+    run2(() => {
+      s2 = useAsyncEventContext().store('event')
+      s2.set('id', 'ctx-b')
+    })
+    expect(s1).not.toBe(s2)
+  })
+
+  it('must not leak cached state between concurrent requests', async () => {
+    const results: boolean[] = []
+
+    const p1 = new Promise<void>((resolve) => {
+      const run = createAsyncEventContext({ event: { type: 'R1' }, options: {} })
+      run(async () => {
+        const { store } = useAsyncEventContext()
+        store('routeParams').set('id', '1')
+        await new Promise((r) => setTimeout(r, 5))
+        results.push(store('routeParams').get('id') === '1')
+        resolve()
+      })
+    })
+
+    const p2 = new Promise<void>((resolve) => {
+      const run = createAsyncEventContext({ event: { type: 'R2' }, options: {} })
+      run(async () => {
+        const { store } = useAsyncEventContext()
+        store('routeParams').set('id', '2')
+        await new Promise((r) => setTimeout(r, 10))
+        results.push(store('routeParams').get('id') === '2')
+        resolve()
+      })
+    })
+
+    await Promise.all([p1, p2])
+    expect(results).toEqual([true, true])
+  })
+})

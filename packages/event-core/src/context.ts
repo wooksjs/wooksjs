@@ -33,6 +33,9 @@ export interface TGenericContextStore<CustomEventType = TEmpty> {
 export const asyncStorage: AsyncLocalStorage<TGenericContextStore> =
   new AsyncLocalStorage<TGenericContextStore>()
 
+/** Symbol key for caching store accessors directly on the context object */
+const _storeCacheKey = Symbol('storeCache')
+
 /**
  * Creates a new async event context and returns a runner function to execute callbacks within it.
  *
@@ -119,6 +122,13 @@ export interface TCtxHelpers<T> {
 }
 
 function _getCtxHelpers<T>(cc: T): TCtxHelpers<T> {
+  // --- Optimization: cache store accessors on the context object via Symbol ---
+  const ccAny = cc as any
+  if (!ccAny[_storeCacheKey]) {
+    ccAny[_storeCacheKey] = new Map<PropertyKey, any>()
+  }
+  const _storeCache: Map<PropertyKey, any> = ccAny[_storeCacheKey]
+
   /**
    * Hook to an event store property
    *
@@ -126,6 +136,17 @@ function _getCtxHelpers<T>(cc: T): TCtxHelpers<T> {
    * @returns a hook { value: <prop value>, hook: (key2: keyof <prop value>) => { value: <nested prop value> }, ... }
    */
   function store<K extends keyof Required<T>>(key: K) {
+    const cachedStore = _storeCache.get(key as PropertyKey)
+    if (cachedStore) {
+      return cachedStore
+    }
+
+    // --- Optimization 3: direct cc[key] access for internal operations ---
+    const getSection = () => (cc as any)[key] as T[K]
+    const setSection = (v: T[K]) => {
+      ;(cc as any)[key] = v
+    }
+
     const obj = {
       value: null as T[K],
       hook,
@@ -138,11 +159,12 @@ function _getCtxHelpers<T>(cc: T): TCtxHelpers<T> {
       clear,
     }
 
+    // .value hook preserved for external consumer API
     attachHook(obj, {
       set: (v) => {
-        set(key, v)
+        setSection(v)
       },
-      get: () => get(key),
+      get: () => getSection(),
     })
 
     function init<K2 extends keyof Required<T>[K]>(
@@ -156,47 +178,56 @@ function _getCtxHelpers<T>(cc: T): TCtxHelpers<T> {
     }
 
     function hook<K2 extends keyof Required<T>[K]>(key2: K2) {
-      const obj = {
+      const hookObj = {
         value: null as Required<T>[K][K2],
         isDefined: null as unknown as boolean,
       }
-      attachHook(obj, {
+      attachHook(hookObj, {
         set: (v) => setNested(key2, v as T[K][K2]),
         get: () => getNested(key2),
       })
       attachHook(
-        obj,
+        hookObj,
         {
           get: () => hasNested(key2),
         },
         'isDefined',
       )
-      return obj
+      return hookObj
     }
 
     function setNested<K2 extends keyof Required<T>[K]>(key2: K2, v: Required<T[K]>[K2]) {
-      if (obj.value === undefined) {
-        obj.value = {} as T[K]
+      let section = getSection()
+      if (section === undefined) {
+        section = {} as T[K]
+        setSection(section)
       }
-      obj.value[key2] = v
+      ;(section as any)[key2] = v
       return v
     }
     function delNested<K2 extends keyof Required<T>[K]>(key2: K2) {
       setNested(key2, undefined as Required<T[K]>[K2])
     }
+    // --- Optimization 4: no empty object allocation on fallback ---
     function getNested<K2 extends keyof Required<T>[K]>(key2: K2) {
-      return (obj.value || ({} as T[K]))[key2] as Required<T>[K][K2] | undefined
+      const section = getSection()
+      return (section !== undefined ? (section as any)[key2] : undefined) as
+        | Required<T>[K][K2]
+        | undefined
     }
     function hasNested<K2 extends keyof Required<T>[K]>(key2: K2) {
-      return (obj.value || ({} as T[K]))[key2] !== undefined
+      const section = getSection()
+      return section !== undefined ? (section as any)[key2] !== undefined : false
     }
     function entries() {
-      return Object.entries(obj.value || {})
+      const section = getSection()
+      return section ? Object.entries(section) : []
     }
     function clear() {
-      obj.value = {} as T[K]
+      setSection({} as T[K])
     }
 
+    _storeCache.set(key as PropertyKey, obj)
     return obj
   }
 
@@ -209,29 +240,18 @@ function _getCtxHelpers<T>(cc: T): TCtxHelpers<T> {
     return cc
   }
 
-  /**
-   * Get value of event store property
-   *
-   * @param key property name
-   * @returns value of property by name
-   */
+  // --- Optimization 5: inline cc access in get/set ---
   function get<K extends keyof T>(key: K) {
-    return getCtx()[key]
+    return cc[key]
   }
 
-  /**
-   * Set value of event store property
-   *
-   * @param key property name
-   * @param v property value
-   */
   function set<K extends keyof T>(key: K, v: T[K]) {
-    getCtx()[key] = v
+    cc[key] = v
   }
 
   const hasParentCtx = () => !!(cc as TGenericContextStore).parentCtx
 
-  return {
+  const helpers: TCtxHelpers<T> = {
     getCtx,
     store,
     getStore: get,
@@ -247,4 +267,6 @@ function _getCtxHelpers<T>(cc: T): TCtxHelpers<T> {
       return _getCtxHelpers((cc as { parentCtx: T2 }).parentCtx)
     },
   }
+
+  return helpers
 }
