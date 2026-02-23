@@ -46,7 +46,6 @@
   },
   "scripts": {
     "build": "rolldown -c ../../rolldown.config.mjs",
-    "postinstall": "node scripts/setup-skills.js",
     "setup-skills": "node scripts/setup-skills.js"
   },
   "dependencies": {
@@ -62,7 +61,7 @@
   },
   "peerDependencies": {
     "@prostojs/logger": "^0.4.3",
-    "@prostojs/router": "^0.2.1",
+    "@prostojs/router": "^0.3.0",
     "@wooksjs/event-core": "workspace:^",
     "wooks": "workspace:^"
   }
