@@ -118,10 +118,10 @@ export class WooksHttp extends WooksAdapterBase {
   public listen(path: string, backlog?: number, listeningListener?: () => void): Promise<void>
   public listen(path: string, listeningListener?: () => void): Promise<void>
   public listen(options: ListenOptions, listeningListener?: () => void): Promise<void>
-  public listen(handle: any, backlog?: number, listeningListener?: () => void): Promise<void>
-  public listen(handle: any, listeningListener?: () => void): Promise<void>
+  public listen(handle: unknown, backlog?: number, listeningListener?: () => void): Promise<void>
+  public listen(handle: unknown, listeningListener?: () => void): Promise<void>
   public async listen(
-    port?: number | string | ListenOptions | any,
+    port?: number | string | ListenOptions,
     hostname?: number | string | (() => void),
     backlog?: number | (() => void),
     listeningListener?: () => void,
@@ -203,11 +203,14 @@ export class WooksHttp extends WooksAdapterBase {
         { req, res, requestLimits: this.opts?.requestLimits },
         this._cachedEventOptions,
       )
+      const method = req.method || ''
+      const url = req.url || ''
       runInContext(async () => {
-        const { handlers } = this.wooks.lookup(req.method!, req.url!)
-        if (handlers || this.opts?.onNotFound) {
+        const notFoundHandler = this.opts?.onNotFound
+        const { handlers } = this.wooks.lookup(method, url)
+        if (handlers || notFoundHandler) {
           try {
-            return await this.processHandlers(handlers || [this.opts?.onNotFound!])
+            return await this.processHandlers(handlers || [notFoundHandler as TWooksHandler])
           } catch (error) {
             this.logger.error('Internal error, please report', error)
             await this.respond(error)
@@ -215,7 +218,7 @@ export class WooksHttp extends WooksAdapterBase {
           }
         } else {
           // not found
-          this.logger.debug(`404 Not found (${req.method!})${req.url!}`)
+          this.logger.debug(`404 Not found (${method})${url}`)
           const error = new HttpError(404)
           await this.respond(error)
           return error

@@ -186,11 +186,13 @@ export class BaseHttpResponse<BodyType = unknown> {
     } else if (globalThis.Response && this.body instanceof Response /* Fetch Response */) {
       this.mergeFetchStatus(this.body.status)
       const additionalHeaders: Record<string, string | string[]> = {}
-      if (this.body.headers.get('content-length')) {
-        additionalHeaders['content-length'] = this.body.headers.get('content-length')!
+      const fetchContentLength = this.body.headers.get('content-length')
+      if (fetchContentLength) {
+        additionalHeaders['content-length'] = fetchContentLength
       }
-      if (this.body.headers.get('content-type')) {
-        additionalHeaders['content-type'] = this.body.headers.get('content-type')!
+      const fetchContentType = this.body.headers.get('content-type')
+      if (fetchContentType) {
+        additionalHeaders['content-type'] = fetchContentType
       }
       res.writeHead(this.status, {
         ...this._headers,

@@ -32,6 +32,7 @@ const CURRENT_VERSION = '0.6.2'
 const _g = globalThis as Record<symbol, unknown>
 if (_g[STORAGE_KEY]) {
   if (_g[VERSION_KEY] !== CURRENT_VERSION) {
+    // oxlint-disable-next-line no-console
     console.warn(
       `${__DYE_YELLOW__}[wooks] Multiple versions of @wooksjs/event-core detected: ` +
         `existing v${_g[VERSION_KEY] as string}, current v${CURRENT_VERSION}. ` +
@@ -63,14 +64,14 @@ const _helpersCacheKey = Symbol('helpersCache')
  */
 export function createAsyncEventContext<S = TEmpty, EventTypeToCreate = TEmpty>(
   data: S & TGenericContextStore<EventTypeToCreate>,
-): <T>(cb: (...a: any[]) => T) => T {
+): <T>(cb: (...a: unknown[]) => T) => T {
   const newContext = { ...data } as TGenericContextStore
   const cc = asyncStorage.getStore()
   if (cc && typeof cc === 'object' && cc.event?.type) {
     newContext.parentCtx = cc
   }
   const ci = getContextInjector()
-  return <T>(cb: (...a: any[]) => T) =>
+  return <T>(cb: (...a: unknown[]) => T) =>
     asyncStorage.run(newContext, () =>
       ci.with('Event:start', { eventType: newContext.event.type }, cb),
     )
@@ -141,15 +142,15 @@ export interface TCtxHelpers<T> {
 }
 
 function _getCtxHelpers<T>(cc: T): TCtxHelpers<T> {
-  const ccAny = cc as any
+  const ccRec = cc as Record<symbol, unknown>
   // Fast path: return cached helpers for this context
-  if (ccAny[_helpersCacheKey]) {
-    return ccAny[_helpersCacheKey] as TCtxHelpers<T>
+  if (ccRec[_helpersCacheKey]) {
+    return ccRec[_helpersCacheKey] as TCtxHelpers<T>
   }
-  if (!ccAny[_storeCacheKey]) {
-    ccAny[_storeCacheKey] = new Map<PropertyKey, any>()
+  if (!ccRec[_storeCacheKey]) {
+    ccRec[_storeCacheKey] = new Map<PropertyKey, unknown>()
   }
-  const _storeCache: Map<PropertyKey, any> = ccAny[_storeCacheKey]
+  const _storeCache = ccRec[_storeCacheKey] as Map<PropertyKey, unknown>
 
   /**
    * Hook to an event store property
@@ -160,16 +161,17 @@ function _getCtxHelpers<T>(cc: T): TCtxHelpers<T> {
   function store<K extends keyof Required<T>>(key: K) {
     const cachedStore = _storeCache.get(key as PropertyKey)
     if (cachedStore) {
-      return cachedStore
+      // oxlint-disable-next-line no-explicit-any -- type-erased generic cache
+      return cachedStore as any
     }
 
     // --- Optimization 3: direct cc[key] access for internal operations ---
-    const getSection = () => (cc as any)[key] as T[K]
+    const getSection = () => (cc as Record<PropertyKey, unknown>)[key as PropertyKey] as T[K]
     const setSection = (v: T[K]) => {
-      ;(cc as any)[key] = v
+      ;(cc as Record<PropertyKey, unknown>)[key as PropertyKey] = v
     }
 
-    const _hookCache = new Map<PropertyKey, any>()
+    const _hookCache = new Map<PropertyKey, unknown>()
 
     const obj = {
       value: null as T[K],
@@ -196,7 +198,7 @@ function _getCtxHelpers<T>(cc: T): TCtxHelpers<T> {
       getter: () => Required<Required<T>[K]>[K2],
     ): Required<Required<T>[K]>[K2] {
       if (hasNested(key2)) {
-        return getNested(key2)!
+        return getNested(key2) as Required<Required<T>[K]>[K2]
       }
       return setNested(key2, getter())
     }
@@ -205,7 +207,8 @@ function _getCtxHelpers<T>(cc: T): TCtxHelpers<T> {
       const hookKey = key2 as PropertyKey
       const cached = _hookCache.get(hookKey)
       if (cached) {
-        return cached
+        // oxlint-disable-next-line no-explicit-any -- type-erased generic cache
+        return cached as any
       }
       const hookObj = {
         value: null as Required<T>[K][K2],
@@ -232,7 +235,7 @@ function _getCtxHelpers<T>(cc: T): TCtxHelpers<T> {
         section = {} as T[K]
         setSection(section)
       }
-      ;(section as any)[key2] = v
+      ;(section as Record<PropertyKey, unknown>)[key2 as PropertyKey] = v
       return v
     }
     function delNested<K2 extends keyof Required<T>[K]>(key2: K2) {
@@ -242,14 +245,14 @@ function _getCtxHelpers<T>(cc: T): TCtxHelpers<T> {
     function getNested<K2 extends keyof Required<T>[K]>(key2: K2) {
       const section = getSection()
       // oxlint-disable-next-line no-negated-condition
-      return (section !== undefined ? (section as any)[key2] : undefined) as
+      return (section !== undefined ? (section as Record<PropertyKey, unknown>)[key2 as PropertyKey] : undefined) as
         | Required<T>[K][K2]
         | undefined
     }
     function hasNested<K2 extends keyof Required<T>[K]>(key2: K2) {
       const section = getSection()
       // oxlint-disable-next-line no-negated-condition
-      return section !== undefined ? (section as any)[key2] !== undefined : false
+      return section !== undefined ? (section as Record<PropertyKey, unknown>)[key2 as PropertyKey] !== undefined : false
     }
     function entries() {
       const section = getSection()
@@ -300,6 +303,6 @@ function _getCtxHelpers<T>(cc: T): TCtxHelpers<T> {
     },
   }
 
-  ccAny[_helpersCacheKey] = helpers
+  ccRec[_helpersCacheKey] = helpers
   return helpers
 }

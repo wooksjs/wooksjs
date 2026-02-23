@@ -59,7 +59,9 @@ export function useSetCookies() {
 
   function cookies(): string[] {
     const entries = cookiesStore.entries()
-    if (entries.length === 0) return entries as unknown as string[]
+    if (entries.length === 0) {
+      return []
+    }
     return entries
       .filter((a) => !!a[1])
       .map(([key, value]) => renderCookie(key, value as TSetCookieData))
