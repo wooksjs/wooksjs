@@ -1,3 +1,12 @@
+## [0.6.6](https://github.com/wooksjs/wooksjs/compare/v0.6.5...v0.6.6) (2026-02-23)
+
+
+### Performance Improvements
+
+* optimizations ([e5902d5](https://github.com/wooksjs/wooksjs/commit/e5902d5d74cb0f5067533c563d86f135966f5797))
+
+
+
 ## [0.6.5](https://github.com/wooksjs/wooksjs/compare/v0.6.4...v0.6.5) (2026-02-23)
 
 
