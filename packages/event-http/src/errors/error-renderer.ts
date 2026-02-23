@@ -85,21 +85,8 @@ export class HttpErrorRenderer extends BaseHttpResponseRenderer<TWooksErrorBodyE
   }
 
   renderJson(response: BaseHttpResponse<TWooksErrorBodyExt>): string {
-    const data = response.body || ({} as TWooksErrorBodyExt)
     response.setContentType('application/json')
-    const keys = Object.keys(data).filter(
-      (key) => !['statusCode', 'error', 'message'].includes(key),
-    ) as Array<keyof typeof data>
-    return (
-      `{"statusCode":${escapeQuotes(data.statusCode)},` +
-      `"error":"${escapeQuotes(data.error)}",` +
-      `"message":"${escapeQuotes(data.message)}"` +
-      `${
-        keys.length > 0
-          ? `,${keys.map((k) => `"${escapeQuotes(k)}":${JSON.stringify(data[k])}`).join(',')}`
-          : ''
-      }}`
-    )
+    return JSON.stringify(response.body || {})
   }
 
   render(response: BaseHttpResponse<TWooksErrorBodyExt>): string {
@@ -115,8 +102,4 @@ export class HttpErrorRenderer extends BaseHttpResponseRenderer<TWooksErrorBodyE
       return this.renderJson(response)
     }
   }
-}
-
-function escapeQuotes(s: string | number): string {
-  return (typeof s === 'number' ? s : s || '').toString().replace(/"/gu, '\\"')
 }

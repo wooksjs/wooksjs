@@ -30,7 +30,7 @@ describe('response', () => {
             new HttpError(405, 'test message'),
           ) as BaseHttpResponse<TWooksErrorBodyExt>,
         ),
-      ).toEqual('{"statusCode":405,"error":"Method Not Allowed","message":"test message"}')
+      ).toEqual('{"statusCode":405,"message":"test message","error":"Method Not Allowed"}')
     })
   })
 
@@ -55,7 +55,7 @@ describe('response', () => {
           ) as BaseHttpResponse<TWooksErrorBodyExt>,
         ),
       ).toEqual(
-        '{"statusCode":405,"error":"Method Not Allowed","message":"message text","additional":"additional text"}',
+        '{"statusCode":405,"message":"message text","error":"Method Not Allowed","additional":"additional text"}',
       )
     })
   })

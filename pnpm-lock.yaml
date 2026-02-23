@@ -75,8 +75,8 @@ importers:
         specifier: ^0.4.3
         version: 0.4.3
       '@prostojs/router':
-        specifier: ^0.3.0
-        version: 0.3.0
+        specifier: ^0.3.1
+        version: 0.3.1
       minimist:
         specifier: ^1.2.8
         version: 1.2.8
@@ -116,8 +116,8 @@ importers:
         specifier: ^0.4.3
         version: 0.4.3
       '@prostojs/router':
-        specifier: ^0.3.0
-        version: 0.3.0
+        specifier: ^0.3.1
+        version: 0.3.1
     devDependencies:
       '@wooksjs/event-core':
         specifier: workspace:^
@@ -199,8 +199,8 @@ importers:
         specifier: ^0.4.3
         version: 0.4.3
       '@prostojs/router':
-        specifier: ^0.3.0
-        version: 0.3.0
+        specifier: ^0.3.1
+        version: 0.3.1
       '@wooksjs/event-core':
         specifier: workspace:^
         version: link:../event-core
@@ -1223,8 +1223,8 @@ packages:
   '@prostojs/parser@0.5.11':
     resolution: {integrity: sha512-apV1PUbnu7EAsn0/QGE5unyNmqe+o3tCcsa3lYOsplXV55u43ax3vQ/4jxVUOrcF13vKkYkhR4jl6111kHHxpA==}
 
-  '@prostojs/router@0.3.0':
-    resolution: {integrity: sha512-9VzkyQBJwbsdf4elmwe/RRZuHb63XeMgzxkrMeLwKzl4NkHyIVV37Lxk+8VAPQrsMva8TpYbeigeTAhrU3EvMg==}
+  '@prostojs/router@0.3.1':
+    resolution: {integrity: sha512-arnfYhlmUFP6Xw6n6ig1A1UI6/t+CGwQQhPwks0E1BC/IiE3hPdC6PKtcDL4RUCpYlC87niOs66IQ/SatpybIg==}
 
   '@prostojs/tree@0.2.2':
     resolution: {integrity: sha512-N4NHd5Nwy4nFsvmZhSgWhYCKuDuvtFpZPZOI2TKhWj44N8trlpU9MgruBlYKhwrc0RTDKhxp13JaDQ6bR4RLMA==}
@@ -3514,7 +3514,7 @@ snapshots:
     dependencies:
       '@prostojs/tree': 0.3.0
 
-  '@prostojs/router@0.3.0':
+  '@prostojs/router@0.3.1':
     dependencies:
       '@prostojs/cache': 0.0.1
       '@prostojs/parser': 0.5.11

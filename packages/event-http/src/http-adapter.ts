@@ -24,6 +24,7 @@ export interface TWooksHttpOptions {
 /** HTTP adapter for Wooks that provides route registration, server lifecycle, and request handling. */
 export class WooksHttp extends WooksAdapterBase {
   protected logger: TConsoleBase
+  protected _cachedEventOptions: TEventOptions
 
   constructor(
     protected opts?: TWooksHttpOptions,
@@ -31,6 +32,7 @@ export class WooksHttp extends WooksAdapterBase {
   ) {
     super(wooks, opts?.logger, opts?.router)
     this.logger = opts?.logger || this.getLogger(`${__DYE_CYAN_BRIGHT__}[wooks-http]`)
+    this._cachedEventOptions = this.mergeEventOptions(opts?.eventOptions)
   }
 
   /** Registers a handler for all HTTP methods on the given path. */
@@ -178,7 +180,7 @@ export class WooksHttp extends WooksAdapterBase {
   protected responder = createWooksResponder()
 
   protected respond(data: unknown) {
-    void this.responder.respond(data)?.catch((error) => {
+    return this.responder.respond(data)?.catch((error) => {
       this.logger.error('Uncaught response exception', error)
     })
   }
@@ -199,7 +201,7 @@ export class WooksHttp extends WooksAdapterBase {
     return (req: IncomingMessage, res: ServerResponse) => {
       const runInContext = createHttpContext(
         { req, res, requestLimits: this.opts?.requestLimits },
-        this.mergeEventOptions(this.opts?.eventOptions),
+        this._cachedEventOptions,
       )
       runInContext(async () => {
         const { handlers } = this.wooks.lookup(req.method!, req.url!)
@@ -208,14 +210,14 @@ export class WooksHttp extends WooksAdapterBase {
             return await this.processHandlers(handlers || [this.opts?.onNotFound!])
           } catch (error) {
             this.logger.error('Internal error, please report', error)
-            this.respond(error)
+            await this.respond(error)
             return error
           }
         } else {
           // not found
           this.logger.debug(`404 Not found (${req.method!})${req.url!}`)
           const error = new HttpError(404)
-          this.respond(error)
+          await this.respond(error)
           return error
         }
       })
@@ -224,14 +226,15 @@ export class WooksHttp extends WooksAdapterBase {
 
   protected async processHandlers(handlers: TWooksHandler[]) {
     const { store } = useHttpContext()
-    for (const [i, handler] of handlers.entries()) {
-      const isLastHandler = handlers.length === i + 1
+    for (let i = 0; i < handlers.length; i++) {
+      const handler = handlers[i]
+      const isLastHandler = i === handlers.length - 1
       try {
         const promise = handler() as Promise<unknown>
         const result = await promise
         // even if the returned value is an Error instance
         // we still want to process it as a response
-        this.respond(result)
+        await this.respond(result)
         return result
       } catch (error) {
         if (error instanceof HttpError) {
@@ -245,7 +248,7 @@ export class WooksHttp extends WooksAdapterBase {
           )
         }
         if (isLastHandler) {
-          this.respond(error)
+          await this.respond(error)
           return error
         }
       }

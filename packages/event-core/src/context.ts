@@ -52,6 +52,8 @@ export const asyncStorage = _g[STORAGE_KEY] as AsyncLocalStorage<TGenericContext
 
 /** Symbol key for caching store accessors directly on the context object */
 const _storeCacheKey = Symbol('storeCache')
+/** Symbol key for caching the full helpers object on the context */
+const _helpersCacheKey = Symbol('helpersCache')
 
 /**
  * Creates a new async event context and returns a runner function to execute callbacks within it.
@@ -139,8 +141,11 @@ export interface TCtxHelpers<T> {
 }
 
 function _getCtxHelpers<T>(cc: T): TCtxHelpers<T> {
-  // --- Optimization: cache store accessors on the context object via Symbol ---
   const ccAny = cc as any
+  // Fast path: return cached helpers for this context
+  if (ccAny[_helpersCacheKey]) {
+    return ccAny[_helpersCacheKey] as TCtxHelpers<T>
+  }
   if (!ccAny[_storeCacheKey]) {
     ccAny[_storeCacheKey] = new Map<PropertyKey, any>()
   }
@@ -163,6 +168,8 @@ function _getCtxHelpers<T>(cc: T): TCtxHelpers<T> {
     const setSection = (v: T[K]) => {
       ;(cc as any)[key] = v
     }
+
+    const _hookCache = new Map<PropertyKey, any>()
 
     const obj = {
       value: null as T[K],
@@ -195,6 +202,11 @@ function _getCtxHelpers<T>(cc: T): TCtxHelpers<T> {
     }
 
     function hook<K2 extends keyof Required<T>[K]>(key2: K2) {
+      const hookKey = key2 as PropertyKey
+      const cached = _hookCache.get(hookKey)
+      if (cached) {
+        return cached
+      }
       const hookObj = {
         value: null as Required<T>[K][K2],
         isDefined: null as unknown as boolean,
@@ -210,6 +222,7 @@ function _getCtxHelpers<T>(cc: T): TCtxHelpers<T> {
         },
         'isDefined',
       )
+      _hookCache.set(hookKey, hookObj)
       return hookObj
     }
 
@@ -287,5 +300,6 @@ function _getCtxHelpers<T>(cc: T): TCtxHelpers<T> {
     },
   }
 
+  ccAny[_helpersCacheKey] = helpers
   return helpers
 }

@@ -6,6 +6,16 @@ import { escapeRegex, safeDecodeURIComponent } from '../utils/helpers'
 import { renderCookie } from '../utils/set-cookie'
 import { useHeaders } from './headers'
 
+const cookieRegExpCache = new Map<string, RegExp>()
+function getCookieRegExp(name: string): RegExp {
+  let re = cookieRegExpCache.get(name)
+  if (!re) {
+    re = new RegExp(`(?:^|; )${escapeRegex(name)}=(.*?)(?:;?$|; )`, 'i')
+    cookieRegExpCache.set(name, re)
+  }
+  return re
+}
+
 /**
  * Provides access to parsed request cookies.
  * @example
@@ -22,7 +32,7 @@ export function useCookies() {
   const getCookie = (name: string) =>
     init(name, () => {
       if (cookie) {
-        const result = new RegExp(`(?:^|; )${escapeRegex(name)}=(.*?)(?:;?$|; )`, 'i').exec(cookie)
+        const result = getCookieRegExp(name).exec(cookie)
         return result?.[1] ? safeDecodeURIComponent(result[1]) : null
       } else {
         return null
@@ -48,8 +58,9 @@ export function useSetCookies() {
   }
 
   function cookies(): string[] {
-    return cookiesStore
-      .entries()
+    const entries = cookiesStore.entries()
+    if (entries.length === 0) return entries as unknown as string[]
+    return entries
       .filter((a) => !!a[1])
       .map(([key, value]) => renderCookie(key, value as TSetCookieData))
   }

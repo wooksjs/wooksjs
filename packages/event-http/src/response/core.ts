@@ -107,18 +107,26 @@ export class BaseHttpResponse<BodyType = unknown> {
     for (const cookie of newCookies) {
       removeCookie(cookie.slice(0, cookie.indexOf('=')))
     }
-    this._headers = {
-      ...headers(),
-      ...this._headers,
+    // Merge composable headers as defaults (this._headers takes precedence)
+    const composableHeaders = headers()
+    for (const key in composableHeaders) {
+      if (!(key in this._headers)) {
+        this._headers[key] = composableHeaders[key]
+      }
     }
-    const setCookie = [...newCookies, ...cookies()]
-    if (setCookie.length > 0) {
-      this._headers['set-cookie'] = setCookie
+    const renderedCookies = cookies()
+    if (newCookies.length > 0 || renderedCookies.length > 0) {
+      this._headers['set-cookie'] =
+        newCookies.length > 0 && renderedCookies.length > 0
+          ? [...(newCookies as string[]), ...renderedCookies]
+          : newCookies.length > 0
+            ? (newCookies as string[])
+            : renderedCookies
     }
     return this
   }
 
-  protected mergeStatus(renderedBody: string | Uint8Array) {
+  protected mergeStatus(renderedBody: string | Uint8Array | boolean) {
     this.status = this.status || useResponse().status()
     if (!this.status) {
       const { method } = useRequest()
@@ -151,7 +159,7 @@ export class BaseHttpResponse<BodyType = unknown> {
     if (this.body instanceof Readable) {
       // responding with readable stream
       const stream = this.body
-      this.mergeStatus('ok')
+      this.mergeStatus(true)
       res.writeHead(this.status, {
         ...this._headers,
       })
@@ -177,46 +185,54 @@ export class BaseHttpResponse<BodyType = unknown> {
       }
     } else if (globalThis.Response && this.body instanceof Response /* Fetch Response */) {
       this.mergeFetchStatus(this.body.status)
+      const additionalHeaders: Record<string, string | string[]> = {}
+      if (this.body.headers.get('content-length')) {
+        additionalHeaders['content-length'] = this.body.headers.get('content-length')!
+      }
+      if (this.body.headers.get('content-type')) {
+        additionalHeaders['content-type'] = this.body.headers.get('content-type')!
+      }
+      res.writeHead(this.status, {
+        ...this._headers,
+        ...additionalHeaders,
+      })
       if (method === 'HEAD') {
         res.end()
       } else {
-        const additionalHeaders: Record<string, string | string[]> = {}
-        if (this.body.headers.get('content-length')) {
-          additionalHeaders['content-length'] = this.body.headers.get('content-length')!
-        }
-        if (this.body.headers.get('content-type')) {
-          additionalHeaders['content-type'] = this.body.headers.get('content-type')!
-        }
-
-        res.writeHead(this.status, {
-          ...additionalHeaders,
-          ...this._headers,
-        })
-        await respondWithFetch(this.body.body, res)
+        await respondWithFetch(this.body.body, res, logger)
       }
     } else {
       const renderedBody = this.renderer.render(this)
       this.mergeStatus(renderedBody)
-
-      res
-        .writeHead(this.status, {
-          'content-length': Buffer.byteLength(renderedBody),
-          ...this._headers,
-        })
-        .end(method === 'HEAD' ? '' : renderedBody)
+      const contentLength =
+        typeof renderedBody === 'string' ? Buffer.byteLength(renderedBody) : renderedBody.byteLength
+      return new Promise<void>((resolve) => {
+        res
+          .writeHead(this.status, {
+            'content-length': contentLength,
+            ...this._headers,
+          })
+          .end(method === 'HEAD' ? '' : renderedBody, resolve)
+      })
     }
   }
 }
 
-async function respondWithFetch(fetchBody: ReadableStream<Uint8Array> | null, res: ServerResponse) {
+async function respondWithFetch(
+  fetchBody: ReadableStream<Uint8Array> | null,
+  res: ServerResponse,
+  logger: TConsoleBase,
+) {
   if (fetchBody) {
     try {
       for await (const chunk of fetchBody as unknown as AsyncIterable<Uint8Array>) {
         res.write(chunk)
       }
-    } catch {
-      // ?
+    } catch (error) {
+      logger.error('Error streaming fetch response body', error)
     }
   }
-  res.end()
+  if (!res.writableEnded) {
+    res.end()
+  }
 }

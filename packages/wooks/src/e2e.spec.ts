@@ -164,7 +164,7 @@ describe('Wooks E2E', () => {
   it('must respond 404 for non-existing route', async () => {
     accept = 'application/json'
     expect(await getBody('non-existing')).toEqual(
-      '{"statusCode":404,"error":"Not Found","message":""}',
+      '{"statusCode":404,"message":"","error":"Not Found"}',
     )
     accept = 'text/plain'
     expect(await getBody('non-existing')).toContain('404 Not Found\n')
@@ -181,7 +181,7 @@ describe('Wooks E2E', () => {
   it('must catch error', async () => {
     accept = 'application/json'
     expect(await getBody('error')).toEqual(
-      '{"statusCode":500,"error":"Internal Server Error","message":"test error"}',
+      '{"statusCode":500,"message":"test error","error":"Internal Server Error"}',
     )
   })
 
@@ -197,7 +197,7 @@ describe('Wooks E2E', () => {
     contentType = 'application/json'
     accept = 'application/json'
     expect(await getBody('post', JSON.stringify({ a: 'a', b: [1, 2, 3] }).slice(0, 5))).toEqual(
-      '{"statusCode":400,"error":"Bad Request","message":"Unexpected end of JSON input"}',
+      '{"statusCode":400,"message":"Unexpected end of JSON input","error":"Bad Request"}',
     )
   })
 
