@@ -1,6 +1,5 @@
 import type { EHttpStatusCode, THttpErrorCodes } from '../utils/status-codes'
 import { httpStatusCodes } from '../utils/status-codes'
-import type { HttpErrorRenderer } from './error-renderer'
 
 /** Represents an HTTP error with a status code and optional structured body. */
 export class HttpError<T extends TWooksErrorBody = TWooksErrorBody> extends Error {
@@ -10,7 +9,12 @@ export class HttpError<T extends TWooksErrorBody = TWooksErrorBody> extends Erro
     protected code: THttpErrorCodes = 500,
     protected _body: string | T = '',
   ) {
+    // Temporarily disable stack trace capture — these are expected control-flow
+    // errors (401, 404, etc.), not bugs.  Stack traces cost ~10-20 µs each.
+    const prev = Error.stackTraceLimit
+    Error.stackTraceLimit = 0
     super(typeof _body === 'string' ? _body : _body.message)
+    Error.stackTraceLimit = prev
   }
 
   get body(): TWooksErrorBodyExt {
@@ -26,16 +30,6 @@ export class HttpError<T extends TWooksErrorBody = TWooksErrorBody> extends Erro
           message: this.message,
           error: httpStatusCodes[this.code],
         }
-  }
-
-  protected renderer?: HttpErrorRenderer
-
-  attachRenderer(renderer: HttpErrorRenderer) {
-    this.renderer = renderer
-  }
-
-  getRenderer() {
-    return this.renderer
   }
 }
 

@@ -1,38 +1,43 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
+import { useResponse } from '../composables/response'
 import { prepareTestHttpContext } from '../testing'
-import type { BaseHttpResponse } from './core'
-import { createWooksResponder } from './factory'
-import { BaseHttpResponseRenderer } from './renderer'
+import { HttpResponse } from './http-response'
 
-const baseRenderer = new BaseHttpResponseRenderer()
-describe('response', () => {
+describe('HttpResponse', () => {
   let runInContext: ReturnType<typeof prepareTestHttpContext>
   beforeEach(() => {
     runInContext = prepareTestHttpContext({ url: '' })
   })
 
-  it('must create response from json', () => {
+  it('must render body from json', () => {
     runInContext(() => {
-      const response = createWooksResponder().createResponse({
-        a: 'a',
-        b: [1, 2, 3],
-      }) as BaseHttpResponse
-      expect(baseRenderer.render(response)).toEqual('{"a":"a","b":[1,2,3]}')
+      const response = useResponse()
+      response.body = { a: 'a', b: [1, 2, 3] }
+      expect((response as any).renderBody()).toEqual('{"a":"a","b":[1,2,3]}')
     })
   })
 
-  it('must create response from text', () => {
+  it('must render body from text', () => {
     runInContext(() => {
-      const response = createWooksResponder().createResponse('hello world') as BaseHttpResponse
-      expect(baseRenderer.render(response)).toEqual('hello world')
+      const response = useResponse()
+      response.body = 'hello world'
+      expect((response as any).renderBody()).toEqual('hello world')
     })
   })
 
-  it('must create response boolean', () => {
+  it('must render body from boolean', () => {
     runInContext(() => {
-      const response = createWooksResponder().createResponse(true) as BaseHttpResponse
-      expect(baseRenderer.render(response)).toEqual('true')
+      const response = useResponse()
+      response.body = true
+      expect((response as any).renderBody()).toEqual('true')
+    })
+  })
+
+  it('must be an instance of HttpResponse', () => {
+    runInContext(() => {
+      const response = useResponse()
+      expect(response).toBeInstanceOf(HttpResponse)
     })
   })
 })

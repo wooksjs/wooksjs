@@ -1,11 +1,13 @@
 import type { TConsoleBase } from '@prostojs/logger'
 import type { Step, TFlowOutput, TStepHandler, TWorkflowSchema, TWorkflowSpy } from '@prostojs/wf'
 import { createStep } from '@prostojs/wf'
-import type { TEventOptions } from '@wooksjs/event-core'
+import { current } from '@wooksjs/event-core'
+import type { EventContextOptions } from '@wooksjs/event-core'
 import type { TWooksHandler, TWooksOptions, Wooks } from 'wooks'
 import { WooksAdapterBase } from 'wooks'
 
-import { createWfContext, resumeWfContext, useWFContext } from './event-wf'
+import { createWfContext, resumeWfContext } from './event-wf'
+import { wfKind } from './wf-kind'
 import { WooksWorkflow } from './workflow'
 
 /** Shortcut mappings for workflow event methods. */
@@ -20,7 +22,7 @@ export interface TWooksWfOptions {
   onNotFound?: TWooksHandler
   onUnknownFlow?: (schemaId: string, raiseError: () => void) => unknown
   logger?: TConsoleBase
-  eventOptions?: TEventOptions
+  eventOptions?: EventContextOptions
   router?: TWooksOptions['router']
 }
 
@@ -113,7 +115,7 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
         indexes,
         input,
       },
-      this.mergeEventOptions(this.opts?.eventOptions),
+      this.getEventContextOptions(),
     )
 
     return runInContext(async () => {
@@ -132,8 +134,8 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
           if (firstStep && args[0] === 'step') {
             // cleanup input after the first step
             firstStep = false
-            const { store } = useWFContext()
-            store('event').set('input', undefined)
+            const ctx = current()
+            ctx.set(wfKind.keys.input, undefined)
           }
         }
         try {

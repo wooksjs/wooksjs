@@ -1,10 +1,8 @@
-import { attachHook } from '@wooksjs/event-core'
+import { cachedBy, defineWook } from '@wooksjs/event-core'
+import type { EventContext } from '@wooksjs/event-core'
 
-import { useHttpContext } from '../event-http'
-import type { TCookieAttributes, TSetCookieData } from '../types'
+import { httpKind } from '../http-kind'
 import { escapeRegex, safeDecodeURIComponent } from '../utils/helpers'
-import { renderCookie } from '../utils/set-cookie'
-import { useHeaders } from './headers'
 
 const cookieRegExpCache = new Map<string, RegExp>()
 function getCookieRegExp(name: string): RegExp {
@@ -16,6 +14,15 @@ function getCookieRegExp(name: string): RegExp {
   return re
 }
 
+const parseCookieValue = cachedBy((name: string, ctx: EventContext) => {
+  const cookie = ctx.get(httpKind.keys.req).headers.cookie
+  if (cookie) {
+    const result = getCookieRegExp(name).exec(cookie)
+    return result?.[1] ? safeDecodeURIComponent(result[1]) : null
+  }
+  return null
+})
+
 /**
  * Provides access to parsed request cookies.
  * @example
@@ -24,86 +31,7 @@ function getCookieRegExp(name: string): RegExp {
  * const sessionId = getCookie('session_id')
  * ```
  */
-export function useCookies() {
-  const { store } = useHttpContext()
-  const { cookie } = useHeaders()
-  const { init } = store('cookies')
-
-  const getCookie = (name: string) =>
-    init(name, () => {
-      if (cookie) {
-        const result = getCookieRegExp(name).exec(cookie)
-        return result?.[1] ? safeDecodeURIComponent(result[1]) : null
-      } else {
-        return null
-      }
-    })
-
-  return {
-    rawCookies: cookie,
-    getCookie,
-  }
-}
-
-/** Provides methods to set, get, remove, and clear outgoing response cookies. */
-export function useSetCookies() {
-  const { store } = useHttpContext()
-  const cookiesStore = store('setCookies')
-
-  function setCookie(name: string, value: string, attrs?: Partial<TCookieAttributes>) {
-    cookiesStore.set(name, {
-      value,
-      attrs: attrs || {},
-    })
-  }
-
-  function cookies(): string[] {
-    const entries = cookiesStore.entries()
-    if (entries.length === 0) {
-      return []
-    }
-    return entries
-      .filter((a) => !!a[1])
-      .map(([key, value]) => renderCookie(key, value as TSetCookieData))
-  }
-
-  return {
-    setCookie,
-    getCookie: cookiesStore.get,
-    removeCookie: cookiesStore.del,
-    clearCookies: cookiesStore.clear,
-    cookies,
-  }
-}
-
-/** Returns a hookable accessor for a single outgoing cookie by name. */
-export function useSetCookie(name: string) {
-  const { setCookie, getCookie } = useSetCookies()
-
-  const valueHook = attachHook(
-    {
-      name,
-      type: 'cookie',
-    },
-    {
-      get: () => getCookie(name)?.value,
-      set: (value: string) => {
-        setCookie(name, value, getCookie(name)?.attrs)
-      },
-    },
-  )
-
-  return attachHook(
-    valueHook,
-    {
-      get: () => getCookie(name)?.attrs as TCookieAttributes,
-      set: (attrs: TCookieAttributes) => {
-        setCookie(name, getCookie(name)?.value || '', attrs)
-      },
-    },
-    'attrs',
-  )
-}
-
-/** Hook type returned by {@link useSetCookie}. */
-export type TCookieHook = ReturnType<typeof useSetCookie>
+export const useCookies = defineWook((ctx: EventContext) => ({
+  rawCookies: ctx.get(httpKind.keys.req).headers.cookie,
+  getCookie: (name: string) => parseCookieValue(name, ctx),
+}))

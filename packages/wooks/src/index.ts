@@ -1,4 +1,5 @@
 export * from './types'
 export * from './wooks'
 export type { TProstoRouterPathHandle } from '@prostojs/router'
-export { useEventId, useEventLogger, useRouteParams } from '@wooksjs/event-core'
+export { useEventId, useRouteParams, useLogger } from '@wooksjs/event-core'
+export type { EventContextOptions, Logger } from '@wooksjs/event-core'

@@ -1,93 +1,107 @@
-# Context and Hooks
+# Custom Composables
 
-In this advanced guide, we will explore how to work with Event Context and create your own hooks in Wooks HTTP.
+In this guide, we'll build custom composables for Wooks HTTP to demonstrate how to extend the framework with your own reusable logic.
 
-## Create useUserProfile composable
+## Example: `useUserProfile`
 
-As an example, let's create a composable that resolves the user profile.
+Let's create a composable that resolves the user profile from the Authorization header.
 
 ```ts
-import { useAuthorization, useHttpContext } from '@wooksjs/event-http';
+import { useAuthorization } from '@wooksjs/event-http'
+import { defineWook, cached } from '@wooksjs/event-core'
 
 interface TUser {
-    username: string;
-    age: number;
-    // ...
+    username: string
+    age: number
 }
 
-export function useUserProfile() {
-    // 1. Get custom-typed context
-    const { store } = useHttpContext<{ user: TUser }>();
-    const user = store('user');
+// Simulated database lookup
+function readUser(username: string): Promise<TUser> {
+    // Return the user profile from the database
+    return db.findUser(username)
+}
 
-    // 2. Use basic credentials approach to get the user name in this example
-    const { basicCredentials } = useAuthorization();
-    const username = basicCredentials()?.username;
-
-    // 3. User profile initializer
-    const userProfile = () => user.init('data', () => readUser(username))
-
-    // Abstract readUser function
-    function readUser(username: string): Promise<TUser> {
-        // Return the user profile from the database
-    }
+export const useUserProfile = defineWook((ctx) => {
+    const { basicCredentials } = useAuthorization(ctx)
+    const username = basicCredentials()?.username
 
     return {
         username,
-        userProfile,
-    };
-}
+        userProfile: async () => {
+            if (!username) return null
+            return readUser(username)
+        },
+    }
+})
 
-// Example of usage of our useUserProfile composable
+// Usage in a handler
 app.get('/user', async () => {
-    const { username, userProfile } = useUserProfile();
-    console.log('username =', username);
-    const data = await userProfile();
-    return { user: data };
-});
+    const { username, userProfile } = useUserProfile()
+    console.log('username =', username)
+    const data = await userProfile()
+    return { user: data }
+})
 ```
 
-In the above example, we define the `useUserProfile` composable that makes use of the `useHttpContext` and `useAuthorization` hooks provided by Wooks HTTP.
-The composable resolves the user profile by retrieving the user data from the event context store or fetching the data from the database.
+The `defineWook` wrapper ensures the factory function runs once per event context. Calling `useUserProfile()` multiple times in the same request returns the same cached object.
 
-### Create useHeaderHook
+## Example: Custom Header Helper
 
-Here's an example of a custom hook for setting headers.
+Here's a composable that provides a getter/setter interface for a specific response header:
 
 ```ts
-import { useSetHeaders } from '@wooksjs/event-http';
-import { attachHook } from '@wooksjs/event-core';
+import { useResponse } from '@wooksjs/event-http'
 
-function useHeaderHook(name: string) {
-    const { setHeader, headers } = useSetHeaders();
+function useHeaderRef(name: string) {
+    const response = useResponse()
 
-    return attachHook(
-        {
-            name,
-            type: 'header',
+    return {
+        get value(): string | undefined {
+            return response.getHeader(name) as string | undefined
         },
-        {
-            get: () => headers()[name] as string,
-            set: (value: string | number) => setHeader(name, value),
-        }
-    );
+        set value(val: string | number) {
+            response.setHeader(name, val)
+        },
+    }
 }
 
 // Usage
 app.get('/test', () => {
-    const myHeader = useHeaderHook('x-my-header');
-    myHeader.value = 'header value';
-    // *Please note that useSetHeader('x-my-header') will work similarly*
-    return 'ok';
-});
-
-// Result:
-// 200
-// Headers:
-// x-my-header: header value
+    const server = useHeaderRef('x-server')
+    server.value = 'My Awesome Server v1.0'
+    return 'ok'
+})
+// Response headers:
+// x-server: My Awesome Server v1.0
 ```
 
-In the above example, we define the `useHeaderHook` function that creates a custom hook for setting headers.
-The hook utilizes the `useSetHeaders` composable provided by Wooks HTTP to access the `setHeader` and headers functions.
-It returns an `ref`-object that allows you to get and set the value of the specified header.
+## Example: Request Timing
 
+A composable that tracks how long request processing takes:
+
+```ts
+import { defineWook } from '@wooksjs/event-core'
+import { useResponse } from '@wooksjs/event-http'
+
+export const useRequestTiming = defineWook(() => {
+    const start = Date.now()
+    const response = useResponse()
+
+    return {
+        elapsed: () => Date.now() - start,
+        setTimingHeader: () => {
+            response.setHeader('x-response-time', `${Date.now() - start}ms`)
+        },
+    }
+})
+
+// Usage
+app.get('/data', async () => {
+    const { setTimingHeader } = useRequestTiming()
+    const data = await fetchData()
+    setTimingHeader()
+    return data
+})
+```
+
+Since `defineWook` caches per context, `Date.now()` captures the time when the composable is first accessed in the request, giving you accurate timing.

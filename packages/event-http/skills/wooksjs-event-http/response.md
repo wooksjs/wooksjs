@@ -1,336 +1,232 @@
-# Response & Status — @wooksjs/event-http
+# Response API — @wooksjs/event-http
 
-> Covers setting status codes, response headers, outgoing cookies, cache control, and content type.
+> Status, headers, cookies, cache control, error handling, and response sending.
 
 ## Concepts
 
-In Wooks, the response is built through composables rather than mutating the `res` object directly. You call `useResponse()`, `useSetHeaders()`, `useSetCookies()`, etc. to configure the response. All settings are collected in the context store and applied when the framework sends the response.
+`useResponse()` returns an `HttpResponse` instance for the current request. All response operations — status, headers, cookies, cache control — are methods on this single object. Methods are chainable.
 
-The framework automatically handles content type detection, serialization, and status code defaults. You only need to explicitly set these when you want non-default behavior.
+The response is also controlled implicitly by return values: returning an object sends JSON, returning a string sends text, returning nothing sends 204.
 
-## `useResponse()`
+## API Reference
 
-Core response composable for status codes and raw response access:
+### `useResponse(ctx?): HttpResponse`
+
+Returns the `HttpResponse` for the current request.
 
 ```ts
 import { useResponse } from '@wooksjs/event-http'
 
-app.post('/users', () => {
-  const { status } = useResponse()
-  status(201)  // Set status to 201 Created
-  return { id: 1, name: 'Alice' }
-})
+const response = useResponse()
+response.setStatus(200).setHeader('x-custom', 'value')
 ```
 
-### Properties & methods
-
-| Name | Type | Description |
-|------|------|-------------|
-| `status(code?)` | `(code?) => EHttpStatusCode` | Get/set the response status code |
-| `rawResponse(opts?)` | `(opts?) => ServerResponse` | Access the raw Node.js response |
-| `hasResponded()` | `() => boolean` | True if response already sent |
-
-### `status()` as a hookable function
-
-The `status` function doubles as a hookable accessor:
+### Status
 
 ```ts
-const { status } = useResponse()
-
-// Set status
-status(404)
-
-// Read status (call without args)
-const currentStatus = status()
-
-// Or use .value (hooked property)
-status.value = 200
-console.log(status.value)  // 200
+response.status = 201                    // set via property
+response.setStatus(201)                  // set via method (chainable)
+const code = response.status             // get current status
 ```
+
+If not set explicitly, status is inferred automatically (see core.md Auto-status).
+
+### Headers
+
+```ts
+response.setHeader('x-custom', 'value')     // set a header (chainable)
+response.setHeader('x-multi', ['a', 'b'])   // multi-value header
+response.getHeader('x-custom')              // get header value
+response.removeHeader('x-custom')           // remove a header (chainable)
+response.headers()                           // all headers as Record
+response.setContentType('application/xml')   // shorthand for content-type
+response.getContentType()                    // get content-type
+response.enableCors('*')                     // set Access-Control-Allow-Origin (chainable)
+```
+
+### Cookies (outgoing)
+
+Set-Cookie headers are managed via `HttpResponse`:
+
+```ts
+response.setCookie('session', 'abc123', {
+  httpOnly: true,
+  secure: true,
+  sameSite: 'Strict',
+  maxAge: 3600,          // seconds (also accepts time strings)
+  path: '/',
+  domain: '.example.com',
+  expires: new Date('2025-12-31'),
+})
+
+response.getCookie('session')   // { value, attrs } or undefined
+response.removeCookie('session')
+response.clearCookies()
+response.setCookieRaw('name=value; Path=/; HttpOnly')  // raw Set-Cookie string
+```
+
+**`TCookieAttributes`:**
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `expires` | `Date \| string \| number` | Expiration date |
+| `maxAge` | `number \| TTimeMultiString` | Max age in seconds |
+| `domain` | `string` | Cookie domain |
+| `path` | `string` | Cookie path |
+| `secure` | `boolean` | Secure flag |
+| `httpOnly` | `boolean` | HttpOnly flag |
+| `sameSite` | `boolean \| 'Lax' \| 'None' \| 'Strict'` | SameSite policy |
+
+### Cache control
+
+```ts
+response.setCacheControl({
+  public: true,
+  maxAge: 3600,
+  sMaxage: 7200,
+  noStore: false,
+  noCache: false,
+  mustRevalidate: true,
+})
+
+response.setAge(300)                          // Age header (seconds)
+response.setExpires(new Date('2025-12-31'))   // Expires header
+response.setExpires('2025-12-31')             // also accepts strings
+response.setPragmaNoCache()                    // Pragma: no-cache
+```
+
+### Body and content type inference
+
+Return values are automatically serialized:
+
+| Return type | Content-Type | Status |
+|-------------|-------------|--------|
+| `string` | `text/plain` | Auto |
+| `number` / `boolean` | `text/plain` | Auto |
+| `object` / `array` | `application/json` | Auto |
+| `Buffer` / `Uint8Array` | (none — set manually) | Auto |
+| `Readable` stream | (none — set manually) | Auto |
+| `Response` (fetch) | From fetch response | Auto |
+| `undefined` / `null` / no return | — | 204 No Content |
 
 ### Raw response access
 
+For escape hatches (SSE, WebSocket upgrades, etc.):
+
 ```ts
-const { rawResponse } = useResponse()
+// Take full control — framework won't send anything
+const res = response.getRawRes()
+res.writeHead(200, { 'content-type': 'text/event-stream' })
+res.write('data: hello\n\n')
 
-// Passthrough mode: lets you write directly but still uses framework headers
-const res = rawResponse({ passthrough: true })
-res.write('chunk 1')
-
-// Default mode: marks response as "handled", framework won't write again
-const res2 = rawResponse()
-res2.writeHead(200)
-res2.end('done')
+// Passthrough — you write to res, but framework still finalizes
+const res = response.getRawRes(true)
 ```
 
-## `useStatus()`
-
-Standalone status hook — returns a hookable accessor for the status code:
+### `responded` property
 
 ```ts
-import { useStatus } from '@wooksjs/event-http'
-
-app.get('/check', () => {
-  const statusHook = useStatus()
-  statusHook.value = 202
-  return 'Accepted'
-})
-```
-
-This is useful when a utility function needs to set the status without pulling in the full `useResponse()`.
-
-### Type: `TStatusHook`
-
-```ts
-import type { TStatusHook } from '@wooksjs/event-http'
-
-function myMiddleware(status: TStatusHook) {
-  status.value = 403
+if (response.responded) {
+  // Response already sent — don't try to send again
 }
 ```
 
-## `useSetHeaders()`
+## HttpError
 
-Set outgoing response headers:
+For error responses, throw `HttpError`:
 
 ```ts
-import { useSetHeaders } from '@wooksjs/event-http'
+import { HttpError } from '@wooksjs/event-http'
 
-app.get('/data', () => {
-  const { setHeader, setContentType, enableCors } = useSetHeaders()
-
-  setHeader('x-request-id', '12345')
-  setContentType('application/xml')
-  enableCors('https://example.com')
-
-  return '<data>hello</data>'
-})
+throw new HttpError(404)                           // 404 with default message
+throw new HttpError(400, 'Invalid email')          // 400 with custom message
+throw new HttpError(422, { message: 'Validation failed', fields: ['email'] })  // structured body
 ```
 
-### Methods
+`HttpError` skips stack trace capture for performance (these are expected control-flow errors).
 
-| Name | Signature | Description |
-|------|-----------|-------------|
-| `setHeader` | `(name, value) => void` | Set a response header |
-| `getHeader` | `(name) => string \| undefined` | Read a previously set header |
-| `removeHeader` | `(name) => void` | Remove a set header |
-| `setContentType` | `(value) => void` | Shortcut for `setHeader('content-type', value)` |
-| `headers` | `() => Record<string, string>` | Get all set headers as an object |
-| `enableCors` | `(origin?) => void` | Set `Access-Control-Allow-Origin` (default `*`) |
+**Error rendering (`WooksHttpResponse`):**
 
-## `useSetHeader(name)`
+The default response class renders errors based on the `Accept` header:
+- `application/json` → JSON `{ statusCode, message, error }`
+- `text/html` → Styled HTML error page with SVG icons
+- `text/plain` → Plain text error
 
-Returns a hookable accessor for a single response header:
+Override by providing a custom `responseClass` to `createHttpApp()`:
 
 ```ts
-import { useSetHeader } from '@wooksjs/event-http'
-
-const xRequestId = useSetHeader('x-request-id')
-xRequestId.value = '12345'
-console.log(xRequestId.value)     // '12345'
-console.log(xRequestId.isDefined) // true
-```
-
-### Type: `THeaderHook`
-
-```ts
-import type { THeaderHook } from '@wooksjs/event-http'
-
-function setCorrelationId(header: THeaderHook) {
-  if (!header.isDefined) {
-    header.value = generateId()
+class MyResponse extends WooksHttpResponse {
+  protected renderError(data, ctx) {
+    this._status = data.statusCode
+    this._headers['content-type'] = 'application/json'
+    this._body = JSON.stringify({ error: data.message })
   }
 }
-```
 
-## `useSetCookies()`
-
-Set outgoing response cookies:
-
-```ts
-import { useSetCookies } from '@wooksjs/event-http'
-
-app.post('/login', () => {
-  const { setCookie, removeCookie, clearCookies } = useSetCookies()
-
-  setCookie('session_id', 'abc123', {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'Strict',
-    maxAge: '7d',  // supports time strings like '1h', '30m', '7d'
-    path: '/',
-  })
-
-  return { success: true }
-})
-```
-
-### Methods
-
-| Name | Signature | Description |
-|------|-----------|-------------|
-| `setCookie` | `(name, value, attrs?) => void` | Set a response cookie |
-| `getCookie` | `(name) => TSetCookieData \| undefined` | Read a previously set cookie |
-| `removeCookie` | `(name) => void` | Remove a set cookie |
-| `clearCookies` | `() => void` | Remove all set cookies |
-| `cookies` | `() => string[]` | Render all cookies as Set-Cookie header strings |
-
-### Cookie Attributes
-
-```ts
-interface TCookieAttributes {
-  expires: Date | string | number       // expiration date
-  maxAge: number | TTimeMultiString     // max age (seconds or time string)
-  domain: string                        // cookie domain
-  path: string                          // cookie path
-  secure: boolean                       // HTTPS only
-  httpOnly: boolean                     // no JS access
-  sameSite: boolean | 'Lax' | 'None' | 'Strict'
-}
-```
-
-Time strings (`TTimeMultiString`) support formats like `'1h'`, `'30m'`, `'7d'`, `'1y'`.
-
-## `useSetCookie(name)`
-
-Hookable accessor for a single outgoing cookie:
-
-```ts
-import { useSetCookie } from '@wooksjs/event-http'
-
-const sessionCookie = useSetCookie('session_id')
-
-// Set value
-sessionCookie.value = 'abc123'
-
-// Set attributes
-sessionCookie.attrs = { httpOnly: true, secure: true }
-
-// Read
-console.log(sessionCookie.value)  // 'abc123'
-console.log(sessionCookie.attrs)  // { httpOnly: true, secure: true }
-```
-
-### Type: `TCookieHook`
-
-```ts
-import type { TCookieHook } from '@wooksjs/event-http'
-
-function enforceSecureCookie(cookie: TCookieHook) {
-  cookie.attrs = { ...cookie.attrs, secure: true, httpOnly: true }
-}
-```
-
-## `useSetCacheControl()`
-
-Set cache-related response headers:
-
-```ts
-import { useSetCacheControl } from '@wooksjs/event-http'
-
-app.get('/assets/:file', () => {
-  const { setCacheControl, setExpires, setAge, setPragmaNoCache } = useSetCacheControl()
-
-  setCacheControl({
-    maxAge: 3600,
-    public: true,
-    noTransform: true,
-  })
-
-  // Or set individual cache headers
-  setAge(300)                   // Age: 300
-  setExpires(new Date('2025-12-31'))  // Expires: Wed, 31 Dec 2025 ...
-  setPragmaNoCache()            // Pragma: no-cache
-
-  return serveFile(...)
-})
-```
-
-### Cache-Control Directives
-
-```ts
-interface TCacheControl {
-  maxAge?: number | TTimeMultiString
-  sMaxage?: number | TTimeMultiString
-  noCache?: boolean
-  noStore?: boolean
-  noTransform?: boolean
-  mustRevalidate?: boolean
-  proxyRevalidate?: boolean
-  public?: boolean
-  private?: boolean
-  immutable?: boolean
-  staleWhileRevalidate?: number | TTimeMultiString
-  staleIfError?: number | TTimeMultiString
-}
-```
-
-## Content Type Auto-Detection
-
-The framework automatically sets the content type based on the handler return value:
-
-| Return type | Content-Type |
-|-------------|-------------|
-| `string` | `text/plain` |
-| `number` | `text/plain` |
-| `boolean` | `text/plain` |
-| `object` / `array` | `application/json` |
-| `Readable` stream | (must set manually) |
-| `undefined` | (no body, 204) |
-
-Override by calling `setContentType()` before returning:
-
-```ts
-app.get('/html', () => {
-  const { setContentType } = useSetHeaders()
-  setContentType('text/html')
-  return '<h1>Hello</h1>'
-})
+const app = createHttpApp({ responseClass: MyResponse })
 ```
 
 ## Common Patterns
 
-### Pattern: JSON API Response
+### Pattern: Full response control
 
 ```ts
-app.get('/api/users/:id', async () => {
-  const { get } = useRouteParams<{ id: string }>()
-  const user = await db.findUser(get('id'))
-  if (!user) throw new HttpError(404, 'User not found')
-  return user  // auto-serialized as JSON with 200
-})
-```
+app.get('/data', () => {
+  useResponse()
+    .setStatus(200)
+    .setHeader('x-request-id', useRequest().reqId())
+    .setCookie('visited', 'true', { httpOnly: true })
+    .setCacheControl({ public: true, maxAge: 3600 })
 
-### Pattern: File Download
-
-```ts
-app.get('/download/:file', () => {
-  const { setHeader } = useSetHeaders()
-  const { get } = useRouteParams<{ file: string }>()
-  setHeader('content-disposition', `attachment; filename="${get('file')}"`)
-  return createReadStream(`/uploads/${get('file')}`)
+  return { data: 'hello' }
 })
 ```
 
 ### Pattern: Redirect
 
 ```ts
-import { BaseHttpResponse } from '@wooksjs/event-http'
+app.get('/old-path', () => {
+  useResponse().setStatus(301).setHeader('location', '/new-path')
+})
+```
 
-app.get('/old-page', () => {
-  return new BaseHttpResponse().setStatus(302).setHeader('location', '/new-page')
+### Pattern: Streaming response
+
+```ts
+import { createReadStream } from 'fs'
+
+app.get('/file', () => {
+  useResponse().setContentType('application/octet-stream')
+  return createReadStream('/path/to/file')
+})
+```
+
+### Pattern: Server-Sent Events
+
+```ts
+app.get('/events', () => {
+  const res = useResponse().getRawRes()
+  res.writeHead(200, {
+    'content-type': 'text/event-stream',
+    'cache-control': 'no-cache',
+    connection: 'keep-alive',
+  })
+  // Write events...
+  return res // returning the raw response signals "already handled"
 })
 ```
 
 ## Best Practices
 
-- **Let the framework auto-detect content type** — Only call `setContentType()` when you need a non-default type.
-- **Use `useSetCookies()` for multiple cookies, `useSetCookie(name)` for hookable access to a single cookie**.
-- **Set status before returning** — If you need a custom status, call `status(code)` before the handler returns.
-- **Use time strings for maxAge** — `'7d'` is clearer than `604800`.
+- Return values for simple responses — only use `useResponse()` when you need headers, cookies, or explicit status
+- Use `HttpError` for all error responses — don't manually set error status and body
+- The chainable API means you can do `useResponse().setStatus(200).setHeader(...)` in one statement
+- For custom error rendering, subclass `WooksHttpResponse` and override `renderError()`
 
 ## Gotchas
 
-- If you call `rawResponse()` without `{ passthrough: true }`, the framework marks the response as sent and won't write anything else.
-- Headers set via `useSetHeaders()` are merged with any `BaseHttpResponse` headers. The `BaseHttpResponse` headers take precedence on collision.
-- Cookies set via `useSetCookies()` are merged with `BaseHttpResponse.setCookie()` cookies.
+- Calling `send()` twice throws — check `response.responded` if unsure
+- `getRawRes()` without `passthrough` marks the response as "responded" — the framework won't touch it
+- `getRawRes(true)` (passthrough mode) lets you write headers/data while the framework still finalizes cookies and status
+- Cookie `maxAge` is in seconds, not milliseconds
+- `setContentType()` overwrites any previously set content-type

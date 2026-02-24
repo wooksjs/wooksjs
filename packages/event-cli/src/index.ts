@@ -1,4 +1,7 @@
 export * from './cli-adapter'
+export * from './cli-kind'
 export * from './composables'
 export * from './event-cli'
 export * from './types'
+export { useRouteParams, useLogger } from '@wooksjs/event-core'
+export type { EventContext, EventContextOptions } from '@wooksjs/event-core'

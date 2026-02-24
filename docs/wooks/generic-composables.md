@@ -2,34 +2,30 @@
 
 [What are composables?](/wooks/what#what-are-composables)
 
-Wooks provides a set of generic composables that work across all event “flavors” (HTTP, CLI, Workflow, or custom). These composables give you access to core event properties — such as event IDs, logging capabilities, and route parameters — regardless of the underlying event type.
+Wooks provides a set of generic composables that work across all event "flavors" (HTTP, CLI, Workflow, or custom). These composables give you access to core event properties — such as event IDs, logging, and route parameters — regardless of the underlying event type.
 
 [[toc]]
 
 ## Overview
 
-These composables are defined in the `@wooksjs/event-core` package, but they are re-exported by the main `wooks` library. This means you can import them directly from `'wooks'` and use them in any Wooks-based application.
+These composables are defined in the `@wooksjs/event-core` package, but they are re-exported by the main `wooks` library. You can import them directly from `'wooks'`.
 
 **Example Import:**
 ```ts
-import { useEventId, useEventLogger, useRouteParams } from 'wooks'
+import { useEventId, useLogger, useRouteParams } from 'wooks'
 ```
 
 ## `useEventId()`
 
 **Signature:**
 ```ts
-function useEventId(): {
+function useEventId(ctx?: EventContext): {
   getId: () => string
 }
 ```
 
 **Description:**
-Provides a unique, per-event identifier. This can be useful for tracking and correlating logs or other data associated with an individual event. The ID is generated once per event and cached.
-
-**How It Works:**
-- Uses `store('event').init('id', ...)` to generate a random UUID only once per event.
-- Subsequent calls return the same ID.
+Provides a unique, per-event identifier. Useful for tracking and correlating logs or data associated with an individual event. The ID is a random UUID, generated lazily on first access and cached for the lifetime of the event.
 
 **Example:**
 ```ts
@@ -37,46 +33,39 @@ const { getId } = useEventId()
 console.log('Current Event ID:', getId())
 ```
 
-## `useEventLogger(topic?: string)`
+## `useLogger()`
 
 **Signature:**
 ```ts
-function useEventLogger(topic?: string): TConsoleBase
+function useLogger(ctx?: EventContext): Logger
 ```
 
 **Description:**
-Returns a logger instance (typed as `TConsoleBase` from `@prostojs/logger`) associated with the current event. The logger inherits the event’s unique ID and configuration (logging level, transports, etc.). If a `topic` is provided, a sub-topic logger is returned, allowing you to categorize logs further.
+Returns the `Logger` instance associated with the current event context. The logger supports standard log methods (`info`, `warn`, `error`, `debug`) and is configured when the event context is created.
 
-**How It Works:**
-- Fetches `eventLogger` options from the context.
-- Uses `useEventId()` internally to tag log messages with the current event’s ID.
-- Provides a [`ProstoLogger`](https://github.com/prostojs/logger)-based logger that supports various log levels and transports.
-
-*Learn more about [Logging in Wooks](/wooks/advanced/logging) in advanced section.*
+*Learn more about [Logging in Wooks](/wooks/advanced/logging) in the advanced section.*
 
 **Example:**
 ```ts
-const eventLogger = useEventLogger(‘my-feature’)
-eventLogger.debug(‘This is a debug log for the current event’)
-eventLogger.error(‘An error occurred’)
+const logger = useLogger()
+logger.debug('Processing request')
+logger.error('Something went wrong')
 ```
 
-## `useRouteParams<T extends object = Record<string, string | string[]>>()`
+## `useRouteParams()`
 
 **Signature:**
 ```ts
-function useRouteParams<T extends object = Record<string, string | string[]>>(): {
+function useRouteParams<
+  T extends Record<string, string | string[]> = Record<string, string | string[]>
+>(ctx?: EventContext): {
   params: T
-  get<K extends keyof T>(name: K): T[K]
+  get: <K extends keyof T>(name: K) => T[K]
 }
 ```
 
 **Description:**
-Accesses route parameters (e.g., path parameters in HTTP routes, command arguments in CLI mode, etc.). This composable returns an object (`params`) and a `get()` function to retrieve individual parameters by name.
-
-**How It Works:**
-- Reads `routeParams` from the event context’s store.
-- Ensures strong typing if you provide a generic type parameter `T`.
+Accesses route parameters (e.g., path parameters in HTTP routes, command arguments in CLI mode, etc.). Returns a `params` object and a typed `get()` function to retrieve individual parameters by name.
 
 **Example:**
 ```ts
@@ -85,51 +74,32 @@ console.log('Route Params:', params)
 console.log('ID Param:', get('id'))
 ```
 
-## `useAsyncEventContext<S, EventType>()`
+## `current()`
 
 **Signature:**
 ```ts
-function useAsyncEventContext<S = TEmpty, EventType = TEmpty>(
-  expectedTypes?: string | string[]
-): {
-  getCtx(): S & TGenericContextStore<EventType>,
-  store<K extends keyof S>(key: K): {
-    value: S[K],
-    hook<K2 extends keyof S[K]>(key2: K2): { value: S[K][K2], isDefined: boolean },
-    init<K2 extends keyof S[K]>(key2: K2, getter: () => S[K][K2]): S[K][K2],
-    get<K2 extends keyof S[K]>(key2: K2): S[K][K2] | undefined,
-    set<K2 extends keyof S[K]>(key2: K2, v: S[K][K2]): S[K][K2],
-    has<K2 extends keyof S[K]>(key2: K2): boolean,
-    del<K2 extends keyof S[K]>(key2: K2): void,
-    entries(): Array<[string, unknown]>,
-    clear(): void,
-  },
-  // ...other helpers
-}
+function current(): EventContext
 ```
 
 **Description:**
-The low-level hook that gives you access to the full context of the current event. While often used internally, it’s available for advanced use cases where you need direct control.
+Returns the active `EventContext` for the current async execution scope. This is the low-level primitive that all composables use internally. Most application code should use higher-level composables, but `current()` is available for advanced use cases or when building custom composables.
 
-**Key Points:**
-- Ensures you’re calling it within a valid event context.
-- Allows optionally validating the event type.
-- Provides access to `store(key)` for managing event-scoped data and properties.
+Throws an error if called outside an event context.
 
-*Learn more about [Wooks Context](/wooks/advanced/wooks-context) in advanced section.*
+*Learn more about [Event Context](/wooks/advanced/wooks-context) in the advanced section.*
 
 **Example:**
 ```ts
-const { getCtx, store } = useAsyncEventContext()
-const ctx = getCtx()
-console.log('Event Type:', ctx.event.type)
+import { current } from '@wooksjs/event-core'
+
+const ctx = current()
 ```
 
 ## Summary
 
-These generic composables form the foundational layer of Wooks’ event-driven approach:
+These generic composables form the foundational layer of Wooks' event-driven approach:
 
 - **`useEventId()`:** Get a unique event identifier.
-- **`useEventLogger()`:** Log messages associated with the current event, with optional sub-topic categorization ([More About Logging in Wooks](/wooks/advanced/logging)).
+- **`useLogger()`:** Access the event-scoped logger ([More About Logging in Wooks](/wooks/advanced/logging)).
 - **`useRouteParams()`:** Access path or argument parameters for the current event.
-- **`useAsyncEventContext()`:** Directly work with the underlying event context for advanced scenarios ([More About Wooks Context](/wooks/advanced/wooks-context)).
+- **`current()`:** Directly access the underlying event context for advanced scenarios ([More About Event Context](/wooks/advanced/wooks-context)).

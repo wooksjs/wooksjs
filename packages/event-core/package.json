@@ -3,16 +3,11 @@
   "version": "0.6.6",
   "description": "@wooksjs/event-core",
   "keywords": [
-    "api",
-    "app",
+    "wooks",
     "composables",
-    "framework",
-    "http",
-    "prostojs",
-    "rest",
-    "restful",
-    "web",
-    "wooks"
+    "event",
+    "context",
+    "framework"
   ],
   "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/event-core#readme",
   "bugs": {
@@ -25,8 +20,13 @@
     "url": "git+https://github.com/wooksjs/wooksjs.git",
     "directory": "packages/event-core"
   },
+  "bin": {
+    "setup-skills": "./scripts/setup-skills.js"
+  },
   "files": [
-    "dist"
+    "dist",
+    "skills",
+    "scripts/setup-skills.js"
   ],
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
@@ -40,10 +40,8 @@
     }
   },
   "scripts": {
-    "build": "rolldown -c ../../rolldown.config.mjs"
-  },
-  "dependencies": {
-    "@prostojs/logger": "^0.4.3"
+    "build": "rolldown -c ../../rolldown.config.mjs",
+    "setup-skills": "node ./scripts/setup-skills.js"
   },
   "devDependencies": {
     "typescript": "^5.9.3",

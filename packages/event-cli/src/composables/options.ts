@@ -1,6 +1,7 @@
+import { current } from '@wooksjs/event-core'
 import minimist from 'minimist'
 
-import { useCliContext } from '../event-cli'
+import { cliKind, flagsKey } from '../cli-kind'
 import { useCliHelp } from './cli-help'
 
 /**
@@ -9,13 +10,13 @@ import { useCliHelp } from './cli-help'
  * @returns an object with CLI options
  */
 export function useCliOptions() {
-  const { store } = useCliContext()
-  const flags = store('flags')
-  if (!flags.value) {
-    const event = store('event')
-    flags.value = minimist(event.get('argv'), event.get('opts'))
+  const ctx = current()
+  if (!ctx.has(flagsKey)) {
+    const argv = ctx.get(cliKind.keys.argv)
+    const opts = ctx.get(cliKind.keys.opts)
+    ctx.set(flagsKey, minimist(argv, opts))
   }
-  return flags.value
+  return ctx.get(flagsKey)
 }
 
 /**

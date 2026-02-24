@@ -1,24 +1,33 @@
-import type { TEmpty, TEventOptions } from '@wooksjs/event-core'
-import { createAsyncEventContext, useAsyncEventContext } from '@wooksjs/event-core'
+import { EventContext, current, run } from '@wooksjs/event-core'
+import type { EventContextOptions } from '@wooksjs/event-core'
+import type minimist from 'minimist'
 
-import type { TCliContextStore, TCliEventData } from './types'
+import { cliKind } from './cli-kind'
+import type { TCliHelpRenderer } from './types'
 
-/** Creates a new async event context for a CLI command invocation. */
-export function createCliContext(data: Omit<TCliEventData, 'type'>, options: TEventOptions) {
-  return createAsyncEventContext<TCliContextStore, TCliEventData>({
-    event: {
-      ...data,
-      type: 'CLI',
-    },
-    options,
-  })
+export interface TCliEventInput {
+  argv: string[]
+  pathParams: string[]
+  command: string
+  opts?: minimist.Opts
+  cliHelp: TCliHelpRenderer
 }
 
-/**
- * Wrapper on top of useEventContext that provides
- * proper context types for CLI event
- * @returns set of hooks { getCtx, restoreCtx, clearCtx, hookStore, getStore, setStore }
- */
-export function useCliContext<T extends TEmpty>() {
-  return useAsyncEventContext<TCliContextStore & T, TCliEventData>('CLI')
+/** Creates a new event context for a CLI command invocation. */
+export function createCliContext(data: TCliEventInput, options: EventContextOptions) {
+  const ctx = new EventContext(options)
+  return <R>(fn: () => R): R =>
+    run(ctx, () =>
+      ctx.attach(
+        cliKind,
+        {
+          argv: data.argv,
+          pathParams: data.pathParams,
+          command: data.command,
+          opts: data.opts,
+          cliHelp: data.cliHelp,
+        },
+        fn,
+      ),
+    )
 }

@@ -1,87 +1,122 @@
-# Comparison with other frameworks
+# Comparison with Other Frameworks
 
-When choosing a server-side framework, developers often reach for familiar solutions like **Express** or **Fastify**, or consider modern alternatives like **h3**. While each of these frameworks gets the job done, they make certain trade-offs that Wooks aims to address by rethinking event handling, routing, and context management.
+A concrete look at how Wooks differs from Express, Fastify, and h3. Wooks and h3 share similar philosophy — on-demand, no middleware, return-value responses. The core difference is the path each took: h3 threads an `event` object; Wooks uses `AsyncLocalStorage` and provides context primitives that make lazy computation with caching the default by design.
 
-## 1. Control Over the Request Lifecycle
+## Request Lifecycle
 
-**Express & Fastify:**  
-In these frameworks, the request lifecycle is often heavily influenced by middleware. For example, body parsing is frequently done by a middleware layer before your handler runs. By the time your route handler is called, request bodies may already be parsed and attached to `req`, even if your logic doesn’t need them. If you discover that your route parameters are invalid and want to return an error immediately, the overhead of reading and parsing the body has already occurred, costing both performance and clarity.
+**Express / Fastify:** Middleware runs before your handler. Body parsing, cookie parsing, auth checks — they execute on every request that matches their mount path, whether the handler needs the result or not. By the time your route function runs, work has already been done.
 
-**Wooks:**  
-Wooks calls your event handler as soon as the event (e.g., an HTTP request) is generated — usually right after receiving headers. You decide if and when to parse the body by calling a composable like `useBody()` yourself. This allows you to:
+**h3:** Philosophically close to Wooks — no middleware chain, on-demand parsing, return values as responses. `readBody(event)` reads the stream when you call it, not before. The difference is in the wiring: h3 threads an `event` object through every call.
 
-- **Validate Early:** Check route parameters, headers, or other conditions before touching the body. If invalid, respond with an error immediately — no wasted cycles on unnecessary body parsing.
-- **Conditional Parsing:** Only parse the body if it’s actually needed, improving performance and reducing overhead.
-- **Better Resource Management:** Achieve more explicit and efficient control over the request lifecycle, making your code both faster and more transparent.
+**Wooks:** Same on-demand philosophy, different mechanism. Context lives in `AsyncLocalStorage` — composables need no arguments. And the context primitives (`cached`, `cachedBy`, `defineWook`) make lazy-with-caching the default: `useBody().parseBody()` parses once, caches for the event lifetime, returns the cached result on repeat calls — all by design, not by manual memoization.
 
-## 2. Smarter and More Flexible Routing
+```ts
+// Express: body is already parsed by the time you get here
+app.post('/users', (req, res) => {
+  if (!req.headers.authorization) return res.status(401).end()
+  // req.body was parsed anyway
+})
 
-**Express:**  
-Express routing is straightforward but not optimized. It checks each registered route in sequence until it finds a match, which can become a bottleneck for large sets of routes. It doesn’t provide built-in complexity like parameter regexes or multiple wildcards out of the box, and often relies on external libraries or manual code to achieve advanced patterns.
+// Wooks: nothing happens until you ask
+app.post('/users', () => {
+  const { authorization } = useHeaders()
+  if (!authorization) throw new HttpError(401)
+  // body is never touched
+  const { parseBody } = useBody()
+  return parseBody() // parsed only now
+})
+```
 
-**Fastify:**  
-Fastify improves routing performance and provides some optimizations. However, its routing and encoding/decoding mechanisms can sometimes behave in unexpected ways, especially when dealing with complex parameter patterns. Debugging such cases can become tricky.
+## Routing
 
-**h3:**  
-h3’s routing is simple and effective for many use cases, but it focuses mainly on the Nuxt and Nitro ecosystem. Its routing system doesn’t emphasize complex optimizations or features like multiple wildcards and regex parameter constraints.
+All four frameworks support parametric routes. The differences are in edge cases and performance.
 
-**Wooks (via [@prostojs/router](https://github.com/prostojs/router)):**  
-Wooks uses `@prostojs/router`, a carefully designed, standalone routing library that offers:
+**Express:** Linear scan — checks routes in registration order. No indexing, no caching. Slows down with large route tables.
 
-- **Hierarchical Routing Structure:** It categorizes routes into statics, parameters, and wildcards, then applies indexing and caching to quickly find matches.
-- **Multiple Wildcards and Regex Parameters:** You can define routes like `/static/*/test/*` or apply regex constraints directly to parameters and wildcards, such as `/api/time/:hours(\\d{2})h:minutes(\\d{2})m` or `/static/*(\\d+)`. Even multiple wildcards in the same path are supported.
-- **On-the-Fly Parsers:** It generates parsing functions during registration, enabling parameter parsing to be done in a single efficient call.
-- **Predictable Encoding/Decoding:** It handles URI encoding/decoding in a clean, transparent manner, avoiding the quirks and bugs you might encounter elsewhere.
+**Fastify (find-my-way):** Radix-tree based. Fast for static routes, handles parameters well. Some quirks with URI encoding/decoding in edge cases.
 
-This means you get **fast, predictable, and highly flexible routing** that easily handles complex URL patterns — something that can be awkward or inefficient in Express, Fastify, or h3.
+**h3 (radix3):** Fast for static lookups. Weaker on complex dynamic patterns.
 
-Below is performance comparison for different routers ([benchmark source code](https://github.com/prostojs/router-benchmark)):
+**Wooks ([@prostojs/router](https://github.com/prostojs/router)):** Categorizes routes into statics, parameters, and wildcards with indexing and caching. Supports features the others don't:
 
-|Test Name|Express avg op/ms|FindMyWay avg op/ms|ProstoRouter avg op/ms|Radix3 avg op/ms|
-|:-|-:|-:|-:|-:|
-|Short static|1 792|7 070|6 912|10 326|
-|Static with same radix|1 388|4 662|8 537|14 058|
-|Dynamic route|739|1 768|1 888|959|
-|Mixed static dynamic|685|3 101|3 470|988|
-|Long static|637|2 174|8 934|14 000|
-|Wildcard|486|2 081|2 065|1 019|
-|**All together**|**663**|**2 328**|**2 893**|**1 549**|
+- Multiple wildcards in one path: `/static/*/assets/*`
+- Regex constraints on parameters: `/api/time/:hours(\\d{2})h:minutes(\\d{2})m`
+- Regex constraints on wildcards: `/static/*(\\d+)`
+- On-the-fly generated parsers — parameter extraction in a single function call
 
+### Router Benchmark
 
-## 3. Context Management Without Passing Around Objects
+Operations per millisecond ([source](https://github.com/prostojs/router-benchmark)):
 
-**Express & Fastify:**  
-These frameworks typically attach custom data (like the parsed body, user info, or other state) directly to `req`. This approach:
+| Test | Express | find-my-way | @prostojs/router | radix3 |
+|:-----|--------:|------------:|-----------------:|-------:|
+| Short static | 1 792 | 7 070 | 6 912 | 10 326 |
+| Static with same radix | 1 388 | 4 662 | 8 537 | 14 058 |
+| Dynamic route | 739 | 1 768 | 1 888 | 959 |
+| Mixed static dynamic | 685 | 3 101 | 3 470 | 988 |
+| Long static | 637 | 2 174 | 8 934 | 14 000 |
+| Wildcard | 486 | 2 081 | 2 065 | 1 019 |
+| **All together** | **663** | **2 328** | **2 893** | **1 549** |
 
-- Pollutes the request object.
-- Makes type definitions harder to maintain.
-- Forces you to pass `req` and `res` everywhere, tightening the coupling with HTTP specifics.
+`@prostojs/router` leads on mixed and dynamic patterns — the cases that matter most in real APIs. radix3 wins on pure static lookups.
 
-**h3:**  
-h3 improves this pattern by giving you an `event` object that holds request and response context. While this is cleaner than polluting `req`, you still need to pass the `event` object into every composable or utility function. This adds a minor overhead and some boilerplate to every call.
+## Context Passing
 
-**Wooks:**  
-Wooks leverages `AsyncLocalStorage` to provide implicit context. Composables like `useBody()` or `useRouteParams()` automatically access the current event context without you having to pass it around. This approach:
+**Express / Fastify:** Attach data to `req`. Custom properties (`req.user`, `req.parsedBody`) have no type definitions unless you extend the interface. Every function that needs context receives `(req, res)`.
 
-- **No Extra Arguments:** No need to carry an `event` or `req` object into every function.
-- **Clean & Implicit:** Context is just there, making your code more readable and maintainable.
-- **Fully Typed:** The entire system is built in TypeScript, so the context is strongly typed by default.
+**h3:** Replaces `req`/`res` with a single `event` object — cleaner, but still threaded explicitly: `readBody(event)`, `getQuery(event)`, `getCookie(event)`. Every utility takes `event` as its first argument, which means every helper function you extract must accept and forward it.
 
-## 4. Not Just HTTP
+**Wooks:** `AsyncLocalStorage` eliminates the threading entirely. Composables take no arguments — they resolve context from the current async scope:
 
-**Express & Fastify:**  
-These frameworks are primarily HTTP-oriented. Extending them to other event types (like CLI events or custom workflows) often requires separate tools or custom patterns.
+```ts
+// h3
+export default defineEventHandler((event) => {
+  const body = await readBody(event)
+  const query = getQuery(event)
+  const cookie = getCookie(event, 'session')
+})
 
-**h3:**  
-h3 is closely tied to HTTP and the Nuxt ecosystem. While powerful for its intended use case, it’s not designed from the start to be a multi-event framework.
+// Wooks
+app.post('/endpoint', async () => {
+  const body = await useBody().parseBody()
+  const query = useSearchParams()
+  const cookie = useCookies().getCookie('session')
+})
+```
 
-**Wooks:**  
-Wooks is event-driven at its core. HTTP is just one implementation. The same composable, context-driven approach applies equally well to CLI commands, workflow triggers, or other custom event sources. This makes Wooks incredibly flexible and future-proof.
+No `event` threading. Composables work at any depth in the call stack — inside utility functions, inside library code, inside `async` helpers — without passing anything.
 
----
+## Response Control
 
-**In Summary:**  
-- **Early and Explicit Parsing Control:** Only parse the request body if needed, saving resources and time.
-- **Advanced and Efficient Routing:** Benefit from sophisticated patterns, multiple wildcards, regex parameters, and on-the-fly parsers.
-- **Implicit Context Access:** No passing around `event` objects or cluttering `req`.
-- **Multi-Event Capability:** Easily handle not just HTTP, but any type of event, all with the same composable architecture.
+**Express:** `res.status(200).json(data)` — imperative calls on the response object, which you must receive as a parameter.
+
+**Fastify:** `reply.code(200).send(data)` — similar pattern, similar coupling.
+
+**h3:** Return values become the response — same idea as Wooks. `setResponseStatus(event, 200)` for explicit control. Still requires `event` threading.
+
+**Wooks:** Return values become the response too. For explicit control, `useResponse()` returns an `HttpResponse` with chainable methods — no arguments needed:
+
+```ts
+app.get('/data', () => {
+  useResponse()
+    .setStatus(200)
+    .setHeader('x-custom', 'value')
+    .setCookie('session', 'abc', { httpOnly: true })
+    .setCacheControl({ public: true, maxAge: 3600 })
+
+  return { data: 'hello' }
+})
+```
+
+All methods live on one object. No separate `useSetHeaders()`, `useSetCookies()`, `useSetCacheControl()` — just `useResponse()`.
+
+## Summary
+
+| | Express | Fastify | h3 | Wooks |
+|---|---------|---------|-----|-------|
+| Body parsing | Middleware (eager) | Plugin (eager) | `readBody(event)` (on demand) | `useBody().parseBody()` (on demand, cached) |
+| Context passing | `req` / `res` params | `request` / `reply` params | `event` param | Implicit (AsyncLocalStorage) |
+| Routing | Linear scan | Radix tree | Radix tree | Indexed + cached, regex params, multi-wildcard |
+| Response API | `res.status().json()` | `reply.code().send()` | Return value + `setResponseStatus(event)` | Return value + `useResponse()` chainable |
+| TypeScript | Bolted on | Schema-driven | Good | Native, composable-level inference |
+| Beyond HTTP | No | No | No | CLI, Workflows, custom events |

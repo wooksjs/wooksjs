@@ -1,220 +1,201 @@
-# Request Utilities — @wooksjs/event-http
+# Request composables — @wooksjs/event-http
 
-> Covers composables for reading incoming request data: headers, cookies, query params, authorization, IP address, and Accept header.
+> Reading request data: headers, cookies, query params, body, authorization, IP address.
 
-## `useRequest()`
+## Concepts
 
-Primary composable for accessing the raw incoming HTTP request.
+All request data is accessed through composables — functions that resolve context via `AsyncLocalStorage`. They take no arguments (optionally accept `ctx` for performance). Data is parsed lazily on first access and cached for the request lifetime.
+
+All composables are importable from `@wooksjs/event-http`.
+
+## API Reference
+
+### `useRequest(ctx?)`
+
+The primary request composable. Returns method, URL, headers, raw body, IP, and request limit controls.
 
 ```ts
 import { useRequest } from '@wooksjs/event-http'
 
-app.get('/info', () => {
-  const { method, url, headers, rawBody, reqId, getIp } = useRequest()
-
-  return {
-    method,          // 'GET'
-    url,             // '/info?page=1'
-    host: headers.host,
-    ip: getIp(),
-    requestId: reqId(),
-  }
-})
+const { method, url, headers, rawBody, getIp, reqId } = useRequest()
 ```
 
-### Properties & methods
+**Returned properties:**
 
-| Name | Type | Description |
-|------|------|-------------|
-| `rawRequest` | `IncomingMessage` | The raw Node.js request object |
-| `method` | `string` | HTTP method (GET, POST, etc.) |
-| `url` | `string` | Raw request URL including query string |
-| `headers` | `IncomingHttpHeaders` | Request headers object |
-| `rawBody()` | `() => Promise<Buffer>` | Lazily reads and decompresses the request body |
-| `reqId()` | `() => string` | Lazily generates a UUID for this request |
-| `getIp(opts?)` | `(opts?) => string` | Returns client IP (supports `trustProxy`) |
-| `getIpList()` | `() => { remoteIp, forwarded }` | Returns all known IPs |
-| `isCompressed()` | `() => boolean` | Whether the body is compressed |
+| Property | Type | Description |
+|----------|------|-------------|
+| `rawRequest` | `IncomingMessage` | Node.js raw request object |
+| `url` | `string` | Request URL |
+| `method` | `string` | HTTP method |
+| `headers` | `IncomingHttpHeaders` | Request headers |
+| `rawBody` | `() => Promise<Buffer>` | Lazy — reads and decompresses request body on call |
+| `reqId` | `() => string` | Lazy UUID per request |
+| `getIp(opts?)` | `(opts?: { trustProxy: boolean }) => string` | Client IP (with optional proxy trust) |
+| `getIpList()` | `() => { remoteIp, forwarded[] }` | All IPs (remote + X-Forwarded-For) |
+| `isCompressed()` | `() => boolean` | Whether the request body is compressed |
 
-### Body size limits
-
-| Limit | Default | Description |
-|-------|---------|-------------|
-| `maxCompressed` | 1 MB (1 048 576) | Max compressed body size in bytes |
-| `maxInflated` | 10 MB (10 485 760) | Max decompressed body size in bytes |
-| `maxRatio` | 100 | Max compression ratio (zip-bomb protection) |
-| `readTimeoutMs` | 10 000 | Body read timeout in milliseconds |
-
-Limits can be set **app-wide** via `createHttpApp({ requestLimits: { ... } })` (see [core.md](core.md)) or **per-request** via the setters below (which override app defaults):
+**Request limits (per-request override):**
 
 ```ts
-const {
-  getMaxCompressed, setMaxCompressed,  // default: 1 MB
-  getMaxInflated, setMaxInflated,      // default: 10 MB
-  getMaxRatio, setMaxRatio,            // default: 100× (zip-bomb protection)
-  getReadTimeoutMs, setReadTimeoutMs,  // default: 10s
-} = useRequest()
-
-// Override per-route for file uploads
-setMaxCompressed(50 * 1024 * 1024)  // 50 MB
-setMaxInflated(100 * 1024 * 1024)   // 100 MB
-setMaxRatio(200)                    // allow 200× compression ratio
+const { setMaxCompressed, setMaxInflated, setMaxRatio, setReadTimeoutMs } = useRequest()
+setMaxCompressed(5 * 1024 * 1024)  // 5 MB
+setReadTimeoutMs(30_000)            // 30 seconds
 ```
 
-### IP address with proxy support
+Default limits: `maxCompressed: 1MB`, `maxInflated: 10MB`, `maxRatio: 100`, `readTimeoutMs: 10s`.
 
-```ts
-const { getIp } = useRequest()
+### `useHeaders(ctx?): IncomingHttpHeaders`
 
-// Direct connection IP
-const ip = getIp()
-
-// Trust X-Forwarded-For header (behind reverse proxy)
-const clientIp = getIp({ trustProxy: true })
-```
-
-## `useHeaders()`
-
-Returns incoming request headers directly:
+Returns request headers directly. Shorthand for `useRequest().headers`.
 
 ```ts
 import { useHeaders } from '@wooksjs/event-http'
 
-app.get('/check', () => {
-  const { host, authorization, 'content-type': contentType } = useHeaders()
-  return { host, hasAuth: !!authorization }
-})
+const { host, authorization, 'content-type': contentType } = useHeaders()
 ```
 
-Returns a standard `IncomingHttpHeaders` object (same as `req.headers`).
+### `useCookies(ctx?)`
 
-## `useSearchParams()`
-
-Access URL query parameters (lazy-parsed, cached):
-
-```ts
-import { useSearchParams } from '@wooksjs/event-http'
-
-app.get('/search', () => {
-  const { urlSearchParams, jsonSearchParams, rawSearchParams } = useSearchParams()
-
-  // URLSearchParams-like API
-  const page = urlSearchParams().get('page')    // '1'
-  const tags = urlSearchParams().getAll('tag')   // ['a', 'b']
-
-  // As a plain object (handles repeated keys as arrays)
-  const allParams = jsonSearchParams()  // { page: '1', tag: ['a', 'b'] }
-
-  // Raw query string
-  const raw = rawSearchParams()  // '?page=1&tag=a&tag=b'
-
-  return { page, tags, allParams }
-})
-```
-
-## `useCookies()`
-
-Parse incoming request cookies (lazy per-cookie parsing):
+Parses incoming request cookies lazily (per cookie name, via `cachedBy`).
 
 ```ts
 import { useCookies } from '@wooksjs/event-http'
 
-app.get('/dashboard', () => {
-  const { getCookie, rawCookies } = useCookies()
-
-  const session = getCookie('session_id')   // 'abc123' or null
-  const theme = getCookie('theme')          // 'dark' or null
-
-  return { session, theme }
-})
+const { getCookie, rawCookies } = useCookies()
+const session = getCookie('session_id')   // parsed + cached
+const theme = getCookie('theme')           // parsed + cached (different key)
+const raw = rawCookies                     // raw Cookie header string
 ```
 
-Each cookie is parsed individually on first access and cached. If you never call `getCookie('theme')`, the `theme` cookie is never parsed.
+### `useSearchParams(ctx?)`
 
-## `useAuthorization()`
+Provides access to URL query parameters.
 
-Parse the `Authorization` header (lazy, cached):
+```ts
+import { useSearchParams } from '@wooksjs/event-http'
+
+const { urlSearchParams, jsonSearchParams, rawSearchParams } = useSearchParams()
+
+// URLSearchParams API
+const page = urlSearchParams().get('page')
+const tags = urlSearchParams().getAll('tag')
+
+// As a plain object
+const query = jsonSearchParams() // { page: '1', tag: ['a', 'b'] }
+
+// Raw query string
+const raw = rawSearchParams() // '?page=1&tag=a&tag=b'
+```
+
+### `useAuthorization(ctx?)`
+
+Parses the Authorization header (supports Basic and Bearer).
 
 ```ts
 import { useAuthorization } from '@wooksjs/event-http'
 
-app.get('/protected', () => {
-  const { isBearer, isBasic, authType, authRawCredentials, basicCredentials } = useAuthorization()
+const { authorization, authType, authRawCredentials, isBearer, isBasic, basicCredentials } = useAuthorization()
 
-  if (isBearer()) {
-    const token = authRawCredentials()  // 'eyJhbGciOi...'
-    // validate JWT
-  }
+if (isBearer()) {
+  const token = authRawCredentials() // the raw token string
+}
 
-  if (isBasic()) {
-    const { username, password } = basicCredentials()!
-    // validate credentials
-  }
-
-  return { authType: authType() }  // 'Bearer', 'Basic', etc.
-})
+if (isBasic()) {
+  const { username, password } = basicCredentials()!
+}
 ```
 
-### Methods
+**Returned properties:**
 
-| Name | Returns | Description |
-|------|---------|-------------|
-| `authorization` | `string \| undefined` | Raw header value |
-| `authType()` | `string \| null` | Auth scheme (Bearer, Basic, etc.) |
+| Property | Type | Description |
+|----------|------|-------------|
+| `authorization` | `string \| undefined` | Raw Authorization header value |
+| `authType()` | `string \| null` | Auth scheme: `'Basic'`, `'Bearer'`, etc. |
 | `authRawCredentials()` | `string \| null` | Everything after the scheme |
-| `isBearer()` | `boolean` | True if Bearer auth |
-| `isBasic()` | `boolean` | True if Basic auth |
+| `isBasic()` | `boolean` | Whether it's Basic auth |
+| `isBearer()` | `boolean` | Whether it's Bearer auth |
 | `basicCredentials()` | `{ username, password } \| null` | Decoded Basic credentials |
 
-## `useAccept()`
+### `useAccept(ctx?)`
 
-Check the `Accept` header for content negotiation:
+Checks the request's `Accept` header for MIME type support.
 
 ```ts
 import { useAccept } from '@wooksjs/event-http'
 
-app.get('/data', () => {
-  const { acceptsJson, acceptsHtml, acceptsXml, acceptsText, accepts } = useAccept()
+const { accept, accepts, acceptsJson, acceptsHtml, acceptsText, acceptsXml } = useAccept()
 
-  if (acceptsJson()) {
-    return { data: 'json response' }
-  }
-  if (acceptsHtml()) {
-    return '<html><body>HTML response</body></html>'
-  }
-  if (accepts('image/png')) {
-    // custom MIME check
-  }
-
-  return 'plain text fallback'
-})
+if (acceptsJson()) { /* ... */ }
+if (accepts('image/png')) { /* ... */ }
 ```
 
-## `useEventId()`
+### `useRouteParams<T>(ctx?)`
 
-Generate a unique UUID for the current request (lazy, cached):
+Route parameters from the URL. Re-exported from `@wooksjs/event-core`.
 
 ```ts
-import { useEventId } from '@wooksjs/event-http'
+import { useRouteParams } from '@wooksjs/event-http'
 
-app.get('/track', () => {
-  const { getId } = useEventId()
-  return { requestId: getId() }  // '550e8400-e29b-41d4-a716-446655440000'
+// Given route: /users/:id/posts/:postId
+const { params, get } = useRouteParams<{ id: string; postId: string }>()
+params.id        // '42'
+get('postId')    // '7'
+```
+
+### `useLogger(ctx?): Logger`
+
+Logger from the current event context. Re-exported from `@wooksjs/event-core`.
+
+```ts
+import { useLogger } from '@wooksjs/event-http'
+
+const log = useLogger()
+log.info('handling request')
+```
+
+## Common Patterns
+
+### Pattern: Auth guard with early return
+
+```ts
+app.post('/admin/action', async () => {
+  const { isBearer, authRawCredentials } = useAuthorization()
+  if (!isBearer()) throw new HttpError(401)
+
+  const token = authRawCredentials()!
+  const user = await verifyToken(token)
+  if (!user.isAdmin) throw new HttpError(403)
+
+  // Body is never parsed if auth fails
+  const { parseBody } = useBody()
+  return parseBody()
 })
 ```
 
-The UUID is generated on first call to `getId()` and cached for the request lifetime.
+### Pattern: Performance — resolve context once
+
+```ts
+import { current } from '@wooksjs/event-core'
+
+app.get('/hot-path', () => {
+  const ctx = current()
+  const { method } = useRequest(ctx)
+  const { getCookie } = useCookies(ctx)
+  const { urlSearchParams } = useSearchParams(ctx)
+  // 1 ALS lookup instead of 3
+})
+```
 
 ## Best Practices
 
-- **Use `useHeaders()` for raw header access**, `useAuthorization()` / `useCookies()` / `useAccept()` for parsed access. Don't manually parse headers when a composable exists.
-- **Call `rawBody()` only once per request** — it reads the stream and returns a Buffer. The result is cached, so subsequent calls return the same promise.
-- **Set limits before reading the body** — Call `setMaxCompressed()` etc. before `rawBody()` if you need non-default limits.
-- **Use `getIp({ trustProxy: true })` only behind a trusted reverse proxy** — otherwise clients can spoof the `X-Forwarded-For` header.
+- Composables are lazy — call them only when you need the data
+- Pass `ctx` explicitly in hot paths with multiple composable calls
+- Use `getCookie(name)` over parsing all cookies when you need only a few
+- `rawBody()` handles decompression (gzip, deflate, brotli) automatically with limits enforcement
 
 ## Gotchas
 
-- `useHeaders()` returns the raw Node.js `IncomingHttpHeaders` where all header names are lowercase.
-- `getCookie()` returns `null` (not `undefined`) when a cookie doesn't exist.
-- `rawBody()` returns a `Promise<Buffer>`. If the body is compressed (gzip/deflate/br), it is automatically decompressed.
-- Body reading has a 10-second timeout by default. If the client sends data slowly, you may need to increase it with `setReadTimeoutMs()`.
+- `rawBody()` returns a `Promise<Buffer>` — always `await` it
+- `rawBody()` consumes the stream — it's cached, so second call returns the same buffer
+- `getCookie()` returns `null` (not `undefined`) when a cookie doesn't exist
+- `useRequest()` limits setters use copy-on-write — they don't affect other requests

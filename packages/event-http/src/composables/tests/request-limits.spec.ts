@@ -1,6 +1,7 @@
+import { current } from '@wooksjs/event-core'
 import { describe, expect, it } from 'vitest'
 
-import { useHttpContext } from '../../event-http'
+import { httpKind } from '../../http-kind'
 import { prepareTestHttpContext } from '../../testing'
 import { DEFAULT_LIMITS, useRequest } from '../request'
 
@@ -78,16 +79,15 @@ describe('request limits', () => {
       const runInContext = prepareTestHttpContext({ url: '/test', requestLimits: appLimits })
       runInContext(() => {
         const { setMaxRatio } = useRequest()
-        const { store } = useHttpContext()
-        const event = store('event')
+        const ctx = current()
 
         // before any setter — still the app object (no perRequest)
-        expect(event.get('requestLimits')?.perRequest).toBeFalsy()
+        expect(ctx.get(httpKind.keys.requestLimits)?.perRequest).toBeFalsy()
 
         setMaxRatio(50)
 
         // after setter — should be a new object with perRequest: true
-        const obj = event.get('requestLimits')
+        const obj = ctx.get(httpKind.keys.requestLimits)
         expect(obj?.perRequest).toBe(true)
         expect(obj?.maxRatio).toBe(50)
       })
@@ -97,14 +97,13 @@ describe('request limits', () => {
       const runInContext = prepareTestHttpContext({ url: '/test', requestLimits: appLimits })
       runInContext(() => {
         const { setMaxCompressed, setMaxInflated, setMaxRatio, setReadTimeoutMs } = useRequest()
-        const { store } = useHttpContext()
-        const event = store('event')
+        const ctx = current()
 
         setMaxCompressed(111)
-        const afterFirst = event.get('requestLimits')
+        const afterFirst = ctx.get(httpKind.keys.requestLimits)
 
         setMaxInflated(222)
-        const afterSecond = event.get('requestLimits')
+        const afterSecond = ctx.get(httpKind.keys.requestLimits)
 
         // same object reference — no re-clone
         expect(afterSecond).toBe(afterFirst)
@@ -112,7 +111,7 @@ describe('request limits', () => {
         setMaxRatio(333)
         setReadTimeoutMs(444)
 
-        expect(event.get('requestLimits')).toBe(afterFirst)
+        expect(ctx.get(httpKind.keys.requestLimits)).toBe(afterFirst)
         expect(afterFirst?.maxCompressed).toBe(111)
         expect(afterFirst?.maxInflated).toBe(222)
         expect(afterFirst?.maxRatio).toBe(333)

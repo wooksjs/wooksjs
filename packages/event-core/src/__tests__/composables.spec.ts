@@ -1,108 +1,91 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
+import {
+  useRouteParams,
+  useEventId,
+  createEventContext,
+  current,
+  EventContext,
+  run,
+  routeParamsKey,
+} from '../index'
+import type { Logger } from '../index'
 
-import { useRouteParams } from '../composables/route-params'
-import { useEventId } from '../composables/event-id'
-import { useEventLogger } from '../composables/event-logger'
-import { createAsyncEventContext } from '../context'
-
-function runInTestContext<T>(cb: () => T): T {
-  const run = createAsyncEventContext({
-    event: { type: 'TEST' },
-    options: {},
-  })
-  return run(cb)
+const logger: Logger = {
+  info: () => {},
+  warn: () => {},
+  error: () => {},
+  debug: () => {},
 }
 
 describe('useRouteParams', () => {
-  it('must return empty object when no route params set', () => {
-    runInTestContext(() => {
-      const { params } = useRouteParams()
-      expect(params).toEqual({})
+  it('reads route params from context', () => {
+    createEventContext({ logger }, () => {
+      current().set(routeParamsKey, { id: '42', name: 'alice' })
+      const { params, get } = useRouteParams()
+      expect(params).toEqual({ id: '42', name: 'alice' })
+      expect(get('id')).toBe('42')
+      expect(get('name')).toBe('alice')
     })
   })
 
-  it('must return route params from context', () => {
-    const run = createAsyncEventContext({
-      event: { type: 'TEST' },
-      options: {},
-      routeParams: { id: '123', name: 'test' },
-    })
-    run(() => {
-      const { params, get } = useRouteParams<{ id: string; name: string }>()
-      expect(params).toEqual({ id: '123', name: 'test' })
-      expect(get('id')).toBe('123')
-      expect(get('name')).toBe('test')
+  it('accepts explicit ctx parameter', () => {
+    const ctx = new EventContext({ logger })
+    ctx.set(routeParamsKey, { foo: 'bar' })
+    run(ctx, () => {
+      const { params } = useRouteParams(ctx)
+      expect(params).toEqual({ foo: 'bar' })
     })
   })
 
-  it('must handle array route params', () => {
-    const run = createAsyncEventContext({
-      event: { type: 'TEST' },
-      options: {},
-      routeParams: { tags: ['a', 'b'] },
-    })
-    run(() => {
-      const { get } = useRouteParams<{ tags: string[] }>()
-      expect(get('tags')).toEqual(['a', 'b'])
+  it('works with typed params', () => {
+    createEventContext({ logger }, () => {
+      current().set(routeParamsKey, { userId: '123' })
+      const { get } = useRouteParams<{ userId: string }>()
+      expect(get('userId')).toBe('123')
     })
   })
 })
 
 describe('useEventId', () => {
-  it('must generate a UUID on first call', () => {
-    runInTestContext(() => {
+  it('returns a UUID via getId()', () => {
+    createEventContext({ logger }, () => {
       const { getId } = useEventId()
       const id = getId()
       expect(id).toMatch(/^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/)
     })
   })
 
-  it('must return the same ID on subsequent calls', () => {
-    runInTestContext(() => {
+  it('returns the same ID on subsequent calls within same context', () => {
+    createEventContext({ logger }, () => {
       const { getId } = useEventId()
-      const first = getId()
-      const second = getId()
-      expect(first).toBe(second)
+      const id1 = getId()
+      const id2 = getId()
+      expect(id1).toBe(id2)
     })
   })
 
-  it('must generate unique IDs for different contexts', () => {
-    let id1 = ''
-    let id2 = ''
+  it('returns different IDs for different contexts', () => {
+    let id1: string | undefined
+    let id2: string | undefined
 
-    const run1 = createAsyncEventContext({ event: { type: 'TEST' }, options: {} })
-    run1(() => { id1 = useEventId().getId() })
+    createEventContext({ logger }, () => {
+      id1 = useEventId().getId()
+    })
+    createEventContext({ logger }, () => {
+      id2 = useEventId().getId()
+    })
 
-    const run2 = createAsyncEventContext({ event: { type: 'TEST' }, options: {} })
-    run2(() => { id2 = useEventId().getId() })
-
+    expect(id1).toBeDefined()
+    expect(id2).toBeDefined()
     expect(id1).not.toBe(id2)
   })
-})
 
-describe('useEventLogger', () => {
-  it('must return a logger with standard log methods', () => {
-    runInTestContext(() => {
-      const logger = useEventLogger()
-      expect(logger.log).toBeTypeOf('function')
-      expect(logger.warn).toBeTypeOf('function')
-      expect(logger.error).toBeTypeOf('function')
-    })
-  })
-
-  it('must return the same logger instance within a context', () => {
-    runInTestContext(() => {
-      const logger1 = useEventLogger()
-      const logger2 = useEventLogger()
-      expect(logger1).toBe(logger2)
-    })
-  })
-
-  it('must return a topic-scoped sub-logger when topic is provided', () => {
-    runInTestContext(() => {
-      const logger = useEventLogger('my-topic')
-      expect(logger).toBeDefined()
-      expect(logger.log).toBeTypeOf('function')
+  it('accepts explicit ctx parameter', () => {
+    createEventContext({ logger }, () => {
+      const ctx = current()
+      const { getId } = useEventId(ctx)
+      const id = getId()
+      expect(id).toMatch(/^[\da-f]{8}-/)
     })
   })
 })

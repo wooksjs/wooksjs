@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { prepareTestHttpContext } from '../../testing'
 import { useAccept } from '../header-accept'
 import { useAuthorization } from '../header-authorization'
-import { useHeaders, useSetHeaders } from '../headers'
+import { useHeaders } from '../headers'
+import { useResponse } from '../response'
 
 describe('event-http/headers useHeaders', () => {
   const acceptValue = 'application/json; text/html'
@@ -73,7 +74,7 @@ describe('event-http/headers useHeaders', () => {
   })
 })
 
-describe('event-http/headers useSetHeaders', () => {
+describe('event-http/headers useResponse().setHeader', () => {
   let runInContext: ReturnType<typeof prepareTestHttpContext>
 
   beforeEach(() => {
@@ -88,17 +89,17 @@ describe('event-http/headers useSetHeaders', () => {
 
   it('must setContentType', () => {
     runInContext(() => {
-      const { setContentType, headers } = useSetHeaders()
-      setContentType('text/plain')
-      expect(headers()).toEqual({ 'content-type': 'text/plain' })
+      const response = useResponse()
+      response.setContentType('text/plain')
+      expect(response.headers()).toEqual({ 'content-type': 'text/plain' })
     })
   })
   it('must set random header', () => {
     runInContext(() => {
-      const { setHeader, headers, getHeader } = useSetHeaders()
-      setHeader('my-header', '1234')
-      expect(headers()).toHaveProperty('my-header')
-      expect(getHeader('my-header')).toEqual('1234')
+      const response = useResponse()
+      response.setHeader('my-header', '1234')
+      expect(response.headers()).toHaveProperty('my-header')
+      expect(response.getHeader('my-header')).toEqual('1234')
     })
   })
 })

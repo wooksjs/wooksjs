@@ -1,25 +1,33 @@
-import type { TCtxHelpers, TEmpty, TEventOptions, TGenericContextStore } from '@wooksjs/event-core'
-import { createAsyncEventContext, useAsyncEventContext } from '@wooksjs/event-core'
+import { EventContext, current, run } from '@wooksjs/event-core'
+import type { EventContextOptions } from '@wooksjs/event-core'
 
-import type { THttpContextStore, THttpEventData } from './types'
+import { httpKind } from './http-kind'
+import { HttpResponse } from './response/http-response'
+import type { THttpEventData } from './types'
 
 /** Creates an async event context for an incoming HTTP request/response pair. */
-export function createHttpContext(data: THttpEventData, options: TEventOptions) {
-  return createAsyncEventContext<THttpContextStore, THttpEventData>({
-    event: {
-      ...data,
-      type: 'HTTP',
-    },
-    options,
-  })
+export function createHttpContext(
+  data: THttpEventData,
+  options: EventContextOptions,
+  ResponseClass: typeof HttpResponse = HttpResponse,
+) {
+  const ctx = new EventContext(options)
+  const response = new ResponseClass(data.res, data.req, ctx.logger)
+  return <R>(fn: () => R): R =>
+    run(ctx, () =>
+      ctx.attach(
+        httpKind,
+        {
+          req: data.req,
+          response,
+          requestLimits: data.requestLimits,
+        },
+        fn,
+      ),
+    )
 }
 
-/**
- * Wrapper on useEventContext with HTTP event types
- * @returns set of hooks { getCtx, restoreCtx, clearCtx, hookStore, getStore, setStore }
- */
-export function useHttpContext<T extends TEmpty>(): TCtxHelpers<
-  THttpContextStore & T & TGenericContextStore<THttpEventData>
-> {
-  return useAsyncEventContext<THttpContextStore & T, THttpEventData>('HTTP')
+/** Returns the current HTTP event context. */
+export function useHttpContext(ctx?: EventContext): EventContext {
+  return ctx ?? current()
 }

@@ -1,20 +1,14 @@
-/**
- * ContextInjector
- *
- * Provides a way to inject context
- * Usefull when working with opentelemetry spans
- */
 export class ContextInjector<N> {
   with<T>(
     name: N,
     attributes: Record<string, string | number | boolean>,
-    cb: TContextInjectorCallback<T>,
+    cb: () => T,
   ): T
-  with<T>(name: N, cb: TContextInjectorCallback<T>): T
+  with<T>(name: N, cb: () => T): T
   with<T>(
     name: N,
-    attributes: Record<string, string | number | boolean> | TContextInjectorCallback<T>,
-    cb?: TContextInjectorCallback<T>,
+    attributes: Record<string, string | number | boolean> | (() => T),
+    cb?: () => T,
   ): T {
     const fn = typeof attributes === 'function' ? attributes : cb!
     return fn()
@@ -25,16 +19,12 @@ export class ContextInjector<N> {
   }
 }
 
-type TContextInjectorCallback<T> = () => T
-
 let ci = new ContextInjector()
 
-/** Returns the current global `ContextInjector` instance. */
 export function getContextInjector<N = TContextInjectorHooks>(): ContextInjector<N> {
   return ci as ContextInjector<N>
 }
 
-/** Replaces the global `ContextInjector` instance (e.g., to integrate with OpenTelemetry). */
 export function replaceContextInjector(newCi: ContextInjector<string>): void {
   ci = newCi
 }

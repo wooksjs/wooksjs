@@ -1,37 +1,45 @@
-import type { TEmpty, TEventOptions } from '@wooksjs/event-core'
-import { createAsyncEventContext, useAsyncEventContext } from '@wooksjs/event-core'
+import { EventContext, run } from '@wooksjs/event-core'
+import type { EventContextOptions } from '@wooksjs/event-core'
 
-import type { TWFContextStore, TWFEventData } from './types'
+import type { TWFEventInput } from './types'
+import { resumeKey, wfKind } from './wf-kind'
 
-/** Creates a new async event context for a fresh workflow execution. */
-export function createWfContext(data: Omit<TWFEventData, 'type'>, options: TEventOptions) {
-  return createAsyncEventContext<TWFContextStore, TWFEventData>({
-    event: {
-      ...data,
-      type: 'WF',
-    },
-    resume: false,
-    options,
-  })
+/** Creates a new event context for a fresh workflow execution. */
+export function createWfContext(data: TWFEventInput, options: EventContextOptions) {
+  const ctx = new EventContext(options)
+  return <R>(fn: () => R): R =>
+    run(ctx, () => {
+      ctx.set(resumeKey, false)
+      return ctx.attach(
+        wfKind,
+        {
+          schemaId: data.schemaId,
+          stepId: data.stepId,
+          inputContext: data.inputContext,
+          indexes: data.indexes,
+          input: data.input,
+        },
+        fn,
+      )
+    })
 }
 
-/** Creates an async event context for resuming a paused workflow. */
-export function resumeWfContext(data: Omit<TWFEventData, 'type'>, options: TEventOptions) {
-  return createAsyncEventContext<TWFContextStore, TWFEventData>({
-    event: {
-      ...data,
-      type: 'WF',
-    },
-    resume: true,
-    options,
-  })
-}
-
-/**
- * Wrapper on top of useEventContext that provides
- * proper context types for WF event
- * @returns set of hooks { getCtx, restoreCtx, clearCtx, hookStore, getStore, setStore }
- */
-export function useWFContext<T extends TEmpty>() {
-  return useAsyncEventContext<TWFContextStore & T, TWFEventData>('WF')
+/** Creates an event context for resuming a paused workflow. */
+export function resumeWfContext(data: TWFEventInput, options: EventContextOptions) {
+  const ctx = new EventContext(options)
+  return <R>(fn: () => R): R =>
+    run(ctx, () => {
+      ctx.set(resumeKey, true)
+      return ctx.attach(
+        wfKind,
+        {
+          schemaId: data.schemaId,
+          stepId: data.stepId,
+          inputContext: data.inputContext,
+          indexes: data.indexes,
+          input: data.input,
+        },
+        fn,
+      )
+    })
 }

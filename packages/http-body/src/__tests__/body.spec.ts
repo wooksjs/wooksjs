@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { prepareTestHttpContext } from '../../../event-http/src/testing'
+import { prepareTestHttpContext } from '@wooksjs/event-http'
 import { useBody } from '../body'
 
 describe('body', () => {
@@ -121,7 +121,7 @@ describe('body', () => {
     await prepareTestHttpContext({
       url: '',
       headers: { 'content-type': 'application/json' },
-      cachedContext: { rawBody: bodyValue },
+      rawBody: bodyValue,
     })(async () => {
       const { parseBody } = useBody()
       expect(await parseBody()).toEqual({ test: 'object', a: 123 })
@@ -149,7 +149,7 @@ Content-Disposition: form-data; name="x2[]"
         'content-type':
           'multipart/form-data; boundary=--------------------------038816476509113988597354',
       },
-      cachedContext: { rawBody: bodyValue },
+      rawBody: bodyValue,
     })(async () => {
       const { parseBody } = useBody()
       expect(await parseBody()).toEqual({
@@ -177,7 +177,7 @@ Content-Disposition: form-data; name="x4"
         'content-type':
           'multipart/form-data; boundary=--------------------------038816476509113988597354',
       },
-      cachedContext: { rawBody: bodyValue },
+      rawBody: bodyValue,
     })(async () => {
       const { parseBody } = useBody()
       expect(await parseBody()).toEqual({
@@ -192,7 +192,7 @@ Content-Disposition: form-data; name="x4"
     await prepareTestHttpContext({
       url: '',
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      cachedContext: { rawBody: bodyValue },
+      rawBody: bodyValue,
     })(async () => {
       const { parseBody } = useBody()
       expect(await parseBody()).toEqual({

@@ -96,46 +96,38 @@ Example:
 
 ```ts [custom-parser-composable.ts]
 import { useBody } from '@wooksjs/http-body';
-import { useHttpContext, useHeaders } from '@wooksjs/event-http';
+import { useHeaders } from '@wooksjs/event-http';
+import { defineWook, cached } from '@wooksjs/event-core';
 
-// Describing the type of the context store
-type TBodyStore = {
-    parsed?: Promise<unknown>;
-};
-
-export function useCustomBody() {
-    // Getting the context store for our type
-    const { store } = useHttpContext<{ request: TBodyStore }>();
-
-    // Getting the init function for `request` props
-    const { init } = store('request');
-
+export const useCustomBody = defineWook((ctx) => {
     // Using the `rawBody` composable to get the raw body buffer
-    const { rawBody } = useBody();
+    const { rawBody } = useBody(ctx);
 
     // Preparing default body parser for fallbacks
-    const defaultParser = useBody().parseBody;
+    const defaultParser = useBody(ctx).parseBody;
 
     // Getting the content-type
-    const { 'content-type': contentType } = useHeaders();
+    const { 'content-type': contentType } = useHeaders(ctx);
 
-    // Defining our parser
-    const parseBody = () =>
-        init('parsed', async () => {
-            // Do custom parsing only for 'my-custom-content'
-            if (contentType === 'my-custom-content') {
-                const bodyBuffer = await rawBody();
-                const parcedBody = '...'
-                // Your custom parsing logic for bodyBuffer...
-                return parcedBody
-            } else {
-                // Fallback to default parser
-                return defaultParser();
-            }
-        });
+    // A cached slot ensures parsing happens only once per request
+    const parsedSlot = cached(async () => {
+        // Do custom parsing only for 'my-custom-content'
+        if (contentType === 'my-custom-content') {
+            const bodyBuffer = await rawBody();
+            const parsedBody = '...'
+            // Your custom parsing logic for bodyBuffer...
+            return parsedBody
+        } else {
+            // Fallback to default parser
+            return defaultParser();
+        }
+    });
 
-    return { parseBody, rawBody };
-}
+    return {
+        parseBody: () => ctx.get(parsedSlot),
+        rawBody,
+    };
+});
 ```
 
 ```ts [index.ts]
@@ -153,7 +145,7 @@ In the example above, we created a custom composable function called `useCustomB
 that parses the body for content type `'my-custom-content'` and falls back to the default
 parser provided by `@wooksjs/http-body` for other content types.
 
-With the this approach, you can easily customize the body parsing logic based on your specific requirements.
+The `defineWook` wrapper ensures the factory runs once per request, and the `cached` slot ensures
+parsing happens only once even if `parseBody` is called multiple times.
 
-Please note that `store` and `init` functions that we used above are part of the Event Context API.
-For more details on using Wooks Event Context API, refer to the [Event Context](/wooks/advanced/wooks-context).
+For more details on building composables, refer to the [Event Context](/wooks/advanced/wooks-context) documentation.

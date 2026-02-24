@@ -1,4 +1,6 @@
-import { useCliContext } from '../event-cli'
+import { current } from '@wooksjs/event-core'
+
+import { cliKind } from '../cli-kind'
 import { useCliOption } from './options'
 
 /**
@@ -15,16 +17,16 @@ import { useCliOption } from './options'
  * @returns
  */
 export function useCliHelp() {
-  const event = useCliContext().store('event')
-  const getCliHelp = () => event.get('cliHelp')!
-  const getEntry = () => getCliHelp().match(event.get('command')).main
+  const ctx = current()
+  const getCliHelp = () => ctx.get(cliKind.keys.cliHelp)!
+  const getEntry = () => getCliHelp().match(ctx.get(cliKind.keys.command)).main
   return {
     getCliHelp,
     getEntry,
     render: (width?: number, withColors?: boolean) =>
-      getCliHelp().render(event.get('command'), width, withColors),
+      getCliHelp().render(ctx.get(cliKind.keys.command), width, withColors),
     print: (withColors?: boolean) => {
-      getCliHelp().print(event.get('command'), withColors)
+      getCliHelp().print(ctx.get(cliKind.keys.command), withColors)
     },
   }
 }
@@ -55,12 +57,8 @@ export function useCliHelp() {
 export function useAutoHelp(keys = ['help'], colors = true) {
   for (const option of keys) {
     if (useCliOption(option) === true) {
-      // try {
       useCliHelp().print(colors)
       return true
-      // } catch (e) {
-      //     throw new
-      // }
     }
   }
 }
@@ -99,10 +97,10 @@ export function useAutoHelp(keys = ['help'], colors = true) {
  * ...
  */
 export function useCommandLookupHelp(lookupDepth = 3) {
+  const ctx = current()
   const parts =
-    useCliContext()
-      .store('event')
-      .get('pathParams')
+    ctx
+      .get(cliKind.keys.pathParams)
       ?.flatMap((p) => `${p} `.split(':').map((s, i) => (i ? `:${s}` : s))) || []
   const cliHelp = useCliHelp().getCliHelp()
   const cmd = cliHelp.getCliName()

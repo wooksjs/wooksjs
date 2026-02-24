@@ -2,8 +2,8 @@ import type { TConsoleBase, TProstoLoggerOptions } from '@prostojs/logger'
 import { coloredConsole, createConsoleTransort, ProstoLogger } from '@prostojs/logger'
 import type { THttpMethod, TParsedSegment, TProstoRouterPathHandle } from '@prostojs/router'
 import { ProstoRouter } from '@prostojs/router'
-import type { TEventOptions } from '@wooksjs/event-core'
-import { getContextInjector, useAsyncEventContext } from '@wooksjs/event-core'
+import { current, getContextInjector, routeParamsKey } from '@wooksjs/event-core'
+import type { EventContext, EventContextOptions, Logger } from '@wooksjs/event-core'
 
 import type { TWooksHandler } from './types'
 
@@ -91,6 +91,7 @@ export class Wooks {
   public lookup(
     method: string,
     path: string,
+    ctx: EventContext = current(),
   ): {
     handlers: TWooksHandler[] | null
     segments: TParsedSegment[] | null
@@ -98,7 +99,7 @@ export class Wooks {
     path: string | null
   } {
     const found = this.getRouter().lookup(method as THttpMethod, path || '')
-    useAsyncEventContext().store('routeParams').value = found?.ctx?.params || {}
+    ctx.set(routeParamsKey, found?.ctx?.params || {})
     if (found?.route?.handlers.length) {
       getContextInjector().hook(method, 'Handler:routed', found.route.path)
     } else {
@@ -110,6 +111,25 @@ export class Wooks {
       firstStatic: found?.route?.firstStatic || null,
       path: found?.route?.path || null,
     }
+  }
+
+  /**
+   * Fast lookup that returns only the handlers array (or null).
+   * Avoids allocating a result object on each request.
+   */
+  public lookupHandlers(
+    method: string,
+    path: string,
+    ctx: EventContext = current(),
+  ): TWooksHandler[] | null {
+    const found = this.getRouter().lookup(method as THttpMethod, path || '')
+    ctx.set(routeParamsKey, found?.ctx?.params || {})
+    if (found?.route?.handlers.length) {
+      getContextInjector().hook(method, 'Handler:routed', found.route.path)
+      return found.route.handlers
+    }
+    getContextInjector().hook(method, 'Handler:not_found')
+    return null
   }
 
   /**
@@ -206,19 +226,9 @@ export class WooksAdapterBase {
     return this.getWooks().getLogger(topic)
   }
 
-  protected getLoggerOptions(): TProstoLoggerOptions {
-    return this.getWooks().getLoggerOptions()
-  }
-
-  /** Merges the given event options with the current logger configuration. */
-  protected mergeEventOptions(opts?: TEventOptions): TEventOptions {
-    return {
-      ...opts,
-      eventLogger: {
-        ...this.getLoggerOptions(),
-        ...opts?.eventLogger,
-      } as TEventOptions['eventLogger'],
-    }
+  /** Returns event context options with a logger derived from the Wooks instance. */
+  protected getEventContextOptions(): EventContextOptions {
+    return { logger: this.getWooks().getLogger('event') as Logger }
   }
 
   /**

@@ -1,6 +1,18 @@
-import { useHttpContext } from '../event-http'
+import { cached, defineWook } from '@wooksjs/event-core'
+import type { EventContext } from '@wooksjs/event-core'
+
+import { httpKind } from '../http-kind'
 import { WooksURLSearchParams } from '../utils/url-search-params'
-import { useRequest } from './request'
+
+const rawSearchParamsSlot = cached((ctx: EventContext) => {
+  const url = ctx.get(httpKind.keys.req).url || ''
+  const i = url.indexOf('?')
+  return i >= 0 ? url.slice(i) : ''
+})
+
+const urlSearchParamsSlot = cached(
+  (ctx: EventContext) => new WooksURLSearchParams(ctx.get(rawSearchParamsSlot)),
+)
 
 /**
  * Provides access to URL search (query) parameters from the request.
@@ -10,23 +22,8 @@ import { useRequest } from './request'
  * const page = urlSearchParams().get('page')
  * ```
  */
-export function useSearchParams() {
-  const { store } = useHttpContext()
-  const url = useRequest().url || ''
-  const { init } = store('searchParams')
-
-  const rawSearchParams = () =>
-    init('raw', () => {
-      const i = url.indexOf('?')
-      return i >= 0 ? url.slice(i) : ''
-    })
-
-  const urlSearchParams = () =>
-    init('urlSearchParams', () => new WooksURLSearchParams(rawSearchParams()))
-
-  return {
-    rawSearchParams,
-    urlSearchParams,
-    jsonSearchParams: () => urlSearchParams().toJson(),
-  }
-}
+export const useSearchParams = defineWook((ctx: EventContext) => ({
+  rawSearchParams: () => ctx.get(rawSearchParamsSlot),
+  urlSearchParams: () => ctx.get(urlSearchParamsSlot),
+  jsonSearchParams: () => ctx.get(urlSearchParamsSlot).toJson(),
+}))

@@ -7,6 +7,6 @@ A composable function, also known as a hook, is a function that connects you to 
 Wooks HTTP provides various useful composable functions that can be categorized into the following groups:
 
 - [Request Composables](./request.md): Functions related to the request, such as headers, cookies, and the request body.
-- [Response Composables](./request.md): Functions for setting the response, including setting headers and cookies.
+- [Response Composables](./response.md): Functions for setting the response, including headers, cookies, status, and cache control.
 
 You can also create your own composables to encapsulate additional logic, such as retrieving user data based on cookies or authentication headers.

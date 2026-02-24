@@ -1,44 +1,81 @@
 # What is Wooks?
 
-Wooks is a next-generation, TypeScript-first, event-driven framework designed to elegantly handle the entire lifecycle of various event types — from HTTP requests to CLI commands and beyond. At its core, Wooks tackles the common challenges of routing, context management, and data processing in a flexible, extensible, and performance-conscious manner.
+Wooks is a TypeScript-first event framework for Node.js. It handles HTTP requests, CLI commands, workflows, and custom event types through a single composable-based architecture.
 
-## A Framework-Agnostic Event Engine  
-In traditional Node.js frameworks like Express or Fastify, everything revolves around HTTP. Wooks, however, starts from a more fundamental perspective: it treats every incoming interaction as an *event*, and it can just as easily handle non-HTTP events as it does HTTP requests. While it provides dedicated wrappers for HTTP servers, it also supports other event sources such as CLI inputs or custom workflows.
+## Composables
 
-## Composable Context Management
-One of Wooks’ standout features is its approach to handling contextual data, such as request bodies, query parameters, user authentication data, or even low-level technical details. Instead of attaching these properties directly to the `req` object or relying on global variables, Wooks introduces the concept of **composables**.
-
-## What Are Composables?
-If you are familiar with frontend frameworks like Vue.js or React, you might have encountered the idea of "hooks" or "composables": functions that let you “plug in” features and behaviors without cluttering your code with global state or unwieldy dependencies. Wooks brings this pattern to the server-side world, offering a similar approach for dealing with contextual data in event handlers.
-
-For example, to access the parsed request body in an HTTP event, you might write something like:
+A composable is a function that accesses per-event contextual data. You call it — you get typed data back. No arguments, no `req` object, no middleware registration.
 
 ```ts
-import { useBody } from '@wooksjs/http-body'
-
 app.post('/submit', async () => {
   const { parseBody } = useBody()
-  const body = await parseBody<{ name: string, email: string }>()
-  // `body` is now properly typed and accessible here
-  return { message: `Received data from ${body.name} <${body.email}>` }
+  const body = await parseBody<{ name: string }>()
+
+  const response = useResponse()
+  response.setStatus(201)
+
+  return { created: body.name }
 })
 ```
 
-Here’s what’s happening:
+`useBody()` doesn't parse anything until you call `parseBody()`. `useResponse()` doesn't allocate anything until you call a method on it. Composables are lazy — they do work only when asked.
 
-- **No Pollution of Native Objects:** Instead of stuffing `req.body` or `req.user` properties directly into the request object, composables access the data from a shared, context-aware storage. This keeps the request object clean and preserves native types.
-  
-- **Type Safety and IDE Support:** Because Wooks is built in TypeScript from the start, each composable can provide strong typing, enhancing IDE auto-completion and helping you catch errors at compile-time rather than at runtime.
-  
-- **Async-Aware Context:** Wooks leverages Node’s `AsyncLocalStorage` under the hood. This means that even if your handler is asynchronous and involves multiple `await` calls, the context — along with all composables — remains stable and accessible. Unlike other frameworks that may require you to pass context objects around manually, Wooks handles this continuity for you, simplifying your code and ensuring reliability.
+Under the hood, each composable reads from an `EventContext` — a per-event `Map` of typed slots, propagated via `AsyncLocalStorage`. You never see it, but it's why composables work anywhere in the call stack, through any number of `await` boundaries.
 
-## A Clean, Layered Architecture
-Wooks is designed as a collection of libraries that each solve a discrete piece of the puzzle:
+## `defineWook`
 
-- **[@prostojs/router](https://github.com/prostojs/router):** A fast and well-structured router, decoupled from any specific framework, ensures your routing logic is both clean and high-performance.
-- **@wooksjs/event-core:** Manages the event context and the composable system, providing a generic mechanism to handle any kind of event.
-- **@wooksjs/event-http:** Builds on `event-core` to provide a familiar HTTP server interface with built-in context and composables.
+Every built-in composable is created with `defineWook` — and so are yours:
 
-By separating concerns, Wooks empowers you to build just what you need — focusing on domain logic rather than wrestling with request objects, middleware stacks, or hidden state. Its composable pattern encourages code reuse, simpler tests, and cleaner abstractions than you might find in traditional frameworks.
+```ts
+import { defineWook } from '@wooksjs/event-core'
+import { useAuthorization } from '@wooksjs/event-http'
 
-In short, Wooks takes the best ideas from modern web frameworks, rethinking them in a more generic and extensible form, and adding powerful, easily testable abstractions. It invites you to write modular, maintainable, and well-typed server-side code, whether you’re building a standard REST API, a CLI tool, or a custom event-driven architecture.
+export const useCurrentUser = defineWook((ctx) => {
+  const { basicCredentials } = useAuthorization(ctx)
+  const username = basicCredentials()?.username
+  return {
+    username,
+    profile: async () => username ? await db.findUser(username) : null,
+  }
+})
+```
+
+The factory runs once per event. Every subsequent call to `useCurrentUser()` within the same request returns the cached result. This is the same mechanism that powers `useBody`, `useResponse`, `useCookies`, and every other composable in the framework.
+
+## Context Primitives
+
+The context system is built on a small set of primitives:
+
+| Primitive | What it does |
+|-----------|-------------|
+| `key<T>(name)` | A writable typed slot — you `set` and `get` values explicitly |
+| `cached<T>(fn)` | A read-only slot — computed lazily on first access, cached for the event lifetime |
+| `cachedBy<K, V>(fn)` | Like `cached`, but keyed — one result per unique argument |
+| `defineEventKind(name, slots)` | Declares a named event schema with typed seed slots |
+| `defineWook(factory)` | Creates a composable with per-event caching |
+
+There are no string-keyed stores, no `Object.defineProperty` hooks. The context is a flat `Map<number, unknown>` with compile-time type safety layered on top.
+
+## Events, Not Just HTTP
+
+Every interaction in Wooks follows the same lifecycle:
+
+1. Create an `EventContext`
+2. Seed it with event-specific data (HTTP request, CLI args, workflow state)
+3. Look up and run handlers
+4. Composables pull data from context on demand
+
+HTTP is one implementation. CLI is another. You can define your own event kinds with `defineEventKind` and build adapters that follow the same pattern. The composables you write for one event type work in any other — as long as they only depend on shared context.
+
+## Package Structure
+
+| Package | Role |
+|---------|------|
+| [@prostojs/router](https://github.com/prostojs/router) | Standalone high-performance router |
+| @wooksjs/event-core | Context primitives: `key`, `cached`, `defineWook`, `defineEventKind` |
+| @wooksjs/event-http | HTTP adapter, request/response composables |
+| @wooksjs/event-cli | CLI adapter, option/argument composables |
+| @wooksjs/event-wf | Workflow adapter, step/flow composables |
+| @wooksjs/http-body | Body parser composable |
+| @wooksjs/http-static | Static file serving |
+| @wooksjs/http-proxy | Reverse proxy composable |

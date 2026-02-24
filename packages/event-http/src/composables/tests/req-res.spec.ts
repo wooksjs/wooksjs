@@ -2,6 +2,7 @@ import { useRouteParams } from '@wooksjs/event-core'
 import { IncomingMessage, ServerResponse } from 'http'
 import { beforeEach, describe, expect, it } from 'vitest'
 
+import { HttpResponse } from '../../response/http-response'
 import { prepareTestHttpContext } from '../../testing'
 import { useRequest } from '../request'
 import { useResponse } from '../response'
@@ -46,8 +47,9 @@ describe('compasble/req-res', () => {
 
   it('must return response', () => {
     runInContext(() => {
-      const { rawResponse } = useResponse()
-      expect(rawResponse()).toBeInstanceOf(ServerResponse)
+      const response = useResponse()
+      expect(response).toBeInstanceOf(HttpResponse)
+      expect(response.getRawRes()).toBeInstanceOf(ServerResponse)
     })
   })
 

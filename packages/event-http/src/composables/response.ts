@@ -1,53 +1,22 @@
-import { attachHook } from '@wooksjs/event-core'
+import { current } from '@wooksjs/event-core'
+import type { EventContext } from '@wooksjs/event-core'
 
-import { useHttpContext } from '../event-http'
-import type { EHttpStatusCode } from '../utils/status-codes'
-
-interface TUseResponseOptions {
-  passthrough: boolean // when true: keep building response via framework
-}
+import { httpKind } from '../http-kind'
+import type { HttpResponse } from '../response/http-response'
 
 /**
- * Provides access to the raw HTTP response and status code management.
+ * Returns the HttpResponse instance for the current request.
+ * All response operations (status, headers, cookies, cache control, sending)
+ * are methods on the returned object.
+ *
  * @example
  * ```ts
- * const { status, rawResponse, hasResponded } = useResponse()
- * status(200)
+ * const response = useResponse()
+ * response.status = 200
+ * response.setHeader('x-custom', 'value')
+ * response.setCookie('session', 'abc', { httpOnly: true })
  * ```
  */
-export function useResponse() {
-  const { store } = useHttpContext()
-  const event = store('event')
-  const res = event.get('res')!
-  const responded = store('response').hook('responded')
-  const statusCode = store('status').hook('code')
-
-  function status(code?: EHttpStatusCode) {
-    return (statusCode.value = code ? code : statusCode.value)
-  }
-
-  const rawResponse = (options?: TUseResponseOptions) => {
-    if (!options || !options.passthrough) {
-      responded.value = true
-    }
-    return res
-  }
-
-  return {
-    rawResponse,
-    hasResponded: () => responded.value || !res.writable || res.writableEnded,
-    status: attachHook(status, {
-      get: () => statusCode.value,
-      set: (code: EHttpStatusCode) => (statusCode.value = code),
-    }),
-  }
+export function useResponse(ctx?: EventContext): HttpResponse {
+  return (ctx ?? current()).get(httpKind.keys.response)
 }
-
-/** Returns a hookable accessor for the response status code. */
-export function useStatus() {
-  const { store } = useHttpContext()
-  return store('status').hook('code')
-}
-
-/** Hook type returned by {@link useStatus}. */
-export type TStatusHook = ReturnType<typeof useStatus>

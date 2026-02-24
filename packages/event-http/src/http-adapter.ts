@@ -1,5 +1,6 @@
 import type { TConsoleBase } from '@prostojs/logger'
-import type { TEventOptions } from '@wooksjs/event-core'
+import { EventContext, run } from '@wooksjs/event-core'
+import type { EventContextOptions } from '@wooksjs/event-core'
 import type { IncomingMessage, Server, ServerResponse } from 'http'
 import http from 'http'
 import type { ListenOptions } from 'net'
@@ -7,24 +8,27 @@ import type { TWooksHandler, TWooksOptions, Wooks } from 'wooks'
 import { WooksAdapterBase } from 'wooks'
 
 import { HttpError } from './errors'
-import { createHttpContext, useHttpContext } from './event-http'
-import { createWooksResponder } from './response'
+import { httpKind } from './http-kind'
+import type { HttpResponse } from './response/http-response'
+import { WooksHttpResponse } from './response/wooks-http-response'
 import type { TRequestLimits } from './types'
 
 /** Configuration options for the WooksHttp adapter. */
 export interface TWooksHttpOptions {
   logger?: TConsoleBase
-  eventOptions?: TEventOptions
   onNotFound?: TWooksHandler
   router?: TWooksOptions['router']
   /** Default request body limits applied to every request (overridable per-request via `useRequest()`). */
   requestLimits?: Omit<TRequestLimits, 'perRequest'>
+  /** Custom HttpResponse subclass. Defaults to WooksHttpResponse (HTML/JSON/text error rendering). */
+  responseClass?: typeof WooksHttpResponse
 }
 
 /** HTTP adapter for Wooks that provides route registration, server lifecycle, and request handling. */
 export class WooksHttp extends WooksAdapterBase {
   protected logger: TConsoleBase
-  protected _cachedEventOptions: TEventOptions
+  protected ResponseClass: typeof WooksHttpResponse
+  protected eventContextOptions: EventContextOptions
 
   constructor(
     protected opts?: TWooksHttpOptions,
@@ -32,7 +36,8 @@ export class WooksHttp extends WooksAdapterBase {
   ) {
     super(wooks, opts?.logger, opts?.router)
     this.logger = opts?.logger || this.getLogger(`${__DYE_CYAN_BRIGHT__}[wooks-http]`)
-    this._cachedEventOptions = this.mergeEventOptions(opts?.eventOptions)
+    this.ResponseClass = opts?.responseClass ?? WooksHttpResponse
+    this.eventContextOptions = this.getEventContextOptions()
   }
 
   /** Registers a handler for all HTTP methods on the given path. */
@@ -177,12 +182,25 @@ export class WooksHttp extends WooksAdapterBase {
     this.server = server
   }
 
-  protected responder = createWooksResponder()
+  protected respond(
+    data: unknown,
+    response: HttpResponse,
+    ctx: EventContext,
+  ): void | Promise<void> {
+    if (response.responded) {
+      return
+    }
 
-  protected respond(data: unknown) {
-    return this.responder.respond(data)?.catch((error) => {
-      this.logger.error('Uncaught response exception', error)
-    })
+    if (data instanceof Error) {
+      const httpError = data instanceof HttpError ? data : new HttpError(500, data.message)
+      return response.sendError(httpError, ctx)
+    }
+
+    if (data !== response) {
+      response.body = data
+    }
+
+    return response.send()
   }
 
   /**
@@ -198,60 +216,125 @@ export class WooksHttp extends WooksAdapterBase {
    * ```
    */
   getServerCb() {
+    const ctxOptions = this.eventContextOptions
+    const RequestLimits = this.opts?.requestLimits
+    const notFoundHandler = this.opts?.onNotFound
+
     return (req: IncomingMessage, res: ServerResponse) => {
-      const runInContext = createHttpContext(
-        { req, res, requestLimits: this.opts?.requestLimits },
-        this._cachedEventOptions,
-      )
+      const ctx = new EventContext(ctxOptions)
+      const response = new this.ResponseClass(res, req, ctx.logger)
       const method = req.method || ''
       const url = req.url || ''
-      runInContext(async () => {
-        const notFoundHandler = this.opts?.onNotFound
-        const { handlers } = this.wooks.lookup(method, url)
+
+      run(ctx, () => {
+        ctx.attach(httpKind, {
+          req,
+          response,
+          requestLimits: RequestLimits,
+        })
+
+        const handlers = this.wooks.lookupHandlers(method, url, ctx)
         if (handlers || notFoundHandler) {
-          try {
-            return await this.processHandlers(handlers || [notFoundHandler as TWooksHandler])
-          } catch (error) {
-            this.logger.error('Internal error, please report', error)
-            await this.respond(error)
-            return error
+          const result = this.processHandlers(
+            handlers || [notFoundHandler as TWooksHandler],
+            ctx,
+            response,
+          )
+          // Only attach .catch() if processHandlers returned a Promise (async handler)
+          if (result !== null && result !== undefined && typeof (result as Promise<unknown>).then === 'function') {
+            ;(result as Promise<unknown>).catch((error) => {
+              this.logger.error('Internal error, please report', error)
+              this.respond(error, response, ctx)
+            })
           }
         } else {
-          // not found
           this.logger.debug(`404 Not found (${method})${url}`)
           const error = new HttpError(404)
-          await this.respond(error)
-          return error
+          this.respond(error, response, ctx)
         }
       })
     }
   }
 
-  protected async processHandlers(handlers: TWooksHandler[]) {
-    const { store } = useHttpContext()
+  protected processHandlers(
+    handlers: TWooksHandler[],
+    ctx: EventContext,
+    response: HttpResponse,
+  ): void | Promise<unknown> {
     for (let i = 0; i < handlers.length; i++) {
       const handler = handlers[i]
       const isLastHandler = i === handlers.length - 1
       try {
-        const promise = handler() as Promise<unknown>
-        const result = await promise
-        // even if the returned value is an Error instance
-        // we still want to process it as a response
-        await this.respond(result)
-        return result
+        const result = handler()
+        // If handler returned a thenable, switch to async processing
+        if (result !== null && result !== undefined && typeof (result as Promise<unknown>).then === 'function') {
+          return this.processAsyncResult(
+            result as Promise<unknown>,
+            handlers,
+            i,
+            ctx,
+            response,
+          )
+        }
+        // Sync handler — respond synchronously (no Promise allocated)
+        this.respond(result, response, ctx)
+        return
       } catch (error) {
-        if (error instanceof HttpError) {
-          // this.logger.debug(
-          //   `${error.body.statusCode}: ${error.message} :: ${store('event').get('req')?.url || ''}`
-          // )
-        } else {
+        if (!(error instanceof HttpError)) {
           this.logger.error(
-            `Uncaught route handler exception: ${store('event').get('req')?.url || ''}`,
+            `Uncaught route handler exception: ${ctx.get(httpKind.keys.req)?.url || ''}`,
             error,
           )
         }
         if (isLastHandler) {
-          await this.respond(error)
+          this.respond(error, response, ctx)
+          return
+        }
+      }
+    }
+  }
+
+  private async processAsyncResult(
+    promise: Promise<unknown>,
+    handlers: TWooksHandler[],
+    startIndex: number,
+    ctx: EventContext,
+    response: HttpResponse,
+  ): Promise<unknown> {
+    try {
+      const result = await promise
+      await this.respond(result, response, ctx)
+      return result
+    } catch (error) {
+      const isLastHandler = startIndex === handlers.length - 1
+      if (!(error instanceof HttpError)) {
+        this.logger.error(
+          `Uncaught route handler exception: ${ctx.get(httpKind.keys.req)?.url || ''}`,
+          error,
+        )
+      }
+      if (isLastHandler) {
+        await this.respond(error, response, ctx)
+        return error
+      }
+    }
+    // Continue with remaining handlers (async path)
+    for (let i = startIndex + 1; i < handlers.length; i++) {
+      const handler = handlers[i]
+      const isLastHandler = i === handlers.length - 1
+      try {
+        const result = await (handler() as Promise<unknown>)
+        await this.respond(result, response, ctx)
+        return result
+      } catch (error) {
+        if (!(error instanceof HttpError)) {
+          this.logger.error(
+            `Uncaught route handler exception: ${ctx.get(httpKind.keys.req)?.url || ''}`,
+            error,
+          )
+        }
+        if (isLastHandler) {
+          await this.respond(error, response, ctx)
           return error
         }
       }

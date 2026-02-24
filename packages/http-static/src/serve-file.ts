@@ -1,12 +1,9 @@
 import type { TCacheControl } from '@wooksjs/event-http'
 import {
-  BaseHttpResponse,
   HttpError,
   useHeaders,
   useRequest,
   useResponse,
-  useSetCacheControl,
-  useSetHeaders,
 } from '@wooksjs/event-http'
 import type { Stats } from 'fs'
 import { createReadStream, promises as fsPromises } from 'fs'
@@ -70,11 +67,9 @@ export async function serveFile(
   filePath: string,
   options: TServeFileOptions = {},
 ): Promise<Readable | string | string[] | unknown> {
-  const { status } = useResponse()
-  const { setHeader, removeHeader } = useSetHeaders()
+  const response = useResponse()
   const headers = useHeaders()
   const { method, url } = useRequest()
-  const { setCacheControl, setExpires, setPragmaNoCache } = useSetCacheControl()
 
   const normalizedPath: string = normalizePath(filePath, options.baseDir)
 
@@ -98,7 +93,7 @@ export async function serveFile(
     throw new HttpError(404)
   }
 
-  status(200)
+  response.status = 200
 
   // if-none-match & if-modified-since processing start
   // rfc7232
@@ -112,21 +107,21 @@ export async function serveFile(
       headers['if-modified-since'] || '',
     )
   ) {
-    status(304)
+    response.status = 304
     return ''
   }
   // if-none-match & if-modified-since processing end
 
-  setHeader('etag', etag)
-  setHeader('last-modified', lastModified.toUTCString())
+  response.setHeader('etag', etag)
+  response.setHeader('last-modified', lastModified.toUTCString())
   if (options.cacheControl !== undefined) {
-    setCacheControl(options.cacheControl)
+    response.setCacheControl(options.cacheControl)
   }
   if (options.expires) {
-    setExpires(options.expires)
+    response.setExpires(options.expires)
   }
   if (options.pragmaNoCache) {
-    setPragmaNoCache(options.pragmaNoCache)
+    response.setPragmaNoCache(options.pragmaNoCache)
   }
 
   if (fileStats.isDirectory()) {
@@ -134,15 +129,15 @@ export async function serveFile(
       return listDirectory(normalizedPath)
     } else if (options.index) {
       if (!filePath.endsWith('/') && url && !url.endsWith('/')) {
-        return new BaseHttpResponse().setStatus(302).setHeader('location', `${url}/`)
+        return response.setStatus(302).setHeader('location', `${url}/`)
       }
       return serveFile(path.join(filePath, options.index), {
         ...options,
         index: '',
       })
     }
-    removeHeader('etag')
-    removeHeader('last-modified')
+    response.removeHeader('etag')
+    response.removeHeader('last-modified')
     throw new HttpError(404)
   }
 
@@ -171,31 +166,25 @@ export async function serveFile(
     const ifRangeTag = ifRange.startsWith('"') ? ifRange : ''
     const ifRangeDate = ifRangeTag ? '' : ifRange
     if (ifRange && !isNotModified(etag, lastModified, ifRangeTag, ifRangeDate)) {
-      // If the validator does not match, the server MUST ignore
-      // the Range header field.
-      status(200)
+      response.status = 200
       size = fileStats.size
       range = ''
     } else {
-      // If the validator given in the If-Range header field matches the
-      // current validator for the selected representation of the target
-      // resource, then the server SHOULD process the Range header field as
-      // requested.
-      setHeader('content-range', `bytes ${start}-${end}/${fileStats.size}`)
-      status(206)
+      response.setHeader('content-range', `bytes ${start}-${end}/${fileStats.size}`)
+      response.status = 206
     }
     // if-range processing end
   }
   // range header processing end
 
-  setHeader('accept-ranges', 'bytes')
+  response.setHeader('accept-ranges', 'bytes')
 
-  setHeader('content-type', getMimeType(normalizedPath) || 'application/octet-stream')
-  setHeader('content-length', size)
+  response.setHeader('content-type', getMimeType(normalizedPath) || 'application/octet-stream')
+  response.setHeader('content-length', size)
 
   if (options.headers) {
     for (const header of Object.keys(options.headers)) {
-      setHeader(header, options.headers[header])
+      response.setHeader(header, options.headers[header])
     }
   }
 
@@ -203,10 +192,6 @@ export async function serveFile(
     ? ''
     : createReadStream(normalizedPath, range ? { start, end } : undefined)
 }
-
-// function toWeak(etag: string): string {
-//     return `W/${etag}`
-// }
 
 function isNotModified(
   etag: string,
@@ -221,18 +206,9 @@ function isNotModified(
         return true
       }
     }
-    // A recipient MUST ignore If-Modified-Since if the request contains an
-    // If-None-Match header field; the condition in If-None-Match is
-    // considered to be a more accurate replacement for the condition in
-    // If-Modified-Since, and the two are only combined for the sake of
-    // interoperating with older intermediaries that might not implement
-    // If-None-Match.
     return false
   }
   const date = new Date(clientLM)
-  // A recipient MUST ignore the If-Modified-Since header field if the
-  // received field-value is not a valid HTTP-date, or if the request
-  // method is neither GET nor HEAD.
   if (date.toString() !== 'Invalid Date' && date.getTime() > lastModified.getTime()) {
     return true
   }
@@ -240,7 +216,7 @@ function isNotModified(
 }
 
 async function listDirectory(dirPath: string) {
-  const { setContentType } = useSetHeaders()
+  const response = useResponse()
   const { url } = useRequest()
   const list = await readdir(dirPath)
   const promises = []
@@ -266,7 +242,7 @@ async function listDirectory(dirPath: string) {
     mtime: Date
     dir: boolean
   })
-  setContentType('text/html')
+  response.setContentType('text/html')
   const styles =
     '<style type="text/css">\nhtml { font-family: monospace }\n' +
     'span { padding: 0px 2px }\n' +

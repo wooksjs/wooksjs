@@ -1,42 +1,27 @@
-import { IncomingMessage, ServerResponse } from 'http'
+import { current } from '@wooksjs/event-core'
+import { IncomingMessage } from 'http'
 import { describe, expect, it } from 'vitest'
 
-import { useHttpContext } from '../../event-http'
+import { httpKind } from '../../http-kind'
+import { HttpResponse } from '../../response/http-response'
 import { prepareTestHttpContext } from '../../testing'
 
 describe('http-context', () => {
-  const runInContext = prepareTestHttpContext({
-    url: '',
-    cachedContext: {
-      rawBody: 'some data',
-    },
-  })
+  const runInContext = prepareTestHttpContext({ url: '/test' })
 
-  it('must set current http context and read it when useHttpContext', () => {
+  it('must provide access to req and response via httpKind', () => {
     runInContext(() => {
-      const ctx = useHttpContext().getCtx().event
-      expect(ctx.req).toBeInstanceOf(IncomingMessage)
-      expect(ctx.res).toBeInstanceOf(ServerResponse)
+      const ctx = current()
+      expect(ctx.get(httpKind.keys.req)).toBeInstanceOf(IncomingMessage)
+      expect(ctx.get(httpKind.keys.response)).toBeInstanceOf(HttpResponse)
     })
   })
 
-  it('must useHttpContext', () => {
+  it('must provide access to the current EventContext', () => {
     runInContext(() => {
-      const request = useHttpContext().store('request').value
-      expect(request).toEqual({ rawBody: 'some data' })
+      const ctx = current()
+      expect(ctx).toBeDefined()
+      expect(ctx.get(httpKind.keys.req).url).toBe('/test')
     })
   })
-
-  it('must clear ctx cache', () => {
-    runInContext(() => {
-      const reqStore = useHttpContext().store('request')
-      reqStore.clear()
-      expect(reqStore.value).toEqual({})
-    })
-  })
-
-  // it('must clear http context and throw error when useCurrentWooksContext', () => {
-  //   useHttpContext().clearCtx()
-  //   expect(() => useHttpContext()).toThrowError()
-  // })
 })

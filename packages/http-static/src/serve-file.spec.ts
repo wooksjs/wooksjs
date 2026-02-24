@@ -1,6 +1,4 @@
-import { createHttpContext } from '@wooksjs/event-http'
-import { IncomingMessage, ServerResponse } from 'http'
-import { Socket } from 'net'
+import { prepareTestHttpContext } from '@wooksjs/event-http'
 import path from 'path'
 import { beforeEach, describe, expect, it } from 'vitest'
 
@@ -9,11 +7,8 @@ import { normalizePath } from './utils/path-norm'
 // import { serveFile } from './serve-file'
 
 describe('serve-file', () => {
-  const req = new IncomingMessage(new Socket({}))
-  const res = new ServerResponse(req)
-
   beforeEach(() => {
-    createHttpContext({ req, res }, {})
+    prepareTestHttpContext({ url: '/' })
   })
   it('must normalize path', () => {
     const file = normalizePath(path.join('/from/root', 'file.js'), './base')

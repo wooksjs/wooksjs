@@ -1,29 +1,11 @@
 import type { IncomingMessage, ServerResponse } from 'http'
 
-import type { EHttpStatusCode } from './utils/status-codes'
 import type { TTimeMultiString } from './utils/time'
-import type { WooksURLSearchParams } from './utils/url-search-params'
 
 export interface THttpEventData {
   req: IncomingMessage
   res: ServerResponse
   requestLimits?: TRequestLimits
-}
-
-export interface THttpEvent {
-  type: 'HTTP'
-}
-
-export interface THttpContextStore {
-  searchParams?: TSearchParamsCache
-  cookies?: Record<string, string | null>
-  setCookies?: Record<string, TSetCookieData>
-  accept?: Record<string, boolean>
-  authorization?: TAuthCache
-  setHeader?: Record<string, string | string[]>
-  request?: TRequestCache
-  response?: { responded: boolean }
-  status?: { code: EHttpStatusCode }
 }
 
 export interface TSetCookieData {
@@ -43,12 +25,6 @@ export interface TCookieAttributes {
   sameSite: boolean | 'Lax' | 'None' | 'Strict'
 }
 
-export interface TAuthCache {
-  type: string | null
-  credentials: string | null
-  basicCredentials: { username: string; password: string } | null
-}
-
 /** App-level request body limits (all optional, defaults apply when omitted). */
 export interface TRequestLimits {
   /** Max compressed body size in bytes (default: 1 MB). */
@@ -63,17 +39,3 @@ export interface TRequestLimits {
   perRequest?: boolean
 }
 
-export interface TRequestCache {
-  rawBody: Promise<Buffer>
-  parsed: unknown
-  forwardedIp?: string
-  remoteIp?: string
-  ipList?: { remoteIp: string; forwarded: string[] }
-  contentEncodings?: string[]
-  isCompressed?: boolean
-}
-
-export interface TSearchParamsCache {
-  raw?: string
-  urlSearchParams?: WooksURLSearchParams
-}

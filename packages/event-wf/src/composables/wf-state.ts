@@ -1,4 +1,6 @@
-import { useWFContext } from '../event-wf'
+import { current } from '@wooksjs/event-core'
+
+import { resumeKey, wfKind } from '../wf-kind'
 
 /**
  * Composable that provides access to the current workflow execution state.
@@ -10,14 +12,13 @@ import { useWFContext } from '../event-wf'
  * ```
  */
 export function useWfState() {
-  const { store, getCtx } = useWFContext()
-  const event = store('event')
+  const c = current()
   return {
-    ctx: <T>() => event.get('inputContext') as T,
-    input: <I>() => event.get('input') as I | undefined,
-    schemaId: event.get('schemaId'),
-    stepId: () => event.get('stepId'),
-    indexes: () => event.get('indexes'),
-    resume: getCtx().resume,
+    ctx: <T>() => c.get(wfKind.keys.inputContext) as T,
+    input: <I>() => c.get(wfKind.keys.input) as I | undefined,
+    schemaId: c.get(wfKind.keys.schemaId),
+    stepId: () => c.get(wfKind.keys.stepId),
+    indexes: () => c.get(wfKind.keys.indexes),
+    resume: c.get(resumeKey),
   }
 }

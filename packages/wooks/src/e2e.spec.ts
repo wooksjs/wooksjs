@@ -1,12 +1,9 @@
 import { useRouteParams } from '@wooksjs/event-core'
 import {
-  BaseHttpResponse,
   createHttpApp,
   useCookies,
   useResponse,
   useSearchParams,
-  useSetCookies,
-  useSetHeaders,
 } from '@wooksjs/event-http'
 import { useBody } from '@wooksjs/http-body'
 import type { IncomingMessage, OutgoingHttpHeaders } from 'http'
@@ -31,7 +28,6 @@ const sendRequest = (method: string, path: string, body?: string): Promise<Incom
       `http://localhost:${PORT.toString()}/${path}`,
       { method, headers },
       (res) => {
-        // console.log(res.headers)
         resolve(res)
       },
     )
@@ -82,20 +78,20 @@ describe('Wooks E2E', () => {
   app.get('/json', () => ({ a: 'a', b: [1, 2, 3] }))
 
   app.get('/set-cookie', () => {
-    const { setCookie } = useSetCookies()
-    setCookie('my-cookie', 'test', { maxAge: '1d' })
+    const response = useResponse()
+    response.setCookie('my-cookie', 'test', { maxAge: '1d' })
     return 'ok'
   })
 
   app.get('/set-header', () => {
-    const { setHeader } = useSetHeaders()
-    setHeader('myHeader', 'value')
+    const response = useResponse()
+    response.setHeader('myHeader', 'value')
     return 'ok'
   })
 
   app.get('/set-status', () => {
-    const { status } = useResponse()
-    status(202)
+    const response = useResponse()
+    response.status = 202
     return 'ok'
   })
 
@@ -124,19 +120,13 @@ describe('Wooks E2E', () => {
   })
 
   app.get('/overwrite', () => {
-    const response = new BaseHttpResponse()
-    const { status } = useResponse()
-    const { setCookie } = useSetCookies()
-    const { setHeader } = useSetHeaders()
-    status(201)
-    setCookie('myCookie', 'C Value', { maxAge: '2d' })
-    setHeader('myHeader', 'H Value')
+    const response = useResponse()
+    response.status = 205
     response.setCookie('myCookie', 'New C Value', {
       expires: '2021-03-04',
     })
     response.setHeader('myHeader', 'New H Value')
-    response.setStatus(205)
-    return response
+    return 'ok'
   })
 
   it('must reply in json', async () => {

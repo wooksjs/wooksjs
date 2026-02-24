@@ -67,6 +67,6 @@ app.get('static/*', () => {
 In the example above, any request to the `/static/*` route will serve the corresponding file from the file system.
 The file path is extracted from the route parameters, and the `cacheControl` option is used to set the caching behavior of the response.
 
-You can refer to the [Cache Control documentation](./composables/response.md#cache-control) for more details on how to configure the cache control directives.
+You can refer to the [Cache Control documentation](./composables/response.md#cache-control) for more details on configuring the cache control directives.
 
 That's how you can use the `@wooksjs/http-static` package to serve static files in your Wooks HTTP application.

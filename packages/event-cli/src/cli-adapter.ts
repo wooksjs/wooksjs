@@ -1,12 +1,14 @@
 import type { TCliEntry, TCliHelpOptions } from '@prostojs/cli-help'
 import { CliHelpRenderer } from '@prostojs/cli-help'
 import type { TConsoleBase } from '@prostojs/logger'
-import type { TEventOptions } from '@wooksjs/event-core'
+import { current } from '@wooksjs/event-core'
+import type { EventContextOptions } from '@wooksjs/event-core'
 import minimist from 'minimist'
 import type { TWooksHandler, TWooksOptions, Wooks } from 'wooks'
 import { WooksAdapterBase } from 'wooks'
 
-import { createCliContext, useCliContext } from './event-cli'
+import { cliKind, flagsKey } from './cli-kind'
+import { createCliContext } from './event-cli'
 import type { TCliHelpCustom, TCliHelpRenderer } from './types'
 
 /** Shortcut mappings for CLI event methods. */
@@ -20,7 +22,7 @@ export interface TWooksCliOptions {
   onNotFound?: TWooksHandler
   onUnknownCommand?: (params: string[], raiseError: () => void) => unknown
   logger?: TConsoleBase
-  eventOptions?: TEventOptions
+  eventOptions?: EventContextOptions
   cliHelp?: TCliHelpRenderer | TCliHelpOptions
   router?: TWooksOptions['router']
 }
@@ -183,17 +185,17 @@ export class WooksCli extends WooksAdapterBase {
         cliHelp: this.cliHelp,
         command: path.replace(/\//gu, ' ').trim(),
       },
-      this.mergeEventOptions(this.opts?.eventOptions),
+      this.getEventContextOptions(),
     )
 
     return runInContext(async () => {
-      const { store } = useCliContext()
-      store('flags').value = parsedFlags
+      const ctx = current()
+      ctx.set(flagsKey, parsedFlags)
       this.computeAliases()
       const { handlers: foundHandlers, firstStatic } = this.wooks.lookup('CLI', path)
       if (typeof firstStatic === 'string') {
         // overwriting command with firstStatic to properly search for help
-        store('event').set('command', firstStatic.replace(/\//gu, ' ').trim())
+        ctx.set(cliKind.keys.command, firstStatic.replace(/\//gu, ' ').trim())
       }
       const handlers = foundHandlers || (this.opts?.onNotFound && [this.opts.onNotFound]) || null
       if (handlers) {

@@ -1,25 +1,37 @@
-import { describe, expect, it } from 'vitest'
-
+import { describe, it, expect, vi } from 'vitest'
 import {
   ContextInjector,
   getContextInjector,
   replaceContextInjector,
-} from '../context-injector'
+  createEventContext,
+  current,
+  slot,
+  defineEventKind,
+  eventTypeKey,
+} from '../index'
+import type { Logger } from '../index'
+
+const logger: Logger = {
+  info: () => {},
+  warn: () => {},
+  error: () => {},
+  debug: () => {},
+}
 
 describe('ContextInjector', () => {
-  it('must execute callback and return its result with attributes', () => {
+  it('executes callback and returns result with attributes', () => {
     const ci = new ContextInjector()
     const result = ci.with('Event:start', { eventType: 'TEST' }, () => 42)
     expect(result).toBe(42)
   })
 
-  it('must execute callback and return its result without attributes', () => {
+  it('executes callback and returns result without attributes', () => {
     const ci = new ContextInjector()
     const result = ci.with('Event:start', () => 'hello')
     expect(result).toBe('hello')
   })
 
-  it('must have a no-op hook method', () => {
+  it('has a no-op hook method', () => {
     const ci = new ContextInjector()
     expect(() => ci.hook('GET', 'Handler:not_found')).not.toThrow()
     expect(() => ci.hook('POST', 'Handler:routed', '/api/test')).not.toThrow()
@@ -27,18 +39,122 @@ describe('ContextInjector', () => {
 })
 
 describe('getContextInjector / replaceContextInjector', () => {
-  it('must return a default ContextInjector instance', () => {
+  it('returns a default ContextInjector instance', () => {
     const ci = getContextInjector()
     expect(ci).toBeInstanceOf(ContextInjector)
   })
 
-  it('must replace the global injector', () => {
+  it('replaces the global injector', () => {
     const original = getContextInjector()
     const custom = new ContextInjector()
     replaceContextInjector(custom)
     expect(getContextInjector()).toBe(custom)
 
     // restore for other tests
+    replaceContextInjector(original as ContextInjector<string>)
+  })
+})
+
+describe('ContextInjector integration with createEventContext', () => {
+  it('calls CI with Event:start when kind is provided', () => {
+    const withSpy = vi.fn((_name: unknown, _attrs: unknown, cb: () => unknown) => cb())
+    const custom = new ContextInjector()
+    custom.with = withSpy as typeof custom.with
+    const original = getContextInjector()
+    replaceContextInjector(custom as ContextInjector<string>)
+
+    const http = defineEventKind('HTTP', {
+      method: slot<string>(),
+    })
+
+    createEventContext({ logger }, http, { method: 'GET' }, () => {
+      expect(current().get(http.keys.method)).toBe('GET')
+    })
+
+    expect(withSpy).toHaveBeenCalledOnce()
+    expect(withSpy.mock.calls[0][0]).toBe('Event:start')
+    expect(withSpy.mock.calls[0][1]).toEqual({ eventType: 'HTTP' })
+
+    replaceContextInjector(original as ContextInjector<string>)
+  })
+
+  it('does NOT call CI when no kind is provided', () => {
+    const withSpy = vi.fn((_name: unknown, _attrs: unknown, cb: () => unknown) => cb())
+    const custom = new ContextInjector()
+    custom.with = withSpy as typeof custom.with
+    const original = getContextInjector()
+    replaceContextInjector(custom as ContextInjector<string>)
+
+    createEventContext({ logger }, () => {
+      // bare context, no kind
+    })
+
+    expect(withSpy).not.toHaveBeenCalled()
+
+    replaceContextInjector(original as ContextInjector<string>)
+  })
+
+  it('auto-sets eventTypeKey when kind is provided', () => {
+    const http = defineEventKind('HTTP', {
+      method: slot<string>(),
+    })
+
+    createEventContext({ logger }, http, { method: 'GET' }, () => {
+      expect(current().get(eventTypeKey)).toBe('HTTP')
+    })
+  })
+
+  it('does not set eventTypeKey for bare context', () => {
+    createEventContext({ logger }, () => {
+      expect(current().has(eventTypeKey)).toBe(false)
+    })
+  })
+})
+
+describe('attach() does not trigger CI (optimized hot path)', () => {
+  it('does NOT call CI when attaching with callback', () => {
+    const withSpy = vi.fn()
+    const custom = new ContextInjector()
+    custom.with = withSpy as typeof custom.with
+    const original = getContextInjector()
+    replaceContextInjector(custom as ContextInjector<string>)
+
+    const wf = defineEventKind('WF', {
+      triggerId: slot<string>(),
+    })
+
+    createEventContext({ logger }, () => {
+      withSpy.mockClear()
+
+      current().attach(wf, { triggerId: 'wf-001' }, () => {
+        expect(current().get(wf.keys.triggerId)).toBe('wf-001')
+        expect(current().get(eventTypeKey)).toBe('WF')
+      })
+
+      expect(withSpy).not.toHaveBeenCalled()
+    })
+
+    replaceContextInjector(original as ContextInjector<string>)
+  })
+
+  it('does NOT call CI when attaching without callback', () => {
+    const withSpy = vi.fn()
+    const custom = new ContextInjector()
+    custom.with = withSpy as typeof custom.with
+    const original = getContextInjector()
+    replaceContextInjector(custom as ContextInjector<string>)
+
+    const wf = defineEventKind('WF', {
+      triggerId: slot<string>(),
+    })
+
+    createEventContext({ logger }, () => {
+      withSpy.mockClear()
+      current().attach(wf, { triggerId: 'wf-001' })
+      expect(withSpy).not.toHaveBeenCalled()
+      expect(current().get(wf.keys.triggerId)).toBe('wf-001')
+    })
+
     replaceContextInjector(original as ContextInjector<string>)
   })
 })

@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { prepareTestHttpContext } from '../../testing'
-import { useCookies, useSetCookies } from '../cookies'
+import { useCookies } from '../cookies'
+import { useResponse } from '../response'
 
 describe('event-http/cookies useCookies', () => {
   const cookie = 'cookie-key=cookie-value; newCookie=123456'
@@ -26,7 +27,7 @@ describe('event-http/cookies useCookies', () => {
   })
 })
 
-describe('event-http/cookies useSetCookies', () => {
+describe('event-http/cookies useResponse().setCookie', () => {
   let runInContext: ReturnType<typeof prepareTestHttpContext>
 
   beforeEach(() => {
@@ -35,29 +36,29 @@ describe('event-http/cookies useSetCookies', () => {
 
   it('must set cookie', () => {
     runInContext(() => {
-      const { setCookie, cookies } = useSetCookies()
-      setCookie('test', 'value')
-      setCookie('test2', 'value2', { maxAge: 150, secure: true })
-      expect(cookies()[0]).toEqual('test=value')
-      expect(cookies()[1]).toEqual('test2=value2; Max-Age=0.15; Secure')
+      const response = useResponse()
+      response.setCookie('test', 'value')
+      response.setCookie('test2', 'value2', { maxAge: 150, secure: true })
+      expect(response.getCookie('test')).toEqual({ value: 'value', attrs: {} })
+      expect(response.getCookie('test2')).toEqual({ value: 'value2', attrs: { maxAge: 150, secure: true } })
     })
   })
 
   it('must remove cookie', () => {
     runInContext(() => {
-      const { setCookie, removeCookie, cookies } = useSetCookies()
-      setCookie('test', 'value')
-      removeCookie('test')
-      expect(cookies()).toEqual([])
+      const response = useResponse()
+      response.setCookie('test', 'value')
+      response.removeCookie('test')
+      expect(response.getCookie('test')).toBeUndefined()
     })
   })
 
   it('must clear cookies', () => {
     runInContext(() => {
-      const { setCookie, clearCookies, cookies } = useSetCookies()
-      setCookie('test', 'value')
-      clearCookies()
-      expect(cookies()).toEqual([])
+      const response = useResponse()
+      response.setCookie('test', 'value')
+      response.clearCookies()
+      expect(response.getCookie('test')).toBeUndefined()
     })
   })
 })

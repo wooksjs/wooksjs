@@ -1,23 +1,22 @@
-import { useHttpContext } from '../event-http'
-import { useHeaders } from './headers'
+import { cachedBy, defineWook } from '@wooksjs/event-core'
+import type { EventContext } from '@wooksjs/event-core'
+
+import { httpKind } from '../http-kind'
+
+const acceptsMime = cachedBy((mime: string, ctx: EventContext) => {
+  const accept = ctx.get(httpKind.keys.req).headers.accept
+  return !!(accept && (accept === '*/*' || accept.includes(mime)))
+})
 
 /** Provides helpers to check the request's Accept header for supported MIME types. */
-export function useAccept() {
-  const { store } = useHttpContext()
-  const { accept } = useHeaders()
-  const accepts = (mime: string) => {
-    const { set, get, has } = store('accept')
-    if (!has(mime)) {
-      return set(mime, !!(accept && (accept === '*/*' || accept.includes(mime))))
-    }
-    return get(mime)
-  }
+export const useAccept = defineWook((ctx: EventContext) => {
+  const accept = ctx.get(httpKind.keys.req).headers.accept
   return {
     accept,
-    accepts,
-    acceptsJson: () => accepts('application/json'),
-    acceptsXml: () => accepts('application/xml'),
-    acceptsText: () => accepts('text/plain'),
-    acceptsHtml: () => accepts('text/html'),
+    accepts: (mime: string) => acceptsMime(mime, ctx),
+    acceptsJson: () => acceptsMime('application/json', ctx),
+    acceptsXml: () => acceptsMime('application/xml', ctx),
+    acceptsText: () => acceptsMime('text/plain', ctx),
+    acceptsHtml: () => acceptsMime('text/html', ctx),
   }
-}
+})

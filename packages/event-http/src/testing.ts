@@ -1,9 +1,12 @@
-import { asyncStorage } from '@wooksjs/event-core'
+import { EventContext, routeParamsKey, run } from '@wooksjs/event-core'
+import { Buffer } from 'buffer'
 import { IncomingMessage, ServerResponse } from 'http'
 import { Socket } from 'net'
 
-import { createHttpContext, useHttpContext } from './event-http'
-import type { TAuthCache, THttpContextStore, TRequestLimits } from './types'
+import { rawBodySlot } from './composables/request'
+import { httpKind } from './http-kind'
+import { HttpResponse } from './response/http-response'
+import type { TRequestLimits } from './types'
 
 export interface TTestHttpContext {
   params?: Record<string, string | string[]>
@@ -11,17 +14,8 @@ export interface TTestHttpContext {
   headers?: Record<string, string>
   method?: string
   requestLimits?: TRequestLimits
-  cachedContext?: {
-    cookies?: Record<string, string | null>
-    authorization?: TAuthCache
-    body?: unknown
-    rawBody?: string | Buffer | Promise<Buffer>
-    raw?: TCachedContext
-  }
-}
-
-type TCachedContext = {
-  [name in keyof THttpContextStore]?: unknown
+  /** Pre-seed the raw body for body-parsing tests. */
+  rawBody?: string | Buffer
 }
 
 export function prepareTestHttpContext(options: TTestHttpContext) {
@@ -30,43 +24,19 @@ export function prepareTestHttpContext(options: TTestHttpContext) {
   req.headers = options.headers || {}
   req.url = options.url
   const res = new ServerResponse(req)
-  const runInContext = createHttpContext({ req, res, requestLimits: options.requestLimits }, {})
-  const ctx = runInContext(() => {
-    const { store, getCtx } = useHttpContext()
-    store('routeParams').value = options.params
-    if (options.cachedContext) {
-      for (const key of Object.keys(options.cachedContext)) {
-        switch (key) {
-          case 'cookies': {
-            store('cookies').value = options.cachedContext.cookies
-            break
-          }
-          case 'authorization': {
-            store('authorization').value = options.cachedContext.authorization
-            break
-          }
-          case 'body': {
-            store('request').set('parsed', options.cachedContext.body)
-            break
-          }
-          case 'rawBody': {
-            store('request').set('rawBody', options.cachedContext.rawBody)
-            break
-          }
-          case 'raw': {
-            for (const [rawKey, value] of Object.entries(options.cachedContext.raw!)) {
-              store<keyof THttpContextStore>(rawKey as keyof THttpContextStore).value =
-                value as THttpContextStore[keyof THttpContextStore]
-            }
-            break
-          }
-          default: {
-            throw new Error(`Unknown cached context key: ${key}`)
-          }
-        }
-      }
-    }
-    return getCtx()
-  })
-  return <T>(cb: (...a: any[]) => T) => asyncStorage.run(ctx, cb)
+  const response = new HttpResponse(res, req, console as any)
+
+  const ctx = new EventContext({ logger: console as any })
+  ctx.attach(httpKind, { req, response, requestLimits: options.requestLimits })
+
+  if (options.params) {
+    ctx.set(routeParamsKey, options.params)
+  }
+
+  if (options.rawBody !== undefined) {
+    const buf = Buffer.isBuffer(options.rawBody) ? options.rawBody : Buffer.from(options.rawBody)
+    ctx.set(rawBodySlot, Promise.resolve(buf))
+  }
+
+  return <T>(cb: (...a: any[]) => T) => run(ctx, cb)
 }
