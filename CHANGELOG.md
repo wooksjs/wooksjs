@@ -1,3 +1,17 @@
+# [0.7.0](https://github.com/wooksjs/wooksjs/compare/v0.6.6...v0.7.0) (2026-02-25)
+
+
+### Features
+
+* **ws:** add ws adapter ([e23110f](https://github.com/wooksjs/wooksjs/commit/e23110ff9e17120d2bc85f9733eb963c9ad65e67))
+
+
+### Performance Improvements
+
+* refactoring, optimization ([92665fe](https://github.com/wooksjs/wooksjs/commit/92665feb256745eaf5c54052de60b1c3a709420d))
+
+
+
 ## [0.6.6](https://github.com/wooksjs/wooksjs/compare/v0.6.5...v0.6.6) (2026-02-23)
 
 ### Performance Improvements
