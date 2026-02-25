@@ -1,3 +1,12 @@
+## [0.7.1](https://github.com/wooksjs/wooksjs/compare/v0.7.0...v0.7.1) (2026-02-25)
+
+
+### Performance Improvements
+
+* optimize body parser ([9500751](https://github.com/wooksjs/wooksjs/commit/9500751b9314b579eba108e483c966c48aff3fca))
+
+
+
 # [0.7.0](https://github.com/wooksjs/wooksjs/compare/v0.6.6...v0.7.0) (2026-02-25)
 
 ### Features
