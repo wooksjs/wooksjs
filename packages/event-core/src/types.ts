@@ -1,4 +1,4 @@
-import type { EventContext } from './context';
+import type { EventContext } from './context'
 
 /**
  * Logger interface used throughout Wooks. Passed via `EventContextOptions`
@@ -19,10 +19,10 @@ export interface Logger {
  * Use `ctx.set(k, value)` to store and `ctx.get(k)` to retrieve.
  */
 export interface Key<T> {
-  readonly _id: number;
-  readonly _name: string;
+  readonly _id: number
+  readonly _name: string
   /** @internal Type brand — not used at runtime. */
-  readonly _T?: T;
+  readonly _T?: T
 }
 
 /**
@@ -30,15 +30,15 @@ export interface Key<T> {
  * The factory runs once per context on first `ctx.get()` call; the result is cached.
  */
 export interface Cached<T> {
-  readonly _id: number;
-  readonly _name: string;
-  readonly _fn: (ctx: EventContext) => T;
+  readonly _id: number
+  readonly _name: string
+  readonly _fn: (ctx: EventContext) => T
   /** @internal Type brand — not used at runtime. */
-  readonly _T?: T;
+  readonly _T?: T
 }
 
 /** Union type for any context slot — either a writable `Key` or a computed `Cached`. */
-export type Accessor<T> = Key<T> | Cached<T>;
+export type Accessor<T> = Key<T> | Cached<T>
 
 /**
  * Type-level marker used in `defineEventKind` schemas. Each `slot<T>()`
@@ -46,7 +46,7 @@ export type Accessor<T> = Key<T> | Cached<T>;
  */
 export interface SlotMarker<T> {
   /** @internal Type brand — not used at runtime. */
-  readonly _T?: T;
+  readonly _T?: T
 }
 
 /**
@@ -55,20 +55,20 @@ export interface SlotMarker<T> {
  *
  * Use `kind.keys.<prop>` to access typed context keys for each slot.
  */
-export type EventKind<S extends Record<string, SlotMarker<any>>> = {
+export interface EventKind<S extends Record<string, SlotMarker<any>>> {
   /** Unique event kind name (e.g. `'http'`, `'cli'`). */
-  readonly name: string;
+  readonly name: string
   /** Typed context keys for each slot in the schema. */
-  readonly keys: { [K in keyof S]: S[K] extends SlotMarker<infer V> ? Key<V> : never };
-  /** @internal Pre-computed entries for fast `attach()`. */
-  readonly _entries: [string, Key<unknown>][];
-};
+  readonly keys: { [K in keyof S]: S[K] extends SlotMarker<infer V> ? Key<V> : never }
+  /** @internal Pre-computed entries for fast `seed()`. */
+  readonly _entries: Array<[string, Key<unknown>]>
+}
 
 /**
  * Extracts the seed values type for an `EventKind`. This is the object
- * shape passed to `ctx.attach(kind, seeds)` or `createEventContext(opts, kind, seeds, fn)`.
+ * shape passed to `ctx.seed(kind, seeds)` or `createEventContext(opts, kind, seeds, fn)`.
  */
 export type EventKindSeeds<K> =
   K extends EventKind<infer S>
     ? { [P in keyof S]: S[P] extends SlotMarker<infer V> ? V : never }
-    : never;
+    : never

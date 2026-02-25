@@ -28,6 +28,6 @@ export function getWorkspaceFolders() {
 
   return readdirSync(packagesPath).filter(item => {
     const fullPath = path.join(packagesPath, item)
-    return statSync(fullPath).isDirectory()
+    return statSync(fullPath).isDirectory() && existsSync(path.join(fullPath, 'src', 'index.ts'))
   })
 }

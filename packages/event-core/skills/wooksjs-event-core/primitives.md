@@ -9,7 +9,7 @@ All state lives in `EventContext` — a flat `Map<number, unknown>`. Primitives 
 - **`key<T>`** — a writable slot. You `set` and `get` values explicitly.
 - **`cached<T>`** — a read-only slot. Computed lazily on first `get`, cached for the event lifetime.
 - **`cachedBy<K,V>`** — like `cached`, but parameterized. One cached result per unique key.
-- **`slot<T>`** / **`defineEventKind`** — group multiple keys into a typed seed bundle that can be attached to a context in one call.
+- **`slot<T>`** / **`defineEventKind`** — group multiple keys into a typed seed bundle that can be seeded into a context in one call.
 
 All primitives are defined at module level (not per request). They produce lightweight descriptors with auto-incremented numeric IDs.
 
@@ -82,9 +82,9 @@ const getCookie = cachedBy((name: string, ctx) => {
   return match?.[1]
 })
 
-getCookie('session')  // extracts + caches
-getCookie('session')  // cache hit
-getCookie('theme')    // extracts + caches (different key)
+getCookie('session') // extracts + caches
+getCookie('session') // cache hit
+getCookie('theme') // extracts + caches (different key)
 ```
 
 The returned function accepts an optional `ctx` parameter to skip `AsyncLocalStorage` lookup:
@@ -126,10 +126,10 @@ const httpKind = defineEventKind('http', {
 // httpKind.keys.path is Key<string> with _name 'http.path'
 ```
 
-Attach to a context with `ctx.attach()`:
+Seed into a context with `ctx.seed()`:
 
 ```ts
-ctx.attach(httpKind, {
+ctx.seed(httpKind, {
   method: 'POST',
   path: '/api/users',
   rawHeaders: { 'content-type': 'application/json' },
@@ -138,12 +138,18 @@ ctx.attach(httpKind, {
 ctx.get(httpKind.keys.method) // 'POST'
 ```
 
-Multiple kinds can coexist on the same context:
+Multiple kinds can be layered via **parent-linked contexts** instead of seeding everything into one context:
 
 ```ts
-ctx.attach(httpKind, { method: 'POST', path: '/webhook', rawHeaders: {} })
-ctx.attach(workflowKind, { triggerId: 'deploy-42', payload: { env: 'prod' } })
-// Both accessible — flat slot storage, no conflicts
+const parentCtx = new EventContext({ logger })
+parentCtx.seed(httpKind, { method: 'POST', path: '/webhook', rawHeaders: {} })
+
+const childCtx = new EventContext({ logger, parent: parentCtx })
+childCtx.seed(workflowKind, { triggerId: 'deploy-42', payload: { env: 'prod' } })
+
+// Child sees both its own and parent data via the parent chain
+childCtx.get(httpKind.keys.method) // 'POST' (from parent)
+childCtx.get(workflowKind.keys.triggerId) // 'deploy-42' (local)
 ```
 
 ## Common Patterns

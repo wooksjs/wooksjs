@@ -27,7 +27,7 @@ const userId = key<string>('userId')
 
 ```ts
 get<T>(accessor: Key<T> | Cached<T>): T
-set<T>(key: Key<T>, value: T): void
+set<T>(key: Key<T> | Cached<T>, value: T): void
 ```
 
 Both operations share the same `<T>`, tied to the accessor's type brand. TypeScript enforces consistency automatically:

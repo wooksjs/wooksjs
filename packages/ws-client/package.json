@@ -1,0 +1,59 @@
+{
+  "name": "@wooksjs/ws-client",
+  "version": "0.6.6",
+  "description": "WebSocket client for Wooks with RPC, subscriptions, reconnection, and push listeners",
+  "keywords": [
+    "client",
+    "realtime",
+    "rpc",
+    "websocket",
+    "wooks",
+    "ws"
+  ],
+  "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/ws-client#readme",
+  "bugs": {
+    "url": "https://github.com/wooksjs/wooksjs/issues"
+  },
+  "license": "MIT",
+  "author": "Artem Maltsev",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wooksjs/wooksjs.git",
+    "directory": "packages/ws-client"
+  },
+  "bin": {
+    "wooksjs-ws-client-skill": "./scripts/setup-skills.js"
+  },
+  "files": [
+    "dist",
+    "skills",
+    "scripts/setup-skills.js"
+  ],
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "scripts": {
+    "build": "rolldown -c ../../rolldown.config.mjs",
+    "setup-skills": "node ./scripts/setup-skills.js"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  },
+  "peerDependencies": {
+    "ws": "^8.0.0"
+  },
+  "peerDependenciesMeta": {
+    "ws": {
+      "optional": true
+    }
+  }
+}

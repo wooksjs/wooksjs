@@ -11,15 +11,21 @@ CLI adapter for Wooks. Build command-line applications with the same composable 
 
 Read the domain file that matches the task. Do not load all files — only what you need.
 
-| Domain | File | Load when... |
-|--------|------|------------|
-| Core setup & routing | [core.md](core.md) | Creating a CLI app, registering commands, running commands, understanding the architecture |
-| Commands & help | [commands.md](commands.md) | Command registration with options/args/aliases, help generation, composables (`useCliOptions`, `useCliHelp`, `useAutoHelp`) |
+| Domain               | File                       | Load when...                                                                                                                |
+| -------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Core setup & routing | [core.md](core.md)         | Creating a CLI app, registering commands, running commands, understanding the architecture                                  |
+| Commands & help      | [commands.md](commands.md) | Command registration with options/args/aliases, help generation, composables (`useCliOptions`, `useCliHelp`, `useAutoHelp`) |
 
 ## Quick reference
 
 ```ts
 import { createCliApp } from '@wooksjs/event-cli'
 import { useRouteParams, useLogger } from '@wooksjs/event-cli'
-import { useCliOptions, useCliOption, useCliHelp, useAutoHelp, useCommandLookupHelp } from '@wooksjs/event-cli'
+import {
+  useCliOptions,
+  useCliOption,
+  useCliHelp,
+  useAutoHelp,
+  useCommandLookupHelp,
+} from '@wooksjs/event-cli'
 ```

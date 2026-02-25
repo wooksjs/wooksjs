@@ -58,8 +58,8 @@ import { useRouteParams } from '@wooksjs/event-core'
 
 // Given route /users/:id
 const { params, get } = useRouteParams<{ id: string }>()
-params.id   // 'abc'
-get('id')   // 'abc'
+params.id // 'abc'
+get('id') // 'abc'
 ```
 
 ### `useEventId(ctx?): { getId: () => string }`
@@ -92,9 +92,9 @@ Wrap non-trivial computations in thunks so they only run when accessed:
 
 ```ts
 const useRequest = defineWook((ctx) => ({
-  method: ctx.get(http.keys.method),          // cheap — direct key lookup
-  query: () => ctx.get(parsedQuery),           // deferred until called
-  cookies: () => ctx.get(parsedCookies),       // deferred until called
+  method: ctx.get(http.keys.method), // cheap — direct key lookup
+  query: () => ctx.get(parsedQuery), // deferred until called
+  cookies: () => ctx.get(parsedCookies), // deferred until called
 }))
 
 // Only method is computed eagerly:
@@ -119,8 +119,8 @@ const useBody = defineWook((ctx) => ({
 
 // In handler:
 const { parseBody } = useBody()
-const body = await parseBody()    // parses once
-const again = await parseBody()   // cache hit, same object
+const body = await parseBody() // parses once
+const again = await parseBody() // cache hit, same object
 ```
 
 ### Pattern: Class-based composable for method-heavy APIs
@@ -133,9 +133,18 @@ class ResponseState {
   body: unknown = undefined
   readonly headers = new Map<string, string>()
 
-  setHeader(name: string, value: string) { this.headers.set(name, value); return this }
-  setStatus(code: number) { this.status = code; return this }
-  json(data: unknown) { this.body = data; return this }
+  setHeader(name: string, value: string) {
+    this.headers.set(name, value)
+    return this
+  }
+  setStatus(code: number) {
+    this.status = code
+    return this
+  }
+  json(data: unknown) {
+    this.body = data
+    return this
+  }
 }
 
 const useResponse = defineWook(() => new ResponseState())
@@ -153,7 +162,7 @@ const useCurrentUser = defineWook((ctx) => {
   const username = basicCredentials()?.username
   return {
     username,
-    profile: async () => username ? await db.findUser(username) : null,
+    profile: async () => (username ? await db.findUser(username) : null),
   }
 })
 ```

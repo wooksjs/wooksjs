@@ -1,6 +1,6 @@
 import { defineConfig, DefaultTheme } from 'vitepress'
 
-const ogDescription = 'Next Generation Event Processing Framework'
+const ogDescription = 'Composables for Node.js — No req/res. No middleware. Just functions.'
 const ogImage = 'https://wooks.moost.org/og-wooks.png'
 const ogTitle = 'Wooks Official Documentation'
 const twitterImage = 'https://wooks.moost.org/wooksjs-small.png'
@@ -13,7 +13,7 @@ const ogUrl = 'https://wooks.moost.org'
 export default defineConfig({
     lang: 'en-US',
     title: ' ',
-    description: 'Next Generation Event Processing Framework',
+    description: 'Composables for Node.js',
 
     titleTemplate: ':title | Wooks',
 

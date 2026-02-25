@@ -1,5 +1,9 @@
 # Introduction to Wooks WebSocket
 
+::: warning Experimental
+This package is in an experimental phase. The API may change without following semver until it reaches a stable release.
+:::
+
 `@wooksjs/event-ws` is the WebSocket adapter for Wooks. It gives you a routed WebSocket server where every handler is a plain function, and every piece of connection and message data is available through composables — on demand, typed, cached. Pair it with `@wooksjs/ws-client` for a structured, type-safe client.
 
 ## Quick Picture

@@ -62,10 +62,7 @@ export class WooksHttpResponse extends HttpResponse {
 
 function renderErrorHtml(data: TWooksErrorBodyExt): string {
   const hasDetails = Object.keys(data).length > 3
-  const icon =
-    data.statusCode >= 500
-      ? icons[500]
-      : (icons[data.statusCode as 403] || '')
+  const icon = data.statusCode >= 500 ? icons[500] : icons[data.statusCode as 403] || ''
   return typeof errorTemplate === 'function'
     ? errorTemplate({
         icon,

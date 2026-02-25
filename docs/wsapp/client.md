@@ -1,5 +1,9 @@
 # Client Guide
 
+::: warning Experimental
+This package is in an experimental phase. The API may change without following semver until it reaches a stable release.
+:::
+
 `@wooksjs/ws-client` is a structured WebSocket client for browsers and Node.js. It provides RPC calls with automatic correlation, fire-and-forget messaging, push listeners with path matching, subscriptions with auto-resubscribe, and reconnection with backoff.
 
 Zero runtime dependencies. Uses native `WebSocket` in browsers.

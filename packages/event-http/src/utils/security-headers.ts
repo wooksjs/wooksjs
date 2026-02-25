@@ -19,7 +19,7 @@ export interface SecurityHeadersOptions {
   xFrameOptions?: string | false
 }
 
-const HEADER_MAP: [keyof SecurityHeadersOptions, string, string | undefined][] = [
+const HEADER_MAP: Array<[keyof SecurityHeadersOptions, string, string | undefined]> = [
   [
     'contentSecurityPolicy',
     'content-security-policy',
@@ -45,7 +45,9 @@ export function securityHeaders(opts?: SecurityHeadersOptions): Record<string, s
   const result: Record<string, string> = {}
   for (const [optKey, headerName, defaultValue] of HEADER_MAP) {
     const value = opts?.[optKey]
-    if (value === false) continue
+    if (value === false) {
+      continue
+    }
     if (typeof value === 'string') {
       result[headerName] = value
     } else if (defaultValue !== undefined) {

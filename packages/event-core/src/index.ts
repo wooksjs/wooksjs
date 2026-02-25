@@ -22,12 +22,4 @@ export { useRouteParams, useEventId } from './composables'
 export { run, current, tryGetCurrent, useLogger, createEventContext } from './storage'
 
 // types
-export type {
-  Logger,
-  Key,
-  Cached,
-  Accessor,
-  SlotMarker,
-  EventKind,
-  EventKindSeeds,
-} from './types'
+export type { Logger, Key, Cached, Accessor, SlotMarker, EventKind, EventKindSeeds } from './types'

@@ -15,7 +15,7 @@ export function createHttpContext(
   const response = new ResponseClass(data.res, data.req, ctx.logger)
   return <R>(fn: () => R): R =>
     run(ctx, () =>
-      ctx.attach(
+      ctx.seed(
         httpKind,
         {
           req: data.req,

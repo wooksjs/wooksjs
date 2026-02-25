@@ -98,14 +98,14 @@ A common pattern: your HTTP middleware resolves the authenticated user and cache
 
 ```ts
 import { current, defineWook, cached } from '@wooksjs/event-core'
-import { useRequest } from '@wooksjs/event-http'
+import { useAuthorization } from '@wooksjs/event-http'
 
 // Custom composable — resolves and caches user from auth header
 const userSlot = cached(async (ctx) => {
-  const req = ctx.get(httpKind.keys.req)
-  const token = req.headers.authorization?.replace('Bearer ', '')
-  if (!token) return null
-  return verifyAndDecodeToken(token)  // your auth logic
+  const { authIs, authRawCredentials } = useAuthorization(ctx)
+  if (!authIs('bearer')) return null
+  const token = authRawCredentials()!
+  return fetchUserByToken(token)  // your auth logic → { id, role, ... }
 })
 
 export const useCurrentUser = defineWook((ctx) => ({

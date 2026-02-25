@@ -1,5 +1,9 @@
 # Testing
 
+::: warning Experimental
+This package is in an experimental phase. The API may change without following semver until it reaches a stable release.
+:::
+
 `@wooksjs/event-ws` provides test context utilities that let you run handler logic in isolation — without a real WebSocket connection or HTTP server.
 
 [[toc]]

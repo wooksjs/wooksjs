@@ -1,5 +1,9 @@
 # Wire Protocol
 
+::: warning Experimental
+This package is in an experimental phase. The API may change without following semver until it reaches a stable release.
+:::
+
 The server (`@wooksjs/event-ws`) and client (`@wooksjs/ws-client`) communicate using a simple JSON protocol over WebSocket text frames. No custom framing, no binary encoding — just JSON.
 
 [[toc]]

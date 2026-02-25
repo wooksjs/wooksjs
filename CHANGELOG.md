@@ -1,43 +1,30 @@
 ## [0.6.6](https://github.com/wooksjs/wooksjs/compare/v0.6.5...v0.6.6) (2026-02-23)
 
-
 ### Performance Improvements
 
-* optimizations ([e5902d5](https://github.com/wooksjs/wooksjs/commit/e5902d5d74cb0f5067533c563d86f135966f5797))
-
-
+- optimizations ([e5902d5](https://github.com/wooksjs/wooksjs/commit/e5902d5d74cb0f5067533c563d86f135966f5797))
 
 ## [0.6.5](https://github.com/wooksjs/wooksjs/compare/v0.6.4...v0.6.5) (2026-02-23)
 
-
-
 ## [0.6.4](https://github.com/wooksjs/wooksjs/compare/v0.6.3...v0.6.4) (2026-02-21)
-
 
 ### Bug Fixes
 
-* fix skill setup ([f6fdda5](https://github.com/wooksjs/wooksjs/commit/f6fdda5841bd3b3fd107fa2680efa90d0393fe8a))
-
-
+- fix skill setup ([f6fdda5](https://github.com/wooksjs/wooksjs/commit/f6fdda5841bd3b3fd107fa2680efa90d0393fe8a))
 
 ## [0.6.3](https://github.com/wooksjs/wooksjs/compare/v0.6.2...v0.6.3) (2026-02-21)
 
-
 ### Bug Fixes
 
-* use globalThis singleton for asyncStorage to handle duplicate installations ([7972b3c](https://github.com/wooksjs/wooksjs/commit/7972b3c1d2d42342d568479776e27a0ea2988ccd))
-
+- use globalThis singleton for asyncStorage to handle duplicate installations ([7972b3c](https://github.com/wooksjs/wooksjs/commit/7972b3c1d2d42342d568479776e27a0ea2988ccd))
 
 ### Features
 
-* add skills setup ([78f5eea](https://github.com/wooksjs/wooksjs/commit/78f5eea62feaba77a6f7a7d1a371cf1d4b98f7d7))
-
+- add skills setup ([78f5eea](https://github.com/wooksjs/wooksjs/commit/78f5eea62feaba77a6f7a7d1a371cf1d4b98f7d7))
 
 ### Performance Improvements
 
-* improve event-core by ~30% ([2215139](https://github.com/wooksjs/wooksjs/commit/22151397cef2e1f5677822d99fbe4ccf5177e3fa))
-
-
+- improve event-core by ~30% ([2215139](https://github.com/wooksjs/wooksjs/commit/22151397cef2e1f5677822d99fbe4ccf5177e3fa))
 
 ## [0.6.2](https://github.com/wooksjs/wooksjs/compare/v0.6.1...v0.6.2) (2025-07-03)
 

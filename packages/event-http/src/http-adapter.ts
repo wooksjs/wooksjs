@@ -4,7 +4,8 @@ import type { EventContextOptions } from '@wooksjs/event-core'
 import type { IncomingMessage, Server, ServerResponse } from 'http'
 import http from 'http'
 import type { ListenOptions } from 'net'
-import type { TWooksHandler, TWooksOptions, Wooks } from 'wooks'
+import type { Duplex } from 'stream'
+import type { TWooksHandler, TWooksOptions, Wooks, WooksUpgradeHandler } from 'wooks'
 import { WooksAdapterBase } from 'wooks'
 
 import { HttpError } from './errors'
@@ -106,6 +107,21 @@ export class WooksHttp extends WooksAdapterBase {
     return this.on<ResType, ParamsType>('OPTIONS', path, handler)
   }
 
+  /** Registers an UPGRADE route handler for WebSocket upgrade requests. */
+  upgrade<ResType = unknown, ParamsType = Record<string, string | string[]>>(
+    path: string,
+    handler: TWooksHandler<ResType>,
+  ) {
+    return this.on<ResType, ParamsType>('UPGRADE', path, handler)
+  }
+
+  private wsHandler?: WooksUpgradeHandler
+
+  /** Register a WebSocket upgrade handler that implements the WooksUpgradeHandler contract. */
+  ws(handler: WooksUpgradeHandler): void {
+    this.wsHandler = handler
+  }
+
   protected server?: Server
 
   /**
@@ -134,6 +150,10 @@ export class WooksHttp extends WooksAdapterBase {
     listeningListener?: () => void,
   ) {
     const server = (this.server = http.createServer(this.getServerCb() as http.RequestListener))
+    if (this.wsHandler) {
+      const upgradeCb = this.getUpgradeCb()
+      server.on('upgrade', upgradeCb)
+    }
     return new Promise((resolve, reject) => {
       server.once('listening', resolve)
       server.once('error', reject)
@@ -230,7 +250,7 @@ export class WooksHttp extends WooksAdapterBase {
       const url = req.url || ''
 
       run(ctx, () => {
-        ctx.attach(httpKind, {
+        ctx.seed(httpKind, {
           req,
           response,
           requestLimits: RequestLimits,
@@ -244,7 +264,11 @@ export class WooksHttp extends WooksAdapterBase {
             response,
           )
           // Only attach .catch() if processHandlers returned a Promise (async handler)
-          if (result !== null && result !== undefined && typeof (result as Promise<unknown>).then === 'function') {
+          if (
+            result !== null &&
+            result !== undefined &&
+            typeof (result as Promise<unknown>).then === 'function'
+          ) {
             ;(result as Promise<unknown>).catch((error) => {
               this.logger.error('Internal error, please report', error)
               this.respond(error, response, ctx)
@@ -259,6 +283,88 @@ export class WooksHttp extends WooksAdapterBase {
     }
   }
 
+  /**
+   * Returns upgrade callback function for the HTTP server's 'upgrade' event.
+   * Creates an HTTP context, seeds it with upgrade data, and routes as method 'UPGRADE'.
+   */
+  getUpgradeCb() {
+    const ctxOptions = this.eventContextOptions
+    const requestLimits = this.opts?.requestLimits
+    const wsHandler = this.wsHandler
+
+    return (req: IncomingMessage, socket: Duplex, head: Buffer) => {
+      if (!wsHandler) {
+        socket.destroy()
+        return
+      }
+
+      const ctx = new EventContext(ctxOptions)
+      const url = req.url || ''
+
+      run(ctx, () => {
+        ctx.seed(httpKind, {
+          req,
+          response: undefined as unknown as HttpResponse,
+          requestLimits,
+        })
+
+        // Set WS-owned keys on the context
+        ctx.set(wsHandler.reqKey, req)
+        ctx.set(wsHandler.socketKey, socket)
+        ctx.set(wsHandler.headKey, head)
+
+        const handlers = this.wooks.lookupHandlers('UPGRADE', url, ctx)
+        if (handlers) {
+          this.processUpgradeHandlers(handlers, ctx, socket)
+        } else {
+          // No matching UPGRADE route — delegate to WS handler directly
+          wsHandler.handleUpgrade(req, socket, head)
+        }
+      })
+    }
+  }
+
+  protected processUpgradeHandlers(
+    handlers: TWooksHandler[],
+    ctx: EventContext,
+    socket: Duplex,
+  ): void | Promise<unknown> {
+    for (let i = 0; i < handlers.length; i++) {
+      const handler = handlers[i]
+      const isLastHandler = i === handlers.length - 1
+      try {
+        const result = handler()
+        if (
+          result !== null &&
+          result !== undefined &&
+          typeof (result as Promise<unknown>).then === 'function'
+        ) {
+          ;(result as Promise<unknown>).catch((error) => {
+            this.logger.error(
+              `Upgrade handler error: ${ctx.get(httpKind.keys.req)?.url || ''}`,
+              error,
+            )
+            socket.destroy()
+          })
+          return
+        }
+        // Sync handler succeeded — upgrade is handled by ws.upgrade() side-effect
+        return
+      } catch (error) {
+        if (!(error instanceof HttpError)) {
+          this.logger.error(
+            `Upgrade handler error: ${ctx.get(httpKind.keys.req)?.url || ''}`,
+            error,
+          )
+        }
+        if (isLastHandler) {
+          socket.destroy()
+          return
+        }
+      }
+    }
+  }
+
   protected processHandlers(
     handlers: TWooksHandler[],
     ctx: EventContext,
@@ -270,14 +376,12 @@ export class WooksHttp extends WooksAdapterBase {
       try {
         const result = handler()
         // If handler returned a thenable, switch to async processing
-        if (result !== null && result !== undefined && typeof (result as Promise<unknown>).then === 'function') {
-          return this.processAsyncResult(
-            result as Promise<unknown>,
-            handlers,
-            i,
-            ctx,
-            response,
-          )
+        if (
+          result !== null &&
+          result !== undefined &&
+          typeof (result as Promise<unknown>).then === 'function'
+        ) {
+          return this.processAsyncResult(result as Promise<unknown>, handlers, i, ctx, response)
         }
         // Sync handler — respond synchronously (no Promise allocated)
         this.respond(result, response, ctx)

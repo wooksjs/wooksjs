@@ -40,15 +40,15 @@ app.cli('deploy/:env', {
 
 **`TWooksCliEntry<T>` fields:**
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `handler` | `TWooksHandler<T>` | The command handler function |
-| `description` | `string` | Command description for help |
-| `args` | `Record<string, string>` | Argument descriptions (auto-populated from route params) |
-| `options` | `TCliOption[]` | Flag/option definitions |
-| `aliases` | `string[]` | Alternative command names |
-| `examples` | `TCliExample[]` | Usage examples |
-| `onRegister` | `(path, aliasType, route?) => void` | Callback when command/alias is registered |
+| Field         | Type                                | Description                                              |
+| ------------- | ----------------------------------- | -------------------------------------------------------- |
+| `handler`     | `TWooksHandler<T>`                  | The command handler function                             |
+| `description` | `string`                            | Command description for help                             |
+| `args`        | `Record<string, string>`            | Argument descriptions (auto-populated from route params) |
+| `options`     | `TCliOption[]`                      | Flag/option definitions                                  |
+| `aliases`     | `string[]`                          | Alternative command names                                |
+| `examples`    | `TCliExample[]`                     | Usage examples                                           |
+| `onRegister`  | `(path, aliasType, route?) => void` | Callback when command/alias is registered                |
 
 **Option definition:**
 
@@ -101,12 +101,12 @@ import { useCliHelp } from '@wooksjs/event-cli'
 const { print, render, getEntry, getCliHelp } = useCliHelp()
 ```
 
-| Method | Description |
-|--------|-------------|
-| `print(withColors?)` | Print help to stdout |
-| `render(width?, withColors?)` | Render help as string |
-| `getEntry()` | Get the help entry for the current command |
-| `getCliHelp()` | Get the full `CliHelpRenderer` instance |
+| Method                        | Description                                |
+| ----------------------------- | ------------------------------------------ |
+| `print(withColors?)`          | Print help to stdout                       |
+| `render(width?, withColors?)` | Render help as string                      |
+| `getEntry()`                  | Get the help entry for the current command |
+| `getCliHelp()`                | Get the full `CliHelpRenderer` instance    |
 
 ### `useAutoHelp(keys?, colors?)`
 
@@ -118,7 +118,7 @@ import { useAutoHelp } from '@wooksjs/event-cli'
 app.cli('build', {
   description: 'Build the project',
   handler: () => {
-    if (useAutoHelp()) return  // prints help and returns true for --help
+    if (useAutoHelp()) return // prints help and returns true for --help
     return 'Building...'
   },
 })
@@ -126,12 +126,13 @@ app.cli('build', {
 // Custom trigger flags
 app.cli('test', {
   handler: () => {
-    if (useAutoHelp(['help', 'h'], false)) return  // -h, --help, no colors
+    if (useAutoHelp(['help', 'h'], false)) return // -h, --help, no colors
   },
 })
 ```
 
 **Parameters:**
+
 - `keys` (default: `['help']`) — option names that trigger help
 - `colors` (default: `true`) — whether to use ANSI colors
 
@@ -145,13 +146,14 @@ import { useCommandLookupHelp } from '@wooksjs/event-cli'
 
 const app = createCliApp({
   onUnknownCommand: (params, raiseError) => {
-    useCommandLookupHelp()  // throws with suggestions if found
-    raiseError()            // fallback: standard "unknown command" error
+    useCommandLookupHelp() // throws with suggestions if found
+    raiseError() // fallback: standard "unknown command" error
   },
 })
 ```
 
 For a command like `run test:drive dir`, it searches backwards:
+
 1. `run test:drive dir` (depth 0)
 2. `run test:drive` (depth 1)
 3. `run test` (depth 2)
@@ -166,9 +168,7 @@ If a match has children, it suggests them. If a match expects args, it says whic
 ```ts
 app.cli('serve', {
   description: 'Start the development server',
-  options: [
-    { keys: ['port', 'p'], description: 'Port number', value: 'number' },
-  ],
+  options: [{ keys: ['port', 'p'], description: 'Port number', value: 'number' }],
   handler: () => {
     if (useAutoHelp()) process.exit(0)
     const port = useCliOption('port') || '3000'
@@ -182,11 +182,11 @@ app.cli('serve', {
 ```ts
 app.cli('build', {
   options: [
-    { keys: ['watch', 'w'], description: 'Watch mode' },           // boolean
+    { keys: ['watch', 'w'], description: 'Watch mode' }, // boolean
     { keys: ['output', 'o'], description: 'Output dir', value: 'path' }, // value
   ],
   handler: () => {
-    const watch = useCliOption('watch')   // true | undefined
+    const watch = useCliOption('watch') // true | undefined
     const output = useCliOption('output') // 'dist' | undefined
   },
 })

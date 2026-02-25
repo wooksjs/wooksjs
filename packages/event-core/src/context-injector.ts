@@ -11,11 +11,7 @@ export class ContextInjector<N> {
    * Wraps a callback with optional named attributes for observability.
    * Default implementation just calls `cb()` — override for tracing.
    */
-  with<T>(
-    name: N,
-    attributes: Record<string, string | number | boolean>,
-    cb: () => T,
-  ): T
+  with<T>(name: N, attributes: Record<string, string | number | boolean>, cb: () => T): T
   with<T>(name: N, cb: () => T): T
   with<T>(
     name: N,

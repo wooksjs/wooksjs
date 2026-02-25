@@ -9,6 +9,7 @@ For the underlying event context store API (`init`, `get`, `set`, `hook`, etc.) 
 `@wooksjs/event-wf` is the workflow adapter for Wooks. It wraps the `@prostojs/wf` workflow engine, adding composable context management via `AsyncLocalStorage`. Each workflow execution gets its own isolated context store, and step handlers can call composable functions (`useWfState()`, `useRouteParams()`, etc.) from anywhere.
 
 Key principles:
+
 1. **Steps are route handlers** — Steps are registered with IDs that are resolved via the Wooks router, supporting parametric step IDs (`:param`), wildcards, and regex constraints.
 2. **Flows are schemas** — Flows define the execution order of steps, with conditions, loops, and branching.
 3. **Pause and resume** — Workflows can pause for user input and resume from saved state.
@@ -28,7 +29,9 @@ import { createWfApp } from '@wooksjs/event-wf'
 const app = createWfApp<{ result: number }>()
 
 app.step('increment', {
-  handler: (ctx) => { ctx.result++ },
+  handler: (ctx) => {
+    ctx.result++
+  },
 })
 
 app.flow('my-flow', [{ id: 'increment' }])
@@ -43,11 +46,11 @@ Options:
 
 ```ts
 interface TWooksWfOptions {
-  onError?: (e: Error) => void          // custom error handler
-  onNotFound?: TWooksHandler             // handler when flow not found
+  onError?: (e: Error) => void // custom error handler
+  onNotFound?: TWooksHandler // handler when flow not found
   onUnknownFlow?: (schemaId: string, raiseError: () => void) => unknown
-  logger?: TConsoleBase                  // custom logger
-  eventOptions?: TEventOptions           // event-level logger config
+  logger?: TConsoleBase // custom logger
+  eventOptions?: EventContextOptions // event context options (logger, parent)
   router?: {
     ignoreTrailingSlash?: boolean
     ignoreCase?: boolean
@@ -66,37 +69,43 @@ Starts a new workflow execution from the beginning:
 const output = await app.start('my-flow', { result: 0 })
 
 // With options
-const output = await app.start('my-flow', { result: 0 }, {
-  input: 5,
-  eventContext: current(),
-})
+const output = await app.start(
+  'my-flow',
+  { result: 0 },
+  {
+    input: 5,
+    eventContext: current(),
+  },
+)
 ```
 
 **Parameters:**
+
 - `schemaId` — The flow ID registered with `app.flow()`
 - `inputContext` — The initial context object (`T`)
 - `opts` — Optional `TWfRunOptions` object:
   - `input` — Input for the first step (consumed after execution)
   - `spy` — Spy function to observe step execution
   - `cleanup` — Cleanup function called when execution ends
-  - `eventContext` — Parent `EventContext` to attach to. Pass `current()` from within an active event scope (e.g. HTTP handler) so step handlers can access parent composables.
+  - `eventContext` — Parent `EventContext` to link to. Pass `current()` from within an active event scope (e.g. HTTP handler). The workflow creates a child context with `parent: current()`, so step handlers can access parent composables transparently via parent chain traversal.
 
 **Return value (`TFlowOutput<T, I, IR>`):**
 
 ```ts
 interface TFlowOutput<T, I, IR> {
-  finished: boolean              // true if workflow completed
+  finished: boolean // true if workflow completed
   state: {
-    schemaId: string             // flow ID
-    indexes: number[]            // position in schema (for resume)
-    context: T                   // final context state
+    schemaId: string // flow ID
+    indexes: number[] // position in schema (for resume)
+    context: T // final context state
   }
-  inputRequired?: {              // present if paused for input
-    type: string                 // expected input type
-    schemaId: string             // step requiring input
+  inputRequired?: {
+    // present if paused for input
+    type: string // expected input type
+    schemaId: string // step requiring input
   }
-  stepResult?: IR                // last step's return value
-  resume?: (input?: I) => Promise<TFlowOutput<T, I, IR>>  // resume function
+  stepResult?: IR // last step's return value
+  resume?: (input?: I) => Promise<TFlowOutput<T, I, IR>> // resume function
 }
 ```
 
@@ -127,7 +136,7 @@ const resumed = await app.resume(output.state, { input: userInput })
 const retried = await app.resume(output.state)
 ```
 
-The `opts` parameter accepts the same `TWfRunOptions` as `start()` — including `eventContext` to share the active event context.
+The `opts` parameter accepts the same `TWfRunOptions` as `start()` — including `eventContext` to link to the active event context via a parent chain.
 
 ### Using the `resume()` function on output
 
@@ -157,10 +166,7 @@ app.step('welcome', {
   handler: (ctx) => console.log(`Welcome, ${ctx.username}!`),
 })
 
-app.flow('login', [
-  { id: 'get-credentials' },
-  { id: 'welcome' },
-])
+app.flow('login', [{ id: 'get-credentials' }, { id: 'welcome' }])
 
 // Start — pauses at get-credentials because input is required
 const output = await app.start('login', {})
@@ -187,52 +193,50 @@ app.start(schemaId, inputContext)
       → router matches flow ID → handler runs
         → workflow engine executes steps sequentially
           → each step can call useWfState(), useRouteParams(), etc.
-            → composables call useWFContext()
-              → reads/writes the WF context store
+            → composables call current() from @wooksjs/event-core
+              → reads/writes the event context via key/cached accessors
 ```
 
 ### The WF Context Store
 
 ```ts
 interface TWFContextStore {
-  resume: boolean   // true if this is a resumed execution
+  resume: boolean // true if this is a resumed execution
 }
 
 interface TWFEventData {
-  schemaId: string       // flow ID being executed
-  stepId: string | null  // current step ID (set during step execution)
-  inputContext: unknown   // the workflow context object (T)
-  indexes?: number[]     // position for resume
-  input?: unknown        // input for current step
+  schemaId: string // flow ID being executed
+  stepId: string | null // current step ID (set during step execution)
+  inputContext: unknown // the workflow context object (T)
+  indexes?: number[] // position for resume
+  input?: unknown // input for current step
   type: 'WF'
 }
 ```
 
-### Extending the WF Store for Custom Composables
+### Custom Composables for Workflows
+
+Use `defineWook` and `key()` from `@wooksjs/event-core` to create custom composables that store data in the event context:
 
 ```ts
-import { useWFContext } from '@wooksjs/event-wf'
+import { defineWook, key } from '@wooksjs/event-core'
 
-interface TMyStore {
-  metrics?: {
-    startTime?: number
-    stepCount?: number
+const startTimeKey = key<number>('wf.metrics.startTime')
+const stepCountKey = key<number>('wf.metrics.stepCount')
+
+export const useWorkflowMetrics = defineWook((ctx) => {
+  ctx.set(startTimeKey, Date.now())
+  ctx.set(stepCountKey, 0)
+
+  return {
+    incrementSteps: () => ctx.set(stepCountKey, ctx.get(stepCountKey) + 1),
+    getElapsed: () => Date.now() - ctx.get(startTimeKey),
+    getStepCount: () => ctx.get(stepCountKey),
   }
-}
-
-export function useWorkflowMetrics() {
-  const { store } = useWFContext<TMyStore>()
-  const { init, get, set } = store('metrics')
-
-  const startTimer = () => init('startTime', () => Date.now())
-  const incrementSteps = () => set('stepCount', (get('stepCount') || 0) + 1)
-  const getElapsed = () => Date.now() - (get('startTime') || Date.now())
-
-  return { startTimer, incrementSteps, getElapsed }
-}
+})
 ```
 
-For the full context store API and composable patterns, see [event-core.md](event-core.md).
+For the full context store API and composable patterns, see the `@wooksjs/event-core` skill.
 
 ## Workflow Spies
 
@@ -254,16 +258,21 @@ app.detachSpy(spy)
 ### Per-execution spy
 
 ```ts
-const output = await app.start('my-flow', { result: 0 }, {
-  spy: (event, ...args) => {
-    if (event === 'step') {
-      console.log('Step executed:', args)
-    }
+const output = await app.start(
+  'my-flow',
+  { result: 0 },
+  {
+    spy: (event, ...args) => {
+      if (event === 'step') {
+        console.log('Step executed:', args)
+      }
+    },
   },
-})
+)
 ```
 
 The spy function receives:
+
 - `event` — Event type (e.g., `'step'`)
 - Additional arguments vary by event type
 
@@ -316,7 +325,7 @@ app.step('validate', {
 
 ## Sharing the Parent Event Context
 
-By default, `start()` and `resume()` create an isolated event context — step handlers cannot access composables from the calling scope (e.g., HTTP composables). When `eventContext` is passed, the workflow attaches its WF slots to the **provided** event context instead, so both WF and parent composables work inside step handlers.
+By default, `start()` and `resume()` create an isolated event context — step handlers cannot access composables from the calling scope (e.g., HTTP composables). When `eventContext` is passed, the workflow creates a **child context** with a parent link (`parent: current()`) instead of sharing the parent context directly. The child context seeds its own WF slots locally, and slot lookups that are not found in the child automatically traverse the parent chain. This means both WF composables and parent composables (e.g., HTTP) work transparently inside step handlers.
 
 ### Use case: accessing HTTP auth data in workflow steps
 
@@ -330,7 +339,7 @@ const wf = createWfApp<{ userId: string; role: string }>()
 wf.step('check-permissions', {
   handler: () => {
     const { ctx } = useWfState()
-    // useRequest() works because context is shared with HTTP scope
+    // useRequest() works because the child context traverses the parent chain
     const { headers } = useRequest()
     const user = decodeToken(headers.authorization)
     ctx<{ userId: string; role: string }>().userId = user.id
@@ -352,9 +361,9 @@ http.post('/actions/run', async () => {
 })
 ```
 
-### When to share vs isolate
+### When to inherit vs isolate
 
-- **Share** (`eventContext: current()`) when the workflow runs entirely within a single HTTP request and steps need parent composables (auth, headers, cached user data).
+- **Inherit** (`eventContext: current()`) when the workflow runs entirely within a single HTTP request and steps need parent composables (auth, headers, cached user data). The child context links to the parent via a parent chain, keeping WF-specific slots isolated while providing transparent access to parent slots.
 - **Isolate** (default) when the workflow may pause and resume across different requests, or when it should be testable without a parent context.
 
 ## Sharing Router Between Adapters
@@ -367,7 +376,7 @@ import { createWfApp } from '@wooksjs/event-wf'
 
 const wooks = new Wooks()
 const app1 = createWfApp({}, wooks)
-const app2 = createWfApp({}, wooks)  // shares the same routes
+const app2 = createWfApp({}, wooks) // shares the same routes
 ```
 
 Or share with another adapter (e.g., HTTP):
@@ -377,7 +386,7 @@ import { createHttpApp } from '@wooksjs/event-http'
 import { createWfApp } from '@wooksjs/event-wf'
 
 const httpApp = createHttpApp()
-const wfApp = createWfApp({}, httpApp)  // shares httpApp's router
+const wfApp = createWfApp({}, httpApp) // shares httpApp's router
 ```
 
 ## Testing
@@ -390,13 +399,12 @@ import { createWfApp } from '@wooksjs/event-wf'
 const app = createWfApp<{ count: number }>()
 
 app.step('increment', {
-  handler: (ctx) => { ctx.count++ },
+  handler: (ctx) => {
+    ctx.count++
+  },
 })
 
-app.flow('test-flow', [
-  { id: 'increment' },
-  { id: 'increment' },
-])
+app.flow('test-flow', [{ id: 'increment' }, { id: 'increment' }])
 
 // Test:
 const output = await app.start('test-flow', { count: 0 })
@@ -427,12 +435,12 @@ expect(final.finished).toBe(true)
 Inside a step handler, use the event-scoped logger:
 
 ```ts
-import { useEventLogger } from '@wooksjs/event-core'
+import { useLogger } from '@wooksjs/event-core'
 
 app.step('process', {
   handler: (ctx) => {
-    const logger = useEventLogger('process-step')
-    logger.log('Processing...')
+    const logger = useLogger()
+    logger.info('Processing...')
     ctx.processed = true
   },
 })

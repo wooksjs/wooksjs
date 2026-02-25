@@ -1,10 +1,5 @@
 import type { TCacheControl } from '@wooksjs/event-http'
-import {
-  HttpError,
-  useHeaders,
-  useRequest,
-  useResponse,
-} from '@wooksjs/event-http'
+import { HttpError, useHeaders, useRequest, useResponse } from '@wooksjs/event-http'
 import type { Stats } from 'fs'
 import { createReadStream, promises as fsPromises } from 'fs'
 import path from 'path'

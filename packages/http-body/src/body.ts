@@ -11,7 +11,14 @@ import {
 import { safeJsonParse } from './utils/safe-json'
 
 /** Short names for common Content-Type values. */
-export type KnownContentType = 'json' | 'html' | 'xml' | 'text' | 'binary' | 'form-data' | 'urlencoded'
+export type KnownContentType =
+  | 'json'
+  | 'html'
+  | 'xml'
+  | 'text'
+  | 'binary'
+  | 'form-data'
+  | 'urlencoded'
 
 const CONTENT_TYPE_MAP: Record<string, string> = {
   json: 'application/json',

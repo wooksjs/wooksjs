@@ -1,5 +1,9 @@
 # Get Started with WebSocket
 
+::: warning Experimental
+This package is in an experimental phase. The API may change without following semver until it reaches a stable release.
+:::
+
 ::: info
 Learn more about Wooks to understand its philosophy and advantages:
 

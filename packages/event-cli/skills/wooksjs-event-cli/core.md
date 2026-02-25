@@ -37,14 +37,14 @@ app.run() // processes process.argv
 
 **Options (`TWooksCliOptions`):**
 
-| Option | Type | Description |
-|--------|------|-------------|
-| `logger` | `TConsoleBase` | Custom logger |
-| `onError` | `(e: Error) => void` | Custom error handler (default: print + `process.exit(1)`) |
-| `onNotFound` | `TWooksHandler` | Handler for unknown commands |
-| `onUnknownCommand` | `(params, raiseError) => unknown` | Callback before "unknown command" error |
-| `cliHelp` | `TCliHelpRenderer \| TCliHelpOptions` | Help renderer or options |
-| `router` | router options | Custom router configuration |
+| Option             | Type                                  | Description                                               |
+| ------------------ | ------------------------------------- | --------------------------------------------------------- |
+| `logger`           | `TConsoleBase`                        | Custom logger                                             |
+| `onError`          | `(e: Error) => void`                  | Custom error handler (default: print + `process.exit(1)`) |
+| `onNotFound`       | `TWooksHandler`                       | Handler for unknown commands                              |
+| `onUnknownCommand` | `(params, raiseError) => unknown`     | Callback before "unknown command" error                   |
+| `cliHelp`          | `TCliHelpRenderer \| TCliHelpOptions` | Help renderer or options                                  |
+| `router`           | router options                        | Custom router configuration                               |
 
 ### `app.cli(path, handler | options)`
 
@@ -85,17 +85,17 @@ Routes use the same `@prostojs/router` as HTTP. Command path segments become rou
 
 ```ts
 // Static command
-app.cli('init', handler)           // $ mycli init
+app.cli('init', handler) // $ mycli init
 
 // With parameter
-app.cli('build/:target', handler)  // $ mycli build production
+app.cli('build/:target', handler) // $ mycli build production
 
 // Optional parameter
-app.cli('test/:suite?', handler)   // $ mycli test        (suite = undefined)
-                                   // $ mycli test unit   (suite = 'unit')
+app.cli('test/:suite?', handler) // $ mycli test        (suite = undefined)
+// $ mycli test unit   (suite = 'unit')
 
 // Multi-segment
-app.cli('deploy staging setup', handler)  // $ mycli deploy staging setup
+app.cli('deploy staging setup', handler) // $ mycli deploy staging setup
 ```
 
 Route params accessed via `useRouteParams()`:
@@ -113,13 +113,13 @@ app.cli('generate/:type/:name', () => {
 
 Handler return values are printed to stdout:
 
-| Return type | Behavior |
-|-------------|----------|
-| `string` | `console.log(value)` |
-| `array` | Each item logged (strings as-is, objects as JSON) |
-| `object` | `console.log(JSON.stringify(value, null, '  '))` |
-| `Error` | Passed to `onError` handler |
-| `undefined` | Nothing printed |
+| Return type | Behavior                                          |
+| ----------- | ------------------------------------------------- |
+| `string`    | `console.log(value)`                              |
+| `array`     | Each item logged (strings as-is, objects as JSON) |
+| `object`    | `console.log(JSON.stringify(value, null, '  '))`  |
+| `Error`     | Passed to `onError` handler                       |
+| `undefined` | Nothing printed                                   |
 
 ## Best Practices
 

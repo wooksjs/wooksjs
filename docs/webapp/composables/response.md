@@ -190,7 +190,7 @@ app.get('test', () => {
 
     response.setCookie('session', 'value', {
         expires: '2029-01-01', // Date | string | number
-        maxAge: '1h',          // number | TProstoTimeMultiString
+        maxAge: '1h',          // number | TTimeMultiString
         domain: 'my-domain',   // string
         path: '/home',         // string
         secure: true,          // boolean

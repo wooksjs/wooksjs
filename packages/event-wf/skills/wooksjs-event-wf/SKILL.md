@@ -1,6 +1,6 @@
 ---
 name: wooksjs-event-wf
-description: Wooks Workflow framework — composable, step-based workflow engine for Node.js. Load when building workflow/process automation with wooks; defining workflow steps and flows; using workflow composables (useWfState, useRouteParams); working with @wooksjs/event-core context store (init, get, set, hook); creating conditional and looping flows; resuming paused workflows; handling user input requirements; using string-based step handlers; attaching workflow spies; working with StepRetriableError; creating custom event context composables for workflows; sharing parent event context (eventContext) for HTTP integration; accessing HTTP composables from workflow steps.
+description: Wooks Workflow framework — composable, step-based workflow engine for Node.js. Load when building workflow/process automation with wooks; defining workflow steps and flows; using workflow composables (useWfState, useRouteParams, useLogger); working with @wooksjs/event-core context (key, cached, defineWook, defineEventKind); creating conditional and looping flows; resuming paused workflows; handling user input requirements; using string-based step handlers; attaching workflow spies; working with StepRetriableError; creating custom event context composables for workflows; sharing parent event context (eventContext) for HTTP integration; accessing HTTP composables from workflow steps.
 ---
 
 # @wooksjs/event-wf
@@ -11,11 +11,11 @@ A composable workflow framework for Node.js built on async context (AsyncLocalSt
 
 Read the domain file that matches the task. Do not load all files — only what you need.
 
-| Domain | File | Load when... |
-|--------|------|------------|
-| Event context (core machinery) | [event-core.md](event-core.md) | Understanding the context store API (`init`/`get`/`set`/`hook`), creating custom composables, lazy evaluation and caching, building your own `use*()` functions |
-| Workflow app setup | [core.md](core.md) | Creating a workflow app, `createWfApp`, starting/resuming workflows, error handling, spies, testing, logging, sharing parent event context (`eventContext`), HTTP integration |
-| Steps & flows | [workflows.md](workflows.md) | Defining steps (`app.step`), defining flows (`app.flow`), workflow schemas, conditions, loops, user input, parametric steps, `useWfState`, `StepRetriableError`, string-based handlers |
+| Domain                         | File                           | Load when...                                                                                                                                                                           |
+| ------------------------------ | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Event context (core machinery) | [event-core.md](event-core.md) | Understanding `EventContext`, `key()`/`cached()`/`defineWook()`/`defineEventKind()`/`slot()`, creating custom composables, lazy evaluation and caching, building your own `use*()` functions |
+| Workflow app setup             | [core.md](core.md)             | Creating a workflow app, `createWfApp`, starting/resuming workflows, error handling, spies, testing, logging, sharing parent event context (`eventContext`), HTTP integration          |
+| Steps & flows                  | [workflows.md](workflows.md)   | Defining steps (`app.step`), defining flows (`app.flow`), workflow schemas, conditions, loops, user input, parametric steps, `useWfState`, `StepRetriableError`, string-based handlers |
 
 ## Quick reference
 
@@ -39,4 +39,4 @@ const output = await app.start('calculate', { result: 0 })
 console.log(output.state.context) // { result: 10 }
 ```
 
-Key exports: `createWfApp()`, `useWfState()`, `useWFContext()`, `useRouteParams()`, `StepRetriableError`.
+Key exports: `createWfApp()`, `useWfState()`, `useRouteParams()`, `useLogger()`, `StepRetriableError`.

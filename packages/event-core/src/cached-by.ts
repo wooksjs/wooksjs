@@ -1,6 +1,6 @@
-import { cached } from './key';
-import { current } from './storage';
-import type { EventContext } from './context';
+import { cached } from './key'
+import { current } from './storage'
+import type { EventContext } from './context'
 
 /**
  * Creates a parameterized cached computation. Maintains a `Map<K, V>` per
@@ -21,14 +21,16 @@ import type { EventContext } from './context';
  * parseCookie('session') // returns cached result
  * ```
  */
-export function cachedBy<K, V>(fn: (key: K, ctx: EventContext) => V): (key: K, ctx?: EventContext) => V {
-  const mapSlot = cached(() => new Map<K, V>());
+export function cachedBy<K, V>(
+  fn: (key: K, ctx: EventContext) => V,
+): (key: K, ctx?: EventContext) => V {
+  const mapSlot = cached(() => new Map<K, V>())
   return (k, ctx?) => {
-    const c = ctx ?? current();
-    const map = c.get(mapSlot);
+    const c = ctx ?? current()
+    const map = c.get(mapSlot)
     if (!map.has(k)) {
-      map.set(k, fn(k, c));
+      map.set(k, fn(k, c))
     }
-    return map.get(k) as V;
-  };
+    return map.get(k) as V
+  }
 }

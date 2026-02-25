@@ -1,10 +1,19 @@
-<script setup>
+<script setup lang="ts">
 import DefaultTheme from 'vitepress/theme'
 import VPButton from 'vitepress/dist/client/theme-default/components/VPButton.vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
+import SnippetExpress from './snippets/compare-express.md'
+import SnippetWooks from './snippets/compare-wooks.md'
+import SnippetHttp from './snippets/http.md'
+import SnippetWs from './snippets/ws.md'
+import SnippetCli from './snippets/cli.md'
+import SnippetWf from './snippets/wf.md'
+import EventFlowBg from './EventFlowBg.vue'
 
 const { Layout } = DefaultTheme
+
 const actions = [
-    { theme: 'brand', text: 'Get Started with Web App', link: '/webapp/' },
+    { theme: 'brand', text: 'Get Started', link: '/wooks/' },
     { theme: 'alt', text: 'Why Wooks?', link: '/wooks/why' },
     {
         theme: 'alt',
@@ -12,32 +21,107 @@ const actions = [
         link: 'https://github.com/wooksjs/wooksjs',
     },
 ]
+
+const activeTab = ref('http')
+const tiltDeg = ref(2)
+
+function switchTab(id: string) {
+    activeTab.value = id
+    // Random tilt between -3 and 3, but at least 1.5 degrees magnitude
+    const sign = Math.random() > 0.5 ? 1 : -1
+    tiltDeg.value = sign * (1.5 + Math.random() * 1.5)
+}
+
+const backCardStyle = computed(() => ({
+    transform: `rotate(${tiltDeg.value}deg)`,
+}))
+
+const tabs = [
+    { id: 'http', label: 'HTTP', link: '/webapp/' },
+    { id: 'ws', label: 'WebSocket', link: '/wsapp/' },
+    { id: 'cli', label: 'CLI', link: '/cliapp/' },
+    { id: 'wf', label: 'Workflows', link: '/wf/' },
+]
+
+const activeLink = computed(() => tabs.find((t) => t.id === activeTab.value)?.link ?? '/')
+
+const features = [
+    {
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6M9 9l6 6"/></svg>`,
+        title: 'No req, res. No middleware.',
+        details: 'Access request data through composables — lazy, cached, and available anywhere in the call stack.',
+        link: '/wooks/what#what-is-a-wook',
+    },
+    {
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2.1l4 4-4 4"/><path d="M3 12.2v-2a4 4 0 0 1 4-4h12.8"/><path d="M7 21.9l-4-4 4-4"/><path d="M21 11.8v2a4 4 0 0 1-4 4H4.2"/></svg>`,
+        title: 'One API. Every event type.',
+        details: 'HTTP, WebSocket, CLI, Workflows — the same composable pattern works everywhere. Learn once, use anywhere.',
+        link: '/wooks/',
+    },
+    {
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>`,
+        title: 'Lazy by default',
+        details: 'Body parsing, cookie reading, auth extraction — nothing runs until you call it. Zero cost for unused data.',
+        link: '/wooks/why',
+    },
+    {
+        icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 6.49999H7.5M12 6.49999H7.5M7.5 6.49999V18M21 7.49999C16.5 3 10.3027 10.8181 17 12C25 13.4118 20.5 20.5 14 17" stroke-width="1.5" stroke-linecap="round" stroke="currentColor"/></svg>`,
+        title: 'TypeScript-first',
+        details: 'Fully typed context slots, route params, and composable return values. Type safety through compile-time branding.',
+        link: '/wooks/type-safety',
+    },
+    {
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>`,
+        title: 'Advanced Router',
+        details: 'Regex constraints on params, multi-segment wildcards, indexed lookups. Faster than Express and Fastify.',
+        link: '/webapp/routing',
+    },
+    {
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>`,
+        title: 'Build your own composables',
+        details: 'defineWook() lets you create reusable, cached, typed composables — like building your own useAuth().',
+        link: '/wooks/what#definewook',
+    },
+]
+
+onMounted(() => {
+    nextTick(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((e) => {
+                    if (e.isIntersecting) {
+                        e.target.classList.add('visible')
+                        observer.unobserve(e.target)
+                    }
+                })
+            },
+            { threshold: 0.1 }
+        )
+        document.querySelectorAll('.animate-in').forEach((el) => observer.observe(el))
+    })
+})
 </script>
 
 <template>
     <Layout>
         <template #home-hero-before>
+            <!-- Hero -->
             <div class="VPHero">
-                <div
-                    class="container"
-                    style="display: flex; flex-direction: column"
-                >
-                    <div class="hero-bg" />
+                <div class="container" style="display: flex; flex-direction: column">
+                    <EventFlowBg />
                     <div class="main">
                         <img
                             src="/wooks-full-logo.png"
                             alt="Wooks"
-                            style="width: 400px; margin-bottom: 32px"
+                            style="width: 400px; margin-bottom: 24px"
                         />
-                        <p class="text">Next Generation Event Processing Framework</p>
-                        <p class="tagline">Get ready for hooks in web apps.</p>
+                        <p class="text">Composables for Node.js</p>
+                        <p class="tagline">
+                            No req/res. No middleware. Just functions.
+                        </p>
 
                         <div v-if="actions" class="actions">
-                            <div
-                                v-for="action in actions"
-                                :key="action.link"
-                                class="action"
-                            >
+                            <div v-for="action in actions" :key="action.link" class="action">
                                 <VPButton
                                     tag="a"
                                     size="medium"
@@ -50,12 +134,93 @@ const actions = [
                     </div>
                 </div>
             </div>
+
+            <!-- Feature Tiles -->
+            <section class="code-section" style="padding-top: 0; padding-bottom: 0;">
+                <div class="code-section-inner">
+                    <div class="features-grid">
+                        <a
+                            v-for="(f, i) in features"
+                            :key="i"
+                            :href="f.link"
+                            class="feature-card"
+                            :style="{ '--delay': `${i * 0.07}s` }"
+                        >
+                            <div class="feature-icon" v-html="f.icon" />
+                            <div class="feature-body">
+                                <h3 class="feature-title">{{ f.title }}</h3>
+                                <p class="feature-details">{{ f.details }}</p>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Before/After Code Comparison -->
+            <section class="code-section">
+                <div class="code-section-inner animate-in">
+                    <h2 class="section-heading">Your handlers, simplified.</h2>
+                    <div class="comparison-grid">
+                        <div class="comparison-col">
+                            <div class="comparison-label express-label">Express</div>
+                            <div class="comparison-block">
+                                <SnippetExpress />
+                            </div>
+                        </div>
+                        <div class="comparison-arrow">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M5 12h14M13 5l7 7-7 7" />
+                            </svg>
+                        </div>
+                        <div class="comparison-col">
+                            <div class="comparison-label wooks-label">Wooks</div>
+                            <div class="comparison-block">
+                                <SnippetWooks />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tabbed Adapter Showcase -->
+            <section class="code-section showcase-section animate-in">
+                <div class="code-section-inner">
+                    <h2 class="section-heading" style="text-align: center">One pattern. Every event type.</h2>
+                    <p class="showcase-subheading">
+                        HTTP, WebSocket, CLI, Workflows — the same composable API everywhere. Learn once, use anywhere.
+                    </p>
+
+                    <div class="tab-bar">
+                        <button
+                            v-for="tab in tabs"
+                            :key="tab.id"
+                            :class="['tab-btn', { active: activeTab === tab.id }]"
+                            @click="switchTab(tab.id)"
+                        >
+                            {{ tab.label }}
+                        </button>
+                    </div>
+
+                    <div class="tab-stack">
+                        <div class="tab-back-card" :style="backCardStyle" />
+                        <a :href="activeLink" class="try-it-btn">Try it &rarr;</a>
+                        <div class="tab-content">
+                            <SnippetHttp v-show="activeTab === 'http'" />
+                            <SnippetWs v-show="activeTab === 'ws'" />
+                            <SnippetCli v-show="activeTab === 'cli'" />
+                            <SnippetWf v-show="activeTab === 'wf'" />
+                        </div>
+                    </div>
+                </div>
+            </section>
         </template>
     </Layout>
 </template>
 
 <style scoped>
+/* ---- Hero ---- */
 .VPHero {
+    position: relative;
     margin-top: calc(
         (var(--vp-nav-height) + var(--vp-layout-top-height, 0px)) * -1
     );
@@ -87,24 +252,6 @@ const actions = [
     max-width: 1152px;
     position: relative;
 }
-
-/* Create an overlay div with the "screen" blending mode */
-.hero-bg {
-  background-image: url(/hero-bg.webp);
-  display: block;
-  width: 100%;
-  height: 100%;
-  position: absolute;
-  background-size: cover;
-  background-position: center;
-  opacity: 0.7;
-  mix-blend-mode: difference;
-}
-
-.dark .hero-bg {
-  mix-blend-mode: screen;    
-}
-
 @media (min-width: 960px) {
     .container {
         flex-direction: row;
@@ -117,52 +264,26 @@ const actions = [
     flex-grow: 1;
     flex-shrink: 0;
 }
-.VPHero.has-image .container {
-    text-align: center;
-}
-@media (min-width: 960px) {
-    .VPHero.has-image .container {
-        text-align: left;
-    }
-}
 @media (min-width: 960px) {
     .main {
         order: 1;
-        width: 100%;
-        /* width: calc((100% / 3) * 2); */
-    }
-    .VPHero.has-image .main {
-        /* max-width: 592px; */
-        max-width: 100%;
         width: 100%;
     }
 }
 .name,
 .text {
-    /* max-width: 392px; */
     letter-spacing: -0.4px;
     line-height: 40px;
     font-size: 32px;
     font-weight: 700;
     white-space: pre-wrap;
 }
-.VPHero.has-image .name,
-.VPHero.has-image .text {
-    margin: 0 auto;
-}
 .name {
     color: var(--vp-home-hero-name-color);
-}
-.clip {
-    background: var(--vp-home-hero-name-background);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: var(--vp-home-hero-name-color);
 }
 @media (min-width: 640px) {
     .name,
     .text {
-        /* max-width: 576px; */
         line-height: 56px;
         font-size: 48px;
     }
@@ -173,22 +294,15 @@ const actions = [
         line-height: 64px;
         font-size: 56px;
     }
-    .VPHero.has-image .name,
-    .VPHero.has-image .text {
-        margin: 0;
-    }
 }
 .tagline {
     padding-top: 8px;
-    max-width: 392px;
+    max-width: 560px;
     line-height: 28px;
     font-size: 18px;
     font-weight: 500;
     white-space: pre-wrap;
     color: var(--vp-c-text-2);
-}
-.VPHero.has-image .tagline {
-    margin: 0 auto;
 }
 @media (min-width: 640px) {
     .tagline {
@@ -203,9 +317,6 @@ const actions = [
         line-height: 36px;
         font-size: 24px;
     }
-    .VPHero.has-image .tagline {
-        margin: 0;
-    }
 }
 .actions {
     display: flex;
@@ -213,105 +324,317 @@ const actions = [
     margin: -6px;
     padding-top: 24px;
 }
-.VPHero.has-image .actions {
-    justify-content: center;
-}
 @media (min-width: 640px) {
     .actions {
         padding-top: 32px;
-    }
-}
-@media (min-width: 960px) {
-    .VPHero.has-image .actions {
-        justify-content: flex-start;
     }
 }
 .action {
     flex-shrink: 0;
     padding: 6px;
 }
-.image {
-    order: 1;
-    margin: -76px -24px -48px;
-}
-@media (min-width: 640px) {
-    .image {
-        margin: -108px -24px -48px;
-    }
-}
-@media (min-width: 960px) {
-    .image {
-        flex-grow: 1;
-        order: 2;
-        margin: 0;
-        min-height: 100%;
-    }
-}
-.image-container {
+
+/* ---- Shared Code Sections (tinted full-bleed) ---- */
+.code-section {
+    padding: 32px 24px;
     position: relative;
+}
+.showcase-section {
+    min-height: 775px;
+    background: #f2f7fa;
+}
+:global(.dark) .showcase-section, .dark .showcase-section {
+    background: #052c41;
+}
+@media (min-width: 640px) {
+    .code-section {
+        padding: 64px 48px;
+    }
+}
+@media (min-width: 960px) {
+    .code-section {
+        padding: 64px 64px;
+    }
+}
+.code-section-inner {
+    max-width: 1152px;
     margin: 0 auto;
-    width: 320px;
-    height: 320px;
+}
+.section-heading {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    color: var(--vp-c-text-1);
 }
 @media (min-width: 640px) {
-    .image-container {
-        width: 392px;
-        height: 392px;
+    .section-heading {
+        font-size: 28px;
     }
 }
-@media (min-width: 960px) {
-    .image-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        width: 100%;
-        height: 100%;
-        /*rtl:ignore*/
-        transform: translate(-32px, -32px);
+
+/* ---- Code Comparison ---- */
+.comparison-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    align-items: stretch;
+    min-width: 0;
+}
+.comparison-col {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+.comparison-col .comparison-block {
+    flex: 1;
+}
+.comparison-arrow {
+    display: flex;
+    justify-content: center;
+    align-self: center;
+    color: var(--vp-c-text-3);
+}
+.comparison-arrow svg {
+    transform: rotate(90deg);
+}
+@media (min-width: 768px) {
+    .comparison-grid {
+        grid-template-columns: 1fr auto 1fr;
+        gap: 16px;
+    }
+    .comparison-arrow svg {
+        transform: rotate(0deg);
     }
 }
-.image-bg {
+.comparison-block {
+    border-radius: 0 0 12px 12px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border: 1px solid var(--vp-c-divider);
+    border-top: none;
+    background: var(--vp-code-block-bg);
+}
+.comparison-label {
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    border-radius: 12px 12px 0 0;
+    border: 1px solid var(--vp-c-divider);
+    border-bottom: none;
+}
+.express-label {
+    background: rgba(128, 128, 128, 0.1);
+    color: var(--vp-c-text-2);
+}
+.wooks-label {
+    background: rgba(61, 144, 190, 0.15);
+    color: var(--vp-c-brand);
+}
+/* Shared: reset VitePress code block chrome inside custom containers */
+.comparison-block :deep(div[class*="language-"]),
+.tab-content :deep(div[class*="language-"]) {
+    margin: 0;
+    border-radius: 0;
+}
+.comparison-block :deep(button.copy),
+.comparison-block :deep(span.lang),
+.tab-content :deep(button.copy),
+.tab-content :deep(span.lang) {
+    display: none;
+}
+.comparison-block :deep(pre),
+.tab-content :deep(pre) {
+    padding: 0 !important;
+}
+
+/* ---- Adapter Showcase ---- */
+.showcase-subheading {
+    font-size: 16px;
+    color: var(--vp-c-text-2);
+    text-align: center;
+    margin-top: -12px;
+    margin-bottom: 24px;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+.tab-bar {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+.tab-btn {
+    padding: 8px 20px;
+    border: 1px solid var(--vp-c-divider);
+    background: var(--vp-c-bg-soft);
+    color: var(--vp-c-text-2);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+.tab-btn:hover {
+    color: var(--vp-c-text-1);
+    border-color: var(--vp-c-brand);
+}
+.tab-btn.active {
+    background: var(--vp-c-brand);
+    color: #fff;
+    border-color: var(--vp-c-brand);
+}
+.tab-stack {
+    position: relative;
+}
+.tab-back-card {
     position: absolute;
-    top: 50%;
-    /*rtl:ignore*/
-    left: 50%;
-    border-radius: 50%;
-    width: 192px;
-    height: 192px;
-    background-image: var(--vp-home-hero-image-background-image);
-    filter: var(--vp-home-hero-image-filter);
-    /*rtl:ignore*/
-    transform: translate(-50%, -50%);
+    inset: 4px -2px -4px 2px;
+    border-radius: 12px;
+    border: 1px solid var(--vp-c-divider);
+    background: var(--vp-code-block-bg);
+    opacity: 0.5;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-@media (min-width: 640px) {
-    .image-bg {
-        width: 256px;
-        height: 256px;
-    }
+.dark .tab-back-card {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
-@media (min-width: 960px) {
-    .image-bg {
-        width: 320px;
-        height: 320px;
-    }
+.tab-content {
+    position: relative;
+    border-radius: 12px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border: 1px solid var(--vp-c-divider);
+    background: var(--vp-code-block-bg);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
 }
-:deep(.image-src) {
+.dark .tab-content {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+.try-it-btn {
     position: absolute;
-    top: 50%;
-    /*rtl:ignore*/
-    left: 50%;
-    max-width: 192px;
-    /*rtl:ignore*/
-    transform: translate(-50%, -50%);
+    top: 12px;
+    right: 12px;
+    z-index: 10;
+    padding: 4px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #00000078;
+    background: var(--vp-code-block-bg);
+    border: 1px solid var(--vp-c-divider);
+    border-radius: 6px;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+html.dark .try-it-btn {
+    color: #ffffff78;
+}
+.try-it-btn:hover {
+    color: var(--vp-c-brand);
+    border-color: var(--vp-c-brand);
+}
+.comparison-block :deep(code),
+.tab-content :deep(code) {
+    display: block;
+    width: fit-content;
+    min-width: 100%;
+    padding: 0 20px;
+}
+
+/* ---- Feature Tiles ---- */
+.features-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
 }
 @media (min-width: 640px) {
-    :deep(.image-src) {
-        max-width: 256px;
+    .features-grid {
+        grid-template-columns: 1fr 1fr;
     }
 }
 @media (min-width: 960px) {
-    :deep(.image-src) {
-        max-width: 320px;
+    .features-grid {
+        grid-template-columns: 1fr 1fr 1fr;
     }
+}
+.feature-card {
+    display: flex;
+    gap: 16px;
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid var(--vp-c-divider);
+    background: var(--vp-c-bg-soft);
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow 0.25s ease,
+                border-color 0.25s ease;
+    animation: feature-fade-in 0.5s ease both;
+    animation-delay: var(--delay);
+}
+.feature-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--vp-c-brand);
+    box-shadow: 0 8px 24px rgba(61, 144, 190, 0.12);
+}
+.dark .feature-card:hover {
+    box-shadow: 0 8px 24px rgba(61, 144, 190, 0.2);
+}
+@keyframes feature-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+.feature-icon {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    padding: 6px;
+    border-radius: 8px;
+    background: rgba(61, 144, 190, 0.1);
+    color: var(--vp-c-brand);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                background 0.25s ease;
+}
+.feature-card:hover .feature-icon {
+    transform: scale(1.15) rotate(-5deg);
+    background: rgba(61, 144, 190, 0.18);
+}
+.feature-icon :deep(svg) {
+    width: 100%;
+    height: 100%;
+}
+.feature-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--vp-c-text-1);
+    margin-bottom: 4px;
+    line-height: 1.4;
+}
+.feature-details {
+    font-size: 13px;
+    color: var(--vp-c-text-2);
+    line-height: 1.5;
+    margin: 0;
+}
+
+/* ---- Scroll-reveal animation ---- */
+.animate-in {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.animate-in.visible {
+    opacity: 1;
+    transform: translateY(0);
 }
 </style>

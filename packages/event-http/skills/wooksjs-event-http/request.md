@@ -22,24 +22,24 @@ const { method, url, headers, rawBody, getIp, reqId } = useRequest()
 
 **Returned properties:**
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `rawRequest` | `IncomingMessage` | Node.js raw request object |
-| `url` | `string` | Request URL |
-| `method` | `string` | HTTP method |
-| `headers` | `IncomingHttpHeaders` | Request headers |
-| `rawBody` | `() => Promise<Buffer>` | Lazy — reads and decompresses request body on call |
-| `reqId` | `() => string` | Lazy UUID per request |
-| `getIp(opts?)` | `(opts?: { trustProxy: boolean }) => string` | Client IP (with optional proxy trust) |
-| `getIpList()` | `() => { remoteIp, forwarded[] }` | All IPs (remote + X-Forwarded-For) |
-| `isCompressed()` | `() => boolean` | Whether the request body is compressed |
+| Property         | Type                                         | Description                                        |
+| ---------------- | -------------------------------------------- | -------------------------------------------------- |
+| `rawRequest`     | `IncomingMessage`                            | Node.js raw request object                         |
+| `url`            | `string`                                     | Request URL                                        |
+| `method`         | `string`                                     | HTTP method                                        |
+| `headers`        | `IncomingHttpHeaders`                        | Request headers                                    |
+| `rawBody`        | `() => Promise<Buffer>`                      | Lazy — reads and decompresses request body on call |
+| `reqId`          | `() => string`                               | Lazy UUID per request                              |
+| `getIp(opts?)`   | `(opts?: { trustProxy: boolean }) => string` | Client IP (with optional proxy trust)              |
+| `getIpList()`    | `() => { remoteIp: string; forwarded: string[] }` | All IPs (remote + X-Forwarded-For)                 |
+| `isCompressed()` | `() => boolean`                              | Whether the request body is compressed             |
 
 **Request limits (per-request override):**
 
 ```ts
 const { setMaxCompressed, setMaxInflated, setMaxRatio, setReadTimeoutMs } = useRequest()
-setMaxCompressed(5 * 1024 * 1024)  // 5 MB
-setReadTimeoutMs(30_000)            // 30 seconds
+setMaxCompressed(5 * 1024 * 1024) // 5 MB
+setReadTimeoutMs(30_000) // 30 seconds
 ```
 
 Default limits: `maxCompressed: 1MB`, `maxInflated: 10MB`, `maxRatio: 100`, `readTimeoutMs: 10s`.
@@ -62,9 +62,9 @@ Parses incoming request cookies lazily (per cookie name, via `cachedBy`).
 import { useCookies } from '@wooksjs/event-http'
 
 const { getCookie, rawCookies } = useCookies()
-const session = getCookie('session_id')   // parsed + cached
-const theme = getCookie('theme')           // parsed + cached (different key)
-const raw = rawCookies                     // raw Cookie header string
+const session = getCookie('session_id') // parsed + cached
+const theme = getCookie('theme') // parsed + cached (different key)
+const raw = rawCookies // raw Cookie header string
 ```
 
 ### `useSearchParams(ctx?)`
@@ -107,13 +107,13 @@ if (authIs('basic')) {
 
 **Returned properties:**
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `authorization` | `string \| undefined` | Raw Authorization header value |
-| `authType()` | `string \| null` | Auth scheme: `'Basic'`, `'Bearer'`, etc. |
-| `authRawCredentials()` | `string \| null` | Everything after the scheme |
-| `authIs(type)` | `boolean` | Check auth scheme: `'basic'`, `'bearer'`, or any custom scheme |
-| `basicCredentials()` | `{ username, password } \| null` | Decoded Basic credentials |
+| Property               | Type                             | Description                                                    |
+| ---------------------- | -------------------------------- | -------------------------------------------------------------- |
+| `authorization`        | `string \| undefined`            | Raw Authorization header value                                 |
+| `authType()`           | `string \| null`                 | Auth scheme: `'Basic'`, `'Bearer'`, etc.                       |
+| `authRawCredentials()` | `string \| null`                 | Everything after the scheme                                    |
+| `authIs(type)`         | `boolean`                        | Check auth scheme: `'basic'`, `'bearer'`, or any custom scheme |
+| `basicCredentials()`   | `{ username, password } \| null` | Decoded Basic credentials                                      |
 
 ### `useAccept(ctx?)`
 
@@ -124,8 +124,12 @@ import { useAccept } from '@wooksjs/event-http'
 
 const { accept, accepts } = useAccept()
 
-if (accepts('json')) { /* ... */ }
-if (accepts('image/png')) { /* ... */ }
+if (accepts('json')) {
+  /* ... */
+}
+if (accepts('image/png')) {
+  /* ... */
+}
 ```
 
 ### `useRouteParams<T>(ctx?)`
@@ -137,8 +141,8 @@ import { useRouteParams } from '@wooksjs/event-http'
 
 // Given route: /users/:id/posts/:postId
 const { params, get } = useRouteParams<{ id: string; postId: string }>()
-params.id        // '42'
-get('postId')    // '7'
+params.id // '42'
+get('postId') // '7'
 ```
 
 ### `useLogger(ctx?): Logger`
@@ -166,7 +170,7 @@ app.post('/admin/action', async () => {
   if (!user.isAdmin) throw new HttpError(403)
 
   // Body is never parsed if auth fails
-  const { parseBody } = useBody()
+  const { parseBody } = useBody() // from @wooksjs/http-body
   return parseBody()
 })
 ```

@@ -16,15 +16,15 @@ import { prepareTestHttpContext } from '@wooksjs/event-http'
 
 **Options (`TTestHttpContext`):**
 
-| Option | Type | Required | Description |
-|--------|------|----------|-------------|
-| `url` | `string` | Yes | Request URL (e.g. `/api/users?page=1`) |
-| `method` | `string` | No | HTTP method (default: `'GET'`) |
-| `headers` | `Record<string, string>` | No | Request headers |
-| `params` | `Record<string, string \| string[]>` | No | Pre-set route parameters |
-| `requestLimits` | `TRequestLimits` | No | Custom request limits |
-| `rawBody` | `string \| Buffer` | No | Pre-seed the raw body (skips stream reading) |
-| `defaultHeaders` | `Record<string, string \| string[]>` | No | Default headers to pre-populate on the response |
+| Option           | Type                                 | Required | Description                                     |
+| ---------------- | ------------------------------------ | -------- | ----------------------------------------------- |
+| `url`            | `string`                             | Yes      | Request URL (e.g. `/api/users?page=1`)          |
+| `method`         | `string`                             | No       | HTTP method (default: `'GET'`)                  |
+| `headers`        | `Record<string, string>`             | No       | Request headers                                 |
+| `params`         | `Record<string, string \| string[]>` | No       | Pre-set route parameters                        |
+| `requestLimits`  | `TRequestLimits`                     | No       | Custom request limits                           |
+| `rawBody`        | `string \| Buffer`                   | No       | Pre-seed the raw body (skips stream reading)    |
+| `defaultHeaders` | `Record<string, string \| string[]>` | No       | Default headers to pre-populate on the response |
 
 **Returns:** `(cb: () => T) => T` — a runner function.
 

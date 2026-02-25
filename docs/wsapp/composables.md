@@ -1,5 +1,9 @@
 # WebSocket Composables
 
+::: warning Experimental
+This package is in an experimental phase. The API may change without following semver until it reaches a stable release.
+:::
+
 Composables for working with WebSocket connections, messages, rooms, and server state. All composables follow the Wooks `defineWook` pattern — results are cached per context and resolved lazily.
 
 [[toc]]

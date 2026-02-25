@@ -111,8 +111,8 @@ describe('ContextInjector integration with createEventContext', () => {
   })
 })
 
-describe('attach() does not trigger CI (optimized hot path)', () => {
-  it('does NOT call CI when attaching with callback', () => {
+describe('seed() does not trigger CI (optimized hot path)', () => {
+  it('does NOT call CI when seeding with callback', () => {
     const withSpy = vi.fn()
     const custom = new ContextInjector()
     custom.with = withSpy as typeof custom.with
@@ -126,7 +126,7 @@ describe('attach() does not trigger CI (optimized hot path)', () => {
     createEventContext({ logger }, () => {
       withSpy.mockClear()
 
-      current().attach(wf, { triggerId: 'wf-001' }, () => {
+      current().seed(wf, { triggerId: 'wf-001' }, () => {
         expect(current().get(wf.keys.triggerId)).toBe('wf-001')
         expect(current().get(eventTypeKey)).toBe('WF')
       })
@@ -137,7 +137,7 @@ describe('attach() does not trigger CI (optimized hot path)', () => {
     replaceContextInjector(original as ContextInjector<string>)
   })
 
-  it('does NOT call CI when attaching without callback', () => {
+  it('does NOT call CI when seeding without callback', () => {
     const withSpy = vi.fn()
     const custom = new ContextInjector()
     custom.with = withSpy as typeof custom.with
@@ -150,7 +150,7 @@ describe('attach() does not trigger CI (optimized hot path)', () => {
 
     createEventContext({ logger }, () => {
       withSpy.mockClear()
-      current().attach(wf, { triggerId: 'wf-001' })
+      current().seed(wf, { triggerId: 'wf-001' })
       expect(withSpy).not.toHaveBeenCalled()
       expect(current().get(wf.keys.triggerId)).toBe('wf-001')
     })

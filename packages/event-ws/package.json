@@ -1,0 +1,64 @@
+{
+  "name": "@wooksjs/event-ws",
+  "version": "0.6.6",
+  "description": "WebSocket adapter for Wooks with path-based message routing, rooms, and broadcasting",
+  "keywords": [
+    "api",
+    "composables",
+    "framework",
+    "prostojs",
+    "realtime",
+    "rooms",
+    "websocket",
+    "wooks",
+    "ws"
+  ],
+  "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/event-ws#readme",
+  "bugs": {
+    "url": "https://github.com/wooksjs/wooksjs/issues"
+  },
+  "license": "MIT",
+  "author": "Artem Maltsev",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wooksjs/wooksjs.git",
+    "directory": "packages/event-ws"
+  },
+  "bin": {
+    "wooksjs-event-ws-skill": "./scripts/setup-skills.js"
+  },
+  "files": [
+    "dist",
+    "skills",
+    "scripts/setup-skills.js"
+  ],
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "scripts": {
+    "build": "rolldown -c ../../rolldown.config.mjs",
+    "setup-skills": "node ./scripts/setup-skills.js"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.18.1",
+    "@wooksjs/event-core": "workspace:^",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4",
+    "wooks": "workspace:^"
+  },
+  "peerDependencies": {
+    "@prostojs/logger": "^0.4.3",
+    "@prostojs/router": "^0.3.2",
+    "@wooksjs/event-core": "workspace:^",
+    "wooks": "workspace:^",
+    "ws": "^8.0.0"
+  }
+}

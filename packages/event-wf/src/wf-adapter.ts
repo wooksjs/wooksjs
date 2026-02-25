@@ -35,9 +35,9 @@ export interface TWfRunOptions<I = unknown, T = unknown, IR = unknown> {
   /** Cleanup function called when execution ends. */
   cleanup?: () => void
   /**
-   * Parent event context to attach to. When provided, the workflow shares
-   * this context instead of creating a new one, so step handlers can access
-   * composables from the parent scope (e.g. HTTP composables).
+   * Parent event context. When provided, the workflow creates a child context
+   * linked to this parent, so step handlers can transparently read composables
+   * from the parent scope (e.g. HTTP composables) via the parent chain.
    *
    * Pass `current()` from within an active event scope (HTTP handler, etc.).
    */
@@ -201,7 +201,11 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
         clean()
         if (result.resume) {
           result.resume = (_input?: I) =>
-            this.resume(result.state, { input: _input, spy, cleanup } as TWfRunOptions<I, T, IR>) as Promise<TFlowOutput<T, unknown, IR>>
+            this.resume(result.state, { input: _input, spy, cleanup } as TWfRunOptions<
+              I,
+              T,
+              IR
+            >) as Promise<TFlowOutput<T, unknown, IR>>
         }
         return result
       }

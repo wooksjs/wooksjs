@@ -40,7 +40,10 @@ describe('event-http/cookies useResponse().setCookie', () => {
       response.setCookie('test', 'value')
       response.setCookie('test2', 'value2', { maxAge: 150, secure: true })
       expect(response.getCookie('test')).toEqual({ value: 'value', attrs: {} })
-      expect(response.getCookie('test2')).toEqual({ value: 'value2', attrs: { maxAge: 150, secure: true } })
+      expect(response.getCookie('test2')).toEqual({
+        value: 'value2',
+        attrs: { maxAge: 150, secure: true },
+      })
     })
   })
 

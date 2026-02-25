@@ -310,7 +310,9 @@ export class HttpResponse {
   }
 
   private finalizeCookies(): void {
-    if (!this._hasCookies) { return }
+    if (!this._hasCookies) {
+      return
+    }
     const entries = Object.entries(this._cookies)
     const rendered: string[] = []
     for (const [name, data] of entries) {
@@ -342,8 +344,7 @@ export class HttpResponse {
       this._status = EHttpStatusCode.NoContent
       return
     }
-    this._status =
-      defaultStatus[this._req.method as 'GET'] || EHttpStatusCode.OK
+    this._status = defaultStatus[this._req.method as 'GET'] || EHttpStatusCode.OK
   }
 
   private sendStream(stream: Readable, method: string | undefined): Promise<void> {
@@ -414,13 +415,9 @@ export class HttpResponse {
     const renderedBody = this.renderBody()
     this.autoStatus(!!renderedBody)
     const contentLength =
-      typeof renderedBody === 'string'
-        ? Buffer.byteLength(renderedBody)
-        : renderedBody.byteLength
+      typeof renderedBody === 'string' ? Buffer.byteLength(renderedBody) : renderedBody.byteLength
     this._headers['content-length'] = contentLength.toString()
 
-    this._res
-      .writeHead(this._status, this._headers)
-      .end(method === 'HEAD' ? '' : renderedBody)
+    this._res.writeHead(this._status, this._headers).end(method === 'HEAD' ? '' : renderedBody)
   }
 }

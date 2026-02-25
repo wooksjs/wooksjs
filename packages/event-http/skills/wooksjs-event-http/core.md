@@ -32,13 +32,14 @@ app.listen(3000)
 
 **Options (`TWooksHttpOptions`):**
 
-| Option | Type | Description |
-|--------|------|-------------|
-| `logger` | `TConsoleBase` | Custom logger instance |
-| `onNotFound` | `TWooksHandler` | Handler called when no route matches (default: 404 HttpError) |
-| `router` | router options | Custom router configuration |
-| `requestLimits` | `TRequestLimits` | Default body size/timeout limits for all requests |
-| `responseClass` | `typeof WooksHttpResponse` | Custom response subclass (default: `WooksHttpResponse`) |
+| Option          | Type                       | Description                                                   |
+| --------------- | -------------------------- | ------------------------------------------------------------- |
+| `logger`        | `TConsoleBase`             | Custom logger instance                                        |
+| `onNotFound`    | `TWooksHandler`            | Handler called when no route matches (default: 404 HttpError) |
+| `router`        | router options             | Custom router configuration                                   |
+| `requestLimits` | `Omit<TRequestLimits, 'perRequest'>` | Default body size/timeout limits for all requests             |
+| `responseClass` | `typeof WooksHttpResponse` | Custom response subclass (default: `WooksHttpResponse`)       |
+| `defaultHeaders` | `Record<string, string \| string[]>` | Default headers applied to every response (e.g. from `securityHeaders()`) |
 
 ### Route registration
 
@@ -50,7 +51,7 @@ app.patch(path, handler)
 app.delete(path, handler)
 app.head(path, handler)
 app.options(path, handler)
-app.all(path, handler)  // matches any HTTP method
+app.all(path, handler) // matches any HTTP method
 ```
 
 Handlers are plain functions. Return value becomes the response body:
@@ -62,7 +63,7 @@ app.get('/users/:id', () => {
 })
 
 app.post('/users', async () => {
-  const { parseBody } = useBody()
+  const { parseBody } = useBody() // from @wooksjs/http-body
   const user = await parseBody<{ name: string }>()
   return { created: user.name } // → 201 application/json (POST auto-status)
 })
@@ -119,12 +120,12 @@ app.get('/users/:id', () => {
 
 When no explicit status is set, it's inferred from the HTTP method and response body:
 
-| Method | With body | Without body |
-|--------|-----------|-------------|
-| GET | 200 OK | 204 No Content |
-| POST | 201 Created | 204 No Content |
-| PUT | 201 Created | 204 No Content |
-| PATCH | 202 Accepted | 204 No Content |
+| Method | With body    | Without body   |
+| ------ | ------------ | -------------- |
+| GET    | 200 OK       | 204 No Content |
+| POST   | 201 Created  | 204 No Content |
+| PUT    | 201 Created  | 204 No Content |
+| PATCH  | 202 Accepted | 204 No Content |
 | DELETE | 202 Accepted | 204 No Content |
 
 ## Handler chain

@@ -26,7 +26,7 @@ app.step('process/:type', {
     const logger = useLogger()
     const { getId } = useEventId()
 
-    logger.log(`[${getId()}] Processing type: ${type}`)
+    logger.info(`[${getId()}] Processing type: ${type}`)
   },
 })
 ```
@@ -106,7 +106,7 @@ Use `cached()` for derived values that should be computed once and reused:
 ```ts
 import { cached, defineWook } from '@wooksjs/event-core'
 
-const configSlot = cached(async () => {
+const configSlot = cached(async (ctx) => {
   // Expensive operation — runs once, result is cached
   const res = await fetch('https://api.example.com/config')
   return res.json()
@@ -124,7 +124,7 @@ Use `cachedBy()` when you need one cached result per unique key:
 ```ts
 import { cachedBy } from '@wooksjs/event-core'
 
-const fetchUser = cachedBy(async (userId: string) => {
+const fetchUser = cachedBy(async (userId: string, ctx) => {
   const res = await fetch(`https://api.example.com/users/${userId}`)
   return res.json()
 })

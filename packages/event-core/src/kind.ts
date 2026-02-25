@@ -1,5 +1,5 @@
-import type { EventKind, SlotMarker } from './types';
-import { key } from './key';
+import type { EventKind, Key, SlotMarker } from './types'
+import { key } from './key'
 
 /**
  * Type-level marker used inside `defineEventKind` schemas. Each `slot<T>()`
@@ -14,13 +14,13 @@ import { key } from './key';
  * ```
  */
 export function slot<T>(): SlotMarker<T> {
-  return {} as SlotMarker<T>;
+  return {} as SlotMarker<T>
 }
 
 /**
  * Declares a named event kind with typed seed slots. The returned object
  * contains `keys` — typed accessors for reading seed values from context —
- * and is passed to `ctx.attach(kind, seeds)` or `createEventContext()`.
+ * and is passed to `ctx.seed(kind, seeds)` or `createEventContext()`.
  *
  * @param name - Unique event kind name (e.g. `'http'`, `'cli'`, `'workflow'`)
  * @param schema - Object mapping slot names to `slot<T>()` markers
@@ -41,12 +41,12 @@ export function defineEventKind<S extends Record<string, SlotMarker<any>>>(
   name: string,
   schema: S,
 ): EventKind<S> {
-  const keys = {} as EventKind<S>['keys'];
-  const _entries: [string, Key<unknown>][] = [];
+  const keys = {} as EventKind<S>['keys']
+  const _entries: Array<[string, Key<unknown>]> = []
   for (const prop of Object.keys(schema)) {
-    const k = key(`${name}.${prop}`);
-    (keys as Record<string, unknown>)[prop] = k;
-    _entries.push([prop, k]);
+    const k = key(`${name}.${prop}`)
+    ;(keys as Record<string, unknown>)[prop] = k
+    _entries.push([prop, k])
   }
-  return { name, keys, _entries };
+  return { name, keys, _entries }
 }

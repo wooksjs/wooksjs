@@ -29,7 +29,9 @@ describe('WooksHttpResponse error rendering', () => {
       const response = createWooksResponse()
       const error = new HttpError(405, 'test message')
       ;(response as any).renderError(error.body, ctx)
-      expect(response.body).toEqual('{"statusCode":405,"message":"test message","error":"Method Not Allowed"}')
+      expect(response.body).toEqual(
+        '{"statusCode":405,"message":"test message","error":"Method Not Allowed"}',
+      )
     })
   })
 
@@ -75,7 +77,9 @@ describe('WooksHttpResponse error rendering', () => {
       const response = createWooksResponse()
       const error = new HttpError(405, 'test message')
       ;(response as any).renderError(error.body, ctx)
-      expect(response.body).toEqual(expect.stringContaining('<title>405 Method Not Allowed</title>'))
+      expect(response.body).toEqual(
+        expect.stringContaining('<title>405 Method Not Allowed</title>'),
+      )
     })
   })
 

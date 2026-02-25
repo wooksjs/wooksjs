@@ -1,4 +1,4 @@
-import { EventContext, current, run } from '@wooksjs/event-core'
+import { EventContext, run } from '@wooksjs/event-core'
 import type { EventContextOptions } from '@wooksjs/event-core'
 import type minimist from 'minimist'
 
@@ -18,7 +18,7 @@ export function createCliContext(data: TCliEventInput, options: EventContextOpti
   const ctx = new EventContext(options)
   return <R>(fn: () => R): R =>
     run(ctx, () =>
-      ctx.attach(
+      ctx.seed(
         cliKind,
         {
           argv: data.argv,

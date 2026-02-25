@@ -15,7 +15,9 @@ const app = createWfApp<{ result: number }>()
 
 // Function handler
 app.step('double', {
-  handler: (ctx) => { ctx.result *= 2 },
+  handler: (ctx) => {
+    ctx.result *= 2
+  },
 })
 
 // String handler (storable, runs in restricted env)
@@ -26,6 +28,7 @@ app.step('add', {
 ```
 
 **Parameters:**
+
 - `id` — Step identifier (used in flow schemas to reference this step). Supports router syntax: `'add/:n'`, `'process/*'`, etc.
 - `opts.handler` — Either a function `(ctx: T, input?: I) => void | IR` or a JavaScript string.
 - `opts.input` — Optional: input type description (string). When present and no input is provided at runtime, the workflow pauses to request input.
@@ -90,14 +93,11 @@ String handlers are useful when workflow definitions are stored in a database �
 Registers a flow (workflow schema) — an ordered sequence of steps:
 
 ```ts
-app.flow('calculate', [
-  { id: 'add', input: 5 },
-  { id: 'add', input: 2 },
-  { id: 'double' },
-])
+app.flow('calculate', [{ id: 'add', input: 5 }, { id: 'add', input: 2 }, { id: 'double' }])
 ```
 
 **Parameters:**
+
 - `id` — Flow identifier. Supports router syntax (e.g., `'process/:type'`, `'batch/*'`).
 - `schema` — Array of step references, conditions, and loops (see Schema Syntax below).
 - `prefix` — Optional prefix prepended to step IDs during resolution.
@@ -135,11 +135,7 @@ app.flow('f2', [
 ])
 
 // 3. Mixed
-app.flow('f3', [
-  'step1',
-  { id: 'add', input: 5 },
-  'step2',
-])
+app.flow('f3', ['step1', { id: 'add', input: 5 }, 'step2'])
 ```
 
 ### Conditional execution
@@ -178,13 +174,14 @@ app.flow('retry-flow', [
     while: 'attempts < 5 && !success',
     steps: [
       { id: 'attempt' },
-      { break: 'success' },      // break when success is truthy
+      { break: 'success' }, // break when success is truthy
     ],
   },
 ])
 ```
 
 Loop constructs:
+
 - `while` — Condition string evaluated before each iteration
 - `break` — Condition string; if truthy, exits the loop
 - `continue` — Condition string; if truthy, skips to next iteration
@@ -295,12 +292,12 @@ app.step('my-step', {
   handler: () => {
     const { ctx, input, schemaId, stepId, indexes, resume } = useWfState()
 
-    ctx<MyContext>()      // the workflow context object (type T)
-    input<MyInput>()      // the current step's input (or undefined)
-    schemaId              // the flow ID being executed
-    stepId()              // the current step ID
-    indexes()             // position in schema (for resume tracking)
-    resume                // boolean: true if this is a resumed execution
+    ctx<MyContext>() // the workflow context object (type T)
+    input<MyInput>() // the current step's input (or undefined)
+    schemaId // the flow ID being executed
+    stepId() // the current step ID
+    indexes() // position in schema (for resume tracking)
+    resume // boolean: true if this is a resumed execution
   },
 })
 ```
@@ -314,7 +311,7 @@ app.step('transform', {
   handler: () => {
     const { ctx } = useWfState()
     const context = ctx<{ items: string[]; processed: boolean }>()
-    context.items = context.items.map(s => s.toUpperCase())
+    context.items = context.items.map((s) => s.toUpperCase())
     context.processed = true
   },
 })
@@ -361,7 +358,7 @@ When a step declares an `input` type but no input is provided in the schema, the
 
 ```ts
 app.step('get-email', {
-  input: 'string',           // declares expected input type
+  input: 'string', // declares expected input type
   handler: 'ctx.email = input',
 })
 
@@ -370,7 +367,7 @@ app.step('send-welcome', {
 })
 
 app.flow('onboarding', [
-  { id: 'get-email' },       // no input provided → workflow pauses
+  { id: 'get-email' }, // no input provided → workflow pauses
   { id: 'send-welcome' },
 ])
 
@@ -390,7 +387,7 @@ When input is provided in the schema, the step executes immediately:
 
 ```ts
 app.flow('auto-onboarding', [
-  { id: 'get-email', input: 'default@example.com' },  // input provided → no pause
+  { id: 'get-email', input: 'default@example.com' }, // input provided → no pause
   { id: 'send-welcome' },
 ])
 ```
@@ -453,11 +450,7 @@ app.step('add/:n', {
   },
 })
 
-app.flow('calculate', [
-  { id: 'add', input: 10 },
-  { id: 'multiply', input: 2 },
-  'add/5',
-])
+app.flow('calculate', [{ id: 'add', input: 10 }, { id: 'multiply', input: 2 }, 'add/5'])
 
 const output = await app.start('calculate', { result: 0 })
 // result: (0 + 10) * 2 + 5 = 25
@@ -474,20 +467,26 @@ const app = createWfApp<{
 }>()
 
 app.step('validate', {
-  handler: (ctx) => { ctx.validated = isValid(ctx.data) },
+  handler: (ctx) => {
+    ctx.validated = isValid(ctx.data)
+  },
 })
 
 app.step('to-json', {
-  handler: (ctx) => { ctx.output = JSON.stringify(ctx.data) },
+  handler: (ctx) => {
+    ctx.output = JSON.stringify(ctx.data)
+  },
 })
 
 app.step('to-csv', {
-  handler: (ctx) => { ctx.output = toCsv(ctx.data) },
+  handler: (ctx) => {
+    ctx.output = toCsv(ctx.data)
+  },
 })
 
 app.flow('export', [
   { id: 'validate' },
-  { condition: '!validated', steps: [] },  // early exit if invalid
+  { condition: '!validated', steps: [] }, // early exit if invalid
   { condition: 'format === "json"', steps: ['to-json'] },
   { condition: 'format === "csv"', steps: ['to-csv'] },
 ])
@@ -511,18 +510,13 @@ app.step('confirm', {
   },
 })
 
-app.flow('signup', [
-  { id: 'get-name' },
-  { id: 'get-email' },
-  { id: 'get-plan' },
-  { id: 'confirm' },
-])
+app.flow('signup', [{ id: 'get-name' }, { id: 'get-email' }, { id: 'get-plan' }, { id: 'confirm' }])
 
 // Each step pauses for user input
 let output = await app.start('signup', {})
-output = await app.resume(output.state, { input: 'Alice' })     // name
-output = await app.resume(output.state, { input: 'a@b.com' })   // email
-output = await app.resume(output.state, { input: 'pro' })        // plan
+output = await app.resume(output.state, { input: 'Alice' }) // name
+output = await app.resume(output.state, { input: 'a@b.com' }) // email
+output = await app.resume(output.state, { input: 'pro' }) // plan
 // output.finished === true
 ```
 
@@ -546,10 +540,7 @@ app.step('attempt', {
 app.flow('resilient-fetch', [
   {
     while: 'attempts < 5 && !success',
-    steps: [
-      { id: 'attempt' },
-      { break: 'success' },
-    ],
+    steps: [{ id: 'attempt' }, { break: 'success' }],
   },
 ])
 

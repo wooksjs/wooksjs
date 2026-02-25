@@ -100,10 +100,7 @@ export function useLogger(ctx?: EventContext): Logger {
  * })
  * ```
  */
-export function createEventContext<R>(
-  options: EventContextOptions,
-  fn: () => R,
-): R
+export function createEventContext<R>(options: EventContextOptions, fn: () => R): R
 /**
  * Creates a new `EventContext` with an event kind, seeds the kind's slots,
  * and runs `fn` inside the context.
@@ -141,9 +138,9 @@ export function createEventContext(
     return run(ctx, kindOrFn)
   }
 
-  // attach seeds + eventTypeKey, then wrap callback in CI for observability
+  // seed slots + eventTypeKey, then wrap callback in CI for observability
   return run(ctx, () => {
-    ctx.attach(kindOrFn, seedsOrUndefined!)
+    ctx.seed(kindOrFn, seedsOrUndefined!)
     return getContextInjector().with('Event:start', { eventType: kindOrFn.name }, maybeFn!)
   })
 }

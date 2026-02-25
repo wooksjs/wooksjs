@@ -82,7 +82,7 @@ export const useCustomBody = defineWook((ctx) => {
     const { 'content-type': contentType } = useHeaders(ctx);
 
     // A cached slot ensures parsing happens only once per request
-    const parsedSlot = cached(async () => {
+    const parsedSlot = cached(async (ctx) => {
         // Do custom parsing only for 'my-custom-content'
         if (contentType === 'my-custom-content') {
             const bodyBuffer = await rawBody();

@@ -36,9 +36,7 @@ describe('securityHeaders()', () => {
     const headers = securityHeaders({
       strictTransportSecurity: 'max-age=31536000; includeSubDomains',
     })
-    expect(headers['strict-transport-security']).toBe(
-      'max-age=31536000; includeSubDomains',
-    )
+    expect(headers['strict-transport-security']).toBe('max-age=31536000; includeSubDomains')
     expect(Object.keys(headers)).toHaveLength(7)
   })
 

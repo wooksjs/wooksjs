@@ -3,11 +3,11 @@
   "version": "0.6.6",
   "description": "@wooksjs/event-core",
   "keywords": [
-    "wooks",
     "composables",
-    "event",
     "context",
-    "framework"
+    "event",
+    "framework",
+    "wooks"
   ],
   "homepage": "https://github.com/wooksjs/wooksjs/tree/main/packages/event-core#readme",
   "bugs": {

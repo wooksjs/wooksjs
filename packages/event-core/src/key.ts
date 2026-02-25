@@ -1,7 +1,7 @@
-import type { EventContext } from './context';
-import type { Key, Cached } from './types';
+import type { EventContext } from './context'
+import type { Key, Cached } from './types'
 
-let nextId = 0;
+let nextId = 0
 
 /**
  * Creates a typed, writable context slot. Use `ctx.set(k, value)` to store
@@ -17,7 +17,7 @@ let nextId = 0;
  * ```
  */
 export function key<T>(name: string): Key<T> {
-  return { _id: nextId++, _name: name } as Key<T>;
+  return { _id: nextId++, _name: name } as Key<T>
 }
 
 /**
@@ -35,10 +35,10 @@ export function key<T>(name: string): Key<T> {
  * ```
  */
 export function cached<T>(fn: (ctx: EventContext) => T): Cached<T> {
-  return { _id: nextId++, _name: `cached:${nextId}`, _fn: fn } as Cached<T>;
+  return { _id: nextId++, _name: `cached:${nextId}`, _fn: fn } as Cached<T>
 }
 
 /** @internal Returns true if the accessor is a `Cached` slot (has a factory function). */
 export function isCached<T>(accessor: Key<T> | Cached<T>): accessor is Cached<T> {
-  return '_fn' in accessor;
+  return '_fn' in accessor
 }

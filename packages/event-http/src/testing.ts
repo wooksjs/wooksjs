@@ -50,7 +50,7 @@ export function prepareTestHttpContext(options: TTestHttpContext) {
   const response = new HttpResponse(res, req, console as any, options.defaultHeaders)
 
   const ctx = new EventContext({ logger: console as any })
-  ctx.attach(httpKind, { req, response, requestLimits: options.requestLimits })
+  ctx.seed(httpKind, { req, response, requestLimits: options.requestLimits })
 
   if (options.params) {
     ctx.set(routeParamsKey, options.params)

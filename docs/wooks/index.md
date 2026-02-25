@@ -62,13 +62,13 @@ Available wooks: `useWsConnection()`, `useWsMessage()`, `useWsRooms()`, `useWsSe
 Build command-line applications with routed commands, typed options, and auto-generated help — using the same wook patterns as HTTP.
 
 ```ts
-import { createCliApp, useCliOption } from '@wooksjs/event-cli'
+import { createCliApp, useCliOption, useRouteParams } from '@wooksjs/event-cli'
 
 const app = createCliApp()
 
 app.cli('deploy :env', () => {
   const { get } = useRouteParams<{ env: string }>()
-  const verbose = useCliOption('verbose', { type: 'boolean' })
+  const verbose = useCliOption('verbose')
   return `Deploying to ${get('env')}...`
 })
 

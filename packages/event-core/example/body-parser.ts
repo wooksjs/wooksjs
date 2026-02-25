@@ -4,10 +4,10 @@
  * Demonstrates: library-to-library dependency via exported cached slots,
  *               cached async computation, defineWook extension
  */
-import { cached, defineWook, type EventContext } from '../src/index';
+import { cached, defineWook } from '../src/index'
 
 // Depend on http-context's building blocks — not its wooks
-import { rawBody, headersMap } from './http-context';
+import { rawBody, headersMap } from './http-context'
 
 // ═══════════════════════════════════════════════
 // Cached — JSON/text parsing, runs once per event
@@ -17,22 +17,22 @@ const parsedBody = cached(async (ctx) => {
   const [buffer, headers] = await Promise.all([
     ctx.get(rawBody),
     Promise.resolve(ctx.get(headersMap)),
-  ]);
+  ])
 
-  const ct = (headers['content-type'] as string) ?? '';
+  const ct = (headers['content-type'] as string) ?? ''
 
   if (ct.includes('application/json')) {
-    return JSON.parse(buffer.toString('utf-8'));
+    return JSON.parse(buffer.toString('utf8'))
   }
   if (ct.includes('text/')) {
-    return buffer.toString('utf-8');
+    return buffer.toString('utf8')
   }
   if (ct.includes('application/x-www-form-urlencoded')) {
-    return Object.fromEntries(new URLSearchParams(buffer.toString('utf-8')));
+    return Object.fromEntries(new URLSearchParams(buffer.toString('utf8')))
   }
 
-  return buffer; // raw Buffer for unknown types
-});
+  return buffer // raw Buffer for unknown types
+})
 
 // ═══════════════════════════════════════════════
 // Wook — public API
@@ -49,4 +49,4 @@ export const useBody = defineWook((ctx) => ({
 
   /** Convenience: parse + cast to a known type */
   parseAs: <T>() => ctx.get(parsedBody) as Promise<T>,
-}));
+}))
