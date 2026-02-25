@@ -59,9 +59,9 @@ This is the right choice when:
 - You want workflows to be testable without an HTTP context
 - You only need a few specific values from the HTTP scope
 
-## Approach 2: Share the Event Context
+## Approach 2: Inherit the Parent Context
 
-Pass `eventContext: current()` in the options to attach the workflow to the **existing** event context. HTTP composables like `useRequest()`, `useCookies()`, or any custom composables you've built — all keep working inside step handlers.
+Pass `eventContext: current()` in the options to link the workflow to the **parent** event context. Internally, the workflow creates a child context with `parent: current()`, forming a parent chain. HTTP composables like `useRequest()`, `useCookies()`, or any custom composables you've built — all keep working inside step handlers because slot lookups traverse the parent chain automatically.
 
 ```ts
 import { current } from '@wooksjs/event-core'
@@ -76,7 +76,7 @@ http.post('/orders', async () => {
 })
 ```
 
-Now step handlers can call HTTP composables directly:
+Now step handlers can call HTTP composables directly — the child context delegates to the parent when a slot is not found locally:
 
 ```ts
 import { useRequest } from '@wooksjs/event-http'
@@ -84,7 +84,7 @@ import { useRequest } from '@wooksjs/event-http'
 wf.step('finalize', {
   handler: () => {
     const { ctx } = useWfState()
-    const { getIp } = useRequest()    // works when context is inherited
+    const { getIp } = useRequest()    // works via parent chain traversal
 
     ctx<OrderContext>().status = 'confirmed'
     ctx<OrderContext>().triggeredBy = getIp()
@@ -94,7 +94,7 @@ wf.step('finalize', {
 
 ### Extracting User Info on First Step
 
-A common pattern: your HTTP middleware resolves the authenticated user and caches it in the event context. With `eventContext`, the workflow can access it without re-fetching:
+A common pattern: your HTTP middleware resolves the authenticated user and caches it in the event context. With `eventContext`, the workflow's child context traverses the parent chain to access cached values without re-fetching:
 
 ```ts
 import { current, defineWook, cached } from '@wooksjs/event-core'
@@ -140,7 +140,7 @@ wf.step('check-permissions', {
 })
 ```
 
-The `useCurrentUser()` composable runs its factory **once per event context**. When the HTTP handler calls it, the result is cached. When the workflow step calls it (in the same inherited context), it returns the cached result — no second database/token lookup.
+The `useCurrentUser()` composable runs its factory **once per event context**. When the HTTP handler calls it, the result is cached in the parent context. When the workflow step calls it, the child context traverses the parent chain and finds the cached result — no second database/token lookup.
 
 ### When to Use Each Approach
 

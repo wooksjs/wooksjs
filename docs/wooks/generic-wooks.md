@@ -1,14 +1,14 @@
-# Generic Composables
+# Generic Wooks
 
-[What are composables?](/wooks/what#composables)
+[What is a wook?](/wooks/what#what-is-a-wook)
 
-Wooks provides a set of generic composables that work across all event "flavors" (HTTP, CLI, Workflow, or custom). These composables give you access to core event properties — such as event IDs, logging, and route parameters — regardless of the underlying event type.
+Wooks provides a set of generic wooks that work across all event "flavors" (HTTP, CLI, Workflow, or custom). These wooks give you access to core event properties — such as event IDs, logging, and route parameters — regardless of the underlying event type.
 
 [[toc]]
 
 ## Overview
 
-These composables are defined in the `@wooksjs/event-core` package, but they are re-exported by the main `wooks` library. You can import them directly from `'wooks'`.
+These wooks are defined in the `@wooksjs/event-core` package, but they are re-exported by the main `wooks` library. You can import them directly from `'wooks'`.
 
 **Example Import:**
 ```ts
@@ -48,7 +48,7 @@ Returns the `Logger` instance associated with the current event context. The log
 **Example:**
 ```ts
 const logger = useLogger()
-logger.debug('Processing request')
+logger.debug('Processing event')
 logger.error('Something went wrong')
 ```
 
@@ -82,7 +82,7 @@ function current(): EventContext
 ```
 
 **Description:**
-Returns the active `EventContext` for the current async execution scope. This is the low-level primitive that all composables use internally. Most application code should use higher-level composables, but `current()` is available for advanced use cases or when building custom composables.
+Returns the active `EventContext` for the current async execution scope. This is the low-level primitive that all wooks use internally. Most application code should use higher-level wooks, but `current()` is available for advanced use cases or when building custom wooks.
 
 Throws an error if called outside an event context.
 
@@ -97,7 +97,7 @@ const ctx = current()
 
 ## Summary
 
-These generic composables form the foundational layer of Wooks' event-driven approach:
+These generic wooks form the foundational layer of Wooks' event-driven approach:
 
 - **`useEventId()`:** Get a unique event identifier.
 - **`useLogger()`:** Access the event-scoped logger ([More About Logging in Wooks](/wooks/advanced/logging)).

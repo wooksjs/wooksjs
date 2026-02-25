@@ -58,30 +58,22 @@ export default defineConfig({
         },
 
         nav: [
-            { text: 'Wooks', link: '/wooks/', activeMatch: '/wooks/' },
-            { text: 'Web App', link: '/webapp/', activeMatch: '/webapp/' },
-            { text: 'CLI App', link: '/cliapp/', activeMatch: '/cliapp/' },
-            { text: 'Workflows', link: '/wf/', activeMatch: '/wf/' },
-            // { text: 'Config', link: '/config/', activeMatch: '/config/' },
-            // { text: 'Plugins', link: '/plugins/', activeMatch: '/plugins/' },
+            { text: 'About Wooks', link: '/wooks/what', activeMatch: '/wooks/' },
+            {
+                text: 'Adapters',
+                items: [
+                    { text: 'Web App', link: '/webapp/' },
+                    { text: 'WebSocket', link: '/wsapp/' },
+                    { text: 'CLI App', link: '/cliapp/' },
+                    { text: 'Workflows', link: '/wf/' },
+                ],
+            },
             {
                 text: 'Resources',
                 items: [
                     { text: 'Team', link: '/team' },
                     {
                         items: [
-                            // {
-                            //     text: 'Twitter',
-                            //     link: 'https://twitter.com/wooksjs',
-                            // },
-                            //   {
-                            //     text: 'Discord Chat',
-                            //     link: 'https://chat.wooksjs.dev',
-                            //   },
-                            //   {
-                            //     text: 'DEV Community',
-                            //     link: 'https://dev.to/t/wooksjs',
-                            //   },
                             {
                                 text: 'Changelog',
                                 link: 'https://github.com/wooksjs/wooksjs/blob/main/CHANGELOG.md',
@@ -90,10 +82,6 @@ export default defineConfig({
                     },
                 ],
             },
-            //   {
-            //     text: 'Version',
-            //     items: versionLinks,
-            //   },
         ],
 
         sidebar: {
@@ -110,16 +98,16 @@ export default defineConfig({
                             link: '/wooks/why',
                         },
                         {
-                            text: 'Comparison',
-                            link: '/wooks/comparison',
-                        },
-                        {
-                            text: 'Get Started',
+                            text: 'Wooks Flavors',
                             link: '/wooks/',
                         },
                         {
-                            text: 'Generic Composables',
-                            link: '/wooks/generic-composables',
+                            text: 'Generic Wooks',
+                            link: '/wooks/generic-wooks',
+                        },
+                        {
+                            text: 'Type Safety',
+                            link: '/wooks/type-safety',
                         },
                         {
                             text: 'Advanced',
@@ -154,6 +142,10 @@ export default defineConfig({
                         {
                             text: 'Introduction',
                             link: '/webapp/introduction',
+                        },
+                        {
+                            text: 'Comparison',
+                            link: '/webapp/comparison',
                         },
                         {
                             text: 'Quick Start',
@@ -213,6 +205,56 @@ export default defineConfig({
                         {
                             text: 'Logging in Wooks',
                             link: '/webapp/logging',
+                        },
+                    ]
+                }],
+            '/wsapp/': [
+                {
+                    text: 'WebSocket',
+                    items: [
+                        {
+                            text: 'Introduction',
+                            link: '/wsapp/introduction',
+                        },
+                        {
+                            text: 'Quick Start',
+                            link: '/wsapp/',
+                        },
+                        {
+                            text: 'Server',
+                            collapsed: false,
+                            items: [
+                                {
+                                    text: 'Composables',
+                                    link: '/wsapp/composables',
+                                },
+                                {
+                                    text: 'Rooms & Broadcasting',
+                                    link: '/wsapp/rooms',
+                                },
+                            ],
+                        },
+                        {
+                            text: 'Client',
+                            link: '/wsapp/client',
+                        },
+                        {
+                            text: 'Wire Protocol',
+                            link: '/wsapp/protocol',
+                        },
+                        {
+                            text: 'Advanced',
+                            collapsed: true,
+                            items: [
+                                {
+                                    text: 'Testing',
+                                    link: '/wsapp/testing',
+                                },
+                            ],
+                        },
+                        {
+                            text: 'Logging in Wooks',
+                            link: '/wsapp/logging',
                         },
                     ]
                 }],

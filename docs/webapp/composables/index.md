@@ -2,7 +2,7 @@
 
 A composable function, also known as a hook, is a function that connects you to the event context, which includes URL parameters, request body, cookies, and more.
 
-*Read more about [Wooks Composables](/wooks/what#composables)*
+*Read more about [What is a Wook](/wooks/what#what-is-a-wook)*
 
 Wooks HTTP provides various useful composable functions that can be categorized into the following groups:
 

@@ -5,7 +5,7 @@ import VPButton from 'vitepress/dist/client/theme-default/components/VPButton.vu
 const { Layout } = DefaultTheme
 const actions = [
     { theme: 'brand', text: 'Get Started with Web App', link: '/webapp/' },
-    { theme: 'alt', text: 'What is Wooks?', link: '/wooks/what' },
+    { theme: 'alt', text: 'Why Wooks?', link: '/wooks/why' },
     {
         theme: 'alt',
         text: 'View on GitHub',
@@ -90,7 +90,7 @@ const actions = [
 
 /* Create an overlay div with the "screen" blending mode */
 .hero-bg {
-  background-image: url(/hero-bg.png);
+  background-image: url(/hero-bg.webp);
   display: block;
   width: 100%;
   height: 100%;

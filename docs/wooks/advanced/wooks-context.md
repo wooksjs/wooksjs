@@ -5,7 +5,7 @@
 
 ## Core Concepts
 
-Every event in Wooks runs inside an `EventContext` — a lightweight container backed by `AsyncLocalStorage`. The context holds typed **slots** that composables read and write. There is no string-keyed store; instead, every piece of data has a typed `Key` or `Cached` slot.
+Every event in Wooks runs inside an `EventContext` — a lightweight container backed by `AsyncLocalStorage`. The context holds typed **slots** that wooks read and write. There is no string-keyed store; instead, every piece of data has a typed `Key` or `Cached` slot.
 
 ### Primitives
 
@@ -16,7 +16,7 @@ Every event in Wooks runs inside an `EventContext` — a lightweight container b
 | `cachedBy<K, V>(fn)` | Like `cached`, but parameterized — one cached result per unique key |
 | `slot<T>()` | Marker used inside `defineEventKind` schemas |
 | `defineEventKind(name, schema)` | Declares a named event kind with typed seed slots |
-| `defineWook<T>(factory)` | Creates a cached composable (factory runs once per context) |
+| `defineWook<T>(factory)` | Creates a cached wook (factory runs once per context) |
 
 ## Creating an Event Context
 
@@ -53,7 +53,7 @@ const myKind = defineEventKind('my-event', {
 
 createEventContext({ logger }, myKind, { payload: data }, () => {
   // Inside this callback, the event context is active
-  // All composables and current() work here
+  // All wooks and current() work here
 })
 ```
 
@@ -64,7 +64,7 @@ function current(): EventContext       // throws if no active context
 function tryGetCurrent(): EventContext | undefined  // returns undefined if none
 ```
 
-`current()` returns the active `EventContext`. All composables use it internally.
+`current()` returns the active `EventContext`. All wooks use it internally.
 
 ## Working with the EventContext
 
@@ -150,12 +150,12 @@ Each property in the schema becomes a typed `Key` accessible via `kind.keys`:
 const req = ctx.get(httpKind.keys.req) // IncomingMessage
 ```
 
-### Seeding with `ctx.attach()`
+### Seeding with `ctx.seed()`
 
-When creating an event context for a specific kind, seed values are attached via `ctx.attach(kind, seeds)`:
+When creating an event context for a specific kind, seed values are provided via `ctx.seed(kind, seeds)`:
 
 ```ts
-ctx.attach(httpKind, {
+ctx.seed(httpKind, {
   req: incomingMessage,
   response: httpResponse,
   requestLimits: limits,
@@ -164,11 +164,11 @@ ctx.attach(httpKind, {
 
 This is typically done inside `createEventContext()` or inside an adapter's request handler.
 
-## Building Composables
+## Building Wooks
 
 ### `defineWook<T>(factory)`
 
-The recommended way to create composables. Wraps a factory function with per-context caching — the factory runs once per event context, and subsequent calls return the cached result.
+The recommended way to create wooks. Wraps a factory function with per-context caching — the factory runs once per event context, and subsequent calls return the cached result.
 
 ```ts
 import { defineWook } from '@wooksjs/event-core'
@@ -197,7 +197,7 @@ const result = useMyFeature(testCtx)
 
 ## Best Practices
 
-1. **Use `defineWook` for composables.** It handles caching automatically — your factory runs once per event, and the returned object is reused.
+1. **Use `defineWook` for wooks.** It handles caching automatically — your factory runs once per event, and the returned object is reused.
 
 2. **Use `cached` for derived data.** If a value can be computed from other context data, make it a `cached` slot rather than computing it in multiple places.
 

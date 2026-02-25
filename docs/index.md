@@ -25,26 +25,27 @@ themeConfig:
 
 features:
     - icon: 💕
-      title: Leverage the Flexibility of Composables
-      link: /wooks/what#composables
-      details: Use Vue- or React-inspired composables to seamlessly interact with and adapt the event state, enabling efficient, maintainable code.
+      title: Composable Event Handling
+      link: /wooks/what#what-is-a-wook
+      details: Access event state through wooks — lazy, cached, composable functions inspired by Vue. No callback parameters, no middleware chains.
     - icon: 🕸
-      title: Build Dynamic Web Applications
-      details: Rapidly develop rich, responsive web applications with `@wooksjs/event-http`, streamlining everything from routing to composable logic.
+      title: HTTP Web Apps
+      details: Full-featured HTTP server with typed composables for headers, cookies, auth, body parsing, and more.
       link: /webapp/
+    - icon: 🔌
+      title: WebSocket Apps
+      details: Routed WebSocket server with rooms, broadcasting, and a structured client with RPC, push listeners, and auto-reconnect.
+      link: /wsapp/
     - icon: 💻
-      title: Develop Robust Command-Line Interfaces
-      details: Harness `@wooksjs/event-cli` to effortlessly handle CLI events, delivering intuitive, responsive command-line tools.
+      title: CLI Apps
+      details: Command-line event processing with the same composable pattern — parse args, flags, and commands effortlessly.
       link: /cliapp/
-    - icon: ⚡
-      title: Achieve High-Performance Routing
-      details: Utilize `@prostojs/router` for swift, reliable route matching and proper URI decoding, ensuring fast and predictable request handling.
-      link: /wooks/comparison#routing
     - icon: ✍
-      title: Create Your Own Composables
-      link: /wooks/what#composables
-      details: Easily craft custom composables to modularize and reuse your logic, improving code clarity and maintainability.
+      title: Build Your Own Wooks
+      link: /wooks/what#definewook
+      details: Create custom composables with `defineWook` to encapsulate and reuse logic across handlers.
     - icon: 🔑
-      title: Embrace Type Safety
-      details: Build with TypeScript from the ground up, enjoying fully typed APIs that reduce runtime errors and enhance development productivity.
+      title: Type Safe
+      link: /wooks/type-safety
+      details: TypeScript-first with fully typed context slots, route params, and composable return values.
 ---

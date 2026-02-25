@@ -1,6 +1,6 @@
-# Comparison with Other Frameworks
+# Comparison with Other HTTP Frameworks
 
-A concrete look at how Wooks differs from Express, Fastify, and h3. Wooks and h3 share similar philosophy — on-demand parsing, return-value responses. The core difference is the path each took: h3 threads an `event` object; Wooks uses `AsyncLocalStorage` and provides context primitives that make lazy computation with caching the default by design.
+A concrete look at how Wooks HTTP differs from Express, Fastify, and h3. Wooks and h3 share similar philosophy — on-demand parsing, return-value responses. The core difference is the path each took: h3 threads an `event` object; Wooks uses `AsyncLocalStorage` and provides context primitives that make lazy computation with caching the default by design.
 
 ## Request Lifecycle
 

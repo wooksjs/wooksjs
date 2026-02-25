@@ -4,7 +4,7 @@ Let's walk through a step-by-step example of creating a custom event context for
 
 1. Define an event kind with typed slots
 2. Create the event context and run handlers inside it
-3. Build composables using `defineWook`, `key`, and `cached`
+3. Build wooks using `defineWook`, `key`, and `cached`
 
 This example will help you understand how to build your own event types on top of `@wooksjs/event-core`.
 
@@ -40,11 +40,11 @@ function runJob<R>(
 }
 ```
 
-Inside the callback passed to `runJob`, all composables and `current()` calls will have access to the JOB context.
+Inside the callback passed to `runJob`, all wooks and `current()` calls will have access to the JOB context.
 
-## 3. Build Composables
+## 3. Build Wooks
 
-With the event kind defined, we can build composables that read and write job-scoped data.
+With the event kind defined, we can build wooks that read and write job-scoped data.
 
 ### Managing Job Status
 
@@ -120,6 +120,6 @@ Here we've demonstrated:
 
 - **Declaring an event kind:** `defineEventKind` with `slot<T>()` markers defines the typed seed shape.
 - **Creating a context:** `createEventContext` seeds the slots and runs the callback.
-- **Using composables:** `defineWook` creates cached composables; `key<T>` stores mutable state; `cached` derives computed values.
+- **Using wooks:** `defineWook` creates cached wooks; `key<T>` stores mutable state; `cached` derives computed values.
 
 This pattern applies to any custom event type in your application.

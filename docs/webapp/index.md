@@ -5,7 +5,7 @@ Learn more about Wooks to understand its philosophy and advantages:
 
 - [What is Wooks?](/wooks/what)
 - [Why Wooks?](/wooks/why)
-- [Comparison with Express, Fastify, and h3](/wooks/comparison)
+- [Comparison with Express, Fastify, and h3](/webapp/comparison)
 :::
 
 Or you can get hands-on with the HTTP flavor of Wooks right now.

@@ -48,4 +48,4 @@ Built on [`@prostojs/router`](https://github.com/prostojs/router) — parametric
 - [Quick Start](/webapp/) — Spin up a server in minutes.
 - [What is Wooks?](/wooks/what) — How composables, context, and `defineWook` work under the hood.
 - [Why Wooks?](/wooks/why) — The design decisions and when Wooks is the right choice.
-- [Comparison](/wooks/comparison) — Concrete differences vs Express, Fastify, and h3.
+- [Comparison](/webapp/comparison) — Concrete differences vs Express, Fastify, and h3.

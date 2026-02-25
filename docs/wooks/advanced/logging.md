@@ -9,61 +9,69 @@ You can set global logger options when creating the Wooks application. These opt
 - **Logging Level:** Determines which log messages are displayed (e.g., `fatal`, `error`, `warn`, `log`, `info`, `debug`).
 - **Transports:** Functions or utilities that handle the output of log messages. By default, logs go to the console, but you can add custom transports to write to files, external services, etc.
 
-**Example:**
+**Example (HTTP app):**
 
 ```ts
-import { createHttpApp } from '@wooksjs/event-http';
+import { createHttpApp } from '@wooksjs/event-http'
 
 const app = createHttpApp({
   logger: {
-    topic: 'my-super-wooks-app',
+    topic: 'my-app',
     level: 2, // Only fatal and error logs will show globally
     transports: [(log) => console.log(`[${log.topic}][${log.type}] ${log.timestamp}`, ...log.messages)],
   },
-});
+})
 ```
 
-In this example the global logger level is set to 2, so only `fatal` and `error` messages show.
+**Example (CLI app):**
+
+```ts
+import { createCliApp } from '@wooksjs/event-cli'
+
+const app = createCliApp({
+  logger: {
+    topic: 'my-cli',
+    level: 4, // Show up to info level
+  },
+})
+```
+
+Logger options are the same across all Wooks adapters.
 
 ## Accessing the Logger
 
 ### Global Logger
 
-You can retrieve a globally scoped logger from your Wooks application instance:
+You can retrieve a globally scoped logger from any Wooks application instance:
 
 ```ts
-const app = createHttpApp();
-const myLogger = app.getLogger('[my-custom-topic]');
+const myLogger = app.getLogger('[my-custom-topic]')
 
-// You can now log messages with this logger
-myLogger.log('This is a log message');
-myLogger.error('This is an error message');
+myLogger.log('This is a log message')
+myLogger.error('This is an error message')
 ```
 
 This global logger does not attach event-specific data, but inherits all global configurations, levels, and transports defined when creating the app.
 
 ### Event Logger
 
-Inside an event handler (e.g., within a request handler for HTTP), you can access a context-aware logger that's tied to the current event:
+Inside any event handler, you can access a context-aware logger tied to the current event:
 
 ```ts
-import { useLogger } from '@wooksjs/event-core';
+import { useLogger } from '@wooksjs/event-core'
 
-app.get('/some-path', () => {
-  const logger = useLogger();
+// Works in HTTP handlers, CLI handlers, workflow steps — any event type
+const logger = useLogger()
 
-  logger.debug('debug message');
-  logger.info('info message');
-  logger.error('error message');
-
-  return 'Check your console for logs';
-});
+logger.debug('debug message')
+logger.info('info message')
+logger.error('error message')
 ```
 
 **Key points:**
 
 - `useLogger()` returns a `Logger` instance associated with the current event context.
-- You can also import `useLogger` from `'wooks'` or `'@wooksjs/event-http'` — it is re-exported for convenience.
+- You can also import `useLogger` from `'wooks'` — it is re-exported for convenience.
 
 ## Logging Levels and Methods
 
@@ -80,4 +88,4 @@ The `level` number controls which of these methods produce output. For instance,
 
 ## Summary
 
-Wooks provides a convenient, integrated logging system through `@wooksjs/event-core` and `@prostojs/logger`. By configuring the logger globally, you gain control over which messages appear, where they're sent, and how they're formatted. The `useLogger()` composable gives you access to the event-scoped logger, while `app.getLogger()` provides a topic-scoped logger for application-level logging.
+Wooks provides a convenient, integrated logging system through `@wooksjs/event-core` and `@prostojs/logger`. By configuring the logger globally, you gain control over which messages appear, where they're sent, and how they're formatted. The `useLogger()` wook gives you access to the event-scoped logger, while `app.getLogger()` provides a topic-scoped logger for application-level logging.
