@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import DefaultTheme from 'vitepress/theme'
 import VPButton from 'vitepress/dist/client/theme-default/components/VPButton.vue'
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { useRoute } from 'vitepress'
 import SnippetExpress from './snippets/compare-express.md'
 import SnippetWooks from './snippets/compare-wooks.md'
 import SnippetHttp from './snippets/http.md'
@@ -84,7 +85,9 @@ const features = [
     },
 ]
 
-onMounted(() => {
+const route = useRoute()
+
+function setupScrollAnimations() {
     nextTick(() => {
         const observer = new IntersectionObserver(
             (entries) => {
@@ -97,9 +100,15 @@ onMounted(() => {
             },
             { threshold: 0.1 }
         )
-        document.querySelectorAll('.animate-in').forEach((el) => observer.observe(el))
+        document.querySelectorAll('.animate-in').forEach((el) => {
+            el.classList.remove('visible')
+            observer.observe(el)
+        })
     })
-})
+}
+
+onMounted(setupScrollAnimations)
+watch(() => route.path, setupScrollAnimations)
 </script>
 
 <template>

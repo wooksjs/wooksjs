@@ -25,7 +25,7 @@ app.post('test', async () => {
     const data = await parseBody()
 })
 ```
-The `useBody` function provides a `contentIs(type)` checker and access to the raw body buffer.
+The `useBody` function provides an `is(type)` checker and access to the raw body buffer.
 
 Example:
 
@@ -34,14 +34,14 @@ import { useBody } from '@wooksjs/http-body';
 
 app.post('test', async () => {
     const {
-        contentIs, // checks the content type : (type) => boolean
+        is, // checks the content type : (type) => boolean
         parseBody, // parses the body according to the content type : <T = unknown>() => Promise<T>;
         rawBody, // returns the raw body buffer : () => Promise<Buffer>;
     } = useBody();
 
     // Short names: 'json', 'html', 'xml', 'text', 'binary', 'form-data', 'urlencoded'
     // Or full MIME types: 'application/msgpack', 'image/png', etc.
-    if (contentIs('json')) {
+    if (is('json')) {
         console.log(await parseBody());
     }
 });

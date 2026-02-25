@@ -43,14 +43,14 @@ export class WooksHttpResponse extends HttpResponse {
 
   protected renderError(data: TWooksErrorBodyExt, ctx: EventContext): void {
     this._status = (data.statusCode || 500) as EHttpStatusCode
-    const { accepts } = useAccept(ctx)
-    if (accepts('json')) {
+    const { has } = useAccept(ctx)
+    if (has('json')) {
       this._headers['content-type'] = 'application/json'
       this._body = JSON.stringify(data)
-    } else if (accepts('html')) {
+    } else if (has('html')) {
       this._headers['content-type'] = 'text/html'
       this._body = renderErrorHtml(data)
-    } else if (accepts('text')) {
+    } else if (has('text')) {
       this._headers['content-type'] = 'text/plain'
       this._body = renderErrorText(data)
     } else {

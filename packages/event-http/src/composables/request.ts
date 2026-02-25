@@ -175,7 +175,7 @@ const ipListSlot = cached((ctx: EventContext) => {
  * Provides access to the incoming HTTP request (method, url, headers, body, IP).
  * @example
  * ```ts
- * const { method, url, rawBody, getIp } = useRequest()
+ * const { method, url, raw, rawBody, getIp } = useRequest()
  * const body = await rawBody()
  * ```
  */
@@ -209,7 +209,7 @@ export const useRequest = defineWook((ctx: EventContext) => {
   }
 
   return {
-    rawRequest: req,
+    raw: req,
     url: req.url,
     method: req.method,
     headers: req.headers,

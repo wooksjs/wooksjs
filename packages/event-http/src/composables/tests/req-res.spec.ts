@@ -28,8 +28,8 @@ describe('compasble/req-res', () => {
 
   it('must return request', () => {
     runInContext(() => {
-      const { rawRequest, headers, method, getIp, getIpList, reqId } = useRequest()
-      expect(rawRequest).toBeInstanceOf(IncomingMessage)
+      const { raw, headers, method, getIp, getIpList, reqId } = useRequest()
+      expect(raw).toBeInstanceOf(IncomingMessage)
       expect(headers).toEqual({
         dummy: 'test',
         'x-forwarded-for': '127.0.0.1, 192.168.0.251',

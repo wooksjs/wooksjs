@@ -36,8 +36,8 @@ const resHeadersToBlock = ['transfer-encoding', 'content-encoding', SET_COOKIE]
  */
 export function useProxy() {
   const response = useResponse()
-  const { rawRequest } = useRequest()
-  const req = rawRequest
+  const { raw } = useRequest()
+  const req = raw
   const logger = useLogger()
 
   return async function proxy(target: string, opts?: TWooksProxyOptions): Promise<Response> {

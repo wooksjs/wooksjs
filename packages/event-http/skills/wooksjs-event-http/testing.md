@@ -40,10 +40,10 @@ run(() => {
   // All composables work here
   const { method } = useRequest()
   const { params } = useRouteParams()
-  const { authIs } = useAuthorization()
+  const { is } = useAuthorization()
   expect(method).toBe('GET')
   expect(params.id).toBe('42')
-  expect(authIs('bearer')).toBe(true)
+  expect(is('bearer')).toBe(true)
 })
 ```
 

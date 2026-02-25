@@ -178,5 +178,5 @@ console.log(userPathBuilder({
 Query Parameters or URL Search Parameters are not part of the URI path processed by the router.
 The router simply ignores everything after `?` or `#`.
 
-To access query parameters, you can use the `useSearchParams` composable function from `@wooksjs/event-http`.
+To access query parameters, you can use the `useUrlParams` composable function from `@wooksjs/event-http`.
 For more details, refer to the [Query Parameters section](./composables/request.md#query-parameters).

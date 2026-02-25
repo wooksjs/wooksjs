@@ -11,11 +11,11 @@ A composable workflow framework for Node.js built on async context (AsyncLocalSt
 
 Read the domain file that matches the task. Do not load all files — only what you need.
 
-| Domain                         | File                           | Load when...                                                                                                                                                                           |
-| ------------------------------ | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Domain                         | File                           | Load when...                                                                                                                                                                                 |
+| ------------------------------ | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Event context (core machinery) | [event-core.md](event-core.md) | Understanding `EventContext`, `key()`/`cached()`/`defineWook()`/`defineEventKind()`/`slot()`, creating custom composables, lazy evaluation and caching, building your own `use*()` functions |
-| Workflow app setup             | [core.md](core.md)             | Creating a workflow app, `createWfApp`, starting/resuming workflows, error handling, spies, testing, logging, sharing parent event context (`eventContext`), HTTP integration          |
-| Steps & flows                  | [workflows.md](workflows.md)   | Defining steps (`app.step`), defining flows (`app.flow`), workflow schemas, conditions, loops, user input, parametric steps, `useWfState`, `StepRetriableError`, string-based handlers |
+| Workflow app setup             | [core.md](core.md)             | Creating a workflow app, `createWfApp`, starting/resuming workflows, error handling, spies, testing, logging, sharing parent event context (`eventContext`), HTTP integration                |
+| Steps & flows                  | [workflows.md](workflows.md)   | Defining steps (`app.step`), defining flows (`app.flow`), workflow schemas, conditions, loops, user input, parametric steps, `useWfState`, `StepRetriableError`, string-based handlers       |
 
 ## Quick reference
 

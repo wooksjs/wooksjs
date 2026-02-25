@@ -93,7 +93,7 @@ const getCookie = cachedBy((name: string, ctx) => {
 
 getCookie('session') // extracts + caches
 getCookie('session') // cache hit
-getCookie('theme')   // extracts + caches (different key)
+getCookie('theme') // extracts + caches (different key)
 ```
 
 ### `slot<T>()` and `defineEventKind(name, schema)`
@@ -135,8 +135,8 @@ const childCtx = new EventContext({ logger, parent: parentCtx })
 childCtx.seed(workflowKind, { triggerId: 'deploy-42' })
 
 // Child sees both its own and parent data via the parent chain
-childCtx.get(httpKind.keys.method)          // 'POST' (from parent)
-childCtx.get(workflowKind.keys.triggerId)   // 'deploy-42' (local)
+childCtx.get(httpKind.keys.method) // 'POST' (from parent)
+childCtx.get(workflowKind.keys.triggerId) // 'deploy-42' (local)
 ```
 
 ## EventContext
@@ -166,8 +166,8 @@ const childCtx = new EventContext({ logger, parent: parentCtx })
 childCtx.seed(workflowKind, { triggerId: 'deploy-42' })
 
 // child can see its own data AND parent data
-childCtx.get(httpKind.keys.method)          // 'GET' (found in parent)
-childCtx.get(workflowKind.keys.triggerId)   // 'deploy-42' (found locally)
+childCtx.get(httpKind.keys.method) // 'GET' (found in parent)
+childCtx.get(workflowKind.keys.triggerId) // 'deploy-42' (found locally)
 ```
 
 **Methods:**
@@ -395,9 +395,7 @@ const myKind = defineEventKind('my-event', {
 
 function handleEvent(data: unknown, source: string, handler: () => unknown) {
   const ctx = new EventContext({ logger: console })
-  return run(ctx, () =>
-    ctx.seed(myKind, { data, source }, handler)
-  )
+  return run(ctx, () => ctx.seed(myKind, { data, source }, handler))
 }
 ```
 
@@ -413,9 +411,9 @@ createEventContext({ logger }, httpKind, httpSeeds, () => {
   run(childCtx, () =>
     childCtx.seed(workflowKind, wfSeeds, () => {
       // Both HTTP and workflow composables work
-      const { method } = useRequest()   // found via parent chain
-      const { ctx } = useWfState()      // found locally
-    })
+      const { method } = useRequest() // found via parent chain
+      const { ctx } = useWfState() // found locally
+    }),
   )
 })
 ```

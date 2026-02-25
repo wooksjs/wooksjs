@@ -47,17 +47,17 @@ const authIsSlot = cachedBy((type: string, ctx: EventContext) => {
  * Provides parsed access to the Authorization header (type, credentials, Basic decoding).
  * @example
  * ```ts
- * const { authIs, authRawCredentials, basicCredentials } = useAuthorization()
- * if (authIs('bearer')) { const token = authRawCredentials() }
+ * const { is, credentials, basicCredentials } = useAuthorization()
+ * if (is('bearer')) { const token = credentials() }
  * ```
  */
 export const useAuthorization = defineWook((ctx: EventContext) => {
   const authorization = ctx.get(httpKind.keys.req).headers.authorization
   return {
     authorization,
-    authType: () => ctx.get(authTypeSlot),
-    authRawCredentials: () => ctx.get(authCredentialsSlot),
-    authIs: (type: KnownAuthType | (string & {})) => authIsSlot(type, ctx),
+    type: () => ctx.get(authTypeSlot),
+    credentials: () => ctx.get(authCredentialsSlot),
+    is: (type: KnownAuthType | (string & {})) => authIsSlot(type, ctx),
     basicCredentials: () => ctx.get(basicCredentialsSlot),
   }
 })

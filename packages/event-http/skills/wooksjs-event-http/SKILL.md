@@ -1,6 +1,6 @@
 ---
 name: wooksjs-event-http
-description: Use this skill when working with @wooksjs/event-http — to create HTTP servers with createHttpApp(), register route handlers with app.get()/post()/put()/patch()/delete(), read request data with useRequest()/useHeaders()/useCookies()/useSearchParams()/useAuthorization()/useAccept(), control responses with useResponse() and HttpResponse (status, headers, cookies, cache control, streaming), throw HTTP errors with HttpError, test handlers with prepareTestHttpContext(), or integrate with existing Node.js servers via getServerCb().
+description: Use this skill when working with @wooksjs/event-http — to create HTTP servers with createHttpApp(), register route handlers with app.get()/post()/put()/patch()/delete(), read request data with useRequest()/useHeaders()/useCookies()/useUrlParams()/useAuthorization()/useAccept(), control responses with useResponse() and HttpResponse (status, headers, cookies, cache control, streaming), throw HTTP errors with HttpError, test handlers with prepareTestHttpContext(), or integrate with existing Node.js servers via getServerCb().
 ---
 
 # @wooksjs/event-http
@@ -29,7 +29,7 @@ import {
   useResponse,
   useHeaders,
   useCookies,
-  useSearchParams,
+  useUrlParams,
   useAuthorization,
   useAccept,
   useRouteParams,

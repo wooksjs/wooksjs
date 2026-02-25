@@ -18,12 +18,12 @@ const urlSearchParamsSlot = cached(
  * Provides access to URL search (query) parameters from the request.
  * @example
  * ```ts
- * const { urlSearchParams, jsonSearchParams } = useSearchParams()
- * const page = urlSearchParams().get('page')
+ * const { params, toJson } = useUrlParams()
+ * const page = params().get('page')
  * ```
  */
-export const useSearchParams = defineWook((ctx: EventContext) => ({
-  rawSearchParams: () => ctx.get(rawSearchParamsSlot),
-  urlSearchParams: () => ctx.get(urlSearchParamsSlot),
-  jsonSearchParams: () => ctx.get(urlSearchParamsSlot).toJson(),
+export const useUrlParams = defineWook((ctx: EventContext) => ({
+  raw: () => ctx.get(rawSearchParamsSlot),
+  params: () => ctx.get(urlSearchParamsSlot),
+  toJson: () => ctx.get(urlSearchParamsSlot).toJson(),
 }))

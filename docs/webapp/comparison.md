@@ -79,7 +79,7 @@ export default defineEventHandler((event) => {
 // Wooks
 app.post('/endpoint', async () => {
   const body = await useBody().parseBody()
-  const query = useSearchParams()
+  const query = useUrlParams()
   const cookie = useCookies().getCookie('session')
 })
 ```

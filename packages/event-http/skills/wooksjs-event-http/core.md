@@ -32,13 +32,13 @@ app.listen(3000)
 
 **Options (`TWooksHttpOptions`):**
 
-| Option          | Type                       | Description                                                   |
-| --------------- | -------------------------- | ------------------------------------------------------------- |
-| `logger`        | `TConsoleBase`             | Custom logger instance                                        |
-| `onNotFound`    | `TWooksHandler`            | Handler called when no route matches (default: 404 HttpError) |
-| `router`        | router options             | Custom router configuration                                   |
-| `requestLimits` | `Omit<TRequestLimits, 'perRequest'>` | Default body size/timeout limits for all requests             |
-| `responseClass` | `typeof WooksHttpResponse` | Custom response subclass (default: `WooksHttpResponse`)       |
+| Option           | Type                                 | Description                                                               |
+| ---------------- | ------------------------------------ | ------------------------------------------------------------------------- |
+| `logger`         | `TConsoleBase`                       | Custom logger instance                                                    |
+| `onNotFound`     | `TWooksHandler`                      | Handler called when no route matches (default: 404 HttpError)             |
+| `router`         | router options                       | Custom router configuration                                               |
+| `requestLimits`  | `Omit<TRequestLimits, 'perRequest'>` | Default body size/timeout limits for all requests                         |
+| `responseClass`  | `typeof WooksHttpResponse`           | Custom response subclass (default: `WooksHttpResponse`)                   |
 | `defaultHeaders` | `Record<string, string \| string[]>` | Default headers applied to every response (e.g. from `securityHeaders()`) |
 
 ### Route registration

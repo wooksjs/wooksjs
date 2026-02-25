@@ -176,9 +176,9 @@ ws.onConnect(() => {
   // All of these read from the original upgrade request
   const { headers } = useHeaders()
   const { getCookie } = useCookies()
-  const { authIs, basicCredentials } = useAuthorization()
+  const { is, basicCredentials } = useAuthorization()
 
-  if (!authIs('bearer')) {
+  if (!is('bearer')) {
     throw new WsError(401, 'Authentication required')
   }
 })
@@ -196,7 +196,7 @@ ws.onMessage('query', '/me', () => {
 | `useHeaders()` | Yes | Upgrade request headers |
 | `useCookies()` | Yes | Cookies from the upgrade request |
 | `useAuthorization()` | Yes | Auth header from the upgrade request |
-| `useSearchParams()` | Yes | Query string from the upgrade URL |
+| `useUrlParams()` | Yes | Query string from the upgrade URL |
 | `useAccept()` | Yes | Accept header from the upgrade request |
 | `useResponse()` | No | No HTTP response exists in WebSocket context |
 | `useBody()` | No | Upgrade requests have no body |

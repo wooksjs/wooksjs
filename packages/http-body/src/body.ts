@@ -161,21 +161,21 @@ function urlEncodedParser(v: string): Record<string, unknown> {
  * @example
  * ```ts
  * app.post('/api/data', async () => {
- *   const { contentIs, parseBody } = useBody()
- *   if (contentIs('json')) {
+ *   const { is, parseBody } = useBody()
+ *   if (is('json')) {
  *     const data = await parseBody<{ name: string }>()
  *     return { received: data.name }
  *   }
  * })
  * ```
  *
- * @returns Object with `contentIs(type)` checker, `parseBody` function, and `rawBody` accessor.
+ * @returns Object with `is(type)` checker, `parseBody` function, and `rawBody` accessor.
  */
 export const useBody = defineWook((ctx: EventContext) => {
   const { rawBody } = useRequest(ctx)
 
   return {
-    contentIs: (type: KnownContentType | (string & {})) => contentIsSlot(type, ctx),
+    is: (type: KnownContentType | (string & {})) => contentIsSlot(type, ctx),
     parseBody: <T>() => ctx.get(parsedBodySlot) as Promise<T>,
     rawBody,
   }

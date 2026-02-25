@@ -9,14 +9,14 @@ describe('body', () => {
       url: '',
       headers: { 'content-type': 'application/json' },
     })(() => {
-      const { contentIs } = useBody()
-      expect(contentIs('json')).toBe(true)
-      expect(contentIs('xml')).toBe(false)
-      expect(contentIs('html')).toBe(false)
-      expect(contentIs('text')).toBe(false)
-      expect(contentIs('binary')).toBe(false)
-      expect(contentIs('form-data')).toBe(false)
-      expect(contentIs('urlencoded')).toBe(false)
+      const { is } = useBody()
+      expect(is('json')).toBe(true)
+      expect(is('xml')).toBe(false)
+      expect(is('html')).toBe(false)
+      expect(is('text')).toBe(false)
+      expect(is('binary')).toBe(false)
+      expect(is('form-data')).toBe(false)
+      expect(is('urlencoded')).toBe(false)
     })
   })
 
@@ -25,14 +25,14 @@ describe('body', () => {
       url: '',
       headers: { 'content-type': 'text/xml' },
     })(() => {
-      const { contentIs } = useBody()
-      expect(contentIs('json')).toBe(false)
-      expect(contentIs('xml')).toBe(true)
-      expect(contentIs('html')).toBe(false)
-      expect(contentIs('text')).toBe(false)
-      expect(contentIs('binary')).toBe(false)
-      expect(contentIs('form-data')).toBe(false)
-      expect(contentIs('urlencoded')).toBe(false)
+      const { is } = useBody()
+      expect(is('json')).toBe(false)
+      expect(is('xml')).toBe(true)
+      expect(is('html')).toBe(false)
+      expect(is('text')).toBe(false)
+      expect(is('binary')).toBe(false)
+      expect(is('form-data')).toBe(false)
+      expect(is('urlencoded')).toBe(false)
     })
   })
 
@@ -41,14 +41,14 @@ describe('body', () => {
       url: '',
       headers: { 'content-type': 'text/html' },
     })(() => {
-      const { contentIs } = useBody()
-      expect(contentIs('json')).toBe(false)
-      expect(contentIs('xml')).toBe(false)
-      expect(contentIs('html')).toBe(true)
-      expect(contentIs('text')).toBe(false)
-      expect(contentIs('binary')).toBe(false)
-      expect(contentIs('form-data')).toBe(false)
-      expect(contentIs('urlencoded')).toBe(false)
+      const { is } = useBody()
+      expect(is('json')).toBe(false)
+      expect(is('xml')).toBe(false)
+      expect(is('html')).toBe(true)
+      expect(is('text')).toBe(false)
+      expect(is('binary')).toBe(false)
+      expect(is('form-data')).toBe(false)
+      expect(is('urlencoded')).toBe(false)
     })
   })
 
@@ -57,14 +57,14 @@ describe('body', () => {
       url: '',
       headers: { 'content-type': 'text/plain' },
     })(() => {
-      const { contentIs } = useBody()
-      expect(contentIs('json')).toBe(false)
-      expect(contentIs('xml')).toBe(false)
-      expect(contentIs('html')).toBe(false)
-      expect(contentIs('text')).toBe(true)
-      expect(contentIs('binary')).toBe(false)
-      expect(contentIs('form-data')).toBe(false)
-      expect(contentIs('urlencoded')).toBe(false)
+      const { is } = useBody()
+      expect(is('json')).toBe(false)
+      expect(is('xml')).toBe(false)
+      expect(is('html')).toBe(false)
+      expect(is('text')).toBe(true)
+      expect(is('binary')).toBe(false)
+      expect(is('form-data')).toBe(false)
+      expect(is('urlencoded')).toBe(false)
     })
   })
 
@@ -73,14 +73,14 @@ describe('body', () => {
       url: '',
       headers: { 'content-type': 'application/octet-stream' },
     })(() => {
-      const { contentIs } = useBody()
-      expect(contentIs('json')).toBe(false)
-      expect(contentIs('xml')).toBe(false)
-      expect(contentIs('html')).toBe(false)
-      expect(contentIs('text')).toBe(false)
-      expect(contentIs('binary')).toBe(true)
-      expect(contentIs('form-data')).toBe(false)
-      expect(contentIs('urlencoded')).toBe(false)
+      const { is } = useBody()
+      expect(is('json')).toBe(false)
+      expect(is('xml')).toBe(false)
+      expect(is('html')).toBe(false)
+      expect(is('text')).toBe(false)
+      expect(is('binary')).toBe(true)
+      expect(is('form-data')).toBe(false)
+      expect(is('urlencoded')).toBe(false)
     })
   })
 
@@ -89,14 +89,14 @@ describe('body', () => {
       url: '',
       headers: { 'content-type': 'multipart/form-data' },
     })(() => {
-      const { contentIs } = useBody()
-      expect(contentIs('json')).toBe(false)
-      expect(contentIs('xml')).toBe(false)
-      expect(contentIs('html')).toBe(false)
-      expect(contentIs('text')).toBe(false)
-      expect(contentIs('binary')).toBe(false)
-      expect(contentIs('form-data')).toBe(true)
-      expect(contentIs('urlencoded')).toBe(false)
+      const { is } = useBody()
+      expect(is('json')).toBe(false)
+      expect(is('xml')).toBe(false)
+      expect(is('html')).toBe(false)
+      expect(is('text')).toBe(false)
+      expect(is('binary')).toBe(false)
+      expect(is('form-data')).toBe(true)
+      expect(is('urlencoded')).toBe(false)
     })
   })
 
@@ -105,14 +105,14 @@ describe('body', () => {
       url: '',
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
     })(() => {
-      const { contentIs } = useBody()
-      expect(contentIs('json')).toBe(false)
-      expect(contentIs('xml')).toBe(false)
-      expect(contentIs('html')).toBe(false)
-      expect(contentIs('text')).toBe(false)
-      expect(contentIs('binary')).toBe(false)
-      expect(contentIs('form-data')).toBe(false)
-      expect(contentIs('urlencoded')).toBe(true)
+      const { is } = useBody()
+      expect(is('json')).toBe(false)
+      expect(is('xml')).toBe(false)
+      expect(is('html')).toBe(false)
+      expect(is('text')).toBe(false)
+      expect(is('binary')).toBe(false)
+      expect(is('form-data')).toBe(false)
+      expect(is('urlencoded')).toBe(true)
     })
   })
 
@@ -121,9 +121,9 @@ describe('body', () => {
       url: '',
       headers: { 'content-type': 'application/msgpack' },
     })(() => {
-      const { contentIs } = useBody()
-      expect(contentIs('application/msgpack')).toBe(true)
-      expect(contentIs('json')).toBe(false)
+      const { is } = useBody()
+      expect(is('application/msgpack')).toBe(true)
+      expect(is('json')).toBe(false)
     })
   })
 

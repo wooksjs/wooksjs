@@ -27,11 +27,11 @@ const parseCookieValue = cachedBy((name: string, ctx: EventContext) => {
  * Provides access to parsed request cookies.
  * @example
  * ```ts
- * const { getCookie, rawCookies } = useCookies()
+ * const { getCookie, raw } = useCookies()
  * const sessionId = getCookie('session_id')
  * ```
  */
 export const useCookies = defineWook((ctx: EventContext) => ({
-  rawCookies: ctx.get(httpKind.keys.req).headers.cookie,
+  raw: ctx.get(httpKind.keys.req).headers.cookie,
   getCookie: (name: string) => parseCookieValue(name, ctx),
 }))

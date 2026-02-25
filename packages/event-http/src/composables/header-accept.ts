@@ -24,6 +24,6 @@ export const useAccept = defineWook((ctx: EventContext) => {
   const accept = ctx.get(httpKind.keys.req).headers.accept
   return {
     accept,
-    accepts: (type: KnownAcceptType | (string & {})) => acceptsMime(type, ctx),
+    has: (type: KnownAcceptType | (string & {})) => acceptsMime(type, ctx),
   }
 })

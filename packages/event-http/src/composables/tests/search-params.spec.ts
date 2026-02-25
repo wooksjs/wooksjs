@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { prepareTestHttpContext } from '../../testing'
-import { useSearchParams } from '../search-params'
+import { useUrlParams } from '../search-params'
 
 describe('compasble/search-params', () => {
   const url = 'test.com/path?a[]=1&a[]=2&b=3&c=4&encoded=%7e%20%25'
@@ -13,8 +13,8 @@ describe('compasble/search-params', () => {
 
   it('must parse search params', () => {
     runInContext(() => {
-      const { jsonSearchParams } = useSearchParams()
-      expect(jsonSearchParams()).toEqual({
+      const { toJson } = useUrlParams()
+      expect(toJson()).toEqual({
         'a[]': ['1', '2'],
         b: '3',
         c: '4',

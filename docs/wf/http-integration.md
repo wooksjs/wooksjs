@@ -102,9 +102,9 @@ import { useAuthorization } from '@wooksjs/event-http'
 
 // Custom composable — resolves and caches user from auth header
 const userSlot = cached(async (ctx) => {
-  const { authIs, authRawCredentials } = useAuthorization(ctx)
-  if (!authIs('bearer')) return null
-  const token = authRawCredentials()!
+  const { is, credentials } = useAuthorization(ctx)
+  if (!is('bearer')) return null
+  const token = credentials()!
   return fetchUserByToken(token)  // your auth logic → { id, role, ... }
 })
 

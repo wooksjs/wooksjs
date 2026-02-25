@@ -21,8 +21,8 @@ describe('event-http/cookies useCookies', () => {
   })
   it('must return raw cookies', () => {
     runInContext(() => {
-      const { rawCookies } = useCookies()
-      expect(rawCookies).toEqual(cookie)
+      const { raw } = useCookies()
+      expect(raw).toEqual(cookie)
     })
   })
 })

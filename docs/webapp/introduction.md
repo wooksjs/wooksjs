@@ -30,7 +30,7 @@ No middleware to register. No `req`/`res` parameters. The body is parsed only wh
 | `useBody()` | JSON, URL-encoded, multipart, text parsing — on demand |
 | `useRouteParams()` | Typed route parameters |
 | `useCookies()` | Incoming cookie values |
-| `useSearchParams()` | URL query parameters |
+| `useUrlParams()` | URL query parameters |
 | `useAuthorization()` | Authorization header parsing (Basic, Bearer) |
 
 Plus `@wooksjs/http-static` for file serving and `@wooksjs/http-proxy` for reverse proxy.

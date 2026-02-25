@@ -1,5 +1,5 @@
 import { useRouteParams } from '@wooksjs/event-core'
-import { createHttpApp, useCookies, useResponse, useSearchParams } from '@wooksjs/event-http'
+import { createHttpApp, useCookies, useResponse, useUrlParams } from '@wooksjs/event-http'
 import { useBody } from '@wooksjs/http-body'
 import type { IncomingMessage, OutgoingHttpHeaders } from 'http'
 import http from 'http'
@@ -101,8 +101,8 @@ describe('Wooks E2E', () => {
   })
 
   app.get('/query', () => {
-    const { urlSearchParams } = useSearchParams()
-    return [urlSearchParams().get('p1'), urlSearchParams().get('p2')]
+    const { params } = useUrlParams()
+    return [params().get('p1'), params().get('p2')]
   })
 
   app.get('/error', () => {

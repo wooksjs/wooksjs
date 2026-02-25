@@ -22,17 +22,17 @@ const { method, url, headers, rawBody, getIp, reqId } = useRequest()
 
 **Returned properties:**
 
-| Property         | Type                                         | Description                                        |
-| ---------------- | -------------------------------------------- | -------------------------------------------------- |
-| `rawRequest`     | `IncomingMessage`                            | Node.js raw request object                         |
-| `url`            | `string`                                     | Request URL                                        |
-| `method`         | `string`                                     | HTTP method                                        |
-| `headers`        | `IncomingHttpHeaders`                        | Request headers                                    |
-| `rawBody`        | `() => Promise<Buffer>`                      | Lazy — reads and decompresses request body on call |
-| `reqId`          | `() => string`                               | Lazy UUID per request                              |
-| `getIp(opts?)`   | `(opts?: { trustProxy: boolean }) => string` | Client IP (with optional proxy trust)              |
+| Property         | Type                                              | Description                                        |
+| ---------------- | ------------------------------------------------- | -------------------------------------------------- |
+| `raw`            | `IncomingMessage`                                 | Node.js raw request object                         |
+| `url`            | `string`                                          | Request URL                                        |
+| `method`         | `string`                                          | HTTP method                                        |
+| `headers`        | `IncomingHttpHeaders`                             | Request headers                                    |
+| `rawBody`        | `() => Promise<Buffer>`                           | Lazy — reads and decompresses request body on call |
+| `reqId`          | `() => string`                                    | Lazy UUID per request                              |
+| `getIp(opts?)`   | `(opts?: { trustProxy: boolean }) => string`      | Client IP (with optional proxy trust)              |
 | `getIpList()`    | `() => { remoteIp: string; forwarded: string[] }` | All IPs (remote + X-Forwarded-For)                 |
-| `isCompressed()` | `() => boolean`                              | Whether the request body is compressed             |
+| `isCompressed()` | `() => boolean`                                   | Whether the request body is compressed             |
 
 **Request limits (per-request override):**
 
@@ -61,30 +61,30 @@ Parses incoming request cookies lazily (per cookie name, via `cachedBy`).
 ```ts
 import { useCookies } from '@wooksjs/event-http'
 
-const { getCookie, rawCookies } = useCookies()
+const { getCookie, raw } = useCookies()
 const session = getCookie('session_id') // parsed + cached
 const theme = getCookie('theme') // parsed + cached (different key)
-const raw = rawCookies // raw Cookie header string
+// raw = raw Cookie header string
 ```
 
-### `useSearchParams(ctx?)`
+### `useUrlParams(ctx?)`
 
 Provides access to URL query parameters.
 
 ```ts
-import { useSearchParams } from '@wooksjs/event-http'
+import { useUrlParams } from '@wooksjs/event-http'
 
-const { urlSearchParams, jsonSearchParams, rawSearchParams } = useSearchParams()
+const { params, toJson, raw } = useUrlParams()
 
 // URLSearchParams API
-const page = urlSearchParams().get('page')
-const tags = urlSearchParams().getAll('tag')
+const page = params().get('page')
+const tags = params().getAll('tag')
 
 // As a plain object
-const query = jsonSearchParams() // { page: '1', tag: ['a', 'b'] }
+const query = toJson() // { page: '1', tag: ['a', 'b'] }
 
 // Raw query string
-const raw = rawSearchParams() // '?page=1&tag=a&tag=b'
+const rawQuery = raw() // '?page=1&tag=a&tag=b'
 ```
 
 ### `useAuthorization(ctx?)`
@@ -94,13 +94,13 @@ Parses the Authorization header (supports Basic and Bearer).
 ```ts
 import { useAuthorization } from '@wooksjs/event-http'
 
-const { authorization, authType, authRawCredentials, authIs, basicCredentials } = useAuthorization()
+const { authorization, type, credentials, is, basicCredentials } = useAuthorization()
 
-if (authIs('bearer')) {
-  const token = authRawCredentials() // the raw token string
+if (is('bearer')) {
+  const token = credentials() // the raw token string
 }
 
-if (authIs('basic')) {
+if (is('basic')) {
   const { username, password } = basicCredentials()!
 }
 ```
@@ -110,9 +110,9 @@ if (authIs('basic')) {
 | Property               | Type                             | Description                                                    |
 | ---------------------- | -------------------------------- | -------------------------------------------------------------- |
 | `authorization`        | `string \| undefined`            | Raw Authorization header value                                 |
-| `authType()`           | `string \| null`                 | Auth scheme: `'Basic'`, `'Bearer'`, etc.                       |
-| `authRawCredentials()` | `string \| null`                 | Everything after the scheme                                    |
-| `authIs(type)`         | `boolean`                        | Check auth scheme: `'basic'`, `'bearer'`, or any custom scheme |
+| `type()`               | `string \| null`                 | Auth scheme: `'Basic'`, `'Bearer'`, etc.                       |
+| `credentials()`        | `string \| null`                 | Everything after the scheme                                    |
+| `is(type)`             | `boolean`                        | Check auth scheme: `'basic'`, `'bearer'`, or any custom scheme |
 | `basicCredentials()`   | `{ username, password } \| null` | Decoded Basic credentials                                      |
 
 ### `useAccept(ctx?)`
@@ -122,12 +122,12 @@ Checks the request's `Accept` header for MIME type support. Uses short names (`'
 ```ts
 import { useAccept } from '@wooksjs/event-http'
 
-const { accept, accepts } = useAccept()
+const { accept, has } = useAccept()
 
-if (accepts('json')) {
+if (has('json')) {
   /* ... */
 }
-if (accepts('image/png')) {
+if (has('image/png')) {
   /* ... */
 }
 ```
@@ -162,10 +162,10 @@ log.info('handling request')
 
 ```ts
 app.post('/admin/action', async () => {
-  const { authIs, authRawCredentials } = useAuthorization()
-  if (!authIs('bearer')) throw new HttpError(401)
+  const { is, credentials } = useAuthorization()
+  if (!is('bearer')) throw new HttpError(401)
 
-  const token = authRawCredentials()!
+  const token = credentials()!
   const user = await verifyToken(token)
   if (!user.isAdmin) throw new HttpError(403)
 
@@ -184,7 +184,7 @@ app.get('/hot-path', () => {
   const ctx = current()
   const { method } = useRequest(ctx)
   const { getCookie } = useCookies(ctx)
-  const { urlSearchParams } = useSearchParams(ctx)
+  const { params } = useUrlParams(ctx)
   // 1 ALS lookup instead of 3
 })
 ```

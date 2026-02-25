@@ -14,7 +14,7 @@ you're developing a new feature or require low-level control over the request.
 import { useRequest } from '@wooksjs/event-http'
 
 app.get('/test', () => {
-    const { rawRequest } = useRequest()
+    const { raw } = useRequest()
     // Access the raw request instance if needed
 })
 ```
@@ -26,24 +26,24 @@ and are covered in the [Retrieving URI Parameters section](../routing.md#retriev
 
 ## Query Parameters
 
-The `useSearchParams` composable provides three functions for working with query parameters:
+The `useUrlParams` composable provides three functions for working with query parameters:
 
--   `urlSearchParams()` — returns an instance of `WooksURLSearchParams`, which extends the standard `URLSearchParams` with a `toJson` method that returns a **JSON** object of the query parameters.
--   `jsonSearchParams()` — is a shortcut for `urlSearchParams().toJson()`, returning the query parameters as a **JSON** object.
--   `rawSearchParams()` — returns the raw search parameter string, such as `?param1=value&...`.
+-   `params()` — returns an instance of `WooksURLSearchParams`, which extends the standard `URLSearchParams` with a `toJson` method that returns a **JSON** object of the query parameters.
+-   `toJson()` — is a shortcut for `params().toJson()`, returning the query parameters as a **JSON** object.
+-   `raw()` — returns the raw search parameter string, such as `?param1=value&...`.
 
 ```js
-import { useSearchParams } from '@wooksjs/event-http'
+import { useUrlParams } from '@wooksjs/event-http'
 
 app.get('hello', () => {
-    const { urlSearchParams, jsonSearchParams, rawSearchParams } =
-        useSearchParams()
+    const { params, toJson, raw } =
+        useUrlParams()
 
     // curl http://localhost:3000/hello?name=World
-    console.log(jsonSearchParams()) // { name: 'World' }
-    console.log(rawSearchParams()) // ?name=World
+    console.log(toJson()) // { name: 'World' }
+    console.log(raw()) // ?name=World
 
-    return `Hello ${urlSearchParams().get('name')}!`
+    return `Hello ${params().get('name')}!`
 })
 ```
 
@@ -83,7 +83,7 @@ import { useCookies } from '@wooksjs/event-http'
 
 app.get('/test', async () => {
     const {
-        rawCookies, // Raw "cookie" from headers (string | undefined)
+        raw, // Raw "cookie" from headers (string | undefined)
         getCookie, // Cookie getter ((name) => string | null)
     } = useCookies()
 
@@ -102,17 +102,17 @@ import { useAuthorization } from '@wooksjs/event-http'
 app.get('/test', async () => {
     const {
         authorization, // The raw value of the "authorization" header (string | undefined)
-        authType, // The authentication type (Bearer/Basic) (() => string | null)
-        authRawCredentials, // The credentials that follow the auth type (() => string | null)
-        authIs, // Checks auth type: authIs('basic'), authIs('bearer'), etc. ((type) => boolean)
+        type, // The authentication type (Bearer/Basic) (() => string | null)
+        credentials, // The credentials that follow the auth type (() => string | null)
+        is, // Checks auth type: is('basic'), is('bearer'), etc. ((type) => boolean)
         basicCredentials, // Parsed basic auth credentials (() => { username, password } | null)
     } = useAuthorization()
 
-    if (authIs('basic')) {
+    if (is('basic')) {
         const { username, password } = basicCredentials()
         console.log({ username, password })
-    } else if (authIs('bearer')) {
-        const token = authRawCredentials()
+    } else if (is('bearer')) {
+        const token = credentials()
         console.log({ token })
     } else {
         // Unknown or empty authorization header
@@ -130,17 +130,17 @@ The `useAccept` composable checks the request's `Accept` header for MIME type su
 import { useAccept } from '@wooksjs/event-http'
 
 app.get('/test', () => {
-    const { accept, accepts } = useAccept()
+    const { accept, has } = useAccept()
 
     // Use short names for common types
-    if (accepts('json')) {
+    if (has('json')) {
         return { data: 'json response' }
-    } else if (accepts('html')) {
+    } else if (has('html')) {
         return '<p>html response</p>'
     }
 
     // Or full MIME types for anything else
-    if (accepts('image/webp')) {
+    if (has('image/webp')) {
         // ...
     }
 })
