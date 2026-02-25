@@ -380,7 +380,7 @@ const output = await app.start('onboarding', {})
 // output.inputRequired.type === 'string'
 
 // Resume with user's email
-const final = await app.resume(output.state, 'user@example.com')
+const final = await app.resume(output.state, { input: 'user@example.com' })
 // final.finished === true
 ```
 
@@ -405,7 +405,7 @@ await db.save('workflow:123', JSON.stringify(output.state))
 
 // Load and resume
 const saved = JSON.parse(await db.load('workflow:123'))
-const result = await app.resume(saved, userInput)
+const result = await app.resume(saved, { input: userInput })
 ```
 
 ## StepRetriableError
@@ -432,7 +432,7 @@ try {
   if (error instanceof StepRetriableError) {
     // Wait and retry
     await sleep(5000)
-    await app.resume(error.state, retryInput)
+    await app.resume(error.state, { input: retryInput })
   }
 }
 ```
@@ -520,9 +520,9 @@ app.flow('signup', [
 
 // Each step pauses for user input
 let output = await app.start('signup', {})
-output = await app.resume(output.state, 'Alice')     // name
-output = await app.resume(output.state, 'a@b.com')   // email
-output = await app.resume(output.state, 'pro')        // plan
+output = await app.resume(output.state, { input: 'Alice' })     // name
+output = await app.resume(output.state, { input: 'a@b.com' })   // email
+output = await app.resume(output.state, { input: 'pro' })        // plan
 // output.finished === true
 ```
 
@@ -572,7 +572,7 @@ const output = await app.start('resilient-fetch', {
 ## Gotchas
 
 - **Conditions access context properties directly** — The condition `'result > 10'` checks `context.result`, not a local variable. The entire context is the evaluation scope.
-- **Input is only for the first step on start** — When calling `app.start(id, ctx, input)`, the `input` is consumed by the first step. After that, `input` is cleared. Subsequent steps only get input if the workflow pauses and resumes.
+- **Input is only for the first step on start** — When calling `app.start(id, ctx, { input })`, the `input` is consumed by the first step. After that, `input` is cleared. Subsequent steps only get input if the workflow pauses and resumes.
 - **String handlers are sandboxed** — No access to Node.js APIs, `require`, `import`, `console`, etc. Only `ctx` and `input` are available.
 - **Step IDs are router paths** — A step ID `'process/items'` is treated as two path segments. Use `'process-items'` if you want a flat ID.
 - **Flow `init` runs in context** — The init function has access to composables (`useWfState()`, `useRouteParams()`, etc.) because it runs inside the async event context.

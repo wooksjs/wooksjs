@@ -1,33 +1,43 @@
-# Introduction to Wooks Workflows
+# What are Wooks Workflows?
 
-Wooks Workflows, made available through the `@wooksjs/event-wf` module, is a powerful extension to the Wooks event processing framework. It offers an elegant, declarative solution for defining and executing complex workflows.
+`@wooksjs/event-wf` is a declarative workflow engine for Node.js. You describe **what** your workflow does — the steps, the order, the conditions — and the engine handles execution, pausing, resuming, and state management.
 
-## Why Use Workflows in this Manner?
+```ts
+import { createWfApp, useWfState } from '@wooksjs/event-wf'
 
-When building complex systems, especially in microservices architectures or similar distributed structures, you often encounter situations where tasks need to be executed in a specific order, or dependent on certain conditions. These tasks might require user inputs, be interdependent, or involve repeated execution. Describing and managing such tasks in code can become extremely complex and hard to maintain. 
+const app = createWfApp<{ approved: boolean; email: string }>()
 
-Wooks Workflows address these issues by providing a means to define and manage these tasks declaratively. By using workflows, you gain a clearer, more organized structure that reduces complexity and makes your code easier to maintain and reason about. The structure of the workflow is also easier to visualize and understand, even for non-technical stakeholders.
+app.step('review', {
+  input: 'approval',             // pauses until input is provided
+  handler: () => {
+    const { ctx, input } = useWfState()
+    ctx<{ approved: boolean }>().approved = input<boolean>() ?? false
+  },
+})
 
-## Typical Use Cases
+app.flow('approval-process', [
+  'validate',
+  'review',                       // ← workflow pauses here
+  { condition: 'approved', steps: ['notify-success'] },
+  { condition: '!approved', steps: ['notify-rejection'] },
+])
+```
 
-Wooks Workflows can be applied to a wide range of scenarios. It is particularly useful for:
+Workflows are **interruptible**. When a step needs input (from a user, an external API, a queue message), the workflow pauses and returns serializable state. You resume it later with the input — minutes, hours, or days later.
 
-- **Task automation:** Workflows can be used to automate repetitive tasks, such as data validation, report generation, and periodic system health checks.
+Read [Why Workflows](/wf/why) for the full motivation — the real-world problems that led to this design and why existing approaches fall short.
 
-- **User interaction flows:** Authentication, registration, order placements, and similar multi-step user interaction processes can be modeled and managed as workflows.
+## Core Concepts
 
-- **Business processes:** Complex business processes involving multiple steps and conditional paths, such as loan approval processes or order fulfillment processes, can be effectively managed using workflows.
+| Concept | What it is |
+|---------|-----------|
+| **Step** | A named function that does one thing. Steps can accept parameters via routing syntax (`add/:n`) and access shared context through composables. |
+| **Flow** | A schema (array) that defines which steps run, in what order, with what conditions. Flows are data, not code. |
+| **Context** | A typed object shared across all steps in a single workflow execution. Each execution gets its own isolated context. |
+| **Input** | Data provided to a step at runtime. If a step requires input and none is available, the workflow pauses. |
 
-- **State management:** Workflows can be used to manage the state of a system or a process over time, including handling transitions and actions triggered by state changes.
+## How It Fits in Wooks
 
-## Relationship with @prostojs/wf
+Wooks is an event-processing framework with adapters for different event types: [HTTP requests](/webapp/), [CLI commands](/cliapp/), and **workflows**. All adapters share the same composable architecture — `useRouteParams()`, `useLogger()`, and other composables work identically across all of them.
 
-`@wooksjs/event-wf` is built on top of the [@prostojs/wf](https://github.com/prostojs/wf) module. The `@prostojs/wf` module forms the foundation of Wooks Workflows and provides the core functionalities for defining steps, conditions, and inputs. Wooks extends upon this foundation to provide additional features and integration with the Wooks event processing framework.
-
-## Routing Flexibility with Wooks Workflows
-
-One of the key features introduced by Wooks Workflows is routing flexibility. A step in the workflow can be represented as a route with parameters (e.g., `add/:n`). This means when a step like `add/5` is called, some context can already be provided to the node explicitly while describing the workflow. This routing flexibility allows for the creation of dynamic workflows based on parameters, enabling a high degree of customization and adaptability.
-
-In conclusion, Wooks Workflows provide a powerful, declarative tool for handling complex tasks and business processes, simplifying your code and making it easier to understand and maintain. By leveraging routing flexibility, Wooks Workflows brings even more adaptability and dynamic behavior to your applications.
-
-More about [Routing in Wooks Workflows](/wf/routing)
+`@wooksjs/event-wf` is built on top of [@prostojs/wf](https://github.com/prostojs/wf) and adds routing-based step resolution, async-scoped context isolation, and the composable API.

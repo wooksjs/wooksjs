@@ -1,15 +1,6 @@
 # Request Composables
 
-The request composables provide various functions to interact with the incoming HTTP request in a Wooks HTTP application.
-These functions allow you to access different aspects of the request, such as headers, query parameters, cookies, authorization headers, and more.
-
-<!-- Request is an object (`IncomingMessage`) that is generated when an incoming http request hits nodejs server.
-That object contains headers, body etc. Headers can be available even before body is loaded.
-The event handler is triggered right when `head` has already been received but before `body` is received.
-It means that in case of wrong path the router will reply 404 before body was even sent.
-It also means that you can check headers/cookies before body is received, then you can make a decision if body is needed, should you parse it or not. -->
-
-## Content
+Composables for reading incoming HTTP request data: headers, query parameters, cookies, authorization, body size limits.
 
 [[toc]]
 
@@ -21,8 +12,6 @@ you're developing a new feature or require low-level control over the request.
 
 ```js
 import { useRequest } from '@wooksjs/event-http'
-// cjs:
-// const { useRequest } = require('@wooksjs/event-http')
 
 app.get('/test', () => {
     const { rawRequest } = useRequest()
@@ -112,25 +101,54 @@ import { useAuthorization } from '@wooksjs/event-http'
 
 app.get('/test', async () => {
     const {
-        authorization, // The raw value of the "authorization" header (string)
-        authType, // The authentication type (Bearer/Basic) (string)
-        authRawCredentials, // The authentication credentials that follow the auth type (string)
-        isBasic, // Returns true if authType === 'Basic' (() => boolean)
-        isBearer, // Returns true if authType === 'Bearer' (() => boolean)
-        basicCredentials, // Parsed basic auth credentials (() => { username: string, password: string })
+        authorization, // The raw value of the "authorization" header (string | undefined)
+        authType, // The authentication type (Bearer/Basic) (() => string | null)
+        authRawCredentials, // The credentials that follow the auth type (() => string | null)
+        authIs, // Checks auth type: authIs('basic'), authIs('bearer'), etc. ((type) => boolean)
+        basicCredentials, // Parsed basic auth credentials (() => { username, password } | null)
     } = useAuthorization()
 
-    if (isBasic()) {
+    if (authIs('basic')) {
         const { username, password } = basicCredentials()
         console.log({ username, password })
-    } else if (isBearer()) {
-        const token = authRawCredentials
+    } else if (authIs('bearer')) {
+        const token = authRawCredentials()
         console.log({ token })
     } else {
         // Unknown or empty authorization header
     }
 })
 ```
+
+Note: `authorization` is a plain string value. All other properties are lazy functions — they compute on first call and cache the result.
+
+## Accept Header
+
+The `useAccept` composable checks the request's `Accept` header for MIME type support:
+
+```js
+import { useAccept } from '@wooksjs/event-http'
+
+app.get('/test', () => {
+    const { accept, accepts } = useAccept()
+
+    // Use short names for common types
+    if (accepts('json')) {
+        return { data: 'json response' }
+    } else if (accepts('html')) {
+        return '<p>html response</p>'
+    }
+
+    // Or full MIME types for anything else
+    if (accepts('image/webp')) {
+        // ...
+    }
+})
+```
+
+Short names: `'json'` (application/json), `'html'` (text/html), `'xml'` (application/xml), `'text'` (text/plain). Full MIME strings are also accepted.
+
+The `accept` property returns the raw `Accept` header value.
 
 ## Body Size Limits
 

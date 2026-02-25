@@ -1,12 +1,12 @@
 # Comparison with Other Frameworks
 
-A concrete look at how Wooks differs from Express, Fastify, and h3. Wooks and h3 share similar philosophy — on-demand, no middleware, return-value responses. The core difference is the path each took: h3 threads an `event` object; Wooks uses `AsyncLocalStorage` and provides context primitives that make lazy computation with caching the default by design.
+A concrete look at how Wooks differs from Express, Fastify, and h3. Wooks and h3 share similar philosophy — on-demand parsing, return-value responses. The core difference is the path each took: h3 threads an `event` object; Wooks uses `AsyncLocalStorage` and provides context primitives that make lazy computation with caching the default by design.
 
 ## Request Lifecycle
 
 **Express / Fastify:** Middleware runs before your handler. Body parsing, cookie parsing, auth checks — they execute on every request that matches their mount path, whether the handler needs the result or not. By the time your route function runs, work has already been done.
 
-**h3:** Philosophically close to Wooks — no middleware chain, on-demand parsing, return values as responses. `readBody(event)` reads the stream when you call it, not before. The difference is in the wiring: h3 threads an `event` object through every call.
+**h3:** Philosophically close to Wooks — on-demand parsing, return values as responses. `readBody(event)` reads the stream when you call it, not before. The difference is in the wiring: h3 threads an `event` object through every call. (h3 v2 added a `next()`-based middleware system, but the on-demand philosophy remains.)
 
 **Wooks:** Same on-demand philosophy, different mechanism. Context lives in `AsyncLocalStorage` — composables need no arguments. And the context primitives (`cached`, `cachedBy`, `defineWook`) make lazy-with-caching the default: `useBody().parseBody()` parses once, caches for the event lifetime, returns the cached result on repeat calls — all by design, not by manual memoization.
 
@@ -35,7 +35,7 @@ All four frameworks support parametric routes. The differences are in edge cases
 
 **Fastify (find-my-way):** Radix-tree based. Fast for static routes, handles parameters well. Some quirks with URI encoding/decoding in edge cases.
 
-**h3 (radix3):** Fast for static lookups. Weaker on complex dynamic patterns.
+**h3 (rou3, formerly radix3):** Fast for static lookups. Weaker on complex dynamic patterns — regex constraints and multi-segment wildcards are not supported.
 
 **Wooks ([@prostojs/router](https://github.com/prostojs/router)):** Categorizes routes into statics, parameters, and wildcards with indexing and caching. Supports features the others don't:
 
@@ -58,7 +58,7 @@ Operations per millisecond ([source](https://github.com/prostojs/router-benchmar
 | Wildcard | 486 | 2 081 | 2 065 | 1 019 |
 | **All together** | **663** | **2 328** | **2 893** | **1 549** |
 
-`@prostojs/router` leads on mixed and dynamic patterns — the cases that matter most in real APIs. radix3 wins on pure static lookups.
+`@prostojs/router` leads on mixed and dynamic patterns — the cases that matter most in real APIs. radix3 (now rou3) wins on pure static lookups.
 
 ## Context Passing
 
@@ -114,9 +114,9 @@ All methods live on one object. No separate `useSetHeaders()`, `useSetCookies()`
 
 | | Express | Fastify | h3 | Wooks |
 |---|---------|---------|-----|-------|
-| Body parsing | Middleware (eager) | Plugin (eager) | `readBody(event)` (on demand) | `useBody().parseBody()` (on demand, cached) |
+| Body parsing | Middleware (eager) | Built-in (eager) | `readBody(event)` (on demand) | `useBody().parseBody()` (on demand, cached) |
 | Context passing | `req` / `res` params | `request` / `reply` params | `event` param | Implicit (AsyncLocalStorage) |
 | Routing | Linear scan | Radix tree | Radix tree | Indexed + cached, regex params, multi-wildcard |
 | Response API | `res.status().json()` | `reply.code().send()` | Return value + `setResponseStatus(event)` | Return value + `useResponse()` chainable |
 | TypeScript | Bolted on | Schema-driven | Good | Native, composable-level inference |
-| Beyond HTTP | No | No | No | CLI, Workflows, custom events |
+| Beyond HTTP | No | No | WebSocket (crossws), SSE | CLI, Workflows, custom events |

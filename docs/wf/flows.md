@@ -1,249 +1,202 @@
 # Flows
 
-In Wooks Workflows, a "flow" refers to a series of steps or subflows, each with a unique name and an assigned sequence of operations.
-You can start, interrupt, resume, and complete flows, saving their current state if necessary for future continuation.
+A flow is a schema that defines which [steps](/wf/steps) run, in what order, and under what conditions. Flows are **data** — plain arrays you can build, store, and compose.
 
 [[toc]]
 
-## Flow Fundamentals
-
-Consider we have the following defined steps:
-
-- `add` increments the result by one.
-- `mul2` doubles the result.
-- `div2` halves the result.
-
-To construct a flow incorporating these steps, we would write the following:
+## Defining a Flow
 
 ```ts
-import { createWfApp } from '@wooksjs/event-wf'
-
-type MyContext = { result: number }
-
-const app = createWfApp<MyContext>()
-
-app.step('add', { handler: ctx => ctx.result++ })
-app.step('mul2', { handler: ctx => ctx.result *= 2 })
-app.step('dev2', { handler: ctx => ctx.result /= 2 })
-
-app.flow('my-first-flow', [
-    'add', 'mul2', 'add', 'add', 'div2',
-])
-
-const output = await app.start('my-first-flow', { result: 0 })
-console.log(output.state.context) // { result: 2 }
+app.flow('flow-id', [ ...steps ])
 ```
-This results in an output of `2` as it follows the sequence: `((1*2+1+1)/2)`.
+
+The simplest flow is a sequence of step ids:
+
+```ts
+app.step('validate', { handler: (ctx) => { /* ... */ } })
+app.step('process', { handler: (ctx) => { /* ... */ } })
+app.step('complete', { handler: (ctx) => { /* ... */ } })
+
+app.flow('pipeline', ['validate', 'process', 'complete'])
+```
+
+Steps execute top to bottom. Each step receives the same shared context.
+
+## Providing Input to Steps
+
+You can hardcode input for a step directly in the flow schema:
+
+```ts
+app.flow('calculate', [
+  { id: 'add', input: 5 },
+  { id: 'add', input: 10 },
+  { id: 'multiply', input: 2 },
+])
+```
+
+This is useful when the same step is reused with different values across a flow.
+
+## Conditional Steps
+
+Attach a `condition` to skip a step when the condition is false. Conditions are string expressions evaluated against the workflow context:
+
+```ts
+app.flow('process-order', [
+  'calculate-total',
+  { id: 'apply-discount', condition: 'total > 100' },
+  'charge-payment',
+])
+```
+
+`apply-discount` only runs if `context.total > 100`.
 
 ## Subflows
 
-A subflow is essentially an anonymous flow nested within a parent flow.
-Each subflow can be associated with a condition that must be satisfied before its commencement.
-If the condition fails, the subflow will be skipped.
-
-Let's illustrate this by grouping two `add` commands into a subflow:
+A subflow is an anonymous group of steps nested inside a flow. Use subflows to apply a shared condition or loop to multiple steps at once.
 
 ```ts
-app.flow('my-first-flow', [
-    'add',
-    'mul2',
-    {
-        steps: ['add', 'add']
-    },
-    'div2',
+app.flow('onboarding', [
+  'create-account',
+  {
+    steps: ['send-welcome-email', 'schedule-intro-call'],
+  },
+  'activate',
 ])
 ```
 
-Here, irrespective of the conditions, all the steps will be executed.
+Without a condition, a subflow is just a grouping mechanism. It becomes powerful when combined with conditions or loops.
 
 ### Conditional Subflows
 
-To add a condition to the subflow, we adjust the code like so:
-
 ```ts
-app.flow('my-first-flow', [
-    'add',
-    'mul2',
-    {
-        condition: 'result < 5', // [!code ++]
-        steps: ['add', 'add']
-    },
-    'div2',
+app.flow('onboarding', [
+  'create-account',
+  {
+    condition: 'plan === "premium"',
+    steps: ['assign-account-manager', 'send-premium-welcome'],
+  },
+  {
+    condition: 'plan !== "premium"',
+    steps: ['send-standard-welcome'],
+  },
+  'activate',
 ])
 ```
 
-With this adjustment, the subflow will only execute if `context.result` is less than `5`.
+The entire subflow is skipped if its condition is false.
 
-### Conditional Step
+## Loops
 
-Just like subflow, each individual step can have a condition:
+Use `while` instead of `condition` to repeat a subflow as long as the expression is true:
 
 ```ts
-app.flow('my-first-flow', [
-    'add',
-    'mul2',
-    {
-        condition: 'result < 5', // [!code ++]
-        id: 'add', // Step Id // [!code ++]
-    },
-    'div2',
+app.flow('retry-until-success', [
+  {
+    while: 'attempts < 3 && !success',
+    steps: ['attempt-operation', 'check-result'],
+  },
+  'finalize',
 ])
 ```
 
-### Loops
+The subflow repeats until `attempts >= 3` or `success` becomes truthy.
 
-Subflows can be iteratively run through with the `while` property. Here's how:
+### `break` — Exit a Loop Early
 
 ```ts
-app.flow('my-first-flow', [
-    'add',
-    'mul2',
-    {
-        while: 'result < 5', // [!code ++]
-        steps: ['add', 'add']
-    },
-    'div2',
+app.flow('search', [
+  {
+    while: 'page < maxPages',
+    steps: [
+      'fetch-page',
+      { break: 'found' },          // exit if context.found is truthy
+      'increment-page',
+    ],
+  },
+  'return-results',
 ])
 ```
 
-In this case, the subflow will iterate as long as `context.result` remains less than `5`.
+When the `break` condition is met, execution jumps past the loop to the next step in the parent flow.
 
-## Execution Control
-
-Flow or subflow execution can be managed through special steps:
-
-- `continue` - skips the remaining steps in the current iteration and continues to the next iteration.
-- `break` - stops the subflow (loop) and returns control to the parent subflow.
-
-### Breaking the Flow
-
-Here's an example of using `break`:
+### `continue` — Skip to Next Iteration
 
 ```ts
-app.flow('my-first-flow', [
-    'add',
-    'mul2',
-    {
-        while: 'result < 5',
-        steps: [
-            'add',
-            { break: 'result % 2 === 1' },  // [!code ++]
-            'add',
-        ]
-    },
-    'div2',
-])
-```
-### Continuing the Flow
-
-The `continue` statement can be used as follows:
-
-```ts
-app.flow('my-first-flow', [
-    'add',
-    'mul2',
-    {
-        while: 'result < 5',
-        steps: [
-            'add',
-            { continue: 'result % 2 === 1' },  // [!code ++]
-            'add',
-        ]
-    },
-    'div2',
+app.flow('process-batch', [
+  {
+    while: 'index < items.length',
+    steps: [
+      'load-item',
+      { continue: 'item.skip' },    // skip this item, go to next iteration
+      'process-item',
+      'save-result',
+    ],
+  },
 ])
 ```
 
-## Managing Flow Interruptions
+When the `continue` condition is met, the remaining steps in the current iteration are skipped and the loop restarts from the top.
 
-Some steps may require additional input (user or system). If a step requires such input, it sends an interruption signal.
-Then, the flow stops with the `inputRequired` property populated by the step.
+## Flow Prefix
 
-Here is an example of how you can handle such scenarios:
+If all steps in a flow share a common prefix, you can set it once:
 
 ```ts
-import { createWfApp, useWfState } from '@wooksjs/event-wf'
+app.step('order/validate', { handler: (ctx) => { /* ... */ } })
+app.step('order/charge', { handler: (ctx) => { /* ... */ } })
+app.step('order/fulfill', { handler: (ctx) => { /* ... */ } })
 
-type MyContext = { result: number }
+// Instead of:
+app.flow('process-order', ['order/validate', 'order/charge', 'order/fulfill'])
 
-const app = createWfApp<MyContext>()
-
-app.step('add', {
-    handler: () => {
-        const { ctx, input } = useWfState()
-        const n = input<number>()
-        if (typeof n !== 'number') {
-            return { inputRequired: 'number' }
-        }
-        ctx<MyContext>().result += n
-    },
-})
-
-app.flow('my-first-flow', [
-    'add'
-])
-
-let output = await app.start('my-first-flow', { result: 0 })
-// the flow was interrupted due to lack of input for step "add"
-console.log(output.finished) // false
-console.log(output.inputRequired) // "number"
-if (output.inputRequired) {
-    output = await app.resume(output.state, 5) // resuming with input = 5
-    // resume shortcut:
-    // output = output.resume(5)
-}
-console.log(output.finished) // true
-console.log(output.state.context) // { result: 5 }
+// Use a prefix:
+app.flow('process-order', ['validate', 'charge', 'fulfill'], 'order')
 ```
 
-Alternatively, the input could be defined more simply:
+The third argument to `flow()` is prepended to every step id in the schema.
+
+## Flow Initialization
+
+The fourth argument is an `init` callback that runs before the first step, inside the workflow context:
 
 ```ts
-app.step('add', {
-    input: 'number', // [!code ++]
-    handler: () => {
-        const { ctx, input } = useWfState()
-        const n = input<number>()
-        if (typeof n !== 'number') { // [!code --]
-            return { inputRequired: 'number' } // [!code --]
-        } // [!code --]
-        ctx<MyContext>().result += n
-    },
+app.flow('report', ['gather-data', 'format', 'send'], '', async () => {
+  const { ctx } = useWfState()
+  const context = ctx<ReportContext>()
+  context.startedAt = Date.now()
+  context.reportId = await generateId()
 })
 ```
 
-## Dealing with Inputs
+Use `init` to set up derived context values or run async setup before the flow starts. Composables like `useWfState()` are available inside `init`.
 
-### Hardcoding Inputs to Flow
+## Parametric Flows
 
-We assume that we have a step `add` that requires an input in `number` format. If we want to define a flow, that will always provide a
-predefined number for that step, we can do so:
-```ts
-app.flow('my-first-flow', [
-   { id: 'add', input: 5 },
-])
-```
-Now step `add` will be called with 5 as an input all the time.
-
-### Inputs Schema
-
-The Wooks Workflows framework leaves the input formats open-ended, enabling you to design input structures that best fit your workflows. For instance, you could use field metadata like so:
+Flow ids support the same routing syntax as steps:
 
 ```ts
-{
-    inputRequired: [
-        {
-            name: 'username',
-            label: 'Login',
-            type: 'text',
-        },
-        {
-            name: 'password',
-            label: 'Password',
-            type: 'password',
-        },
-    ]
-}
+app.flow('process/:type', ['validate', 'transform', 'save'])
+
+await app.start('process/json', { data: '...' })
+await app.start('process/csv', { data: '...' })
 ```
 
-This could then be passed to the frontend, rendered into a user interface form, with the user's input sent back to the application. The state of the flow can then be restored, and the user's input used to resume the flow. The framework provides complete freedom to users in designing their input schemas.
+## Flow Output
+
+Both `app.start()` and `app.resume()` return a `TFlowOutput` object:
+
+```ts
+const output = await app.start('my-flow', initialContext)
+
+output.finished          // true if the flow completed, false if it paused
+output.state.context     // the final (or current) context
+output.state.schemaId    // the flow id
+output.state.indexes     // position in the schema (for resuming)
+output.inputRequired     // set if the flow paused for input
+output.error             // set if a StepRetriableError was thrown
+output.stepResult        // return value of the last executed step
+output.resume?.(input)   // shortcut to resume the flow
+output.retry?.()         // shortcut to retry a failed step
+```
+
+When `finished` is `false`, the flow paused because a step needs input or threw a retriable error. See [Input & Resume](/wf/input-and-resume) for how to continue execution.

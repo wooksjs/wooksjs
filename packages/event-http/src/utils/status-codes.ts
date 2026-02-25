@@ -1,3 +1,4 @@
+/** Maps numeric HTTP status codes to their human-readable descriptions. */
 export const httpStatusCodes = {
   100: 'Continue',
   101: 'Switching protocols',
@@ -64,6 +65,7 @@ export const httpStatusCodes = {
   511: 'Network Authentication Required',
 }
 
+/** Enum of all standard HTTP status codes (100–511). */
 export enum EHttpStatusCode {
   Continue = 100,
   SwitchingProtocols = 101,
@@ -130,8 +132,10 @@ export enum EHttpStatusCode {
   NetworkAuthenticationRequired = 511,
 }
 
+/** Union of HTTP 2xx success status codes. */
 export type THttpSuccessCodes = 200 | 201 | 202 | 203 | 204 | 205 | 206 | 207 | 208 | 226
 
+/** Union of HTTP 4xx client error status codes. */
 export type THttpBadRequestCodes =
   | 400
   | 401
@@ -163,6 +167,8 @@ export type THttpBadRequestCodes =
   | 431
   | 451
 
+/** Union of HTTP 5xx server error status codes. */
 export type THttpServerErrorCodes = 500 | 501 | 502 | 503 | 504 | 505 | 506 | 507 | 508 | 510 | 511
 
+/** Union of all HTTP error status codes (4xx + 5xx). */
 export type THttpErrorCodes = THttpBadRequestCodes | THttpServerErrorCodes

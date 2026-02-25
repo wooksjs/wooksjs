@@ -1,4 +1,4 @@
-import { cached, defineWook } from '@wooksjs/event-core'
+import { cached, cachedBy, defineWook } from '@wooksjs/event-core'
 import type { EventContext } from '@wooksjs/event-core'
 import {
   EHttpStatusCode,
@@ -9,6 +9,25 @@ import {
 } from '@wooksjs/event-http'
 
 import { safeJsonParse } from './utils/safe-json'
+
+/** Short names for common Content-Type values. */
+export type KnownContentType = 'json' | 'html' | 'xml' | 'text' | 'binary' | 'form-data' | 'urlencoded'
+
+const CONTENT_TYPE_MAP: Record<string, string> = {
+  json: 'application/json',
+  html: 'text/html',
+  xml: 'text/xml',
+  text: 'text/plain',
+  binary: 'application/octet-stream',
+  'form-data': 'multipart/form-data',
+  urlencoded: 'application/x-www-form-urlencoded',
+}
+
+const contentIsSlot = cachedBy((type: string, ctx: EventContext) => {
+  const contentType = useHeaders(ctx)['content-type'] || ''
+  const mime = CONTENT_TYPE_MAP[type] || type
+  return contentType.includes(mime)
+})
 
 const parsedBodySlot = cached(async (ctx: EventContext) => {
   const { rawBody } = useRequest(ctx)
@@ -135,32 +154,21 @@ function urlEncodedParser(v: string): Record<string, unknown> {
  * @example
  * ```ts
  * app.post('/api/data', async () => {
- *   const { parseBody, isJson } = useBody()
- *   if (isJson()) {
+ *   const { contentIs, parseBody } = useBody()
+ *   if (contentIs('json')) {
  *     const data = await parseBody<{ name: string }>()
  *     return { received: data.name }
  *   }
  * })
  * ```
  *
- * @returns Object with content-type checkers (`isJson`, `isHtml`, `isXml`, `isText`, `isBinary`, `isFormData`, `isUrlencoded`), a `parseBody` function, and `rawBody` accessor.
+ * @returns Object with `contentIs(type)` checker, `parseBody` function, and `rawBody` accessor.
  */
 export const useBody = defineWook((ctx: EventContext) => {
   const { rawBody } = useRequest(ctx)
-  const contentType = useHeaders(ctx)['content-type'] || ''
-
-  function contentIs(type: string) {
-    return contentType.includes(type)
-  }
 
   return {
-    isJson: () => contentIs('application/json'),
-    isHtml: () => contentIs('text/html'),
-    isXml: () => contentIs('text/xml'),
-    isText: () => contentIs('text/plain'),
-    isBinary: () => contentIs('application/octet-stream'),
-    isFormData: () => contentIs('multipart/form-data'),
-    isUrlencoded: () => contentIs('application/x-www-form-urlencoded'),
+    contentIs: (type: KnownContentType | (string & {})) => contentIsSlot(type, ctx),
     parseBody: <T>() => ctx.get(parsedBodySlot) as Promise<T>,
     rawBody,
   }

@@ -84,7 +84,7 @@ a[target="_blank"]:hover:after {
 
 .cli-header {
     color: var(--vp-c-text-2);
-    font-family: consolas;
+    font-family: var(--vp-font-family-mono);
     background-color: var(--vp-c-bg-alt);
 }
 

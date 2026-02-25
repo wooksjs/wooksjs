@@ -94,13 +94,13 @@ Parses the Authorization header (supports Basic and Bearer).
 ```ts
 import { useAuthorization } from '@wooksjs/event-http'
 
-const { authorization, authType, authRawCredentials, isBearer, isBasic, basicCredentials } = useAuthorization()
+const { authorization, authType, authRawCredentials, authIs, basicCredentials } = useAuthorization()
 
-if (isBearer()) {
+if (authIs('bearer')) {
   const token = authRawCredentials() // the raw token string
 }
 
-if (isBasic()) {
+if (authIs('basic')) {
   const { username, password } = basicCredentials()!
 }
 ```
@@ -112,20 +112,19 @@ if (isBasic()) {
 | `authorization` | `string \| undefined` | Raw Authorization header value |
 | `authType()` | `string \| null` | Auth scheme: `'Basic'`, `'Bearer'`, etc. |
 | `authRawCredentials()` | `string \| null` | Everything after the scheme |
-| `isBasic()` | `boolean` | Whether it's Basic auth |
-| `isBearer()` | `boolean` | Whether it's Bearer auth |
+| `authIs(type)` | `boolean` | Check auth scheme: `'basic'`, `'bearer'`, or any custom scheme |
 | `basicCredentials()` | `{ username, password } \| null` | Decoded Basic credentials |
 
 ### `useAccept(ctx?)`
 
-Checks the request's `Accept` header for MIME type support.
+Checks the request's `Accept` header for MIME type support. Uses short names (`'json'`, `'html'`, `'xml'`, `'text'`) or full MIME types.
 
 ```ts
 import { useAccept } from '@wooksjs/event-http'
 
-const { accept, accepts, acceptsJson, acceptsHtml, acceptsText, acceptsXml } = useAccept()
+const { accept, accepts } = useAccept()
 
-if (acceptsJson()) { /* ... */ }
+if (accepts('json')) { /* ... */ }
 if (accepts('image/png')) { /* ... */ }
 ```
 
@@ -159,8 +158,8 @@ log.info('handling request')
 
 ```ts
 app.post('/admin/action', async () => {
-  const { isBearer, authRawCredentials } = useAuthorization()
-  if (!isBearer()) throw new HttpError(401)
+  const { authIs, authRawCredentials } = useAuthorization()
+  if (!authIs('bearer')) throw new HttpError(401)
 
   const token = authRawCredentials()!
   const user = await verifyToken(token)

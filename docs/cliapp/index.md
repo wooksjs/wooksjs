@@ -1,22 +1,10 @@
 # Quick Start Guide
 <span class="cli-header"><span class="cli-path">/cliapp</span><span class="cli-invite">$</span> wooks cli --quick-start<span class="cli-blink">|</span></span>
 
-::: warning
-Work on Wooks is still in progress. It is already suitable for immediate use in CLI events,
-but some APIs may still undergo changes.
-:::
-
-This guide will help you get started with using Wooks CLI to build powerful command-line interfaces (CLIs) for your applications.
-Wooks CLI leverages the concept of composables and event context to provide a seamless and flexible workflow for processing CLI commands.
-Let's dive in!
-
 ## Installation
 
-To install Wooks CLI, you need to have Node.js and npm (Node Package Manager) installed on your system.
-Once you have them set up, you can install Wooks CLI using the following command:
-
 ```bash
-npm install wooks @wooksjs/event-cli
+npm install @wooksjs/event-cli
 ```
 
 ## Usage
@@ -30,7 +18,7 @@ Start by importing the necessary modules and creating an instance of the Wooks C
 ::: code-group
 ```ts [plain]
 import { createCliApp } from '@wooksjs/event-cli'
-import { useRouteParams } from 'wooks'
+import { useRouteParams } from '@wooksjs/event-cli'
 
 const app = createCliApp()
 ```
@@ -40,7 +28,7 @@ import {
     useAutoHelp,
     useCommandLookupHelp,
 } from '@wooksjs/event-cli'
-import { useRouteParams } from 'wooks'
+import { useRouteParams } from '@wooksjs/event-cli'
 
 const app = createCliApp({
     // Implementing onUnknownCommand hook
@@ -115,10 +103,10 @@ Wooks CLI provides additional features and options for building more complex CLI
 
 ```bash
 # Project-local (recommended — version-locked, commits with your repo)
-npx @wooksjs/event-cli setup-skills
+npx wooksjs-event-cli-skill
 
 # Global (available across all your projects)
-npx @wooksjs/event-cli setup-skills --global
+npx wooksjs-event-cli-skill --global
 ```
 
 To keep skills automatically up-to-date, add a postinstall script to your `package.json`:
@@ -126,13 +114,9 @@ To keep skills automatically up-to-date, add a postinstall script to your `packa
 ```json
 {
   "scripts": {
-    "postinstall": "npx @wooksjs/event-cli setup-skills --postinstall"
+    "postinstall": "wooksjs-event-cli-skill --postinstall"
   }
 }
 ```
 
-That's it! You have completed the Quick Start Guide for Wooks CLI.
-You now have the basic knowledge and steps to start building your own CLI applications using Wooks CLI.
-Feel free to explore the documentation and experiment with different configurations and options to suit your specific requirements.
-
-Happy command-line scripting with Wooks CLI!
+For more details, explore [Routing](/cliapp/routing), [Options](/cliapp/options), and [Help Generation](/cliapp/cli-help).

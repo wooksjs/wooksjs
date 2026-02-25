@@ -1,8 +1,11 @@
-import { cached, defineWook } from '@wooksjs/event-core'
+import { cached, cachedBy, defineWook } from '@wooksjs/event-core'
 import type { EventContext } from '@wooksjs/event-core'
 import { Buffer } from 'buffer'
 
 import { httpKind } from '../http-kind'
+
+/** Short names for common Authorization schemes. */
+export type KnownAuthType = 'basic' | 'bearer'
 
 const authTypeSlot = cached((ctx: EventContext) => {
   const authorization = ctx.get(httpKind.keys.req).headers.authorization
@@ -35,12 +38,17 @@ const basicCredentialsSlot = cached((ctx: EventContext) => {
   return null
 })
 
+const authIsSlot = cachedBy((type: string, ctx: EventContext) => {
+  const authType = ctx.get(authTypeSlot)
+  return authType?.toLowerCase() === type.toLowerCase()
+})
+
 /**
  * Provides parsed access to the Authorization header (type, credentials, Basic decoding).
  * @example
  * ```ts
- * const { isBearer, authRawCredentials, basicCredentials } = useAuthorization()
- * if (isBearer()) { const token = authRawCredentials() }
+ * const { authIs, authRawCredentials, basicCredentials } = useAuthorization()
+ * if (authIs('bearer')) { const token = authRawCredentials() }
  * ```
  */
 export const useAuthorization = defineWook((ctx: EventContext) => {
@@ -49,8 +57,7 @@ export const useAuthorization = defineWook((ctx: EventContext) => {
     authorization,
     authType: () => ctx.get(authTypeSlot),
     authRawCredentials: () => ctx.get(authCredentialsSlot),
-    isBasic: () => ctx.get(authTypeSlot)?.toLocaleLowerCase() === 'basic',
-    isBearer: () => ctx.get(authTypeSlot)?.toLocaleLowerCase() === 'bearer',
+    authIs: (type: KnownAuthType | (string & {})) => authIsSlot(type, ctx),
     basicCredentials: () => ctx.get(basicCredentialsSlot),
   }
 })

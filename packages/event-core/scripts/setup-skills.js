@@ -7,7 +7,7 @@ import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-const SKILL_NAME = 'event-core'
+const SKILL_NAME = 'wooksjs-event-core'
 const SKILL_SRC = path.join(__dirname, '..', 'skills', SKILL_NAME)
 
 if (!fs.existsSync(SKILL_SRC)) {

@@ -22,6 +22,8 @@ export interface TWooksHttpOptions {
   requestLimits?: Omit<TRequestLimits, 'perRequest'>
   /** Custom HttpResponse subclass. Defaults to WooksHttpResponse (HTML/JSON/text error rendering). */
   responseClass?: typeof WooksHttpResponse
+  /** Default headers applied to every response. Use `securityHeaders()` for recommended security headers. */
+  defaultHeaders?: Record<string, string | string[]>
 }
 
 /** HTTP adapter for Wooks that provides route registration, server lifecycle, and request handling. */
@@ -219,10 +221,11 @@ export class WooksHttp extends WooksAdapterBase {
     const ctxOptions = this.eventContextOptions
     const RequestLimits = this.opts?.requestLimits
     const notFoundHandler = this.opts?.onNotFound
+    const defaultHeaders = this.opts?.defaultHeaders
 
     return (req: IncomingMessage, res: ServerResponse) => {
       const ctx = new EventContext(ctxOptions)
-      const response = new this.ResponseClass(res, req, ctx.logger)
+      const response = new this.ResponseClass(res, req, ctx.logger, defaultHeaders)
       const method = req.method || ''
       const url = req.url || ''
 

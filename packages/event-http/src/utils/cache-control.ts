@@ -1,6 +1,7 @@
 import type { TTimeMultiString } from './time'
 import { convertTime } from './time'
 
+/** Cache-Control directive object (RFC 7234 §5.2.2). All fields are optional. */
 export interface TCacheControl {
   mustRevalidate?: boolean
   noCache?: boolean | string
@@ -9,10 +10,13 @@ export interface TCacheControl {
   public?: boolean
   private?: boolean | string
   proxyRevalidate?: boolean
+  /** Max age in seconds, or a time string (e.g. `'3h 30m'`). */
   maxAge?: number | TTimeMultiString
+  /** Shared cache max age in seconds, or a time string. */
   sMaxage?: number | TTimeMultiString
 }
 
+/** Renders a `TCacheControl` object into a `Cache-Control` header string. */
 export function renderCacheControl(data: TCacheControl) {
   let attrs = ''
   for (const [a, v] of Object.entries(data)) {

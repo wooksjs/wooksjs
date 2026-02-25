@@ -3,8 +3,19 @@ import type { EventContext } from '@wooksjs/event-core'
 
 import { httpKind } from '../http-kind'
 
-const acceptsMime = cachedBy((mime: string, ctx: EventContext) => {
+/** Short names for common Accept MIME types. */
+export type KnownAcceptType = 'json' | 'html' | 'xml' | 'text'
+
+const ACCEPT_TYPE_MAP: Record<string, string> = {
+  json: 'application/json',
+  html: 'text/html',
+  xml: 'application/xml',
+  text: 'text/plain',
+}
+
+const acceptsMime = cachedBy((type: string, ctx: EventContext) => {
   const accept = ctx.get(httpKind.keys.req).headers.accept
+  const mime = ACCEPT_TYPE_MAP[type] || type
   return !!(accept && (accept === '*/*' || accept.includes(mime)))
 })
 
@@ -13,10 +24,6 @@ export const useAccept = defineWook((ctx: EventContext) => {
   const accept = ctx.get(httpKind.keys.req).headers.accept
   return {
     accept,
-    accepts: (mime: string) => acceptsMime(mime, ctx),
-    acceptsJson: () => acceptsMime('application/json', ctx),
-    acceptsXml: () => acceptsMime('application/xml', ctx),
-    acceptsText: () => acceptsMime('text/plain', ctx),
-    acceptsHtml: () => acceptsMime('text/html', ctx),
+    accepts: (type: KnownAcceptType | (string & {})) => acceptsMime(type, ctx),
   }
 })

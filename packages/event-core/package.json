@@ -21,7 +21,7 @@
     "directory": "packages/event-core"
   },
   "bin": {
-    "setup-skills": "./scripts/setup-skills.js"
+    "wooksjs-event-core-skill": "./scripts/setup-skills.js"
   },
   "files": [
     "dist",

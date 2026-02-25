@@ -35,6 +35,7 @@ If not set explicitly, status is inferred automatically (see core.md Auto-status
 
 ```ts
 response.setHeader('x-custom', 'value')     // set a header (chainable)
+response.setHeaders({ 'x-one': '1', 'x-two': '2' })  // batch-set headers
 response.setHeader('x-multi', ['a', 'b'])   // multi-value header
 response.getHeader('x-custom')              // get header value
 response.removeHeader('x-custom')           // remove a header (chainable)
@@ -165,6 +166,39 @@ class MyResponse extends WooksHttpResponse {
 
 const app = createHttpApp({ responseClass: MyResponse })
 ```
+
+### Default headers and security headers
+
+Pre-populate response headers for every request via `defaultHeaders`:
+
+```ts
+import { createHttpApp, securityHeaders } from '@wooksjs/event-http'
+
+const app = createHttpApp({ defaultHeaders: securityHeaders() })
+```
+
+`securityHeaders(opts?)` returns recommended HTTP security headers:
+
+| Header | Default |
+|--------|---------|
+| `content-security-policy` | `default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'` |
+| `cross-origin-opener-policy` | `same-origin` |
+| `cross-origin-resource-policy` | `same-origin` |
+| `referrer-policy` | `no-referrer` |
+| `x-content-type-options` | `nosniff` |
+| `x-frame-options` | `SAMEORIGIN` |
+
+Options: `string` (override) or `false` (disable). `strictTransportSecurity` is opt-in only.
+
+```ts
+securityHeaders({
+  contentSecurityPolicy: false,
+  referrerPolicy: 'strict-origin-when-cross-origin',
+  strictTransportSecurity: 'max-age=31536000; includeSubDomains',
+})
+```
+
+Per-endpoint: `response.setHeaders(securityHeaders({ ... }))`.
 
 ## Common Patterns
 

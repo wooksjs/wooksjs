@@ -24,6 +24,7 @@ import { prepareTestHttpContext } from '@wooksjs/event-http'
 | `params` | `Record<string, string \| string[]>` | No | Pre-set route parameters |
 | `requestLimits` | `TRequestLimits` | No | Custom request limits |
 | `rawBody` | `string \| Buffer` | No | Pre-seed the raw body (skips stream reading) |
+| `defaultHeaders` | `Record<string, string \| string[]>` | No | Default headers to pre-populate on the response |
 
 **Returns:** `(cb: () => T) => T` — a runner function.
 
@@ -39,10 +40,10 @@ run(() => {
   // All composables work here
   const { method } = useRequest()
   const { params } = useRouteParams()
-  const { isBearer } = useAuthorization()
+  const { authIs } = useAuthorization()
   expect(method).toBe('GET')
   expect(params.id).toBe('42')
-  expect(isBearer()).toBe(true)
+  expect(authIs('bearer')).toBe(true)
 })
 ```
 

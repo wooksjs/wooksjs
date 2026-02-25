@@ -1,118 +1,107 @@
-# Quick Start Guide
+# Quick Start
 
-::: warning
-Work on Wooks is still in progress. It is already suitable for immediate use for workflows,
-but some APIs may still undergo changes.
-:::
-
-This guide will help you get started with Wooks Workflows.
+This guide walks you through building a complete workflow from scratch.
 
 ## Installation
-
-To install Wooks Workflows, you need to have Node.js and npm (Node Package Manager) installed on your system.
-Once you have them set up, you can install Wooks Workflows using the following command:
 
 ```bash
 npm install wooks @wooksjs/event-wf
 ```
 
-## Usage
+## Step 1: Create the App
 
-Here's a step-by-step guide to using Wooks Workflows:
-
-### Step 1: Import `createWfApp` factory and create an App instance
-
-Start by importing the necessary modules and creating an instance of the Wooks Workflows adapter:
+Every workflow app starts with `createWfApp`. The generic parameter defines the **context type** — the shared state that all steps in a workflow can read and modify.
 
 ```ts
-import { createWfApp } from '@wooksjs/event-wf'
+import { createWfApp, useWfState } from '@wooksjs/event-wf'
 import { useRouteParams } from '@wooksjs/event-core'
 
-type MyContext = { result: number }
+// Define the shape of your workflow context
+interface OrderContext {
+  items: string[]
+  total: number
+  discount: number
+  status: string
+}
 
-const app = createWfApp<MyContext>()
+const app = createWfApp<OrderContext>()
 ```
 
-`MyContext` is a type of workflow context, you have to define relevant context type that suits your workflow needs.
+## Step 2: Define Steps
 
-### Step 2: Define Workflow Steps
-
-Next, you can define your workflow steps using the `step()` method provided by the Wooks Workflows adapter. The `step()` method allows you to register steps with their respective handlers. You can use routing flexibility to create dynamic workflows based on parameters.
+Steps are the building blocks. Each step has an **id** and a **handler** function.
 
 ```ts
-app.step('add/:n', {
-    handler: (ctx) => {
-        ctx.result += Number(useRouteParams().get('n'))
-    },
+// A simple step that calculates the total
+app.step('calculate-total', {
+  handler: (ctx) => {
+    ctx.total = ctx.items.length * 10 // $10 per item
+  },
+})
+
+// A parametric step — the discount percentage comes from the step id
+app.step('apply-discount/:percent', {
+  handler: (ctx) => {
+    const percent = Number(useRouteParams().get('percent'))
+    ctx.discount = ctx.total * (percent / 100)
+    ctx.total -= ctx.discount
+  },
+})
+
+// A step that uses the composable API
+app.step('finalize', {
+  handler: () => {
+    const { ctx } = useWfState()
+    const context = ctx<OrderContext>()
+    context.status = context.total > 0 ? 'ready' : 'empty'
+  },
 })
 ```
 
-Here we defind a step `add` with a required parameter `n`. This step adds up `n` to context `result` field.
+Note how `apply-discount/:percent` uses route-style parameters — when called as `apply-discount/15`, the `percent` parameter resolves to `"15"`.
 
-### Step 3: Define Workflow Flows
+## Step 3: Define a Flow
 
-With steps defined, you can now create workflow flows using the `flow()` method. You can define sequences of steps, conditional executions, and looping structures within a flow.
+A flow is a schema that wires steps together. It's just an array — the engine executes steps in order.
 
 ```ts
-app.flow('adding', [
-    'add/5',
-    'add/2',
-    {
-        condition: 'result < 10',
-        steps: ['add/3', 'add/4'],
-    },
+app.flow('process-order', [
+  'calculate-total',
+  {
+    condition: 'total > 50',           // only apply discount for orders over $50
+    steps: ['apply-discount/10'],
+  },
+  'finalize',
 ])
 ```
 
-Here we created a flow named `adding`, which consists of the following steps:
-1. add 5
-2. add 2
-3. if result < 10 then run a **Subflow**
-
-**Subflow**:
-1. add 3
-2. add 4
-
-
-### Step 4: Start the Workflow
-
-To start a workflow, you can call the `start()` method of the Wooks Workflows adapter with the name of the flow you wish to run and the initial context.
+## Step 4: Run It
 
 ```ts
-const output = await app.start('adding', { result: 0 })
-console.log(output.finished) // true
-console.log(output.state.context) // { result: 14 }
+const output = await app.start('process-order', {
+  items: ['shirt', 'pants', 'shoes', 'jacket', 'hat', 'belt'],
+  total: 0,
+  discount: 0,
+  status: '',
+})
+
+console.log(output.finished)         // true
+console.log(output.state.context)
+// { items: [...], total: 54, discount: 6, status: 'ready' }
 ```
 
-This will start the 'adding' flow with an initial `result` of 0, and follow the steps defined in the flow.
+The second argument to `start()` is the initial context. Every step in the flow reads and mutates this same object.
 
-## AI Agent Skills
+## What Just Happened?
 
-`@wooksjs/event-wf` ships with skill files for AI coding agents (Claude Code, Cursor, Windsurf, Codex, etc.) that provide context-aware assistance.
+1. `calculate-total` set `total` to 60 (6 items × $10)
+2. The condition `total > 50` was true, so `apply-discount/10` ran and subtracted 10% ($6)
+3. `finalize` set `status` to `'ready'`
 
-```bash
-# Project-local (recommended — version-locked, commits with your repo)
-npx @wooksjs/event-wf setup-skills
+The output includes the full final state under `output.state.context`, and `output.finished` tells you whether the workflow completed or paused for input.
 
-# Global (available across all your projects)
-npx @wooksjs/event-wf setup-skills --global
-```
+## Next Steps
 
-To keep skills automatically up-to-date, add a postinstall script to your `package.json`:
-
-```json
-{
-  "scripts": {
-    "postinstall": "npx @wooksjs/event-wf setup-skills --postinstall"
-  }
-}
-```
-
-## Next steps
-
--   Learn how to define [parametric steps](/wf/routing#parametric-step-example)
--   Find out how to build [flows](/wf/flows)
--   Utilize [Conditional subflows](/wf/flows#conditional-subflows)
--   Benefit from [Loops](/wf/flows#loops)
-
-Happy workflow designing with Wooks Workflows!
+- [Steps](/wf/steps) — handlers, parametric routing, composables, string handlers
+- [Flows](/wf/flows) — conditions, loops, subflows, break/continue
+- [Input & Resume](/wf/input-and-resume) — pause workflows for user input, resume later

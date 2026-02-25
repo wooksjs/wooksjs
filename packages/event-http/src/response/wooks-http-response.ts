@@ -24,7 +24,14 @@ const icons = {
   500: typeof svg500 === 'function' ? svg500({}) : '',
 }
 
+/**
+ * Default `HttpResponse` subclass used by `createHttpApp`.
+ *
+ * Overrides error rendering to produce content-negotiated responses (JSON, HTML, or plain text)
+ * based on the request's `Accept` header. HTML error pages include SVG icons and framework branding.
+ */
 export class WooksHttpResponse extends HttpResponse {
+  /** Registers framework metadata (name, version, link, logo) used in HTML error pages. */
   static registerFramework(opts: {
     version: string
     poweredBy: string
@@ -36,14 +43,14 @@ export class WooksHttpResponse extends HttpResponse {
 
   protected renderError(data: TWooksErrorBodyExt, ctx: EventContext): void {
     this._status = (data.statusCode || 500) as EHttpStatusCode
-    const { acceptsJson, acceptsHtml, acceptsText } = useAccept(ctx)
-    if (acceptsJson()) {
+    const { accepts } = useAccept(ctx)
+    if (accepts('json')) {
       this._headers['content-type'] = 'application/json'
       this._body = JSON.stringify(data)
-    } else if (acceptsHtml()) {
+    } else if (accepts('html')) {
       this._headers['content-type'] = 'text/html'
       this._body = renderErrorHtml(data)
-    } else if (acceptsText()) {
+    } else if (accepts('text')) {
       this._headers['content-type'] = 'text/plain'
       this._body = renderErrorText(data)
     } else {

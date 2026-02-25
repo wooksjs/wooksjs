@@ -1,126 +1,152 @@
 # Steps
 
-A step is a specific function that can be utilized within flows. This document discusses how to define and interact with steps in Wooks Workflows. 
+A step is a named, reusable unit of work. You define steps once and reference them by id inside [flows](/wf/flows).
 
 [[toc]]
 
-## Step Definition
-
-Defining a step is straightforward. Utilize the `app.step()` function to declare a step, as shown below:
+## Defining a Step
 
 ```ts
-app.step('step-name', {
-    // input: ...,
-    handler: () => { /* ... */ },
+app.step('step-id', {
+  handler: (ctx) => {
+    // your logic here
+  },
 })
 ```
 
-In this definition, `'step-name'` is the identifier for the step and the `handler` function is what gets executed when the step is called within a flow.
+The `handler` receives the workflow context as its first argument. You can mutate it directly:
 
-## Using Flow Context
+```ts
+app.step('increment', {
+  handler: (ctx) => {
+    ctx.counter++
+  },
+})
+```
 
-In the context of a step, you can access the state associated with the current workflow by invoking the `useWfState` hook. Here's how to use it:
+## Accessing State with `useWfState`
+
+Inside any step handler, call `useWfState()` to access the full workflow execution state:
 
 ```ts
 import { useWfState } from '@wooksjs/event-wf'
 
-app.step('step-name', {
-    // input: ...,
-    handler: () => {
-        const { ctx } = useWfState()
-        const context = ctx<ContextType>() // ContextType should be replaced with the actual context type
-    },
+app.step('process', {
+  handler: () => {
+    const { ctx, input, schemaId, stepId, indexes, resume } = useWfState()
+
+    const context = ctx<MyContext>()   // typed workflow context
+    const stepInput = input<string>()  // input provided for this step (if any)
+    const flowId = schemaId            // id of the running flow
+    const currentStep = stepId()       // id of the current step
+    const position = indexes()         // position in the flow schema
+    const isResumed = resume           // true if this is a resumed execution
+  },
 })
 ```
-The `useWfState` function returns an object containing the context (`ctx`) of the current flow.
+
+`useWfState()` works from anywhere in the call stack — it uses `AsyncLocalStorage` under the hood, so you can call it from utility functions, not just directly in the handler.
 
 ## Parametric Steps
 
-A step can be made parametric by incorporating route parameters in its name. The route parameters can be accessed in the step's handler function using the `useRouteParams` hook, as demonstrated below:
+Step ids support route-style parameters. This lets you create generic steps that receive values through their id.
 
 ```ts
 import { useRouteParams } from '@wooksjs/event-core'
 
-app.step('step-name/:param1/:param2', {
-    // input: ...,
-    handler: () => {
-        const { get } = useRouteParams()
-        console.log(get('param1')) // prints value of param1
-        console.log(get('param2')) // prints value of param2
-    },
-})
-```
-In the example above, `:param1` and `:param2` in the step name are placeholders for the actual parameters.
-
-## Requesting Inputs
-
-There are two ways to request input within a step: statically, where the input is always required, or dynamically, where the input is conditionally required.
-
-A static required input can be defined as a property `input`:
-
-```ts
-app.step('step-with-input', {
-    input: { ... }, // input schema
-    handler: () => { /* ... */ },
+app.step('add/:n', {
+  handler: (ctx) => {
+    const n = Number(useRouteParams().get('n'))
+    ctx.result += n
+  },
 })
 ```
 
-For dynamic or conditional inputs, you can return an `inputRequired` object from the step based on certain conditions:
+Now you can call this step with different values in your flow:
 
 ```ts
-import { useWfState } from '@wooksjs/event-wf'
+app.flow('calculate', ['add/5', 'add/10', 'add/3'])
+```
 
-app.step('step-with-input', {
-    input: { ... }, // input schema // [!code --]
-    handler: () => {
-        const { input } = useWfState()
-        const myInput = input<InputType>() // get input value
-        if (!myInput /* && someInputCondition */) {
-            return { inputRequired: { ... } }
-        }
-    },
+### Supported Routing Patterns
+
+Step ids use [@prostojs/router](https://github.com/prostojs/router) syntax:
+
+| Pattern | Example | Matches |
+|---------|---------|---------|
+| Static | `validate` | Exactly `validate` |
+| Named parameter | `add/:n` | `add/5`, `add/100` |
+| Multiple parameters | `move/:from/:to` | `move/inbox/archive` |
+| Optional parameter | `log/:level?` | `log` and `log/debug` |
+| Wildcard | `notify/*` | `notify/email`, `notify/slack/general` |
+
+Access parameters with `useRouteParams().get('paramName')` — use `get('*')` for wildcard captures.
+
+## String Handlers
+
+For lightweight, serializable steps, you can use a JavaScript expression string instead of a function:
+
+```ts
+app.step('add', {
+  input: 'number',
+  handler: 'ctx.result += input',
+})
+
+app.step('double', {
+  handler: 'ctx.result *= 2',
 })
 ```
 
-In case the required input is not provided, the flow will be interrupted:
+String handlers run in a restricted sandbox with only `ctx` (the workflow context) and `input` (the step input) available. They cannot access Node.js APIs, imports, or composables.
+
+Use string handlers when you need steps to be **serializable** (e.g., stored in a database or sent over the wire). Use function handlers for everything else.
+
+## Step with Required Input
+
+A step can declare that it requires input. If the input is not provided when the step runs, the workflow **pauses** and waits for it.
 
 ```ts
-let output = await app.start('flow-with-input', {})
-// the flow was interrupted due to lack of input for step "add"
-console.log(output.finished) // false
-console.log(output.inputRequired) // input schema
-if (output.inputRequired) {
-    output = app.resume(output.state, <some input>) // resuming with input
-    // resume shortcut:
-    // output = output.resume(<some input>)
-}
-console.log(output.finished) // true
+app.step('get-approval', {
+  input: 'boolean',  // declares that this step needs input
+  handler: (ctx) => {
+    const { input } = useWfState()
+    ctx.approved = input<boolean>() ?? false
+  },
+})
 ```
+
+See [Input & Resume](/wf/input-and-resume) for the full pause/resume pattern.
 
 ## Handling Retriable Errors
 
-A step can be configured to handle errors that can be retried. In the event of a failure that is retry-able, throw an instance of `StepRetriableError`. Here is an example:
+If a step fails but can be retried, throw a `StepRetriableError`:
 
 ```ts
 import { StepRetriableError } from '@wooksjs/event-wf'
 
-app.step('step-with-input', {
-    handler: () => {
-        throw new StepRetriableError(new Error("test error"))
-    },
+app.step('call-api', {
+  handler: async (ctx) => {
+    const res = await fetch(ctx.apiUrl)
+    if (!res.ok) {
+      throw new StepRetriableError(new Error(`API returned ${res.status}`))
+    }
+    ctx.data = await res.json()
+  },
 })
 ```
-Executing this step will interrupt the flow:
+
+The workflow pauses with the error available on the output. You can retry by resuming:
 
 ```ts
-let output = await app.start('flow-with-resumable-error', {})
-console.log(output.finished) // false
-console.log(output.error?.message) // "test error"
+const output = await app.start('my-flow', initialContext)
 
-// to retry we can resume flow:
-output = await app.resume(output.state)
-// retry shortcut:
-// output = await output.retry()
+if (!output.finished && output.error) {
+  console.log(output.error.message)  // "API returned 503"
+  // retry the failed step:
+  const retried = await app.resume(output.state)
+  // or shortcut:
+  // const retried = await output.retry()
+}
 ```
 
-In this example, the `flow-with-resumable-error` flow is interrupted as soon as the `StepRetriableError` is thrown. The error message can be logged, and the flow can be resumed to retry the step.
+Regular (non-retriable) errors propagate normally and are thrown from `start()` / `resume()`.

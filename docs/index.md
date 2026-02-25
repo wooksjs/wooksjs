@@ -26,7 +26,7 @@ themeConfig:
 features:
     - icon: 💕
       title: Leverage the Flexibility of Composables
-      link: /wooks/what#what-are-composables
+      link: /wooks/what#composables
       details: Use Vue- or React-inspired composables to seamlessly interact with and adapt the event state, enabling efficient, maintainable code.
     - icon: 🕸
       title: Build Dynamic Web Applications
@@ -39,10 +39,10 @@ features:
     - icon: ⚡
       title: Achieve High-Performance Routing
       details: Utilize `@prostojs/router` for swift, reliable route matching and proper URI decoding, ensuring fast and predictable request handling.
-      link: /wooks/comparison#_2-smarter-and-more-flexible-routing
+      link: /wooks/comparison#routing
     - icon: ✍
       title: Create Your Own Composables
-      link: /wooks/what#what-are-composables
+      link: /wooks/what#composables
       details: Easily craft custom composables to modularize and reuse your logic, improving code clarity and maintainability.
     - icon: 🔑
       title: Embrace Type Safety

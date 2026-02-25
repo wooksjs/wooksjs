@@ -255,20 +255,32 @@ export default defineConfig({
                             link: '/wf/introduction',
                         },
                         {
+                            text: 'Why Workflows',
+                            link: '/wf/why',
+                        },
+                        {
                             text: 'Quick Start',
                             link: '/wf/',
                         },
                         {
-                            text: 'Routing',
-                            link: '/wf/routing',
+                            text: 'Steps',
+                            link: '/wf/steps',
                         },
                         {
                             text: 'Flows',
                             link: '/wf/flows',
                         },
                         {
-                            text: 'Steps',
-                            link: '/wf/steps',
+                            text: 'Input & Resume',
+                            link: '/wf/input-and-resume',
+                        },
+                        {
+                            text: 'Composables',
+                            link: '/wf/composables',
+                        },
+                        {
+                            text: 'HTTP Integration',
+                            link: '/wf/http-integration',
                         },
                     ]
                 }],

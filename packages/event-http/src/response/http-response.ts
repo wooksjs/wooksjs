@@ -21,12 +21,38 @@ const defaultStatus: Record<string, EHttpStatusCode> = {
   DELETE: EHttpStatusCode.Accepted,
 }
 
+/**
+ * Manages response status, headers, cookies, cache control, and body for an HTTP request.
+ *
+ * All header mutations are accumulated in memory and flushed in a single `writeHead()` call
+ * when `send()` is invoked. Setter methods are chainable.
+ *
+ * @example
+ * ```ts
+ * const response = useResponse()
+ * response.setStatus(200).setHeader('x-custom', 'value')
+ * response.setCookie('session', 'abc', { httpOnly: true })
+ * ```
+ */
 export class HttpResponse {
+  /**
+   * @param _res - The underlying Node.js `ServerResponse`.
+   * @param _req - The underlying Node.js `IncomingMessage`.
+   * @param _logger - Logger instance for error reporting.
+   * @param defaultHeaders - Optional headers to pre-populate on this response (e.g. from `securityHeaders()`).
+   */
   constructor(
     protected readonly _res: ServerResponse,
     protected readonly _req: IncomingMessage,
     protected readonly _logger: Logger,
-  ) {}
+    defaultHeaders?: Record<string, string | string[]>,
+  ) {
+    if (defaultHeaders) {
+      for (const key in defaultHeaders) {
+        this._headers[key] = defaultHeaders[key]
+      }
+    }
+  }
 
   protected _status: EHttpStatusCode = 0 as EHttpStatusCode
   protected _body: unknown = undefined
@@ -38,6 +64,7 @@ export class HttpResponse {
 
   // --- Status ---
 
+  /** The HTTP status code. If not set, it is inferred automatically when `send()` is called. */
   get status(): EHttpStatusCode {
     return this._status
   }
@@ -46,6 +73,7 @@ export class HttpResponse {
     this._status = value
   }
 
+  /** Sets the HTTP status code (chainable). */
   setStatus(value: EHttpStatusCode): this {
     this._status = value
     return this
@@ -53,6 +81,7 @@ export class HttpResponse {
 
   // --- Body ---
 
+  /** The response body. Automatically serialized by `send()` (objects → JSON, strings → text). */
   get body(): unknown {
     return this._body
   }
@@ -61,6 +90,7 @@ export class HttpResponse {
     this._body = value
   }
 
+  /** Sets the response body (chainable). */
   setBody(value: unknown): this {
     this._body = value
     return this
@@ -68,33 +98,48 @@ export class HttpResponse {
 
   // --- Headers ---
 
+  /** Sets a single response header (chainable). Arrays produce multi-value headers. */
   setHeader(name: string, value: string | number | string[]): this {
     this._headers[name] = Array.isArray(value) ? value : value.toString()
     return this
   }
 
+  /** Batch-sets multiple response headers from a record (chainable). Existing keys are overwritten. */
+  setHeaders(headers: Record<string, string | string[]>): this {
+    for (const key in headers) {
+      this._headers[key] = headers[key]
+    }
+    return this
+  }
+
+  /** Returns the value of a response header, or `undefined` if not set. */
   getHeader(name: string): string | string[] | undefined {
     return this._headers[name]
   }
 
+  /** Removes a response header (chainable). */
   removeHeader(name: string): this {
     delete this._headers[name]
     return this
   }
 
+  /** Returns a read-only snapshot of all response headers. */
   headers(): Readonly<Record<string, string | string[]>> {
     return this._headers
   }
 
+  /** Sets the `Content-Type` response header (chainable). */
   setContentType(value: string): this {
     this._headers['content-type'] = value
     return this
   }
 
+  /** Returns the current `Content-Type` header value. */
   getContentType(): string | string[] | undefined {
     return this._headers['content-type']
   }
 
+  /** Sets the `Access-Control-Allow-Origin` header (chainable). Defaults to `'*'`. */
   enableCors(origin = '*'): this {
     this._headers['access-control-allow-origin'] = origin
     return this
@@ -102,21 +147,25 @@ export class HttpResponse {
 
   // --- Cookies (outgoing set-cookie) ---
 
+  /** Sets an outgoing `Set-Cookie` header with optional attributes (chainable). */
   setCookie(name: string, value: string, attrs?: Partial<TCookieAttributes>): this {
     this._cookies[name] = { value, attrs: attrs || {} }
     this._hasCookies = true
     return this
   }
 
+  /** Returns a previously set cookie's data, or `undefined` if not set. */
   getCookie(name: string): TSetCookieData | undefined {
     return this._cookies[name]
   }
 
+  /** Removes a cookie from the outgoing set list (chainable). */
   removeCookie(name: string): this {
     delete this._cookies[name]
     return this
   }
 
+  /** Removes all outgoing cookies (chainable). */
   clearCookies(): this {
     this._cookies = {}
     this._rawCookies = []
@@ -124,6 +173,7 @@ export class HttpResponse {
     return this
   }
 
+  /** Appends a raw `Set-Cookie` header string (chainable). Use when you need full control over the cookie format. */
   setCookieRaw(rawValue: string): this {
     this._rawCookies.push(rawValue)
     this._hasCookies = true
@@ -132,16 +182,19 @@ export class HttpResponse {
 
   // --- Cache control ---
 
+  /** Sets the `Cache-Control` header from a directive object (chainable). */
   setCacheControl(data: TCacheControl): this {
     this._headers['cache-control'] = renderCacheControl(data)
     return this
   }
 
+  /** Sets the `Age` header in seconds (chainable). Accepts a number or time string (e.g. `'2h 15m'`). */
   setAge(value: number | TTimeMultiString): this {
     this._headers.age = convertTime(value, 's').toString()
     return this
   }
 
+  /** Sets the `Expires` header (chainable). Accepts a `Date`, date string, or timestamp. */
   setExpires(value: Date | string | number): this {
     this._headers.expires =
       typeof value === 'string' || typeof value === 'number'
@@ -150,6 +203,7 @@ export class HttpResponse {
     return this
   }
 
+  /** Sets or clears the `Pragma: no-cache` header (chainable). */
   setPragmaNoCache(value = true): this {
     this._headers.pragma = value ? 'no-cache' : ''
     return this
@@ -157,6 +211,10 @@ export class HttpResponse {
 
   // --- Raw access & state ---
 
+  /**
+   * Returns the underlying Node.js `ServerResponse`.
+   * @param passthrough - If `true`, the framework still manages the response lifecycle. If `false` (default), the response is marked as "responded" and the framework will not touch it.
+   */
   getRawRes(passthrough?: boolean): ServerResponse {
     if (!passthrough) {
       this._responded = true
@@ -164,6 +222,7 @@ export class HttpResponse {
     return this._res
   }
 
+  /** Whether the response has already been sent (or the underlying stream is no longer writable). */
   get responded(): boolean {
     return this._responded || !this._res.writable || this._res.writableEnded
   }
@@ -207,12 +266,21 @@ export class HttpResponse {
 
   // --- Sending ---
 
+  /** Renders and sends an HTTP error response. Called automatically by the framework when a handler throws an `HttpError`. */
   sendError(error: HttpError, ctx: EventContext): void | Promise<void> {
     const data = error.body
     this.renderError(data, ctx)
     return this.send()
   }
 
+  /**
+   * Finalizes and sends the response.
+   *
+   * Flushes all accumulated headers (including cookies) in a single `writeHead()` call,
+   * then writes the body. Supports `Readable` streams, `fetch` `Response` objects, and regular values.
+   *
+   * @throws Error if the response was already sent.
+   */
   send(): void | Promise<void> {
     if (this._responded) {
       const err = new Error('The response was already sent.')

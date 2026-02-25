@@ -1,7 +1,5 @@
 # @wooksjs/event-cli
 
-**!!! This is work-in-progress library, breaking changes are expected !!!**
-
 <p align="center">
 <img src="../../wooks-logo.png" width="450px"><br>
 <a  href="https://github.com/wooksjs/wooksjs/blob/main/LICENSE">
@@ -9,41 +7,17 @@
 </a>
 </p>
 
-As a part of `wooks` event processing framework, `@wooksjs/event-cli` implements CLI events and provides composables that let you:
-
-- access flags (- or --)
+CLI event processing for the Wooks framework. Build command-line applications with composable functions for flags, arguments, and auto-generated help.
 
 ## Installation
 
-`npm install wooks @wooksjs/event-cli`
-
-## Quick Start
-
-```js
-import { useRouteParams } from 'wooks'
-import { createCliApp, useCliOptions } from '@wooksjs/event-cli'
-
-const app = createCliApp()
-
-app.cli('test', () => {
-  console.log('options:')
-  return useCliOptions()
-})
-
-app.cli(':arg', () => {
-  console.log('run argument:', useRouteParams().params)
-  return 'done'
-})
-
-app.run()
-
-// node ./index.js test
-// node ./index.js random
+```sh
+npm install @wooksjs/event-cli
 ```
 
 ## Documentation
 
-To check out docs, visit [wooks.moost.org](https://wooks.moost.org/cliapp/).
+For full documentation, visit [wooks.moost.org/cliapp](https://wooks.moost.org/cliapp/).
 
 ## AI Agent Skills
 
@@ -51,10 +25,10 @@ This package ships with structured skill files for AI coding agents (Claude Code
 
 ```bash
 # Project-local (recommended — version-locked, commits with your repo)
-npx @wooksjs/event-cli setup-skills
+npx wooksjs-event-cli-skill
 
 # Global (available across all your projects)
-npx @wooksjs/event-cli setup-skills --global
+npx wooksjs-event-cli-skill --global
 ```
 
 To keep skills automatically up-to-date, add a postinstall script to your `package.json`:
@@ -62,9 +36,11 @@ To keep skills automatically up-to-date, add a postinstall script to your `packa
 ```json
 {
   "scripts": {
-    "postinstall": "npx @wooksjs/event-cli setup-skills --postinstall"
+    "postinstall": "wooksjs-event-cli-skill --postinstall"
   }
 }
 ```
 
-This ensures the skill files are refreshed whenever dependencies are installed, without needing a separate command.
+## License
+
+MIT

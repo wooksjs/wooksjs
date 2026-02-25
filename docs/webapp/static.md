@@ -21,7 +21,7 @@ npm install @wooksjs/http-static
 
 ## Usage
 
-Once installed, you can import the `serveFile` function and use it in your WooksJS application.
+Once installed, you can import the `serveFile` function and use it in your Wooks application.
 
 Example:
 
@@ -55,7 +55,7 @@ The `options` object allows you to customize the behavior of the file serving. I
 Here's an example of using the `serveFile` function to create a built-in file server:
 
 ```js
-import { useRouteParams } from 'wooks';
+import { useRouteParams } from '@wooksjs/event-http';
 import { serveFile } from '@wooksjs/http-static';
 
 app.get('static/*', () => {
@@ -64,9 +64,4 @@ app.get('static/*', () => {
 });
 ```
 
-In the example above, any request to the `/static/*` route will serve the corresponding file from the file system.
-The file path is extracted from the route parameters, and the `cacheControl` option is used to set the caching behavior of the response.
-
-You can refer to the [Cache Control documentation](./composables/response.md#cache-control) for more details on configuring the cache control directives.
-
-That's how you can use the `@wooksjs/http-static` package to serve static files in your Wooks HTTP application.
+See the [Cache Control documentation](./composables/response.md#cache-control) for details on configuring cache directives.

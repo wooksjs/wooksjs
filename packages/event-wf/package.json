@@ -23,7 +23,7 @@
     "directory": "packages/event-wf"
   },
   "bin": {
-    "setup-skills": "scripts/setup-skills.js"
+    "wooksjs-event-wf-skill": "scripts/setup-skills.js"
   },
   "files": [
     "dist",

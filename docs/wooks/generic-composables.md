@@ -1,6 +1,6 @@
 # Generic Composables
 
-[What are composables?](/wooks/what#what-are-composables)
+[What are composables?](/wooks/what#composables)
 
 Wooks provides a set of generic composables that work across all event "flavors" (HTTP, CLI, Workflow, or custom). These composables give you access to core event properties — such as event IDs, logging, and route parameters — regardless of the underlying event type.
 

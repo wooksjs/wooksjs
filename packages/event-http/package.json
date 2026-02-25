@@ -26,7 +26,7 @@
     "directory": "packages/event-http"
   },
   "bin": {
-    "setup-skills": "scripts/setup-skills.js"
+    "wooksjs-event-http-skill": "scripts/setup-skills.js"
   },
   "files": [
     "dist",

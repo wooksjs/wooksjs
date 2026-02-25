@@ -1,6 +1,4 @@
-# Wooks Serve File
-
-**!!! This is work-in-progress library, breaking changes are expected !!!**
+# @wooksjs/http-static
 
 <p align="center">
 <img src="../../wooks-logo.png" width="450px"><br>
@@ -9,71 +7,18 @@
 </a>
 </p>
 
-Wooks Serve File is composable static file server for [@wooksjs/event-http](https://github.com/wooksjs/wooksjs/tree/main/packages/event-http).
-
-`serveFile` returns a readable stream and prepares all the neccessary response headers (like content-length, content-type etc).
-
-- ✅ returns a readable stream
-- ✅ prepares all the neccessary response headers (like content-length, content-type etc)
-- ✅ can handle etag
-- ✅ can handle ranges
+Composable static file server for [@wooksjs/event-http](https://github.com/wooksjs/wooksjs/tree/main/packages/event-http). Serves files as readable streams with automatic content-type detection, ETag support, and range requests.
 
 ## Installation
 
-`npm install @wooksjs/http-static`
-
-## Usage
-
-```js
-import { serveFile } from '@wooksjs/http-static'
-// ...
-serveFile(filePath, options)
+```sh
+npm install @wooksjs/http-static
 ```
-
-**serveFile options**
-
-```ts
-{
-    // Any header to add
-    headers?: Record<string, string>,
-
-    // Cache-Control header
-    cacheControl?: TCacheControl,
-
-    // Expires header
-    expires?: Date | string | number,
-
-    // when true a header "Pragma: no-cache" will be added
-    pragmaNoCache?: boolean,
-
-    // the base directory path
-    baseDir?: string,
-
-    // default extension will be added to the filePath
-    defaultExt?: string,
-
-    // when true lists files in directory
-    listDirectory?: boolean,
-
-    // put 'index.html'
-    // to automatically serve it from the folder
-    index?: string,
-}
-```
-
-### Built-in file server example:
-
-```js
-import { useRouteParams } from 'wooks'
-import { serveFile } from '@wooksjs/http-static'
-app.get('static/*', () => {
-  const { get } = useRouteParams()
-  return serveFile(get('*'), { cacheControl: { maxAge: '10m' } })
-})
-```
-
-`cacheControl` here is the same object as used in `useSetCacheControl().setCacheControl({ ... })` from `@wooksjs/event-http`
 
 ## Documentation
 
-To check out docs, visit [wooks.moost.org](https://wooks.moost.org/).
+For full documentation, visit [wooks.moost.org/webapp/static](https://wooks.moost.org/webapp/static).
+
+## License
+
+MIT

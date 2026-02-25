@@ -4,115 +4,126 @@ import { prepareTestHttpContext } from '@wooksjs/event-http'
 import { useBody } from '../body'
 
 describe('body', () => {
-  it('must parse body content-type application/json', () => {
+  it('must detect content-type application/json', () => {
     prepareTestHttpContext({
       url: '',
       headers: { 'content-type': 'application/json' },
     })(() => {
-      const { isJson, isHtml, isXml, isText, isBinary, isFormData, isUrlencoded } = useBody()
-      expect(isJson()).toBe(true)
-      expect(isXml()).toBe(false)
-      expect(isHtml()).toBe(false)
-      expect(isText()).toBe(false)
-      expect(isBinary()).toBe(false)
-      expect(isFormData()).toBe(false)
-      expect(isUrlencoded()).toBe(false)
+      const { contentIs } = useBody()
+      expect(contentIs('json')).toBe(true)
+      expect(contentIs('xml')).toBe(false)
+      expect(contentIs('html')).toBe(false)
+      expect(contentIs('text')).toBe(false)
+      expect(contentIs('binary')).toBe(false)
+      expect(contentIs('form-data')).toBe(false)
+      expect(contentIs('urlencoded')).toBe(false)
     })
   })
 
-  it('must parse body content-type text/xml', () => {
+  it('must detect content-type text/xml', () => {
     prepareTestHttpContext({
       url: '',
       headers: { 'content-type': 'text/xml' },
     })(() => {
-      const { isJson, isHtml, isXml, isText, isBinary, isFormData, isUrlencoded } = useBody()
-      expect(isJson()).toBe(false)
-      expect(isXml()).toBe(true)
-      expect(isHtml()).toBe(false)
-      expect(isText()).toBe(false)
-      expect(isBinary()).toBe(false)
-      expect(isFormData()).toBe(false)
-      expect(isUrlencoded()).toBe(false)
+      const { contentIs } = useBody()
+      expect(contentIs('json')).toBe(false)
+      expect(contentIs('xml')).toBe(true)
+      expect(contentIs('html')).toBe(false)
+      expect(contentIs('text')).toBe(false)
+      expect(contentIs('binary')).toBe(false)
+      expect(contentIs('form-data')).toBe(false)
+      expect(contentIs('urlencoded')).toBe(false)
     })
   })
 
-  it('must parse body content-type text/html', () => {
+  it('must detect content-type text/html', () => {
     prepareTestHttpContext({
       url: '',
       headers: { 'content-type': 'text/html' },
     })(() => {
-      const { isJson, isHtml, isXml, isText, isBinary, isFormData, isUrlencoded } = useBody()
-      expect(isJson()).toBe(false)
-      expect(isXml()).toBe(false)
-      expect(isHtml()).toBe(true)
-      expect(isText()).toBe(false)
-      expect(isBinary()).toBe(false)
-      expect(isFormData()).toBe(false)
-      expect(isUrlencoded()).toBe(false)
+      const { contentIs } = useBody()
+      expect(contentIs('json')).toBe(false)
+      expect(contentIs('xml')).toBe(false)
+      expect(contentIs('html')).toBe(true)
+      expect(contentIs('text')).toBe(false)
+      expect(contentIs('binary')).toBe(false)
+      expect(contentIs('form-data')).toBe(false)
+      expect(contentIs('urlencoded')).toBe(false)
     })
   })
 
-  it('must parse body content-type text/plain', () => {
+  it('must detect content-type text/plain', () => {
     prepareTestHttpContext({
       url: '',
       headers: { 'content-type': 'text/plain' },
     })(() => {
-      const { isJson, isHtml, isXml, isText, isBinary, isFormData, isUrlencoded } = useBody()
-      expect(isJson()).toBe(false)
-      expect(isXml()).toBe(false)
-      expect(isHtml()).toBe(false)
-      expect(isText()).toBe(true)
-      expect(isBinary()).toBe(false)
-      expect(isFormData()).toBe(false)
-      expect(isUrlencoded()).toBe(false)
+      const { contentIs } = useBody()
+      expect(contentIs('json')).toBe(false)
+      expect(contentIs('xml')).toBe(false)
+      expect(contentIs('html')).toBe(false)
+      expect(contentIs('text')).toBe(true)
+      expect(contentIs('binary')).toBe(false)
+      expect(contentIs('form-data')).toBe(false)
+      expect(contentIs('urlencoded')).toBe(false)
     })
   })
 
-  it('must parse body content-type application/octet-stream', () => {
+  it('must detect content-type application/octet-stream', () => {
     prepareTestHttpContext({
       url: '',
       headers: { 'content-type': 'application/octet-stream' },
     })(() => {
-      const { isJson, isHtml, isXml, isText, isBinary, isFormData, isUrlencoded } = useBody()
-      expect(isJson()).toBe(false)
-      expect(isXml()).toBe(false)
-      expect(isHtml()).toBe(false)
-      expect(isText()).toBe(false)
-      expect(isBinary()).toBe(true)
-      expect(isFormData()).toBe(false)
-      expect(isUrlencoded()).toBe(false)
+      const { contentIs } = useBody()
+      expect(contentIs('json')).toBe(false)
+      expect(contentIs('xml')).toBe(false)
+      expect(contentIs('html')).toBe(false)
+      expect(contentIs('text')).toBe(false)
+      expect(contentIs('binary')).toBe(true)
+      expect(contentIs('form-data')).toBe(false)
+      expect(contentIs('urlencoded')).toBe(false)
     })
   })
 
-  it('must parse body content-type multipart/form-data', () => {
+  it('must detect content-type multipart/form-data', () => {
     prepareTestHttpContext({
       url: '',
       headers: { 'content-type': 'multipart/form-data' },
     })(() => {
-      const { isJson, isHtml, isXml, isText, isBinary, isFormData, isUrlencoded } = useBody()
-      expect(isJson()).toBe(false)
-      expect(isXml()).toBe(false)
-      expect(isHtml()).toBe(false)
-      expect(isText()).toBe(false)
-      expect(isBinary()).toBe(false)
-      expect(isFormData()).toBe(true)
-      expect(isUrlencoded()).toBe(false)
+      const { contentIs } = useBody()
+      expect(contentIs('json')).toBe(false)
+      expect(contentIs('xml')).toBe(false)
+      expect(contentIs('html')).toBe(false)
+      expect(contentIs('text')).toBe(false)
+      expect(contentIs('binary')).toBe(false)
+      expect(contentIs('form-data')).toBe(true)
+      expect(contentIs('urlencoded')).toBe(false)
     })
   })
 
-  it('must parse body content-type application/x-www-form-urlencoded', () => {
+  it('must detect content-type application/x-www-form-urlencoded', () => {
     prepareTestHttpContext({
       url: '',
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
     })(() => {
-      const { isJson, isHtml, isXml, isText, isBinary, isFormData, isUrlencoded } = useBody()
-      expect(isJson()).toBe(false)
-      expect(isXml()).toBe(false)
-      expect(isHtml()).toBe(false)
-      expect(isText()).toBe(false)
-      expect(isBinary()).toBe(false)
-      expect(isFormData()).toBe(false)
-      expect(isUrlencoded()).toBe(true)
+      const { contentIs } = useBody()
+      expect(contentIs('json')).toBe(false)
+      expect(contentIs('xml')).toBe(false)
+      expect(contentIs('html')).toBe(false)
+      expect(contentIs('text')).toBe(false)
+      expect(contentIs('binary')).toBe(false)
+      expect(contentIs('form-data')).toBe(false)
+      expect(contentIs('urlencoded')).toBe(true)
+    })
+  })
+
+  it('must support custom MIME types', () => {
+    prepareTestHttpContext({
+      url: '',
+      headers: { 'content-type': 'application/msgpack' },
+    })(() => {
+      const { contentIs } = useBody()
+      expect(contentIs('application/msgpack')).toBe(true)
+      expect(contentIs('json')).toBe(false)
     })
   })
 

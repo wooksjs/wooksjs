@@ -27,7 +27,7 @@ import express from 'express';
 import { applyExpressAdapter } from '@wooksjs/express-adapter';
 import { useBody } from '@wooksjs/http-body';
 import { HttpError } from '@wooksjs/event-http';
-import { useRouteParams } from '@wooksjs/event-core';
+import { useRouteParams } from '@wooksjs/event-http';
 
 const app = express();
 applyExpressAdapter(app);
@@ -64,7 +64,7 @@ import express from 'express'
 import { WooksExpress } from '@wooksjs/express-adapter'
 import { useBody } from '@wooksjs/http-body'
 import { HttpError } from '@wooksjs/event-http'
-import { useRouteParams } from '@wooksjs/event-core'
+import { useRouteParams } from '@wooksjs/event-http'
 
 const expressApp = Express()
 const wooksApp = new WooksExpress(expressApp, { raise404: true })

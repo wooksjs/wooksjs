@@ -58,20 +58,28 @@ interface TWooksWfOptions {
 
 ## Starting a Workflow
 
-### `app.start(schemaId, inputContext, input?, spy?, cleanup?)`
+### `app.start(schemaId, inputContext, opts?)`
 
 Starts a new workflow execution from the beginning:
 
 ```ts
 const output = await app.start('my-flow', { result: 0 })
+
+// With options
+const output = await app.start('my-flow', { result: 0 }, {
+  input: 5,
+  eventContext: current(),
+})
 ```
 
 **Parameters:**
 - `schemaId` — The flow ID registered with `app.flow()`
 - `inputContext` — The initial context object (`T`)
-- `input` — Optional input for the first step
-- `spy` — Optional spy function to observe step execution
-- `cleanup` — Optional cleanup function called when execution ends
+- `opts` — Optional `TWfRunOptions` object:
+  - `input` — Input for the first step (consumed after execution)
+  - `spy` — Spy function to observe step execution
+  - `cleanup` — Cleanup function called when execution ends
+  - `eventContext` — Parent `EventContext` to attach to. Pass `current()` from within an active event scope (e.g. HTTP handler) so step handlers can access parent composables.
 
 **Return value (`TFlowOutput<T, I, IR>`):**
 
@@ -107,14 +115,19 @@ if (output.finished) {
 
 ## Resuming a Workflow
 
-### `app.resume(state, input?, spy?, cleanup?)`
+### `app.resume(state, opts?)`
 
 Resumes a previously paused workflow from saved state:
 
 ```ts
 // Resume with user-provided input
-const resumed = await app.resume(output.state, userInput)
+const resumed = await app.resume(output.state, { input: userInput })
+
+// Simple retry (no input)
+const retried = await app.resume(output.state)
 ```
+
+The `opts` parameter accepts the same `TWfRunOptions` as `start()` — including `eventContext` to share the active event context.
 
 ### Using the `resume()` function on output
 
@@ -159,7 +172,7 @@ const savedState = JSON.stringify(output.state)
 
 // Later, resume with user input
 const state = JSON.parse(savedState)
-const final = await app.resume(state, { username: 'alice', password: 'secret' })
+const final = await app.resume(state, { input: { username: 'alice', password: 'secret' } })
 // final.finished === true
 ```
 
@@ -241,10 +254,12 @@ app.detachSpy(spy)
 ### Per-execution spy
 
 ```ts
-const output = await app.start('my-flow', { result: 0 }, undefined, (event, ...args) => {
-  if (event === 'step') {
-    console.log('Step executed:', args)
-  }
+const output = await app.start('my-flow', { result: 0 }, {
+  spy: (event, ...args) => {
+    if (event === 'step') {
+      console.log('Step executed:', args)
+    }
+  },
 })
 ```
 
@@ -298,6 +313,49 @@ app.step('validate', {
   },
 })
 ```
+
+## Sharing the Parent Event Context
+
+By default, `start()` and `resume()` create an isolated event context — step handlers cannot access composables from the calling scope (e.g., HTTP composables). When `eventContext` is passed, the workflow attaches its WF slots to the **provided** event context instead, so both WF and parent composables work inside step handlers.
+
+### Use case: accessing HTTP auth data in workflow steps
+
+```ts
+import { current } from '@wooksjs/event-core'
+import { createHttpApp, useRequest } from '@wooksjs/event-http'
+import { createWfApp, useWfState } from '@wooksjs/event-wf'
+
+const wf = createWfApp<{ userId: string; role: string }>()
+
+wf.step('check-permissions', {
+  handler: () => {
+    const { ctx } = useWfState()
+    // useRequest() works because context is shared with HTTP scope
+    const { headers } = useRequest()
+    const user = decodeToken(headers.authorization)
+    ctx<{ userId: string; role: string }>().userId = user.id
+    ctx<{ userId: string; role: string }>().role = user.role
+  },
+})
+
+wf.flow('secure-action', ['check-permissions', 'do-work'])
+
+const http = createHttpApp()
+
+http.post('/actions/run', async () => {
+  const output = await wf.start(
+    'secure-action',
+    { userId: '', role: '' },
+    { eventContext: current() },
+  )
+  return output.state.context
+})
+```
+
+### When to share vs isolate
+
+- **Share** (`eventContext: current()`) when the workflow runs entirely within a single HTTP request and steps need parent composables (auth, headers, cached user data).
+- **Isolate** (default) when the workflow may pause and resume across different requests, or when it should be testable without a parent context.
 
 ## Sharing Router Between Adapters
 
@@ -359,7 +417,7 @@ app.flow('resume-flow', [{ id: 'needs-input' }])
 const output = await app.start('resume-flow', { count: 0 })
 expect(output.finished).toBe(false)
 
-const final = await app.resume(output.state, 42)
+const final = await app.resume(output.state, { input: 42 })
 expect(final.state.context.count).toBe(42)
 expect(final.finished).toBe(true)
 ```

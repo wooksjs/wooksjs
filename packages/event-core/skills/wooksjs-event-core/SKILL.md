@@ -1,5 +1,5 @@
 ---
-name: event-core
+name: wooksjs-event-core
 description: Use this skill when working with @wooksjs/event-core — to create typed context slots with key(), build lazy cached computations with cached() and cachedBy(), define composables with defineWook(), define event kind schemas with defineEventKind() and slot(), manage EventContext lifecycle with run()/current()/createEventContext(), or build custom Wooks adapters. Covers useLogger(), useRouteParams(), useEventId(), and AsyncLocalStorage-based context propagation.
 ---
 

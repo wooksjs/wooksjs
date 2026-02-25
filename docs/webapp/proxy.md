@@ -13,7 +13,7 @@ npm install @wooksjs/http-proxy
 
 ## Usage
 
-Once installed, you can import and use the `useProxy` composable function in your WooksJS application.
+Once installed, you can import and use the `useProxy` composable function in your Wooks application.
 
 Example:
 ```js
@@ -100,10 +100,4 @@ app.get('*', async () => {
 });
 ```
 
-In the example above, advanced options such as the request method, filtering of headers/cookies, overwriting response headers,
-and enabling debug mode are demonstrated. You can customize these options based on your specific requirements.
-
-The `fetchResponse` returned by the proxy function can be directly returned from the handler.
-You can also modify the response or access its data before returning it.
-
-That's how you can use the `@wooksjs/http-proxy` package to proxy requests in your Wooks HTTP application.
+The `fetchResponse` can be returned directly from the handler, or you can modify it before returning.

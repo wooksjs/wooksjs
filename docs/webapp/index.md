@@ -77,10 +77,10 @@ curl http://localhost:3000/hello/Wooks
 
 ```bash
 # Project-local (recommended — version-locked, commits with your repo)
-npx @wooksjs/event-http setup-skills
+npx wooksjs-event-http-skill
 
 # Global (available across all your projects)
-npx @wooksjs/event-http setup-skills --global
+npx wooksjs-event-http-skill --global
 ```
 
 To keep skills automatically up-to-date, add a postinstall script to your `package.json`:
@@ -88,7 +88,7 @@ To keep skills automatically up-to-date, add a postinstall script to your `packa
 ```json
 {
   "scripts": {
-    "postinstall": "npx @wooksjs/event-http setup-skills --postinstall"
+    "postinstall": "wooksjs-event-http-skill --postinstall"
   }
 }
 ```

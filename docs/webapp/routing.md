@@ -87,10 +87,7 @@ In the above example, the router allows routes with optional parameters to be de
 
 ## Retrieving URI params
 
-When using parametric routes, it's useful to access the parameters.
-The `useRouteParams` composable function from `wooks` provides a convenient way to achieve this.
-
-It returns an object containing the params as `JSON` and a `get` function for accessing the values.
+Access route parameters with the `useRouteParams` composable:
 
 ```ts
 function useRouteParams<
@@ -101,69 +98,31 @@ function useRouteParams<
 }
 ```
 
-Usage of `useRouteParams`
+```ts
+import { useRouteParams } from '@wooksjs/event-http'
 
-::: code-group
-
-```js [ESM]
-import { useRouteParams } from 'wooks'
 app.get('hello/:name', () => {
     const { get } = useRouteParams()
     return `Hello ${get('name')}!`
 })
 ```
-
-```js [CommonJS]
-const { useRouteParams } = require('wooks')
-app.get('hello/:name', () => {
-    const { get } = useRouteParams()
-    return `Hello ${get('name')}!`
-})
-```
-
-:::
 
 For repeated param names, it returns an array:
-::: code-group
 
-```js [ESM]
-import { useRouteParams } from 'wooks'
+```ts
 app.get('hello/:name/:name', () => {
     const { get } = useRouteParams()
     return get('name') // Array of names
 })
 ```
-
-```js [CommonJS]
-const { useRouteParams } = require('wooks')
-app.get('hello/:name/:name', () => {
-    const { get } = useRouteParams()
-    return get('name') // Array of names
-})
-```
-
-:::
 
 For wildcards, the name of the param is `*`:
-::: code-group
 
-```js [ESM]
-import { useRouteParams } from 'wooks'
+```ts
 app.get('hello/*', () => {
     const { get } = useRouteParams()
     return get('*') // Returns everything that follows `hello/`
 })
-```
-
-```js [CommonJS]
-const { useRouteParams } = require('wooks')
-app.get('hello/*', () => {
-    const { get } = useRouteParams()
-    return get('*') // returns everything that follows hello/
-})
-```
-
-:::
 
 Multiple wildcards are stored as an array, similar to repeated param names.
 

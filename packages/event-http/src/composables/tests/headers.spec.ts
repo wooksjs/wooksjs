@@ -20,20 +20,29 @@ describe('event-http/headers useHeaders', () => {
     })
   })
 
-  it('must parse "accept" header', () => {
+  it('must parse "accept" header with short names', () => {
     prepareTestHttpContext({
       url: '',
       headers: { accept: acceptValue },
     })(() => {
-      const { accept, accepts, acceptsJson, acceptsXml, acceptsText, acceptsHtml } = useAccept()
+      const { accept, accepts } = useAccept()
       expect(accept).toEqual(acceptValue)
+      expect(accepts('json')).toEqual(true)
+      expect(accepts('xml')).toEqual(false)
+      expect(accepts('text')).toEqual(false)
+      expect(accepts('html')).toEqual(true)
+    })
+  })
+
+  it('must parse "accept" header with full MIME types', () => {
+    prepareTestHttpContext({
+      url: '',
+      headers: { accept: acceptValue },
+    })(() => {
+      const { accepts } = useAccept()
       expect(accepts('application/json')).toEqual(true)
       expect(accepts('text/plain')).toEqual(false)
       expect(accepts('text/html')).toEqual(true)
-      expect(acceptsJson()).toEqual(true)
-      expect(acceptsXml()).toEqual(false)
-      expect(acceptsText()).toEqual(false)
-      expect(acceptsHtml()).toEqual(true)
     })
   })
 
@@ -42,13 +51,13 @@ describe('event-http/headers useHeaders', () => {
       url: '',
       headers: { accept: acceptValue, authorization: authValue1 },
     })(() => {
-      const { authorization, authType, authRawCredentials, isBasic, isBearer, basicCredentials } =
+      const { authorization, authType, authRawCredentials, authIs, basicCredentials } =
         useAuthorization()
       expect(authorization).toEqual(authValue1)
       expect(authType()).toEqual('Bearer')
       expect(authRawCredentials()).toEqual('ABCDEFG')
-      expect(isBasic()).toEqual(false)
-      expect(isBearer()).toEqual(true)
+      expect(authIs('basic')).toEqual(false)
+      expect(authIs('bearer')).toEqual(true)
       expect(basicCredentials()).toBeNull()
     })
   })
@@ -58,14 +67,14 @@ describe('event-http/headers useHeaders', () => {
       url: '',
       headers: { accept: acceptValue, authorization: authValue2 },
     })(() => {
-      const { authorization, authType, authRawCredentials, isBasic, isBearer, basicCredentials } =
+      const { authorization, authType, authRawCredentials, authIs, basicCredentials } =
         useAuthorization()
 
       expect(authorization).toEqual(authValue2)
       expect(authType()).toEqual('Basic')
       expect(authRawCredentials()).toEqual('bG9naW46cGFzc3dvcmQ=')
-      expect(isBasic()).toEqual(true)
-      expect(isBearer()).toEqual(false)
+      expect(authIs('basic')).toEqual(true)
+      expect(authIs('bearer')).toEqual(false)
       expect(basicCredentials()).toEqual({
         username: 'login',
         password: 'password',

@@ -24,10 +24,35 @@ if (_g[STORAGE_KEY]) {
 
 const storage = _g[STORAGE_KEY] as AsyncLocalStorage<EventContext>
 
+/**
+ * Runs a callback with the given `EventContext` as the active context.
+ * All composables and `current()` calls inside `fn` will resolve to `ctx`.
+ *
+ * @param ctx - The event context to make active
+ * @param fn - Callback to execute within the context scope
+ * @returns The return value of `fn`
+ *
+ * @example
+ * ```ts
+ * const ctx = new EventContext({ logger })
+ * run(ctx, () => {
+ *   // current() returns ctx here
+ *   const logger = useLogger()
+ * })
+ * ```
+ */
 export function run<R>(ctx: EventContext, fn: () => R): R {
   return storage.run(ctx, fn)
 }
 
+/**
+ * Returns the active `EventContext` for the current async scope.
+ * Throws if called outside an event context (e.g., at module level).
+ *
+ * All composables use this internally. Prefer composables over direct `current()` access.
+ *
+ * @throws Error if no active event context exists
+ */
 export function current(): EventContext {
   const ctx = storage.getStore()
   if (!ctx) {
@@ -36,18 +61,68 @@ export function current(): EventContext {
   return ctx
 }
 
+/**
+ * Returns the active `EventContext`, or `undefined` if none is active.
+ * Use this when context availability is uncertain (e.g., in code that may
+ * run both inside and outside an event handler).
+ */
 export function tryGetCurrent(): EventContext | undefined {
   return storage.getStore()
 }
 
+/**
+ * Returns the logger for the current event context.
+ *
+ * @param ctx - Optional explicit context (defaults to `current()`)
+ *
+ * @example
+ * ```ts
+ * const logger = useLogger()
+ * logger.info('Processing request')
+ * ```
+ */
 export function useLogger(ctx?: EventContext): Logger {
   return (ctx ?? current()).logger
 }
 
+/**
+ * Creates a new `EventContext`, makes it the active context via
+ * `AsyncLocalStorage`, and runs `fn` inside it.
+ *
+ * @param options - Context options (must include `logger`)
+ * @param fn - Callback to execute within the new context
+ * @returns The return value of `fn`
+ *
+ * @example
+ * ```ts
+ * createEventContext({ logger }, () => {
+ *   // composables work here
+ * })
+ * ```
+ */
 export function createEventContext<R>(
   options: EventContextOptions,
   fn: () => R,
 ): R
+/**
+ * Creates a new `EventContext` with an event kind, seeds the kind's slots,
+ * and runs `fn` inside the context.
+ *
+ * @param options - Context options (must include `logger`)
+ * @param kind - Event kind (from `defineEventKind`)
+ * @param seeds - Seed values for the event kind's slots
+ * @param fn - Callback to execute within the new context
+ * @returns The return value of `fn`
+ *
+ * @example
+ * ```ts
+ * const httpKind = defineEventKind('http', { req: slot<IncomingMessage>() })
+ *
+ * createEventContext({ logger }, httpKind, { req: incomingMessage }, () => {
+ *   const req = current().get(httpKind.keys.req)
+ * })
+ * ```
+ */
 export function createEventContext<S extends Record<string, any>, R>(
   options: EventContextOptions,
   kind: EventKind<S>,

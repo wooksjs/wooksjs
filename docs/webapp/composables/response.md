@@ -105,11 +105,73 @@ app.get('test', () => {
 | Method | Description |
 |--------|-------------|
 | `setHeader(name, value)` | Sets a response header |
+| `setHeaders(headers)` | Batch-sets multiple headers from a record |
 | `getHeader(name)` | Gets a response header value |
 | `removeHeader(name)` | Removes a response header |
 | `headers()` | Returns all response headers |
 | `setContentType(value)` | Sets the `Content-Type` header |
 | `enableCors(origin?)` | Sets `Access-Control-Allow-Origin` (defaults to `*`) |
+
+## Default Headers & Security Headers
+
+You can pre-populate response headers for every request via the `defaultHeaders` option on `createHttpApp`. The `securityHeaders()` utility provides a curated set of recommended HTTP security headers.
+
+### App-level defaults
+
+```js
+import { createHttpApp, securityHeaders } from '@wooksjs/event-http';
+
+// Apply recommended security headers to all responses
+const app = createHttpApp({ defaultHeaders: securityHeaders() });
+
+// Customize individual headers
+const app = createHttpApp({
+    defaultHeaders: securityHeaders({
+        contentSecurityPolicy: false,                         // disable CSP
+        referrerPolicy: 'strict-origin-when-cross-origin',   // override default
+    }),
+});
+
+// Or use plain headers (no preset)
+const app = createHttpApp({ defaultHeaders: { 'x-custom': 'value' } });
+```
+
+### Per-endpoint override
+
+Handlers can override or remove default headers using `setHeader()`, `setHeaders()`, or `removeHeader()`:
+
+```js
+app.get('/api/data', () => {
+    const response = useResponse();
+    response.setHeaders(securityHeaders({
+        contentSecurityPolicy: "default-src 'self' cdn.example.com",
+    }));
+    return { data: 'hello' };
+});
+```
+
+### `securityHeaders(opts?)` defaults
+
+| Header | Default Value | Option Key |
+|--------|--------------|------------|
+| `Content-Security-Policy` | `default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'` | `contentSecurityPolicy` |
+| `Cross-Origin-Opener-Policy` | `same-origin` | `crossOriginOpenerPolicy` |
+| `Cross-Origin-Resource-Policy` | `same-origin` | `crossOriginResourcePolicy` |
+| `Referrer-Policy` | `no-referrer` | `referrerPolicy` |
+| `X-Content-Type-Options` | `nosniff` | `xContentTypeOptions` |
+| `X-Frame-Options` | `SAMEORIGIN` | `xFrameOptions` |
+
+**Opt-in only** (not included by default):
+
+| Header | Option Key |
+|--------|------------|
+| `Strict-Transport-Security` | `strictTransportSecurity` |
+
+::: warning
+HSTS (`Strict-Transport-Security`) is not included by default because it can lock users out if the site is not fully on HTTPS. Enable it explicitly: `securityHeaders({ strictTransportSecurity: 'max-age=31536000; includeSubDomains' })`.
+:::
+
+Each option accepts a `string` (override value) or `false` (disable that header).
 
 ## Cookies
 
