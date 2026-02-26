@@ -1,6 +1,25 @@
 # What is Wooks?
 
-Wooks is a TypeScript-first event framework for Node.js. The name comes from **w**(eb) (h)**ooks** — but the concept extends far beyond HTTP. Wooks handles HTTP requests, CLI commands, workflows, and custom event types through a single architecture.
+Wooks is a TypeScript-first event-processing framework for Node.js built around one idea: **event context should be a first-class system**.
+
+The name comes from **w**(eb) (h)**ooks** — but the concept extends far beyond HTTP. Wooks handles HTTP requests, CLI commands, WebSocket messages, workflows, and custom event types through a single architecture.
+
+## The Problem
+
+When you handle an HTTP request, you need context — route params, body, cookies, authorization, user info, IP, accept headers. As your app grows, so does the context you need per event.
+
+Traditional frameworks don't have a real answer for this:
+
+- **Express / Fastify**: properties on `req`. No type safety. No structure. Every middleware mutates a shared object — `req.user`, `req.body`, `req.parsedQuery` — and you hope it's all there by the time your handler runs. Want to add a new piece of context? Bolt on another middleware, extend another interface, hope for the best.
+- **h3**: a dedicated `event` object — cleaner. But extending it type-safely? Building lazy, cached computed properties on it? There are no built-in tools for that. You're back to ad-hoc code.
+
+This is the problem Wooks solves.
+
+## The Solution: Typed Event Context
+
+Wooks provides a **typed event context** with built-in primitives for declaring typed slots, lazy computation, and automatic caching. Every event — HTTP request, CLI command, workflow step — gets a context that's type-safe, extensible, and lazy by design.
+
+The composable API (`useRequest()`, `useBody()`, `useAuthorization()`) is the natural interface that emerges from this context system. You don't pass `req` or `event` — you call functions that read from the current event's context, available anywhere in the call stack via `AsyncLocalStorage`.
 
 ## What is a Wook?
 

@@ -48,10 +48,10 @@ const activeLink = computed(() => tabs.find((t) => t.id === activeTab.value)?.li
 
 const features = [
     {
-        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6M9 9l6 6"/></svg>`,
-        title: 'No req, res. No middleware.',
-        details: 'Access request data through composables — lazy, cached, and available anywhere in the call stack.',
-        link: '/wooks/what#what-is-a-wook',
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>`,
+        title: 'Typed Event Context',
+        details: 'Every event gets a typed, extensible state — not ad-hoc properties on req. Declare slots, compute lazily, cache automatically.',
+        link: '/wooks/what',
     },
     {
         icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2.1l4 4-4 4"/><path d="M3 12.2v-2a4 4 0 0 1 4-4h12.8"/><path d="M7 21.9l-4-4 4-4"/><path d="M21 11.8v2a4 4 0 0 1-4 4H4.2"/></svg>`,
@@ -126,7 +126,7 @@ watch(() => route.path, setupScrollAnimations)
                         />
                         <p class="text">Composables for Node.js</p>
                         <p class="tagline">
-                            No req/res. No middleware. Just functions.
+                            Type-safe event context. Lazy by design.
                         </p>
 
                         <div v-if="actions" class="actions">
@@ -168,7 +168,7 @@ watch(() => route.path, setupScrollAnimations)
             <!-- Before/After Code Comparison -->
             <section class="code-section">
                 <div class="code-section-inner animate-in">
-                    <h2 class="section-heading">Your handlers, simplified.</h2>
+                    <h2 class="section-heading">See it in practice.</h2>
                     <div class="comparison-grid">
                         <div class="comparison-col">
                             <div class="comparison-label express-label">Express</div>

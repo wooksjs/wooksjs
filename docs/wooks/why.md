@@ -1,5 +1,23 @@
 # Why Wooks?
 
+## The Core Insight
+
+Every backend framework needs to manage event context — the accumulated state of a request as it flows through your application. Who is the user? What are the route params? What's the body? What are the permissions?
+
+Traditional frameworks treat this as an afterthought:
+
+- **Express / Fastify** let you tack properties onto `req` — an untyped, eagerly-computed bag that grows with every middleware. Want to know the user's role? Hope that `authenticate` middleware ran first and set `req.user`. Want type safety? Manually extend the `Request` interface and trust that reality matches.
+- **h3** has a cleaner `event` object, but provides no system for extending it type-safely or computing properties lazily with caching. You end up writing the same ad-hoc patterns.
+
+Wooks treats **event context as the central design problem**. It provides:
+
+- **Typed slots** — declare your context properties with compile-time types, not string keys on a mutable object
+- **Lazy computation** — nothing runs until accessed; `cached()` slots compute on first read and cache for the event lifetime
+- **Automatic caching** — repeat calls return cached results, no manual memoization needed
+- **Type-safe extensibility** — `defineWook()` lets you create composables that extend the context without modifying any global object
+
+The composable API — `useRequest()`, `useBody()`, `useAuthorization()` — is the natural surface that emerges from this system. It's not syntactic sugar over `req` and `res`. It's what proper event context management looks like when used.
+
 ## The Origin
 
 We were building backend services while working heavily with Vue's Composition API on the frontend. The contrast was stark.
