@@ -1,3 +1,12 @@
+## [0.7.2](https://github.com/wooksjs/wooksjs/compare/v0.7.1...v0.7.2) (2026-02-26)
+
+
+### Features
+
+* optimize noop context injector ([c899cd1](https://github.com/wooksjs/wooksjs/commit/c899cd15e656989b6d5f4186097ea212240235b7))
+
+
+
 ## [0.7.1](https://github.com/wooksjs/wooksjs/compare/v0.7.0...v0.7.1) (2026-02-25)
 
 
