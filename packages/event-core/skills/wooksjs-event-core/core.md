@@ -63,8 +63,9 @@ Every event (HTTP request, CLI invocation, workflow step) gets its own `EventCon
 | `routeParamsKey`                              | key        | Standard key for route params                                                                                    |
 | `eventTypeKey`                                | key        | Standard key for event type name                                                                                 |
 | `ContextInjector`                             | class      | Observability hook point (OpenTelemetry etc.)                                                                    |
-| `getContextInjector()`                        | function   | Get current injector                                                                                             |
-| `replaceContextInjector(ci)`                  | function   | Replace injector (e.g. with OTel spans)                                                                          |
+| `getContextInjector()`                        | function   | Get current injector (returns `null` when none installed)                                                        |
+| `replaceContextInjector(ci)`                  | function   | Install a custom injector (e.g. with OTel spans)                                                                 |
+| `resetContextInjector()`                      | function   | Reset injector back to `null` (disables instrumentation)                                                         |
 
 ## Types
 

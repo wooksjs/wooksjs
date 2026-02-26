@@ -100,10 +100,11 @@ export class Wooks {
   } {
     const found = this.getRouter().lookup(method as THttpMethod, path || '')
     ctx.set(routeParamsKey, found?.ctx?.params || {})
+    const ci = getContextInjector()
     if (found?.route?.handlers.length) {
-      getContextInjector().hook(method, 'Handler:routed', found.route.path)
+      ci?.hook(method, 'Handler:routed', found.route.path)
     } else {
-      getContextInjector().hook(method, 'Handler:not_found')
+      ci?.hook(method, 'Handler:not_found')
     }
     return {
       handlers: found?.route?.handlers || null,
@@ -124,11 +125,12 @@ export class Wooks {
   ): TWooksHandler[] | null {
     const found = this.getRouter().lookup(method as THttpMethod, path || '')
     ctx.set(routeParamsKey, found?.ctx?.params || {})
+    const ci = getContextInjector()
     if (found?.route?.handlers.length) {
-      getContextInjector().hook(method, 'Handler:routed', found.route.path)
+      ci?.hook(method, 'Handler:routed', found.route.path)
       return found.route.handlers
     }
-    getContextInjector().hook(method, 'Handler:not_found')
+    ci?.hook(method, 'Handler:not_found')
     return null
   }
 

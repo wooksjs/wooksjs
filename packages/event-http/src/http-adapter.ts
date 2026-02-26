@@ -1,6 +1,6 @@
 import type { TConsoleBase } from '@prostojs/logger'
-import { EventContext, run } from '@wooksjs/event-core'
-import type { EventContextOptions } from '@wooksjs/event-core'
+import { createEventContext, current } from '@wooksjs/event-core'
+import type { EventContext, EventContextOptions } from '@wooksjs/event-core'
 import type { IncomingMessage, Server, ServerResponse } from 'http'
 import http from 'http'
 import type { ListenOptions } from 'net'
@@ -244,18 +244,12 @@ export class WooksHttp extends WooksAdapterBase {
     const defaultHeaders = this.opts?.defaultHeaders
 
     return (req: IncomingMessage, res: ServerResponse) => {
-      const ctx = new EventContext(ctxOptions)
-      const response = new this.ResponseClass(res, req, ctx.logger, defaultHeaders)
+      const response = new this.ResponseClass(res, req, ctxOptions.logger, defaultHeaders)
       const method = req.method || ''
       const url = req.url || ''
 
-      run(ctx, () => {
-        ctx.seed(httpKind, {
-          req,
-          response,
-          requestLimits: RequestLimits,
-        })
-
+      createEventContext(ctxOptions, httpKind, { req, response, requestLimits: RequestLimits }, () => {
+        const ctx = current()
         const handlers = this.wooks.lookupHandlers(method, url, ctx)
         if (handlers || notFoundHandler) {
           const result = this.processHandlers(
@@ -298,15 +292,14 @@ export class WooksHttp extends WooksAdapterBase {
         return
       }
 
-      const ctx = new EventContext(ctxOptions)
       const url = req.url || ''
 
-      run(ctx, () => {
-        ctx.seed(httpKind, {
-          req,
-          response: undefined as unknown as HttpResponse,
-          requestLimits,
-        })
+      createEventContext(ctxOptions, httpKind, {
+        req,
+        response: undefined as unknown as HttpResponse,
+        requestLimits,
+      }, () => {
+        const ctx = current()
 
         // Set WS-owned keys on the context
         ctx.set(wsHandler.reqKey, req)

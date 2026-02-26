@@ -234,10 +234,10 @@ const log = ctx.logger
 
 ## ContextInjector (observability)
 
-`ContextInjector` is a hook point for observability tools (OpenTelemetry, etc.). The default implementation is a no-op pass-through.
+`ContextInjector` is a hook point for observability tools (OpenTelemetry, etc.). No injector is installed by default — `getContextInjector()` returns `null`, so all adapters run with zero overhead until one is installed.
 
 ```ts
-import { ContextInjector, replaceContextInjector } from '@wooksjs/event-core'
+import { ContextInjector, replaceContextInjector, resetContextInjector } from '@wooksjs/event-core'
 
 class OtelInjector extends ContextInjector<string> {
   with<T>(name: string, attributes: Record<string, any>, cb: () => T): T {
@@ -246,9 +246,12 @@ class OtelInjector extends ContextInjector<string> {
 }
 
 replaceContextInjector(new OtelInjector())
+
+// To disable instrumentation later:
+resetContextInjector()
 ```
 
-The injector's `with()` method wraps `createEventContext` callbacks and handler invocations.
+The injector's `with()` method wraps `createEventContext` callbacks. All adapters (HTTP, CLI, WS, WF) route through `createEventContext`, so installing an injector automatically instruments every event type.
 
 ## Best Practices
 

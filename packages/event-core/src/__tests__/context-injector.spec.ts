@@ -3,6 +3,7 @@ import {
   ContextInjector,
   getContextInjector,
   replaceContextInjector,
+  resetContextInjector,
   createEventContext,
   current,
   slot,
@@ -39,19 +40,18 @@ describe('ContextInjector', () => {
 })
 
 describe('getContextInjector / replaceContextInjector', () => {
-  it('returns a default ContextInjector instance', () => {
+  it('returns null when no injector has been installed', () => {
     const ci = getContextInjector()
-    expect(ci).toBeInstanceOf(ContextInjector)
+    expect(ci).toBeNull()
   })
 
   it('replaces the global injector', () => {
-    const original = getContextInjector()
     const custom = new ContextInjector()
     replaceContextInjector(custom)
     expect(getContextInjector()).toBe(custom)
 
     // restore for other tests
-    replaceContextInjector(original as ContextInjector<string>)
+    resetContextInjector()
   })
 })
 
@@ -60,7 +60,6 @@ describe('ContextInjector integration with createEventContext', () => {
     const withSpy = vi.fn((_name: unknown, _attrs: unknown, cb: () => unknown) => cb())
     const custom = new ContextInjector()
     custom.with = withSpy as typeof custom.with
-    const original = getContextInjector()
     replaceContextInjector(custom as ContextInjector<string>)
 
     const http = defineEventKind('HTTP', {
@@ -75,14 +74,13 @@ describe('ContextInjector integration with createEventContext', () => {
     expect(withSpy.mock.calls[0][0]).toBe('Event:start')
     expect(withSpy.mock.calls[0][1]).toEqual({ eventType: 'HTTP' })
 
-    replaceContextInjector(original as ContextInjector<string>)
+    resetContextInjector()
   })
 
   it('does NOT call CI when no kind is provided', () => {
     const withSpy = vi.fn((_name: unknown, _attrs: unknown, cb: () => unknown) => cb())
     const custom = new ContextInjector()
     custom.with = withSpy as typeof custom.with
-    const original = getContextInjector()
     replaceContextInjector(custom as ContextInjector<string>)
 
     createEventContext({ logger }, () => {
@@ -91,7 +89,7 @@ describe('ContextInjector integration with createEventContext', () => {
 
     expect(withSpy).not.toHaveBeenCalled()
 
-    replaceContextInjector(original as ContextInjector<string>)
+    resetContextInjector()
   })
 
   it('auto-sets eventTypeKey when kind is provided', () => {
@@ -116,7 +114,6 @@ describe('seed() does not trigger CI (optimized hot path)', () => {
     const withSpy = vi.fn()
     const custom = new ContextInjector()
     custom.with = withSpy as typeof custom.with
-    const original = getContextInjector()
     replaceContextInjector(custom as ContextInjector<string>)
 
     const wf = defineEventKind('WF', {
@@ -134,14 +131,13 @@ describe('seed() does not trigger CI (optimized hot path)', () => {
       expect(withSpy).not.toHaveBeenCalled()
     })
 
-    replaceContextInjector(original as ContextInjector<string>)
+    resetContextInjector()
   })
 
   it('does NOT call CI when seeding without callback', () => {
     const withSpy = vi.fn()
     const custom = new ContextInjector()
     custom.with = withSpy as typeof custom.with
-    const original = getContextInjector()
     replaceContextInjector(custom as ContextInjector<string>)
 
     const wf = defineEventKind('WF', {
@@ -155,6 +151,6 @@ describe('seed() does not trigger CI (optimized hot path)', () => {
       expect(current().get(wf.keys.triggerId)).toBe('wf-001')
     })
 
-    replaceContextInjector(original as ContextInjector<string>)
+    resetContextInjector()
   })
 })

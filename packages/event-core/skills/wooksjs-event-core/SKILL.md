@@ -46,5 +46,6 @@ import {
   ContextInjector,
   getContextInjector,
   replaceContextInjector,
+  resetContextInjector,
 } from '@wooksjs/event-core'
 ```

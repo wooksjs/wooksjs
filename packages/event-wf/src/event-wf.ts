@@ -1,5 +1,5 @@
-import { EventContext, run } from '@wooksjs/event-core'
-import type { EventContextOptions } from '@wooksjs/event-core'
+import { createEventContext, current } from '@wooksjs/event-core'
+import type { EventContext, EventContextOptions } from '@wooksjs/event-core'
 
 import type { TWFEventInput } from './types'
 import { resumeKey, wfKind } from './wf-kind'
@@ -23,11 +23,11 @@ export function createWfContext(
   options: EventContextOptions,
   parentCtx?: EventContext,
 ) {
-  const ctx = new EventContext(parentCtx ? { ...options, parent: parentCtx } : options)
+  const ctxOptions = parentCtx ? { ...options, parent: parentCtx } : options
   return <R>(fn: () => R): R =>
-    run(ctx, () => {
-      ctx.set(resumeKey, false)
-      return ctx.seed(wfKind, wfSeeds(data), fn)
+    createEventContext(ctxOptions, wfKind, wfSeeds(data), () => {
+      current().set(resumeKey, false)
+      return fn()
     })
 }
 
@@ -41,10 +41,10 @@ export function resumeWfContext(
   options: EventContextOptions,
   parentCtx?: EventContext,
 ) {
-  const ctx = new EventContext(parentCtx ? { ...options, parent: parentCtx } : options)
+  const ctxOptions = parentCtx ? { ...options, parent: parentCtx } : options
   return <R>(fn: () => R): R =>
-    run(ctx, () => {
-      ctx.set(resumeKey, true)
-      return ctx.seed(wfKind, wfSeeds(data), fn)
+    createEventContext(ctxOptions, wfKind, wfSeeds(data), () => {
+      current().set(resumeKey, true)
+      return fn()
     })
 }

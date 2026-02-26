@@ -1,6 +1,6 @@
 import type { TConsoleBase } from '@prostojs/logger'
-import { EventContext, current, key, run } from '@wooksjs/event-core'
-import type { EventContextOptions } from '@wooksjs/event-core'
+import { createEventContext, current, key, run } from '@wooksjs/event-core'
+import type { EventContext, EventContextOptions } from '@wooksjs/event-core'
 import http from 'http'
 import type { IncomingMessage, Server } from 'http'
 import type { Duplex } from 'stream'
@@ -170,31 +170,31 @@ export class WooksWs extends WooksAdapterBase implements WooksUpgradeHandler {
         ...this.eventContextOptions,
         ...(parentCtx ? { parent: parentCtx } : {}),
       }
-      const connectionCtx = new EventContext(ctxOptions)
-      const connection = new WsConnection(id, ws, connectionCtx, this.serializer)
 
-      // Seed connection context
-      connectionCtx.seed(wsConnectionKind, { id, ws })
+      createEventContext(ctxOptions, wsConnectionKind, { id, ws }, () => {
+        const connectionCtx = current()
+        const connection = new WsConnection(id, ws, connectionCtx, this.serializer)
 
-      // Run onConnect handler
-      try {
-        if (this.onConnectHandler) {
-          const result = run(connectionCtx, this.onConnectHandler)
-          if (
-            result !== null &&
-            result !== undefined &&
-            typeof (result as any).then === 'function'
-          ) {
-            ;(result as Promise<unknown>)
-              .then(() => this.acceptConnection(connection))
-              .catch((error) => this.rejectConnection(connection, error))
-            return
+        // Run onConnect handler
+        try {
+          if (this.onConnectHandler) {
+            const result = this.onConnectHandler()
+            if (
+              result !== null &&
+              result !== undefined &&
+              typeof (result as any).then === 'function'
+            ) {
+              ;(result as Promise<unknown>)
+                .then(() => this.acceptConnection(connection))
+                .catch((error) => this.rejectConnection(connection, error))
+              return
+            }
           }
+          this.acceptConnection(connection)
+        } catch (error) {
+          this.rejectConnection(connection, error)
         }
-        this.acceptConnection(connection)
-      } catch (error) {
-        this.rejectConnection(connection, error)
-      }
+      })
     })
   }
 
@@ -249,35 +249,29 @@ export class WooksWs extends WooksAdapterBase implements WooksUpgradeHandler {
 
     const { event, path, data, id: messageId } = msg
 
-    const msgCtx = new EventContext({
-      ...this.eventContextOptions,
-      parent: connection.ctx,
-    })
-    msgCtx.seed(wsMessageKind, {
-      data,
-      rawMessage: raw,
-      messageId,
-      messagePath: path,
-      messageEvent: event,
-    })
+    createEventContext(
+      { ...this.eventContextOptions, parent: connection.ctx },
+      wsMessageKind,
+      { data, rawMessage: raw, messageId, messagePath: path, messageEvent: event },
+      () => {
+        const msgCtx = current()
+        const handlers = this.wooks.lookupHandlers(event, path, msgCtx)
 
-    run(msgCtx, () => {
-      const handlers = this.wooks.lookupHandlers(event, path, msgCtx)
-
-      if (!handlers) {
-        if (messageId !== undefined) {
-          connection.replyError(messageId, 404, 'Not found')
+        if (!handlers) {
+          if (messageId !== undefined) {
+            connection.replyError(messageId, 404, 'Not found')
+          }
+          return
         }
-        return
-      }
 
-      const result = this.processHandlers(handlers, connection, messageId)
-      if (result !== null && result !== undefined && typeof (result as any).then === 'function') {
-        ;(result as Promise<unknown>).catch((error) => {
-          this.handleHandlerError(error, connection, messageId)
-        })
-      }
-    })
+        const result = this.processHandlers(handlers, connection, messageId)
+        if (result !== null && result !== undefined && typeof (result as any).then === 'function') {
+          ;(result as Promise<unknown>).catch((error) => {
+            this.handleHandlerError(error, connection, messageId)
+          })
+        }
+      },
+    )
   }
 
   private processHandlers(

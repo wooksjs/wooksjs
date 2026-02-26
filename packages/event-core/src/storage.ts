@@ -93,6 +93,9 @@ export function useLogger(ctx?: EventContext): Logger {
  * @param fn - Callback to execute within the new context
  * @returns The return value of `fn`
  *
+ * The kindless overload is a convenience for tests that need a context scope
+ * without declaring an event kind. Production code should always provide a kind.
+ *
  * @example
  * ```ts
  * createEventContext({ logger }, () => {
@@ -141,6 +144,7 @@ export function createEventContext(
   // seed slots + eventTypeKey, then wrap callback in CI for observability
   return run(ctx, () => {
     ctx.seed(kindOrFn, seedsOrUndefined!)
-    return getContextInjector().with('Event:start', { eventType: kindOrFn.name }, maybeFn!)
+    const ci = getContextInjector()
+    return ci ? ci.with('Event:start', { eventType: kindOrFn.name }, maybeFn!) : maybeFn!()
   })
 }

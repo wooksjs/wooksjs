@@ -1,4 +1,4 @@
-import { EventContext, run } from '@wooksjs/event-core'
+import { createEventContext } from '@wooksjs/event-core'
 import type { EventContextOptions } from '@wooksjs/event-core'
 import type minimist from 'minimist'
 
@@ -15,19 +15,17 @@ export interface TCliEventInput {
 
 /** Creates a new event context for a CLI command invocation. */
 export function createCliContext(data: TCliEventInput, options: EventContextOptions) {
-  const ctx = new EventContext(options)
   return <R>(fn: () => R): R =>
-    run(ctx, () =>
-      ctx.seed(
-        cliKind,
-        {
-          argv: data.argv,
-          pathParams: data.pathParams,
-          command: data.command,
-          opts: data.opts,
-          cliHelp: data.cliHelp,
-        },
-        fn,
-      ),
+    createEventContext(
+      options,
+      cliKind,
+      {
+        argv: data.argv,
+        pathParams: data.pathParams,
+        command: data.command,
+        opts: data.opts,
+        cliHelp: data.cliHelp,
+      },
+      fn,
     )
 }

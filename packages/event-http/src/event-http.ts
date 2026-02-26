@@ -1,4 +1,4 @@
-import { EventContext, current, run } from '@wooksjs/event-core'
+import { createEventContext, current } from '@wooksjs/event-core'
 import type { EventContextOptions } from '@wooksjs/event-core'
 
 import { httpKind } from './http-kind'
@@ -11,19 +11,17 @@ export function createHttpContext(
   options: EventContextOptions,
   ResponseClass: typeof HttpResponse = HttpResponse,
 ) {
-  const ctx = new EventContext(options)
-  const response = new ResponseClass(data.res, data.req, ctx.logger)
+  const response = new ResponseClass(data.res, data.req, options.logger)
   return <R>(fn: () => R): R =>
-    run(ctx, () =>
-      ctx.seed(
-        httpKind,
-        {
-          req: data.req,
-          response,
-          requestLimits: data.requestLimits,
-        },
-        fn,
-      ),
+    createEventContext(
+      options,
+      httpKind,
+      {
+        req: data.req,
+        response,
+        requestLimits: data.requestLimits,
+      },
+      fn,
     )
 }
 

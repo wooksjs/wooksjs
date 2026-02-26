@@ -31,14 +31,14 @@ export class ContextInjector<N> {
   }
 }
 
-let ci = new ContextInjector()
+let ci: ContextInjector<string> | null = null
 
 /**
- * Returns the current `ContextInjector` instance (default: no-op).
+ * Returns the current `ContextInjector` instance, or `null` if none has been installed.
  * Used internally by adapters to wrap lifecycle events.
  */
-export function getContextInjector<N = TContextInjectorHooks>(): ContextInjector<N> {
-  return ci as ContextInjector<N>
+export function getContextInjector<N = TContextInjectorHooks>(): ContextInjector<N> | null {
+  return ci as ContextInjector<N> | null
 }
 
 /**
@@ -62,6 +62,14 @@ export function getContextInjector<N = TContextInjectorHooks>(): ContextInjector
  */
 export function replaceContextInjector(newCi: ContextInjector<string>): void {
   ci = newCi
+}
+
+/**
+ * Resets the global `ContextInjector` back to `null` (no-op default).
+ * Useful for tests or when disabling instrumentation.
+ */
+export function resetContextInjector(): void {
+  ci = null
 }
 
 /** Built-in hook names used by the framework. */
