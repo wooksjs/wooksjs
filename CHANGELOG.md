@@ -1,3 +1,12 @@
+## [0.7.3](https://github.com/wooksjs/wooksjs/compare/v0.7.2...v0.7.3) (2026-02-26)
+
+
+### Bug Fixes
+
+* fix context-injector usage ([1a8f171](https://github.com/wooksjs/wooksjs/commit/1a8f171a308f0d2539a793dcfa733aa30eac7047))
+
+
+
 ## [0.7.2](https://github.com/wooksjs/wooksjs/compare/v0.7.1...v0.7.2) (2026-02-26)
 
 ### Features
