@@ -7,6 +7,6 @@ import type { TRequestLimits } from './types'
 /** Event kind definition for HTTP requests. Provides typed context slots for `req`, `response`, and `requestLimits`. */
 export const httpKind = defineEventKind('http', {
   req: slot<IncomingMessage>(),
-  response: slot<HttpResponse>(),
+  response: slot<HttpResponse | undefined>(),
   requestLimits: slot<TRequestLimits | undefined>(),
 })

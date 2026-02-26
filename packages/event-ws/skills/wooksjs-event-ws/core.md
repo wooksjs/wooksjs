@@ -4,10 +4,10 @@
 
 ## Concepts
 
-`@wooksjs/event-ws` follows the Wooks adapter pattern. It creates two nested context layers:
+`@wooksjs/event-ws` follows the Wooks adapter pattern. It creates two nested context layers via dedicated context factories:
 
-1. **Connection context** (`ws:connection` kind) — long-lived, one per connected client. Seeded with `id` and `ws` socket.
-2. **Message context** (`ws:message` kind) — short-lived, one per incoming message. Its `parent` is the connection context.
+1. **Connection context** (`ws:connection` kind) — long-lived, one per connected client. Created via `createWsConnectionContext(options, seeds, fn)`, seeded with `id` and `ws` socket.
+2. **Message context** (`ws:message` kind) — short-lived, one per incoming message. Created via `createWsMessageContext(options, seeds, fn)` with `parent` set to the connection context.
 
 Messages follow a JSON wire protocol with `event` + `path` for routing and an optional `id` for request-response correlation.
 

@@ -51,8 +51,7 @@ describe('event-http/headers useHeaders', () => {
       url: '',
       headers: { accept: acceptValue, authorization: authValue1 },
     })(() => {
-      const { authorization, type, credentials, is, basicCredentials } =
-        useAuthorization()
+      const { authorization, type, credentials, is, basicCredentials } = useAuthorization()
       expect(authorization).toEqual(authValue1)
       expect(type()).toEqual('Bearer')
       expect(credentials()).toEqual('ABCDEFG')
@@ -67,8 +66,7 @@ describe('event-http/headers useHeaders', () => {
       url: '',
       headers: { accept: acceptValue, authorization: authValue2 },
     })(() => {
-      const { authorization, type, credentials, is, basicCredentials } =
-        useAuthorization()
+      const { authorization, type, credentials, is, basicCredentials } = useAuthorization()
 
       expect(authorization).toEqual(authValue2)
       expect(type()).toEqual('Basic')

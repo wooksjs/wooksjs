@@ -18,5 +18,5 @@ import type { HttpResponse } from '../response/http-response'
  * ```
  */
 export function useResponse(ctx?: EventContext): HttpResponse {
-  return (ctx ?? current()).get(httpKind.keys.response)
+  return (ctx ?? current()).get(httpKind.keys.response)!
 }

@@ -107,13 +107,13 @@ if (is('basic')) {
 
 **Returned properties:**
 
-| Property               | Type                             | Description                                                    |
-| ---------------------- | -------------------------------- | -------------------------------------------------------------- |
-| `authorization`        | `string \| undefined`            | Raw Authorization header value                                 |
-| `type()`               | `string \| null`                 | Auth scheme: `'Basic'`, `'Bearer'`, etc.                       |
-| `credentials()`        | `string \| null`                 | Everything after the scheme                                    |
-| `is(type)`             | `boolean`                        | Check auth scheme: `'basic'`, `'bearer'`, or any custom scheme |
-| `basicCredentials()`   | `{ username, password } \| null` | Decoded Basic credentials                                      |
+| Property             | Type                             | Description                                                    |
+| -------------------- | -------------------------------- | -------------------------------------------------------------- |
+| `authorization`      | `string \| undefined`            | Raw Authorization header value                                 |
+| `type()`             | `string \| null`                 | Auth scheme: `'Basic'`, `'Bearer'`, etc.                       |
+| `credentials()`      | `string \| null`                 | Everything after the scheme                                    |
+| `is(type)`           | `boolean`                        | Check auth scheme: `'basic'`, `'bearer'`, or any custom scheme |
+| `basicCredentials()` | `{ username, password } \| null` | Decoded Basic credentials                                      |
 
 ### `useAccept(ctx?)`
 

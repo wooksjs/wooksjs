@@ -27,14 +27,11 @@ To create a custom adapter:
 
 ```ts
 import {
-  EventContext,
   defineEventKind,
   slot,
   key,
   defineWook,
-  run,
 } from '@wooksjs/event-core'
-import type { EventContextOptions } from '@wooksjs/event-core'
 
 // Define the event kind with typed seed slots
 const jobKind = defineEventKind('JOB', {
@@ -55,29 +52,26 @@ export const useJob = defineWook((ctx) => ({
 
 ### 2. Create a Context Factory
 
-Every built-in adapter follows the same pattern: create an `EventContext`, then return a function that runs a callback inside it using `run()` and `ctx.seed()`.
+Every built-in adapter exports a **context factory** that hardcodes the event kind and delegates to `createEventContext`. The factory signature matches `createEventContext(options, kind, seeds, fn)` but omits the `kind` parameter:
 
 ```ts
-function createJobContext(
-  data: { jobId: string; payload: unknown },
+import { createEventContext } from '@wooksjs/event-core'
+import type { EventContextOptions, EventKindSeeds } from '@wooksjs/event-core'
+
+export function createJobContext<R>(
   options: EventContextOptions,
-) {
-  const ctx = new EventContext(options)
-  return <R>(fn: () => R): R =>
-    run(ctx, () =>
-      ctx.seed(jobKind, {
-        jobId: data.jobId,
-        payload: data.payload,
-      }, fn)
-    )
+  seeds: EventKindSeeds<typeof jobKind>,
+  fn: () => R,
+): R {
+  return createEventContext(options, jobKind, seeds, fn)
 }
 ```
 
-This is the same pattern used by `@wooksjs/event-http`, `@wooksjs/event-cli`, and `@wooksjs/event-wf`. The context factory:
-- Creates a new `EventContext` with logger options
-- Returns a higher-order function that accepts a callback
-- Inside, calls `run(ctx, ...)` to bind the context to `AsyncLocalStorage`
-- Seeds the event kind slots via `ctx.seed(kind, data, fn)`
+This is the pattern used by all built-in adapters: `createHttpContext`, `createCliContext`, `createWsConnectionContext`, `createWsMessageContext`, `createWfContext`, and `resumeWfContext`. The context factory:
+- Accepts `EventContextOptions` (with optional `parent` for nested contexts)
+- Accepts typed `seeds` matching the event kind schema
+- Runs `fn` inside the seeded `AsyncLocalStorage` context
+- Returns `fn`'s return value (sync or async) for span tracking
 
 ### 3. Extend `WooksAdapterBase`
 
@@ -108,20 +102,19 @@ class WooksJob extends WooksAdapterBase {
 
   /** Trigger a job event. */
   async trigger(path: string, payload: unknown) {
-    const runInContext = createJobContext(
-      { jobId: path, payload },
+    return createJobContext(
       this.eventContextOptions,
+      { jobId: path, payload },
+      async () => {
+        const { handlers } = this.wooks.lookup('JOB', `/${path}`)
+        if (!handlers) {
+          throw new Error(`No handler for job: ${path}`)
+        }
+        for (const handler of handlers) {
+          return await handler()
+        }
+      },
     )
-
-    return runInContext(async () => {
-      const { handlers } = this.wooks.lookup('JOB', `/${path}`)
-      if (!handlers) {
-        throw new Error(`No handler for job: ${path}`)
-      }
-      for (const handler of handlers) {
-        return await handler()
-      }
-    })
   }
 }
 ```
@@ -171,5 +164,5 @@ http.post('/submit', async () => {
 
 - **Define an event kind:** `defineEventKind` with `slot<T>()` markers declares your event's typed shape.
 - **Build wooks:** Use `defineWook`, `key`, `cached` to provide clean APIs for accessing event-scoped data.
-- **Create a context factory:** `new EventContext(options)` + `run(ctx, () => ctx.seed(kind, data, fn))` — the standard pattern across all adapters.
-- **Extend `WooksAdapterBase`:** Use `this.on()` to register handlers and `this.wooks.lookup()` to find them. Use the context factory to run handlers inside the event context.
+- **Create a context factory:** Export a function `(options, seeds, fn)` that calls `createEventContext(options, kind, seeds, fn)` with the kind hardcoded — the standard pattern across all adapters.
+- **Extend `WooksAdapterBase`:** Use `this.on()` to register handlers and `this.wooks.lookup()` to find them. Use the context factory to run handlers inside the event context. **Return results** from callbacks to enable span tracking via `ContextInjector`.

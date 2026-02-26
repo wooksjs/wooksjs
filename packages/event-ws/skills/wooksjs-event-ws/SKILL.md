@@ -31,6 +31,9 @@ import {
   useWsRooms,
   useWsServer,
   currentConnection,
+  // context factories
+  createWsConnectionContext,
+  createWsMessageContext,
   // kinds & types
   wsConnectionKind,
   wsMessageKind,

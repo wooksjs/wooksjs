@@ -9,7 +9,12 @@ export { EventContext } from './context'
 export type { EventContextOptions } from './context'
 
 // context injector
-export { ContextInjector, getContextInjector, replaceContextInjector, resetContextInjector } from './context-injector'
+export {
+  ContextInjector,
+  getContextInjector,
+  replaceContextInjector,
+  resetContextInjector,
+} from './context-injector'
 export type { TContextInjectorHooks } from './context-injector'
 
 // standard keys

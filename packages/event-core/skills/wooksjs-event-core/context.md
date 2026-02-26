@@ -175,39 +175,52 @@ This prevents subtle bugs from multiple context stores.
 
 ### Pattern: Custom adapter
 
-Build an adapter that creates contexts and runs handlers:
+Build an adapter that creates contexts and runs handlers. Each adapter exports a **context factory** that hardcodes the kind and delegates to `createEventContext`:
 
 ```ts
-import { EventContext, defineEventKind, slot, run } from '@wooksjs/event-core'
+import { createEventContext, defineEventKind, slot } from '@wooksjs/event-core'
+import type { EventContextOptions, EventKindSeeds } from '@wooksjs/event-core'
 
 const myKind = defineEventKind('my-event', {
   data: slot<unknown>(),
 })
 
-function handleEvent(data: unknown, handler: () => unknown, parent?: EventContext) {
-  const ctx = new EventContext({ logger: console, parent })
-  ctx.seed(myKind, { data })
-  return run(ctx, handler)
+// Context factory — same signature as createEventContext, minus the kind
+export function createMyEventContext<R>(
+  options: EventContextOptions,
+  seeds: EventKindSeeds<typeof myKind>,
+  fn: () => R,
+): R {
+  return createEventContext(options, myKind, seeds, fn)
+}
+
+// Usage in the adapter
+function handleEvent(data: unknown, handler: () => unknown) {
+  return createMyEventContext({ logger: console }, { data }, handler)
 }
 ```
 
+All built-in adapters follow this pattern: `createHttpContext`, `createCliContext`, `createWsConnectionContext`, `createWsMessageContext`, `createWfContext`, `resumeWfContext`.
+
 ### Pattern: Child contexts with parent links
 
-Instead of attaching multiple kinds to a single context, create child contexts with parent links. Each child sees its own data plus everything in the parent chain:
+Instead of attaching multiple kinds to a single context, create child contexts by passing `parent` in the options. Each child sees its own data plus everything in the parent chain:
 
 ```ts
 createEventContext({ logger }, httpKind, httpSeeds, () => {
   const parentCtx = current()
 
-  // Create a child context for workflow-specific data
-  const childCtx = new EventContext({ logger, parent: parentCtx })
-  childCtx.seed(workflowKind, { triggerId: 'deploy-42', payload })
-
-  run(childCtx, () => {
-    // Both HTTP and workflow composables work
-    const { method } = useRequest() // found via parent chain
-    const { triggerId } = useWorkflow() // found locally
-  })
+  // Create a child context linked to the HTTP parent
+  createEventContext(
+    { logger, parent: parentCtx },
+    workflowKind,
+    { triggerId: 'deploy-42', payload },
+    () => {
+      // Both HTTP and workflow composables work
+      const { method } = useRequest() // found via parent chain
+      const { triggerId } = useWorkflow() // found locally
+    },
+  )
 })
 ```
 
@@ -252,6 +265,8 @@ resetContextInjector()
 ```
 
 The injector's `with()` method wraps `createEventContext` callbacks. All adapters (HTTP, CLI, WS, WF) route through `createEventContext`, so installing an injector automatically instruments every event type.
+
+Adapter callbacks **return their result** (sync value or Promise), so `with()` can track async handler completion for span lifecycle. A `TracingInjector` can detect thenable returns and attach `.then()/.catch()` to end spans when the handler settles — no separate `onEnd()` hook needed.
 
 ## Best Practices
 

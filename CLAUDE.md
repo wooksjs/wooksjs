@@ -6,42 +6,42 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # Build all packages (types + rolldown bundles)
-npm run build
+pnpm build
 
 # Build a single package
-npm run build event-http
+pnpm build event-http
 
 # Run all tests
-npm test
+pnpm test
 
 # Run a single test file
-npx vitest run packages/event-http/src/composables/tests/headers.spec.ts
+pnpm vitest run packages/event-http/src/composables/tests/headers.spec.ts
 
 # Watch mode
-npm run test:watch
+pnpm test:watch
 
 # Lint & format
-npm run lint          # oxlint
-npm run format        # oxfmt (apply)
-npm run format:check  # oxfmt (check only)
+pnpm lint          # oxlint
+pnpm format        # oxfmt (apply)
+pnpm format:check  # oxfmt (check only)
 ```
 
 ## Monorepo Structure
 
 pnpm workspaces. All packages live in `packages/`:
 
-| Package | Role |
-|---------|------|
-| `event-core` | Foundation — EventContext, AsyncLocalStorage, `defineWook`, `cached`, `slot`, `key` |
-| `wooks` | Router integration — re-exports core + `@prostojs/router` |
-| `event-http` | HTTP adapter — composables for request/response/cookies/auth/accept |
-| `event-cli` | CLI adapter |
-| `event-ws` | WebSocket adapter — path-based routing, rooms, broadcasting |
-| `event-wf` | Workflow adapter (via `@prostojs/wf`) |
-| `http-body` | Body parsing (JSON, form-data, urlencoded) — separate from event-http |
-| `http-static` | Static file serving |
-| `http-proxy` | Reverse proxy |
-| `ws-client` | WebSocket client (browser + Node) |
+| Package       | Role                                                                                |
+| ------------- | ----------------------------------------------------------------------------------- |
+| `event-core`  | Foundation — EventContext, AsyncLocalStorage, `defineWook`, `cached`, `slot`, `key` |
+| `wooks`       | Router integration — re-exports core + `@prostojs/router`                           |
+| `event-http`  | HTTP adapter — composables for request/response/cookies/auth/accept                 |
+| `event-cli`   | CLI adapter                                                                         |
+| `event-ws`    | WebSocket adapter — path-based routing, rooms, broadcasting                         |
+| `event-wf`    | Workflow adapter (via `@prostojs/wf`)                                               |
+| `http-body`   | Body parsing (JSON, form-data, urlencoded) — separate from event-http               |
+| `http-static` | Static file serving                                                                 |
+| `http-proxy`  | Reverse proxy                                                                       |
+| `ws-client`   | WebSocket client (browser + Node)                                                   |
 
 **Dependency chain:** `event-core` ← `wooks` ← adapters (`event-http`, `event-cli`, `event-ws`, `event-wf`) ← utilities (`http-body`, `http-static`, `http-proxy`).
 
@@ -82,15 +82,15 @@ Child contexts (e.g. workflow steps inheriting HTTP context) traverse the parent
 
 ## Composable API Reference (current names)
 
-| Composable | Key Properties |
-|------------|----------------|
-| `useRequest()` | `raw`, `url`, `method`, `headers`, `rawBody()`, `getIp()`, `reqId()` |
-| `useUrlParams()` | `params()`, `toJson()`, `raw()` |
-| `useCookies()` | `getCookie(name)`, `raw` |
+| Composable           | Key Properties                                                               |
+| -------------------- | ---------------------------------------------------------------------------- |
+| `useRequest()`       | `raw`, `url`, `method`, `headers`, `rawBody()`, `getIp()`, `reqId()`         |
+| `useUrlParams()`     | `params()`, `toJson()`, `raw()`                                              |
+| `useCookies()`       | `getCookie(name)`, `raw`                                                     |
 | `useAuthorization()` | `authorization`, `type()`, `credentials()`, `is(type)`, `basicCredentials()` |
-| `useAccept()` | `accept`, `has(type)` |
-| `useBody()` | `is(type)`, `parseBody<T>()`, `rawBody()` |
-| `useResponse()` | Returns `HttpResponse` instance directly |
+| `useAccept()`        | `accept`, `has(type)`                                                        |
+| `useBody()`          | `is(type)`, `parseBody<T>()`, `rawBody()`                                    |
+| `useResponse()`      | Returns `HttpResponse` instance directly                                     |
 
 ## AI Agent Skills
 
@@ -98,4 +98,4 @@ Packages include `skills/` directories with progressive-disclosure documentation
 
 ## Release
 
-`npm run release` — builds, lints, tests, syncs versions across all packages, publishes to npm. Versions are kept in sync via `scripts/versions.js`. Uses conventional commits with commitlint.
+`pnpm release` — builds, lints, tests, syncs versions across all packages, publishes to npm. Versions are kept in sync via `scripts/versions.js`. Uses conventional commits with commitlint.

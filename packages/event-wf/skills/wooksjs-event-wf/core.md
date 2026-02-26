@@ -184,33 +184,34 @@ const final = await app.resume(state, { input: { username: 'alice', password: 's
 
 ## How Workflow Context Works
 
-When `start()` or `resume()` is called, the adapter creates a workflow-specific event context:
+When `start()` or `resume()` is called, the adapter creates a workflow-specific event context using `createWfContext` (or `resumeWfContext`). These are context factories that hardcode the `wfKind` and delegate to `createEventContext`:
 
 ```
-app.start(schemaId, inputContext)
-  → createWfContext({ inputContext, schemaId, stepId, indexes, input }, options)
-    → AsyncLocalStorage.run(wfContextStore, handler)
-      → router matches flow ID → handler runs
-        → workflow engine executes steps sequentially
-          → each step can call useWfState(), useRouteParams(), etc.
-            → composables call current() from @wooksjs/event-core
-              → reads/writes the event context via key/cached accessors
+app.start(schemaId, inputContext, opts)
+  → createWfContext(ctxOptions, seeds, async () => { ... })
+    → createEventContext(ctxOptions, wfKind, seeds, fn)
+      → AsyncLocalStorage.run(ctx, handler)
+        → router matches flow ID → handler runs
+          → workflow engine executes steps sequentially
+            → each step can call useWfState(), useRouteParams(), etc.
+              → composables call current() from @wooksjs/event-core
+                → reads/writes the event context via key/cached accessors
 ```
 
-### The WF Context Store
+When `eventContext` is passed in opts, `ctxOptions` includes `parent: eventContext`, linking the WF context to the parent (e.g. HTTP) via the parent chain.
+
+### The WF Event Kind
+
+The WF adapter defines its event kind with `defineEventKind`. Seeds are passed directly to the context factory:
 
 ```ts
-interface TWFContextStore {
-  resume: boolean // true if this is a resumed execution
-}
-
-interface TWFEventData {
+// Seeds for createWfContext / resumeWfContext
+interface WfSeeds {
   schemaId: string // flow ID being executed
   stepId: string | null // current step ID (set during step execution)
   inputContext: unknown // the workflow context object (T)
   indexes?: number[] // position for resume
   input?: unknown // input for current step
-  type: 'WF'
 }
 ```
 

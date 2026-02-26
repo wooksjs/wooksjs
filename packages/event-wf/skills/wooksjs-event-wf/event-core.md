@@ -383,38 +383,48 @@ logger.error('something failed')
 
 ## Creating an Event Context (for adapter authors)
 
-Build an adapter that creates contexts and runs handlers:
+Each adapter exports a **context factory** that hardcodes the event kind and delegates to `createEventContext`. The factory signature mirrors `createEventContext` but omits the `kind` parameter:
 
 ```ts
-import { EventContext, defineEventKind, slot, run } from '@wooksjs/event-core'
+import { createEventContext, defineEventKind, slot } from '@wooksjs/event-core'
+import type { EventContextOptions, EventKindSeeds } from '@wooksjs/event-core'
 
 const myKind = defineEventKind('my-event', {
   data: slot<unknown>(),
   source: slot<string>(),
 })
 
+// Context factory — kind is hardcoded inside
+export function createMyEventContext<R>(
+  options: EventContextOptions,
+  seeds: EventKindSeeds<typeof myKind>,
+  fn: () => R,
+): R {
+  return createEventContext(options, myKind, seeds, fn)
+}
+
+// Usage in the adapter
 function handleEvent(data: unknown, source: string, handler: () => unknown) {
-  const ctx = new EventContext({ logger: console })
-  return run(ctx, () => ctx.seed(myKind, { data, source }, handler))
+  return createMyEventContext({ logger: console }, { data, source }, handler)
 }
 ```
 
+All built-in adapters follow this pattern: `createHttpContext`, `createCliContext`, `createWsConnectionContext`, `createWsMessageContext`, `createWfContext`, `resumeWfContext`.
+
 ### Parent context (nested events)
 
-Create child contexts with parent links. Each child sees its own data plus everything in the parent chain:
+Create child contexts by passing `parent` in the options. Each child sees its own data plus everything in the parent chain:
 
 ```ts
 createEventContext({ logger }, httpKind, httpSeeds, () => {
   const parentCtx = current()
 
-  const childCtx = new EventContext({ logger, parent: parentCtx })
-  run(childCtx, () =>
-    childCtx.seed(workflowKind, wfSeeds, () => {
-      // Both HTTP and workflow composables work
-      const { method } = useRequest() // found via parent chain
-      const { ctx } = useWfState() // found locally
-    }),
-  )
+  // Child context linked to the HTTP parent
+  createEventContext({ logger, parent: parentCtx }, workflowKind, wfSeeds, () => {
+    // Both HTTP and workflow composables work
+    const { method } = useRequest() // found via parent chain
+    const { ctx } = useWfState() // found locally
+  })
 })
 ```
 

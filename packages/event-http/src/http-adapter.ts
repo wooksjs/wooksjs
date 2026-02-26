@@ -1,5 +1,5 @@
 import type { TConsoleBase } from '@prostojs/logger'
-import { createEventContext, current } from '@wooksjs/event-core'
+import { current } from '@wooksjs/event-core'
 import type { EventContext, EventContextOptions } from '@wooksjs/event-core'
 import type { IncomingMessage, Server, ServerResponse } from 'http'
 import http from 'http'
@@ -9,6 +9,7 @@ import type { TWooksHandler, TWooksOptions, Wooks, WooksUpgradeHandler } from 'w
 import { WooksAdapterBase } from 'wooks'
 
 import { HttpError } from './errors'
+import { createHttpContext } from './event-http'
 import { httpKind } from './http-kind'
 import type { HttpResponse } from './response/http-response'
 import { WooksHttpResponse } from './response/wooks-http-response'
@@ -248,7 +249,7 @@ export class WooksHttp extends WooksAdapterBase {
       const method = req.method || ''
       const url = req.url || ''
 
-      createEventContext(ctxOptions, httpKind, { req, response, requestLimits: RequestLimits }, () => {
+      createHttpContext(ctxOptions, { req, response, requestLimits: RequestLimits }, () => {
         const ctx = current()
         const handlers = this.wooks.lookupHandlers(method, url, ctx)
         if (handlers || notFoundHandler) {
@@ -268,10 +269,12 @@ export class WooksHttp extends WooksAdapterBase {
               this.respond(error, response, ctx)
             })
           }
+          return result
         } else {
           this.logger.debug(`404 Not found (${method})${url}`)
           const error = new HttpError(404)
           this.respond(error, response, ctx)
+          return error
         }
       })
     }
@@ -294,11 +297,7 @@ export class WooksHttp extends WooksAdapterBase {
 
       const url = req.url || ''
 
-      createEventContext(ctxOptions, httpKind, {
-        req,
-        response: undefined as unknown as HttpResponse,
-        requestLimits,
-      }, () => {
+      createHttpContext(ctxOptions, { req, response: undefined, requestLimits }, () => {
         const ctx = current()
 
         // Set WS-owned keys on the context
@@ -308,10 +307,10 @@ export class WooksHttp extends WooksAdapterBase {
 
         const handlers = this.wooks.lookupHandlers('UPGRADE', url, ctx)
         if (handlers) {
-          this.processUpgradeHandlers(handlers, ctx, socket)
+          return this.processUpgradeHandlers(handlers, ctx, socket)
         } else {
           // No matching UPGRADE route — delegate to WS handler directly
-          wsHandler.handleUpgrade(req, socket, head)
+          return wsHandler.handleUpgrade(req, socket, head)
         }
       })
     }

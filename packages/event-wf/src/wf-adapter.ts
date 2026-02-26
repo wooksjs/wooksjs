@@ -50,6 +50,8 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
 
   protected wf: WooksWorkflow<T, IR>
 
+  protected eventContextOptions: EventContextOptions
+
   constructor(
     protected opts?: TWooksWfOptions,
     wooks?: Wooks | WooksAdapterBase,
@@ -57,6 +59,7 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
     super(wooks, opts?.logger, opts?.router)
     this.logger = opts?.logger || this.getLogger(`${__DYE_CYAN_BRIGHT__}[wooks-wf]`)
     this.wf = new WooksWorkflow(this.wooks)
+    this.eventContextOptions = this.getEventContextOptions()
   }
 
   /** Attaches a spy function to observe workflow step execution. */
@@ -141,19 +144,13 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
   ) {
     const { input, spy, cleanup } = opts ?? {}
     const resume = !!indexes?.length
-    const runInContext = (resume ? resumeWfContext : createWfContext)(
-      {
-        inputContext,
-        schemaId,
-        stepId: null,
-        indexes,
-        input,
-      },
-      this.getEventContextOptions(),
-      parentCtx,
-    )
+    const factory = resume ? resumeWfContext : createWfContext
+    const ctxOptions = parentCtx
+      ? { ...this.eventContextOptions, parent: parentCtx }
+      : this.eventContextOptions
+    const seeds = { inputContext, schemaId, stepId: null, indexes, input }
 
-    return runInContext(async () => {
+    return factory(ctxOptions, seeds, async () => {
       const { handlers: foundHandlers } = this.wooks.lookup(
         'WF_FLOW',
         `/${schemaId}`.replace(/^\/+/u, '/'),

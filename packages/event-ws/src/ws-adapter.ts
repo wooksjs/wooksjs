@@ -1,5 +1,5 @@
 import type { TConsoleBase } from '@prostojs/logger'
-import { createEventContext, current, key, run } from '@wooksjs/event-core'
+import { current, key, run } from '@wooksjs/event-core'
 import type { EventContext, EventContextOptions } from '@wooksjs/event-core'
 import http from 'http'
 import type { IncomingMessage, Server } from 'http'
@@ -9,6 +9,7 @@ import { WooksAdapterBase } from 'wooks'
 
 import { createDefaultWsServerAdapter } from './adapters/ws-adapter-default'
 import { setAdapterState } from './composables/state'
+import { createWsConnectionContext, createWsMessageContext } from './event-ws'
 import type {
   TWooksWsOptions,
   WsClientMessage,
@@ -18,7 +19,6 @@ import type {
 } from './types'
 import { WsConnection } from './ws-connection'
 import { WsError } from './ws-error'
-import { wsConnectionKind, wsMessageKind } from './ws-kind'
 import { WsRoomManager } from './ws-room-manager'
 
 const DEFAULT_HEARTBEAT_INTERVAL = 30_000
@@ -164,14 +164,13 @@ export class WooksWs extends WooksAdapterBase implements WooksUpgradeHandler {
     head: Buffer,
     parentCtx?: EventContext,
   ): void {
+    const ctxOptions = parentCtx
+      ? { ...this.eventContextOptions, parent: parentCtx }
+      : this.eventContextOptions
     this.wsServer.handleUpgrade(req, socket, head, (ws) => {
       const id = crypto.randomUUID()
-      const ctxOptions: EventContextOptions = {
-        ...this.eventContextOptions,
-        ...(parentCtx ? { parent: parentCtx } : {}),
-      }
 
-      createEventContext(ctxOptions, wsConnectionKind, { id, ws }, () => {
+      createWsConnectionContext(ctxOptions, { id, ws }, () => {
         const connectionCtx = current()
         const connection = new WsConnection(id, ws, connectionCtx, this.serializer)
 
@@ -184,10 +183,9 @@ export class WooksWs extends WooksAdapterBase implements WooksUpgradeHandler {
               result !== undefined &&
               typeof (result as any).then === 'function'
             ) {
-              ;(result as Promise<unknown>)
+              return (result as Promise<unknown>)
                 .then(() => this.acceptConnection(connection))
                 .catch((error) => this.rejectConnection(connection, error))
-              return
             }
           }
           this.acceptConnection(connection)
@@ -249,9 +247,8 @@ export class WooksWs extends WooksAdapterBase implements WooksUpgradeHandler {
 
     const { event, path, data, id: messageId } = msg
 
-    createEventContext(
+    createWsMessageContext(
       { ...this.eventContextOptions, parent: connection.ctx },
-      wsMessageKind,
       { data, rawMessage: raw, messageId, messagePath: path, messageEvent: event },
       () => {
         const msgCtx = current()
@@ -270,6 +267,7 @@ export class WooksWs extends WooksAdapterBase implements WooksUpgradeHandler {
             this.handleHandlerError(error, connection, messageId)
           })
         }
+        return result
       },
     )
   }

@@ -177,7 +177,8 @@ export class WooksCli extends WooksAdapterBase {
     const parsedFlags = minimist(argv, _opts)
     const pathParams = parsedFlags._
     const path = `/${pathParams.map((v) => encodeURI(v).replace(/\//gu, '%2F')).join('/')}`
-    const runInContext = createCliContext(
+    return createCliContext(
+      this.getEventContextOptions(),
       {
         opts: _opts,
         argv,
@@ -185,45 +186,43 @@ export class WooksCli extends WooksAdapterBase {
         cliHelp: this.cliHelp,
         command: path.replace(/\//gu, ' ').trim(),
       },
-      this.getEventContextOptions(),
-    )
-
-    return runInContext(async () => {
-      const ctx = current()
-      ctx.set(flagsKey, parsedFlags)
-      this.computeAliases()
-      const { handlers: foundHandlers, firstStatic } = this.wooks.lookup('CLI', path)
-      if (typeof firstStatic === 'string') {
-        // overwriting command with firstStatic to properly search for help
-        ctx.set(cliKind.keys.command, firstStatic.replace(/\//gu, ' ').trim())
-      }
-      const handlers = foundHandlers || (this.opts?.onNotFound && [this.opts.onNotFound]) || null
-      if (handlers) {
-        try {
-          for (const handler of handlers) {
-            const response = await handler()
-            if (typeof response === 'string') {
-              console.log(response)
-            } else if (Array.isArray(response)) {
-              response.forEach((r) => {
-                console.log(typeof r === 'string' ? r : JSON.stringify(r, null, '  '))
-              })
-            } else if (response instanceof Error) {
-              this.onError(response)
-              return response
-            } else if (response) {
-              console.log(JSON.stringify(response, null, '  '))
-            }
-          }
-        } catch (error) {
-          this.onError(error as Error)
-          return error
+      async () => {
+        const ctx = current()
+        ctx.set(flagsKey, parsedFlags)
+        this.computeAliases()
+        const { handlers: foundHandlers, firstStatic } = this.wooks.lookup('CLI', path)
+        if (typeof firstStatic === 'string') {
+          // overwriting command with firstStatic to properly search for help
+          ctx.set(cliKind.keys.command, firstStatic.replace(/\//gu, ' ').trim())
         }
-      } else {
-        this.onUnknownCommand(pathParams)
-        return new Error('Unknown command')
-      }
-    })
+        const handlers = foundHandlers || (this.opts?.onNotFound && [this.opts.onNotFound]) || null
+        if (handlers) {
+          try {
+            for (const handler of handlers) {
+              const response = await handler()
+              if (typeof response === 'string') {
+                console.log(response)
+              } else if (Array.isArray(response)) {
+                response.forEach((r) => {
+                  console.log(typeof r === 'string' ? r : JSON.stringify(r, null, '  '))
+                })
+              } else if (response instanceof Error) {
+                this.onError(response)
+                return response
+              } else if (response) {
+                console.log(JSON.stringify(response, null, '  '))
+              }
+            }
+          } catch (error) {
+            this.onError(error as Error)
+            return error
+          }
+        } else {
+          this.onUnknownCommand(pathParams)
+          return new Error('Unknown command')
+        }
+      },
+    )
   }
 
   protected onError(e: Error) {
