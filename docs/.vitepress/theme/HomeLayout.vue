@@ -120,7 +120,7 @@ watch(() => route.path, setupScrollAnimations)
                     <EventFlowBg />
                     <div class="main">
                         <img
-                            src="/wooks-full-logo.png"
+                            src="/wooks-full-logo.svg"
                             alt="Wooks"
                             style="width: 400px; margin-bottom: 24px"
                         />

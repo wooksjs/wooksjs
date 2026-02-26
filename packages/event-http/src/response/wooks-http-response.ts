@@ -14,7 +14,7 @@ let framework = {
   version: __VERSION__,
   poweredBy: 'wooksjs',
   link: 'https://wooks.moost.org/',
-  image: 'https://wooks.moost.org/wooks-full-logo.png',
+  image: 'https://wooks.moost.org/wooks-full-logo.svg',
 }
 
 const icons = {

@@ -35,7 +35,7 @@ export default defineConfig({
     },
 
     themeConfig: {
-        logo: '/wooks-full-logo.png', //'/logo.svg',
+        logo: '/wooks-full-logo.svg', //'/logo.svg',
 
         search: {
             provider: 'local'
