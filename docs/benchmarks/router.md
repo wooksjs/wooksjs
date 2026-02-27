@@ -147,7 +147,7 @@ const scalingMixed = {
 
 # Router Benchmark
 
-Pure route matching and parameter extraction — measuring the router layer in isolation. How fast can each router resolve a URI to a handler and extract parameters?
+How fast can each router match a URL to a handler and pull out parameters? This benchmark isolates just the routing layer — no HTTP, no middleware, just pure matching.
 
 Full source code: [prostojs/router-benchmark](https://github.com/prostojs/router-benchmark)
 
@@ -163,13 +163,11 @@ Full source code: [prostojs/router-benchmark](https://github.com/prostojs/router
 
 ## Methodology
 
-Each router registers the same set of routes and resolves the same request mix. Every benchmark measures **matching + parameter extraction** together — some routers defer parameter processing, so the benchmark forces complete resolution to ensure a fair comparison.
+Each router registers the same set of routes and resolves the same request mix. Importantly, every benchmark forces **full parameter extraction** — not just matching — so routers that defer param processing don't get an unfair advantage.
 
-- 200,000 operations per test, 2 runs
-- Three route shapes: **short** (2–5 segments), **long** (5–10 segments), **mixed** (50/50)
-- Workload includes: statics, parametric routes (1–4 params), wildcards, multiple HTTP methods, and 404 misses
+The tests cover three route shapes: **short** paths (2–5 segments), **long** paths (5–10 segments), and a **mixed** 50/50 combination. The workload includes statics, parametric routes with up to 4 params, wildcards, multiple HTTP methods, and 404 misses.
 
-Results in **operations per millisecond** (higher is better).
+Results are in **operations per millisecond** — higher is better.
 
 ## Overview by Route Type
 
@@ -178,7 +176,7 @@ Results in **operations per millisecond** (higher is better).
 </ClientOnly>
 
 ::: tip Key takeaway
-**ProstoRouter** leads on long enterprise-style routes (9,020 ops/ms) while staying competitive on short routes. **Hono's RegExpRouter** is fastest on short/mixed patterns but — as the [scaling section](#scaling) reveals — its compiled regex approach breaks down on larger route sets.
+**ProstoRouter** leads on long, enterprise-style routes while staying competitive on short ones. **Hono's RegExpRouter** is fastest on short and mixed patterns — but as the [scaling section](#scaling) reveals, its compiled regex approach breaks down on larger route sets.
 :::
 
 ### Short Routes (22 routes)
@@ -189,17 +187,17 @@ Typical REST APIs with 2–5 segment paths.
   <BenchmarkBars :data="summaryShort" unit="ops/ms" title="Short routes — all tests combined" />
 </ClientOnly>
 
-Hono's RegExpRouter and ProstoRouter are neck-and-neck at ~37k ops/ms — both far ahead of the trie-based routers. The compiled regex approach excels on compact route sets.
+Hono's RegExpRouter and ProstoRouter are neck-and-neck here — both far ahead of the trie-based routers. The compiled regex approach excels on compact route sets.
 
 ### Long Routes (22 routes)
 
-Deep enterprise SaaS patterns — 5–10 segment paths with shared prefixes and many parameters. Routes like `/api/v1/orgs/:orgId/teams/:teamId/projects/:projectId/tasks/:taskId`.
+The kind of deep, nested paths you'd see in a real SaaS API — 5–10 segments with shared prefixes and multiple parameters. Think `/api/v1/orgs/:orgId/teams/:teamId/projects/:projectId/tasks/:taskId`.
 
 <ClientOnly>
   <BenchmarkBars :data="summaryLong" unit="ops/ms" title="Long routes — all tests combined" />
 </ClientOnly>
 
-**ProstoRouter leads at 9,020 ops/ms** — 9% ahead of Hono, 26% ahead of Rou3, and 43% ahead of find-my-way. These are the route patterns that real SaaS APIs actually use.
+**ProstoRouter leads here** — comfortably ahead of every other router. These are the route patterns that real SaaS APIs actually use, and ProstoRouter handles them best.
 
 ### Mixed Routes (20 routes)
 
@@ -209,7 +207,7 @@ Deep enterprise SaaS patterns — 5–10 segment paths with shared prefixes and 
   <BenchmarkBars :data="summaryMixed" unit="ops/ms" title="Mixed routes — all tests combined" />
 </ClientOnly>
 
-Hono's RegExpRouter leads here (37k) due to its strong short-route performance. ProstoRouter (21k) and Rou3 (21k) are close behind.
+Hono's RegExpRouter leads here thanks to its strong short-route performance. ProstoRouter and Rou3 are close behind.
 
 ## Long Route Breakdown
 
@@ -219,17 +217,17 @@ A closer look at individual long-route test patterns — this is where router ar
   <BenchmarkChart :data="longDetailed" mode="stacked" unit="ops/ms" title="Long routes — per-test breakdown (ops/ms)" />
 </ClientOnly>
 
-**Static lookups:** Rou3 dominates pure static resolution (61–63k ops/ms) thanks to its radix trie optimized for exact matches. Hono is second (42k). ProstoRouter's regex-based approach trades static-lookup speed for richer pattern support (35–39k) — still very fast.
+**Static lookups:** Rou3 dominates pure static resolution thanks to its radix trie optimized for exact matches. Hono comes second. ProstoRouter's regex-based approach trades some static-lookup speed for richer pattern support — still very fast.
 
-**Parametric routes:** ProstoRouter leads across all parameter counts. The gap widens with complexity — at 4 params, ProstoRouter (6,247) leads Hono (5,147) by 21% and find-my-way (3,725) by 68%.
+**Parametric routes:** ProstoRouter leads across all parameter counts. The more params a route has, the bigger the gap — ProstoRouter's advantage grows with complexity.
 
-**POST/PUT/DELETE with params:** ProstoRouter and Hono are tied at ~7.6k ops/ms, both ahead of Rou3 and find-my-way.
+**POST/PUT/DELETE with params:** ProstoRouter and Hono are essentially tied, both ahead of Rou3 and find-my-way.
 
-**404 handling:** Hono's RegExpRouter excels at rejecting non-matching URIs (31k ops/ms) — the compiled regex rejects in one step. ProstoRouter (11k) and find-my-way (13k) are reasonable; Rou3 (10k) is close.
+**404 handling:** Hono's RegExpRouter excels at rejecting non-matching URIs — its compiled regex rejects in one step. The other routers handle 404s reasonably well, with find-my-way slightly ahead of ProstoRouter and Rou3.
 
 ## Scaling: 22 → 200 Routes {#scaling}
 
-Small benchmarks can be deceiving. A router that tops the chart at 22 routes may not hold up when your application grows. The scaling benchmark reveals what happens when route tables reach real-world sizes — **500,000 operations across 5 runs** for statistical reliability.
+Small benchmarks can be deceiving. A router that tops the chart with a handful of routes may not hold up when your application grows. This scaling benchmark reveals what happens as route tables reach real-world sizes.
 
 ### Short Routes
 
@@ -250,21 +248,21 @@ Small benchmarks can be deceiving. A router that tops the chart at 22 routes may
 </ClientOnly>
 
 ::: warning Hono's RegExpRouter hits a wall
-Hono's RegExpRouter — the fastest router on small benchmarks — **fails to compile** its regular expression when route sets grow complex. On long routes at 100+, and mixed routes at 198+, Hono silently falls back to its much slower TrieRouter. At 200 long routes: Hono TrieRouter drops to **3,640 ops/ms** — the slowest non-Express router in the field.
+Hono's RegExpRouter — the fastest router on small benchmarks — **fails to compile** its regular expression when route sets grow complex. On long routes beyond 100, and mixed routes beyond 198, Hono silently falls back to its much slower TrieRouter — becoming the slowest non-Express router in the field.
 :::
 
 This is the most revealing part of the benchmark. The routers that look fastest in small tests tell a different story at scale:
 
-| Router | 22 long routes | 200 long routes | Degradation |
-|---|---:|---:|---|
-| ProstoRouter | 8,600 | 4,158 | 2.1x — gradual |
-| Hono (RegExp → Trie) | 8,250 | 3,640 | 2.3x — cliff at 100 routes |
-| Rou3 | 6,838 | 6,744 | 1.0x — flat |
-| find-my-way | 6,193 | 6,022 | 1.0x — flat |
+| Router | Scaling behavior |
+|---|---|
+| **ProstoRouter** | Gradual, predictable slowdown (~2x from 22→200 routes) |
+| **Hono** | Hits a cliff — falls back to TrieRouter and drops sharply |
+| **Rou3** | Nearly flat — trie structure handles growth well |
+| **find-my-way** | Nearly flat — same trie advantage |
 
 **ProstoRouter stays fastest through 50 routes** across all three route shapes, and remains competitive at 100–200. The trie-based routers (Rou3, find-my-way) degrade less because their structure inherently shares prefix storage — but they start from a lower baseline on parametric routes.
 
-On **mixed routes at 198**, ProstoRouter (7,895 ops/ms) beats Rou3 (6,567) and Hono's fallback TrieRouter (3,462), while find-my-way (9,194) pulls ahead due to its stable trie. The order reshuffles at scale — a router's architecture matters more than its microbenchmark peak.
+At larger scales, the order reshuffles — find-my-way's stable trie pulls ahead on mixed routes, while ProstoRouter still beats Rou3 and Hono's fallback TrieRouter. A router's architecture matters more than its microbenchmark peak.
 
 ## Feature Comparison
 
@@ -286,4 +284,4 @@ Raw speed is only part of the picture. `@prostojs/router` supports features that
 
 ---
 
-*Benchmark source: [prostojs/router-benchmark](https://github.com/prostojs/router-benchmark). Results generated Feb 27, 2026. 100k–500k operations, 2–5 runs.*
+*Benchmark source: [prostojs/router-benchmark](https://github.com/prostojs/router-benchmark). Results generated Feb 2026.*
