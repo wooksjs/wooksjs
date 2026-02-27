@@ -69,6 +69,14 @@ export default defineConfig({
                 ],
             },
             {
+                text: 'Benchmarks',
+                activeMatch: '/benchmarks/',
+                items: [
+                    { text: 'Router', link: '/benchmarks/router' },
+                    { text: 'Wooks HTTP', link: '/benchmarks/wooks-http' },
+                ],
+            },
+            {
                 text: 'Resources',
                 items: [
                     { text: 'Team', link: '/team' },
@@ -85,6 +93,21 @@ export default defineConfig({
         ],
 
         sidebar: {
+            '/benchmarks/': [
+                {
+                    text: 'Benchmarks',
+                    items: [
+                        {
+                            text: 'Router',
+                            link: '/benchmarks/router',
+                        },
+                        {
+                            text: 'Wooks HTTP',
+                            link: '/benchmarks/wooks-http',
+                        },
+                    ],
+                },
+            ],
             '/wooks/': [
                 {
                     text: 'Wooks',

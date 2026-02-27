@@ -49,6 +49,7 @@
     "@prostojs/dye": "^0.4.9",
     "@prostojs/logger": "^0.4.3",
     "@types/node": "^22.19.11",
+    "chart.js": "^4.5.1",
     "conventional-changelog-cli": "^5.0.0",
     "husky": "^9.1.7",
     "inquirer": "^12.11.1",
@@ -61,6 +62,7 @@
     "unplugin-isolated-decl": "^0.10.7",
     "vitepress": "^1.6.4",
     "vitest": "^3.2.4",
+    "vue-chartjs": "^5.3.3",
     "zx": "^8.8.5"
   },
   "pnpm": {

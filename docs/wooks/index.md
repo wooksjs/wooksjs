@@ -25,7 +25,7 @@ app.listen(3000)
 
 Available wooks: `useRequest()`, `useResponse()`, `useBody()`, `useCookies()`, `useUrlParams()`, `useAuthorization()`, and more. Plus `@wooksjs/http-static` for file serving and `@wooksjs/http-proxy` for reverse proxy.
 
-[Get started with HTTP &rarr;](/webapp/)
+[Get started with HTTP &rarr;](/webapp/) &nbsp; [See benchmarks &rarr;](/benchmarks/wooks-http)
 
 ## WebSocket
 

@@ -37,7 +37,7 @@ Plus `@wooksjs/http-static` for file serving and `@wooksjs/http-proxy` for rever
 
 ## Routing
 
-Built on [`@prostojs/router`](https://github.com/prostojs/router) — parametric routes, wildcards, regex constraints, and multiple wildcards in a single path. See [Routing](/webapp/routing) for details.
+Built on [`@prostojs/router`](https://github.com/prostojs/router) — parametric routes, wildcards, regex constraints, and multiple wildcards in a single path. [Fastest on real-world route patterns](/benchmarks/router). See [Routing](/webapp/routing) for details.
 
 ## Build Your Own Composables
 
@@ -49,3 +49,4 @@ Built on [`@prostojs/router`](https://github.com/prostojs/router) — parametric
 - [What is Wooks?](/wooks/what) — How composables, context, and `defineWook` work under the hood.
 - [Why Wooks?](/wooks/why) — The design decisions and when Wooks is the right choice.
 - [Comparison](/webapp/comparison) — Concrete differences vs Express, Fastify, and h3.
+- [Benchmarks](/benchmarks/wooks-http) — Performance data against Express, Fastify, h3, and Hono.

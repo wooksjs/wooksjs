@@ -62,7 +62,7 @@ const features = [
     {
         icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>`,
         title: 'Lazy by default',
-        details: 'Body parsing, cookie reading, auth extraction — nothing runs until you call it. Zero cost for unused data.',
+        details: 'Body parsing, cookie reading, auth extraction — nothing runs until you call it. Auth fails with a 100KB body? Wooks rejects 3.5× faster.',
         link: '/wooks/why',
     },
     {
@@ -74,8 +74,8 @@ const features = [
     {
         icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>`,
         title: 'Advanced Router',
-        details: 'Regex constraints on params, multi-segment wildcards, indexed lookups. Faster than Express and Fastify.',
-        link: '/webapp/routing',
+        details: 'Regex constraints, multi-wildcards, optional params. Fastest on enterprise-grade route patterns — ahead of Hono, Fastify, and h3.',
+        link: '/benchmarks/router',
     },
     {
         icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>`,
@@ -188,6 +188,20 @@ watch(() => route.path, setupScrollAnimations)
                             </div>
                         </div>
                     </div>
+                </div>
+            </section>
+
+            <!-- Performance Strip -->
+            <section class="perf-strip animate-in">
+                <div class="perf-strip-inner">
+                    <div class="perf-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                    </div>
+                    <div class="perf-content">
+                        <div class="perf-number">70,332 <span class="perf-unit">req/s</span></div>
+                        <div class="perf-text">21-route SaaS benchmark — fastest overall, 10–15% ahead on cookie-heavy traffic.</div>
+                    </div>
+                    <a href="/benchmarks/wooks-http" class="perf-link">See benchmarks &rarr;</a>
                 </div>
             </section>
 
@@ -634,6 +648,98 @@ html.dark .try-it-btn {
     color: var(--vp-c-text-2);
     line-height: 1.5;
     margin: 0;
+}
+
+/* ---- Performance Strip ---- */
+.perf-strip {
+    padding: 8px 24px 40px;
+}
+.perf-strip-inner {
+    max-width: 800px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 28px 32px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(61, 144, 190, 0.08) 0%, rgba(61, 144, 190, 0.03) 100%);
+    border: 1px solid rgba(61, 144, 190, 0.2);
+}
+:global(.dark) .perf-strip-inner {
+    background: linear-gradient(135deg, rgba(61, 144, 190, 0.15) 0%, rgba(61, 144, 190, 0.05) 100%);
+    border-color: rgba(61, 144, 190, 0.25);
+}
+.perf-icon {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    padding: 8px;
+    border-radius: 12px;
+    background: rgba(61, 144, 190, 0.12);
+    color: var(--vp-c-brand);
+}
+:global(.dark) .perf-icon {
+    background: rgba(61, 144, 190, 0.2);
+}
+.perf-icon svg {
+    width: 100%;
+    height: 100%;
+}
+.perf-content {
+    flex: 1;
+    min-width: 0;
+}
+.perf-number {
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--vp-c-brand);
+    letter-spacing: -1px;
+    line-height: 1.1;
+}
+.perf-unit {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: 0;
+}
+.perf-text {
+    font-size: 14px;
+    color: var(--vp-c-text-2);
+    line-height: 1.5;
+    margin-top: 4px;
+}
+.perf-link {
+    flex-shrink: 0;
+    padding: 8px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--vp-c-brand);
+    text-decoration: none;
+    white-space: nowrap;
+    border: 1px solid rgba(61, 144, 190, 0.3);
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+.perf-link:hover {
+    background: rgba(61, 144, 190, 0.08);
+    border-color: var(--vp-c-brand);
+}
+@media (max-width: 639px) {
+    .perf-strip-inner {
+        flex-direction: column;
+        text-align: center;
+        padding: 24px 20px;
+    }
+    .perf-number {
+        font-size: 32px;
+    }
+}
+@media (min-width: 640px) {
+    .perf-strip {
+        padding: 8px 48px 48px;
+    }
+    .perf-number {
+        font-size: 40px;
+    }
 }
 
 /* ---- Scroll-reveal animation ---- */

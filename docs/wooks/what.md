@@ -92,8 +92,8 @@ You can also [create your own adapter](/wooks/advanced/wooks-adapter) for any ev
 | Package | Role |
 |---------|------|
 | @wooksjs/event-core | Context primitives: `key`, `cached`, `defineWook`, `defineEventKind` |
-| [@prostojs/router](https://github.com/prostojs/router) | Standalone high-performance router |
-| @wooksjs/event-http | HTTP adapter, request/response wooks |
+| [@prostojs/router](https://github.com/prostojs/router) | Standalone high-performance router ([benchmarks](/benchmarks/router)) |
+| @wooksjs/event-http | HTTP adapter, request/response wooks ([benchmarks](/benchmarks/wooks-http)) |
 | @wooksjs/event-cli | CLI adapter, option/argument wooks |
 | @wooksjs/event-wf | Workflow adapter, step/flow wooks |
 | @wooksjs/http-body | Body parser wook |

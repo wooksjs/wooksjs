@@ -7,7 +7,7 @@ routes and passed to the handler.
 
 ::: info
 Wooks utilizes [@prostojs/router](https://github.com/prostojs/router) for routing, and its
-documentation is partially included here for easy reference.
+documentation is partially included here for easy reference. See [Router Benchmarks](/benchmarks/router) for performance data.
 :::
 
 The router effectively parses URIs and quickly identifies the corresponding handler.

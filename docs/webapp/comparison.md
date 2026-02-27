@@ -44,21 +44,33 @@ All four frameworks support parametric routes. The differences are in edge cases
 - Regex constraints on wildcards: `/static/*(\\d+)`
 - On-the-fly generated parsers — parameter extraction in a single function call
 
-### Router Benchmark
+### Router Performance
 
-Operations per millisecond ([source](https://github.com/prostojs/router-benchmark)):
+In a [pure router benchmark](https://github.com/prostojs/router-benchmark) (ops/ms, higher is better):
 
-| Test | Express | find-my-way | @prostojs/router | radix3 |
-|:-----|--------:|------------:|-----------------:|-------:|
-| Short static | 1 792 | 7 070 | 6 912 | 10 326 |
-| Static with same radix | 1 388 | 4 662 | 8 537 | 14 058 |
-| Dynamic route | 739 | 1 768 | 1 888 | 959 |
-| Mixed static dynamic | 685 | 3 101 | 3 470 | 988 |
-| Long static | 637 | 2 174 | 8 934 | 14 000 |
-| Wildcard | 486 | 2 081 | 2 065 | 1 019 |
-| **All together** | **663** | **2 328** | **2 893** | **1 549** |
+| Route type | @prostojs/router | Hono RegExpRouter | rou3 | find-my-way | Express |
+|---|---:|---:|---:|---:|---:|
+| Short routes | 36,385 | **37,863** | 32,242 | 22,374 | 2,348 |
+| **Long routes** | **9,020** | 8,250 | 7,157 | 6,283 | 1,141 |
+| Mixed routes | 21,432 | **37,617** | 20,828 | 16,786 | 2,201 |
 
-`@prostojs/router` leads on mixed and dynamic patterns — the cases that matter most in real APIs. radix3 (now rou3) wins on pure static lookups.
+`@prostojs/router` leads on long, parametric enterprise routes — the patterns real SaaS APIs actually use. On short routes, Hono's RegExpRouter edges ahead — but its regex-compiled approach [fails to scale beyond ~50–100 complex routes](/benchmarks/router#scaling), silently falling back to a much slower TrieRouter.
+
+### HTTP Framework Throughput
+
+In a [full HTTP lifecycle benchmark](https://github.com/prostojs/router-benchmark) testing 21 routes with authentication, cookies, and body parsing:
+
+| Framework | Avg req/s | Relative |
+|---|---:|---|
+| **Wooks** | **70,332** | **fastest** |
+| Fastify | 68,273 | 1.03x slower |
+| h3 | 64,860 | 1.08x slower |
+| Hono | 59,466 | 1.18x slower |
+| Express | 47,147 | 1.49x slower |
+
+Wooks dominates cookie-heavy browser traffic (the most common SaaS pattern) thanks to lazy cookie parsing and cached route parameter extraction. On auth-failure scenarios with large bodies, Wooks skips body parsing entirely — **3.5x faster** than frameworks that parse eagerly.
+
+See the full benchmark analysis with charts: [Router benchmarks](/benchmarks/router) and [HTTP framework benchmarks](/benchmarks/wooks-http).
 
 ## Context Passing
 

@@ -46,6 +46,14 @@ HTTP, CLI, and workflows share the same `EventContext`, the same `defineWook`, t
 
 In Wooks, `key<string>('userId')` is a `Key<string>`. `defineWook((ctx) => ({ ... }))` infers the return type. There's no indirection layer between what you write and what TypeScript sees. Every primitive is generic — type safety comes for free, not through schemas or interface extensions.
 
+## Fast Where It Matters
+
+Wooks isn't just well-designed — it's fast. In a [production-realistic benchmark](/benchmarks/wooks-http) testing 21 routes with authentication, cookie parsing, and body deserialization, Wooks leads all tested frameworks at **70,332 req/s** average — ahead of Fastify (68,273), h3 (64,860), Hono (59,466), and Express (47,147).
+
+The lazy-by-default architecture pays off most in cookie-heavy browser traffic — the most common SaaS pattern — where Wooks leads Fastify by 10–15%. On failed auth with large request bodies, Wooks skips body parsing entirely, rejecting 3.5x faster than frameworks that parse eagerly.
+
+The underlying [`@prostojs/router`](https://github.com/prostojs/router) is the fastest router on deeply-nested parametric routes while offering the richest feature set — regex constraints, multiple wildcards, optional parameters — that trie-based alternatives can't match. See the [full benchmark analysis](/benchmarks/wooks-http) for detailed charts.
+
 ## When to use Wooks
 
 Wooks fits when you want code that reads like Vue composables — function calls that return typed data, no ceremony. It's a good choice when you need to handle multiple event types (HTTP, CLI, workflows) with a consistent API, when you care about TypeScript ergonomics, or when you want explicit control over what runs per event.
