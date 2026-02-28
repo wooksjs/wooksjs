@@ -215,16 +215,25 @@ export default defineConfig({
                                 },
                             ],
                         },
-                        // {
-                        //     text: 'Adapters',
-                        //     collapsed: true,
-                        //     items: [
-                        //         {
-                        //             text: 'Express Adapter',
-                        //             link: '/webapp/express',
-                        //         },
-                        //     ]
-                        // },
+                        {
+                            text: 'Framework Integrations',
+                            collapsed: true,
+                            link: '/webapp/integrations/',
+                            items: [
+                                {
+                                    text: 'Express',
+                                    link: '/webapp/express',
+                                },
+                                {
+                                    text: 'Fastify',
+                                    link: '/webapp/fastify',
+                                },
+                                {
+                                    text: 'H3',
+                                    link: '/webapp/h3',
+                                },
+                            ],
+                        },
                         {
                             text: 'Logging in Wooks',
                             link: '/webapp/logging',
