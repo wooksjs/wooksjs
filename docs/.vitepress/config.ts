@@ -28,6 +28,7 @@ export default defineConfig({
         ['meta', { name: 'twitter:site', content: '@MAVrik7' }],
         ['meta', { name: 'twitter:image', content: twitterImage }],
         ['meta', { name: 'theme-color', content: '#3D90BE' }],
+        ['script', { async: '', src: 'https://scripts.simpleanalyticscdn.com/latest.js' }],
     ],
 
     vue: {
