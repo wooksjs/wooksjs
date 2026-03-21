@@ -1,3 +1,12 @@
+## [0.7.5](https://github.com/wooksjs/wooksjs/compare/v0.7.4...v0.7.5) (2026-03-21)
+
+
+### Features
+
+* add programmatic fetch/request with SSR header forwarding and cookie propagation ([90b0979](https://github.com/wooksjs/wooksjs/commit/90b09790d3a805310e8c273ce02b1b047297d58e))
+
+
+
 ## [0.7.4](https://github.com/wooksjs/wooksjs/compare/v0.7.3...v0.7.4) (2026-02-27)
 
 
