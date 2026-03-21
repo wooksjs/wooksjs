@@ -220,7 +220,7 @@ When using `getRawRes()` during programmatic fetch:
 
 ## Unmatched Routes
 
-When no route matches and no `onNotFound` handler is configured, `fetch()` and `request()` return `null` instead of a 404 response. This lets callers distinguish "no route exists" from "a handler explicitly returned 404":
+When no route matches, `fetch()` and `request()` return `null` instead of a 404 response. This lets callers distinguish "no route exists" from "a handler explicitly returned 404":
 
 ```ts
 const res = await app.request('/maybe-exists')
@@ -232,13 +232,9 @@ if (res.status === 404) {
 }
 ```
 
-If you configure `onNotFound`, it always runs for unmatched routes and produces a `Response`:
-
-```ts
-const app = createHttpApp({ onNotFound: () => 'custom 404 page' })
-const res = await app.request('/nope')
-// res is a Response with status 200, never null
-```
+::: info `onNotFound` is ignored by `fetch()`
+The `onNotFound` option only applies to the HTTP server callback (`getServerCb()`). Programmatic `fetch()` always returns `null` for unmatched routes — the caller decides what to do.
+:::
 
 ## Middleware Integration
 
@@ -263,7 +259,9 @@ const server = createServer(
 server.listen(3000)
 ```
 
-Without the callback, unmatched routes return a 404 response as usual — the standard behavior for standalone servers.
+When `onNoMatch` is provided, it takes priority over the `onNotFound` option. This means you can use both — `onNotFound` handles 404s for standalone server mode, while `onNoMatch` bypasses it for middleware integration.
+
+Without the callback, unmatched routes fall through to `onNotFound` (if set), or return a 404 response — the standard behavior for standalone servers.
 
 ## Limitations
 

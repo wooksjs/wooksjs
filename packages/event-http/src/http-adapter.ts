@@ -4,9 +4,8 @@ import type { EventContext, EventContextOptions } from '@wooksjs/event-core'
 import { Buffer } from 'buffer'
 import http, { IncomingMessage, ServerResponse } from 'http'
 import type { Server } from 'http'
-import { Socket } from 'net'
 import type { ListenOptions } from 'net'
-import type { Duplex } from 'stream'
+import { Duplex } from 'stream'
 import type { TWooksHandler, TWooksOptions, Wooks, WooksUpgradeHandler } from 'wooks'
 import { WooksAdapterBase } from 'wooks'
 
@@ -270,26 +269,12 @@ export class WooksHttp extends WooksAdapterBase {
       createHttpContext(ctxOptions, { req, response, requestLimits: RequestLimits }, () => {
         const ctx = current()
         const handlers = this.wooks.lookupHandlers(method, url, ctx)
-        if (handlers || notFoundHandler) {
-          const result = this.processHandlers(
-            handlers || [notFoundHandler as TWooksHandler],
-            ctx,
-            response,
-          )
-          // Only attach .catch() if processHandlers returned a Promise (async handler)
-          if (
-            result !== null &&
-            result !== undefined &&
-            typeof (result as Promise<unknown>).then === 'function'
-          ) {
-            ;(result as Promise<unknown>).catch((error) => {
-              this.logger.error('Internal error, please report', error)
-              this.respond(error, response, ctx)
-            })
-          }
-          return result
+        if (handlers) {
+          return this.processAndCatch(handlers, ctx, response)
         } else if (onNoMatch) {
           onNoMatch(req, res)
+        } else if (notFoundHandler) {
+          return this.processAndCatch([notFoundHandler as TWooksHandler], ctx, response)
         } else {
           this.logger.debug(`404 Not found (${method})${url}`)
           const error = new HttpError(404)
@@ -375,6 +360,22 @@ export class WooksHttp extends WooksAdapterBase {
         }
       }
     }
+  }
+
+  /** Runs handlers and attaches a `.catch()` for async results to avoid unhandled rejections. */
+  private processAndCatch(
+    handlers: TWooksHandler[],
+    ctx: EventContext,
+    response: HttpResponse,
+  ): void | Promise<unknown> {
+    const result = this.processHandlers(handlers, ctx, response)
+    if (result !== null && result !== undefined && typeof (result as Promise<unknown>).then === 'function') {
+      ;(result as Promise<unknown>).catch((error) => {
+        this.logger.error('Internal error, please report', error)
+        this.respond(error, response, ctx)
+      })
+    }
+    return result
   }
 
   protected processHandlers(
@@ -498,15 +499,17 @@ export class WooksHttp extends WooksAdapterBase {
     const fakeRes = new ServerResponse(fakeReq)
 
     // Intercept direct writes to the ServerResponse so handlers using
-    // getRawRes() still produce a valid Web Response from captured data
-    const rawChunks: Buffer[] = []
-    const rawHeaders: Record<string, string | string[]> = {}
+    // getRawRes() still produce a valid Web Response from captured data.
+    // Allocated lazily — most handlers never touch getRawRes().
+    let rawChunks: Buffer[] | undefined
+    let rawHeaders: Record<string, string | string[]> | undefined
     let rawStatusCode = 0
     fakeRes.writeHead = ((...args: unknown[]): ServerResponse => {
       rawStatusCode = args[0] as number
       // writeHead(code, headers) or writeHead(code, reason, headers)
       for (const arg of args) {
         if (typeof arg === 'object' && arg !== null) {
+          if (!rawHeaders) { rawHeaders = {} }
           for (const [k, v] of Object.entries(arg as Record<string, string | string[]>)) {
             rawHeaders[k] = v
           }
@@ -514,20 +517,21 @@ export class WooksHttp extends WooksAdapterBase {
       }
       return fakeRes
     }) as typeof fakeRes.writeHead
-    fakeRes.write = ((chunk: unknown, ...args: unknown[]): boolean => {
+    fakeRes.write = ((chunk: unknown, _encoding?: unknown, cb?: unknown): boolean => {
       if (chunk !== null && chunk !== undefined) {
+        if (!rawChunks) { rawChunks = [] }
         rawChunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk as Buffer)
       }
-      const cb = args.find(a => typeof a === 'function') as (() => void) | undefined
-      if (cb) { cb() }
+      if (typeof cb === 'function') { (cb as () => void)() }
       return true
     }) as typeof fakeRes.write
-    fakeRes.end = ((chunk?: unknown, ...args: unknown[]): ServerResponse => {
+    fakeRes.end = ((chunk?: unknown, _encoding?: unknown, cb?: unknown): ServerResponse => {
       if (chunk !== null && chunk !== undefined && typeof chunk !== 'function') {
+        if (!rawChunks) { rawChunks = [] }
         rawChunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk as Buffer)
       }
-      const cb = args.find(a => typeof a === 'function') as (() => void) | undefined
-      if (cb) { cb() }
+      if (typeof chunk === 'function') { (chunk as () => void)() }
+      else if (typeof cb === 'function') { (cb as () => void)() }
       return fakeRes
     }) as typeof fakeRes.end
 
@@ -543,7 +547,6 @@ export class WooksHttp extends WooksAdapterBase {
 
     const ctxOptions = this.eventContextOptions
     const requestLimits = this.opts?.requestLimits
-    const notFoundHandler = this.opts?.onNotFound
 
     return createHttpContext(
       ctxOptions,
@@ -560,12 +563,8 @@ export class WooksHttp extends WooksAdapterBase {
           // Route lookup (seeds routeParams into ctx via wooks.lookupHandlers)
           const handlers = this.wooks.lookupHandlers(method, pathname, ctx)
 
-          if (handlers || notFoundHandler) {
-            const result = this.processHandlers(
-              handlers || [notFoundHandler as TWooksHandler],
-              ctx,
-              response,
-            )
+          if (handlers) {
+            const result = this.processHandlers(handlers, ctx, response)
             // Wait for async handlers to complete
             if (result !== null && result !== undefined && typeof (result as Promise<unknown>).then === 'function') {
               await result.catch((error: unknown) => {
@@ -575,7 +574,7 @@ export class WooksHttp extends WooksAdapterBase {
               })
             }
           } else {
-            // No route matched and no onNotFound — return null so callers
+            // No route matched — return null so callers
             // (e.g. Vite SSR middleware) can pass through to the next handler
             return null
           }
@@ -592,11 +591,11 @@ export class WooksHttp extends WooksAdapterBase {
         // If handler used getRawRes() and wrote directly, build from captured data.
         // Otherwise use the normal HttpResponse capture path.
         let webResponse: Response
-        if (rawChunks.length > 0 || rawStatusCode > 0) {
-          const body = Buffer.concat(rawChunks)
-          webResponse = new Response(body.length > 0 ? body : null, {
+        if (rawChunks || rawStatusCode > 0) {
+          const body = rawChunks ? Buffer.concat(rawChunks) : null
+          webResponse = new Response(body && body.length > 0 ? body : null, {
             status: rawStatusCode || 200,
-            headers: recordToWebHeaders(rawHeaders),
+            headers: rawHeaders ? recordToWebHeaders(rawHeaders) : undefined,
           })
         } else {
           webResponse = response.toWebResponse()
@@ -640,13 +639,22 @@ export class WooksHttp extends WooksAdapterBase {
   }
 }
 
+// Minimal socket stand-in for programmatic fetch — avoids per-request Socket allocation.
+// Must extend Duplex so IncomingMessage._destroy's eos() call accepts it as a Stream.
+class NoopSocket extends Duplex {
+  readonly remoteAddress = '127.0.0.1'
+  _read(): void { /* noop */ }
+  _write(_chunk: unknown, _enc: string, cb: () => void): void { cb() }
+}
+const NOOP_SOCKET = new NoopSocket() as unknown as ConstructorParameters<typeof IncomingMessage>[0]
+
 function createFakeIncomingMessage(
   request: Request,
   pathname: string,
   forwardFrom?: IncomingMessage,
   forwardHeaders?: string[] | false,
 ): IncomingMessage {
-  const req = new IncomingMessage(new Socket({}))
+  const req = new IncomingMessage(NOOP_SOCKET)
   req.method = request.method
   req.url = pathname
 
@@ -665,9 +673,9 @@ function createFakeIncomingMessage(
   }
 
   // Programmatic Request headers take precedence
-  request.headers.forEach((value, key) => {
+  for (const [key, value] of request.headers) {
     headers[key] = value
-  })
+  }
 
   req.headers = headers
   return req

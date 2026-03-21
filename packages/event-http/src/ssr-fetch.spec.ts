@@ -17,6 +17,12 @@ function createApp(opts?: TWooksHttpOptions) {
   return createHttpApp(opts, new Wooks())
 }
 
+/** Assert non-null response for tests that expect a matched route. */
+function ok(res: Response | null): Response {
+  expect(res).not.toBeNull()
+  return res!
+}
+
 const logger = {
   info: () => {},
   warn: () => {},
@@ -168,7 +174,7 @@ describe('HttpResponse capture mode', () => {
     const original = { users: [{ id: 1 }], meta: { total: 1 } }
     app.get('/data', () => original)
 
-    const res = await app.request('/data')
+    const res = ok(await app.request('/data'))
     const json = await res.json()
     expect(json).toBe(original)
   })
@@ -177,7 +183,7 @@ describe('HttpResponse capture mode', () => {
     const app = createApp()
     app.get('/txt', () => 'hello from handler')
 
-    const res = await app.request('/txt')
+    const res = ok(await app.request('/txt'))
     expect(await res.text()).toBe('hello from handler')
   })
 })
@@ -189,7 +195,7 @@ describe('WooksHttp.fetch() / request()', () => {
     const app = createApp()
     app.get('/hello', () => 'Hello World!')
 
-    const res = await app.request('/hello')
+    const res = ok(await app.request('/hello'))
     expect(res.status).toBe(200)
     expect(await res.text()).toBe('Hello World!')
   })
@@ -198,7 +204,7 @@ describe('WooksHttp.fetch() / request()', () => {
     const app = createApp()
     app.get('/json', () => ({ message: 'ok' }))
 
-    const res = await app.request('/json')
+    const res = ok(await app.request('/json'))
     expect(res.status).toBe(200)
     expect(res.headers.get('content-type')).toBe('application/json')
     expect(await res.json()).toEqual({ message: 'ok' })
@@ -211,7 +217,7 @@ describe('WooksHttp.fetch() / request()', () => {
       return { id: params.id }
     })
 
-    const res = await app.request('/users/42')
+    const res = ok(await app.request('/users/42'))
     expect(await res.json()).toEqual({ id: '42' })
   })
 
@@ -223,11 +229,11 @@ describe('WooksHttp.fetch() / request()', () => {
       return JSON.parse(body.toString())
     })
 
-    const res = await app.request('/echo', {
+    const res = ok(await app.request('/echo', {
       method: 'POST',
       body: JSON.stringify({ name: 'Alice' }),
       headers: { 'content-type': 'application/json' },
-    })
+    }))
     expect(await res.json()).toEqual({ name: 'Alice' })
   })
 
@@ -237,7 +243,7 @@ describe('WooksHttp.fetch() / request()', () => {
       throw new HttpError(403, 'Forbidden')
     })
 
-    const res = await app.request('/forbidden')
+    const res = ok(await app.request('/forbidden'))
     expect(res.status).toBe(403)
   })
 
@@ -250,7 +256,7 @@ describe('WooksHttp.fetch() / request()', () => {
       return 'ok'
     })
 
-    const res = await app.request('/headers')
+    const res = ok(await app.request('/headers'))
     expect(res.headers.get('x-custom')).toBe('value')
     const setCookies = res.headers.getSetCookie()
     expect(setCookies.some(c => c.includes('session=abc'))).toBe(true)
@@ -262,18 +268,17 @@ describe('WooksHttp.fetch() / request()', () => {
     expect(res).toBeNull()
   })
 
-  it('onNotFound handler works', async () => {
+  it('onNotFound is ignored by fetch() — returns null for unmatched routes', async () => {
     const app = createApp({ onNotFound: () => 'custom 404' })
     const res = await app.request('/nope')
-    expect(res.status).toBe(200)
-    expect(await res.text()).toBe('custom 404')
+    expect(res).toBeNull()
   })
 
   it('content-length is set for regular bodies', async () => {
     const app = createApp()
     app.get('/len', () => 'test')
 
-    const res = await app.request('/len')
+    const res = ok(await app.request('/len'))
     expect(res.headers.get('content-length')).toBe(
       Buffer.byteLength('test').toString(),
     )
@@ -283,7 +288,7 @@ describe('WooksHttp.fetch() / request()', () => {
     const app = createApp()
     app.get('/foo', () => 'bar')
 
-    const res = await app.request('foo')
+    const res = ok(await app.request('foo'))
     expect(res.status).toBe(200)
     expect(await res.text()).toBe('bar')
   })
@@ -292,7 +297,7 @@ describe('WooksHttp.fetch() / request()', () => {
     const app = createApp()
     app.get('/abs', () => 'absolute')
 
-    const res = await app.request('http://example.com/abs')
+    const res = ok(await app.request('http://example.com/abs'))
     expect(await res.text()).toBe('absolute')
   })
 
@@ -300,7 +305,7 @@ describe('WooksHttp.fetch() / request()', () => {
     const app = createApp()
     app.get('/fetch-test', () => 'fetched')
 
-    const res = await app.fetch(new Request('http://localhost/fetch-test'))
+    const res = ok(await app.fetch(new Request('http://localhost/fetch-test')))
     expect(await res.text()).toBe('fetched')
   })
 
@@ -311,7 +316,7 @@ describe('WooksHttp.fetch() / request()', () => {
       return 'async result'
     })
 
-    const res = await app.request('/async')
+    const res = ok(await app.request('/async'))
     expect(await res.text()).toBe('async result')
   })
 
@@ -320,8 +325,8 @@ describe('WooksHttp.fetch() / request()', () => {
     app.get('/a', () => 'response-a')
     app.get('/b', () => 'response-b')
 
-    const resA = await app.request('/a')
-    const resB = await app.request('/b')
+    const resA = ok(await app.request('/a'))
+    const resB = ok(await app.request('/b'))
     expect(await resA.text()).toBe('response-a')
     expect(await resB.text()).toBe('response-b')
   })
@@ -334,7 +339,7 @@ describe('WooksHttp.fetch() / request()', () => {
       res.end('raw body')
     })
 
-    const res = await app.request('/raw')
+    const res = ok(await app.request('/raw'))
     expect(res.status).toBe(200)
     expect(res.headers.get('content-type')).toBe('text/plain')
     expect(res.headers.get('x-raw')).toBe('yes')
@@ -351,7 +356,7 @@ describe('WooksHttp.fetch() / request()', () => {
       res.end('chunk3')
     })
 
-    const res = await app.request('/chunked')
+    const res = ok(await app.request('/chunked'))
     expect(await res.text()).toBe('chunk1chunk2chunk3')
   })
 
@@ -364,7 +369,7 @@ describe('WooksHttp.fetch() / request()', () => {
       res.end(data)
     })
 
-    const res = await app.request('/raw-json')
+    const res = ok(await app.request('/raw-json'))
     expect(await res.json()).toEqual({ raw: true })
   })
 })
@@ -375,7 +380,7 @@ describe('SSR header forwarding', () => {
   it('forwards authorization header from calling context', async () => {
     const app = createApp()
     app.get('/page', async () => {
-      const res = await app.request('/api/auth')
+      const res = ok(await app.request('/api/auth'))
       return res.json()
     })
     app.get('/api/auth', () => {
@@ -383,16 +388,16 @@ describe('SSR header forwarding', () => {
       return { auth: authorization }
     })
 
-    const res = await app.request('/page', {
+    const res = ok(await app.request('/page', {
       headers: { authorization: 'Bearer tok123' },
-    })
+    }))
     expect(await res.json()).toEqual({ auth: 'Bearer tok123' })
   })
 
   it('forwards cookie header from calling context', async () => {
     const app = createApp()
     app.get('/page', async () => {
-      const res = await app.request('/api/cookies')
+      const res = ok(await app.request('/api/cookies'))
       return res.json()
     })
     app.get('/api/cookies', () => {
@@ -400,18 +405,18 @@ describe('SSR header forwarding', () => {
       return { session: getCookie('session') }
     })
 
-    const res = await app.request('/page', {
+    const res = ok(await app.request('/page', {
       headers: { cookie: 'session=xyz789' },
-    })
+    }))
     expect(await res.json()).toEqual({ session: 'xyz789' })
   })
 
   it('programmatic headers override forwarded headers', async () => {
     const app = createApp()
     app.get('/page', async () => {
-      const res = await app.request('/api/auth', {
+      const res = ok(await app.request('/api/auth', {
         headers: { authorization: 'Bearer override' },
-      })
+      }))
       return res.json()
     })
     app.get('/api/auth', () => {
@@ -419,16 +424,16 @@ describe('SSR header forwarding', () => {
       return { auth: authorization }
     })
 
-    const res = await app.request('/page', {
+    const res = ok(await app.request('/page', {
       headers: { authorization: 'Bearer original' },
-    })
+    }))
     expect(await res.json()).toEqual({ auth: 'Bearer override' })
   })
 
   it('forwardHeaders: false disables forwarding', async () => {
     const app = createApp({ forwardHeaders: false })
     app.get('/page', async () => {
-      const res = await app.request('/api/auth')
+      const res = ok(await app.request('/api/auth'))
       return res.json()
     })
     app.get('/api/auth', () => {
@@ -436,16 +441,16 @@ describe('SSR header forwarding', () => {
       return { auth: authorization || null }
     })
 
-    const res = await app.request('/page', {
+    const res = ok(await app.request('/page', {
       headers: { authorization: 'Bearer secret' },
-    })
+    }))
     expect(await res.json()).toEqual({ auth: null })
   })
 
   it('custom forwardHeaders list is respected', async () => {
     const app = createApp({ forwardHeaders: ['x-custom-auth'] })
     app.get('/page', async () => {
-      const res = await app.request('/api/check')
+      const res = ok(await app.request('/api/check'))
       return res.json()
     })
     app.get('/api/check', () => {
@@ -456,12 +461,12 @@ describe('SSR header forwarding', () => {
       }
     })
 
-    const res = await app.request('/page', {
+    const res = ok(await app.request('/page', {
       headers: {
         'x-custom-auth': 'custom-token',
         authorization: 'Bearer should-not-forward',
       },
-    })
+    }))
     const json = await res.json()
     expect(json.customAuth).toBe('custom-token')
     expect(json.authorization).toBe(null)
