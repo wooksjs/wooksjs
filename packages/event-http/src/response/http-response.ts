@@ -274,8 +274,11 @@ export class HttpResponse {
       this._headers['content-length'] = contentLength.toString()
     }
 
+    const webBody = method === 'HEAD' ? null
+      : rendered instanceof Uint8Array ? rendered.buffer as ArrayBuffer
+      : rendered || null
     const webResponse = new globalThis.Response(
-      method === 'HEAD' ? null : (rendered || null),
+      webBody,
       { status: this._status, headers: this._buildWebHeaders() },
     )
 
