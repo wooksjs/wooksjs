@@ -1,6 +1,6 @@
 {
   "name": "@wooksjs/event-ws",
-  "version": "0.7.6",
+  "version": "0.7.7",
   "description": "WebSocket adapter for Wooks with path-based message routing, rooms, and broadcasting",
   "keywords": [
     "api",
