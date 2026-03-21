@@ -1,3 +1,17 @@
+## [0.7.6](https://github.com/wooksjs/wooksjs/compare/v0.7.5...v0.7.6) (2026-03-21)
+
+
+### Bug Fixes
+
+* resolve Uint8Array BodyInit type error in toWebResponse() ([d49a198](https://github.com/wooksjs/wooksjs/commit/d49a198228e3487722ba98a128bc07b9e9a3dfaa))
+
+
+### Features
+
+* return null for unmatched routes in fetch() and add onNoMatch callback to getServerCb() ([c8f3b8b](https://github.com/wooksjs/wooksjs/commit/c8f3b8bc515e0ad14818e208fa5cc56cc6c4117c))
+
+
+
 ## [0.7.5](https://github.com/wooksjs/wooksjs/compare/v0.7.4...v0.7.5) (2026-03-21)
 
 
