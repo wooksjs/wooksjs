@@ -3,6 +3,7 @@ export { key, cached } from './key'
 export { cachedBy } from './cached-by'
 export { slot, defineEventKind } from './kind'
 export { defineWook } from './wook'
+export type { WookComposable } from './wook'
 
 // context
 export { EventContext } from './context'

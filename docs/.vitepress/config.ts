@@ -207,6 +207,14 @@ export default defineConfig({
                             ],
                         },
                         {
+                            text: 'Programmatic Fetch',
+                            link: '/webapp/fetch',
+                        },
+                        {
+                            text: 'Testing',
+                            link: '/webapp/testing',
+                        },
+                        {
                             text: 'Advanced',
                             collapsed: true,
                             items: [

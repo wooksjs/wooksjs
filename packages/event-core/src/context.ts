@@ -48,6 +48,18 @@ export class EventContext {
   }
 
   /**
+   * Controls whether `get()`, `has()`, and `set()` traverse the parent chain
+   * for a given slot. Override in subclasses to isolate specific slots —
+   * returning `false` forces local computation/storage, preventing inheritance.
+   *
+   * @param _id - The numeric slot identifier (`accessor._id`)
+   * @returns `true` to allow parent traversal (default), `false` to block it
+   */
+  protected _shouldTraverseParent(_id: number): boolean {
+    return true
+  }
+
+  /**
    * Reads a value from a typed slot.
    * - For `Key<T>`: returns the previously `set` value, checking parent chain if not found locally.
    * - For `Cached<T>`: returns a cached result from this context or any parent. If not found
@@ -58,8 +70,8 @@ export class EventContext {
     const id = accessor._id
     let val = this.slots.get(id)
 
-    // Try parent chain if not found locally
-    if (val === undefined && this.parent) {
+    // Try parent chain if not found locally and not isolated
+    if (val === undefined && this.parent && this._shouldTraverseParent(id)) {
       val = this.parent._findSlot(id)
     }
 
@@ -103,8 +115,8 @@ export class EventContext {
       this.slots.set(key._id, encoded)
       return
     }
-    // Try to write to a parent that has it
-    if (this.parent && this.parent._setIfExists(key._id, encoded)) {
+    // Try to write to a parent that has it (unless isolated)
+    if (this.parent && this._shouldTraverseParent(key._id) && this.parent._setIfExists(key._id, encoded)) {
       return
     }
     // Not found in chain — write locally
@@ -119,7 +131,10 @@ export class EventContext {
     if (val !== undefined && val !== COMPUTING) {
       return true
     }
-    return this.parent?.has(accessor) ?? false
+    if (this.parent && this._shouldTraverseParent(accessor._id)) {
+      return this.parent.has(accessor)
+    }
+    return false
   }
 
   /**

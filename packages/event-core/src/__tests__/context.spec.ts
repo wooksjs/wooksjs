@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { key, cached, EventContext } from '../index'
 
+import { IsolatedContext } from './test-helpers'
+
 const logger = {
   info: () => {},
   warn: () => {},
@@ -394,6 +396,116 @@ describe('EventContext', () => {
         const ctx = new EventContext({ logger })
         expect(ctx.parent).toBeUndefined()
       })
+    })
+  })
+
+  describe('_shouldTraverseParent isolation', () => {
+    it('get() re-computes isolated cached slot instead of inheriting', () => {
+      let calls = 0
+      const c = cached(() => {
+        calls++
+        return `result-${calls}`
+      })
+
+      const parent = new EventContext({ logger })
+      parent.get(c)
+      expect(calls).toBe(1)
+
+      const child = new IsolatedContext({ logger, parent }, [c])
+      const val = child.get(c)
+      expect(calls).toBe(2)
+      expect(val).toBe('result-2')
+    })
+
+    it('get() still inherits non-isolated slots from parent', () => {
+      let calls = 0
+      const c = cached(() => {
+        calls++
+        return 'computed'
+      })
+
+      const parent = new EventContext({ logger })
+      parent.get(c)
+      expect(calls).toBe(1)
+
+      const child = new IsolatedContext({ logger, parent }, [])
+      expect(child.get(c)).toBe('computed')
+      expect(calls).toBe(1)
+    })
+
+    it('has() returns false for isolated slot even when parent has it', () => {
+      const k = key<string>('k')
+      const parent = new EventContext({ logger })
+      parent.set(k, 'val')
+
+      const child = new IsolatedContext({ logger, parent }, [k])
+      expect(child.has(k)).toBe(false)
+      expect(child.hasOwn(k)).toBe(false)
+    })
+
+    it('set() writes locally for isolated slot instead of to parent', () => {
+      const k = key<string>('k')
+      const parent = new EventContext({ logger })
+      parent.set(k, 'original')
+
+      const child = new IsolatedContext({ logger, parent }, [k])
+      child.set(k, 'child-val')
+
+      expect(child.getOwn(k)).toBe('child-val')
+      expect(parent.get(k)).toBe('original')
+    })
+
+    it('isolated cached factory reads child local keys when both are isolated', () => {
+      const name = key<string>('name')
+      const greeting = cached((ctx) => `hello ${ctx.get(name)}`)
+
+      const parent = new EventContext({ logger })
+      parent.set(name, 'parent-world')
+      parent.get(greeting)
+
+      // Isolate greeting but NOT name — name still inherited from parent
+      const child1 = new IsolatedContext({ logger, parent }, [greeting])
+      expect(child1.get(greeting)).toBe('hello parent-world')
+
+      // Isolate both — child sets name locally
+      const child2 = new IsolatedContext({ logger, parent }, [greeting, name])
+      child2.setOwn(name, 'child-world')
+      expect(child2.get(greeting)).toBe('hello child-world')
+    })
+
+    it('mixed isolation: some slots isolated, others inherited', () => {
+      const a = key<string>('a')
+      const b = key<string>('b')
+      let cCalls = 0
+      const c = cached(() => {
+        cCalls++
+        return 'computed-c'
+      })
+
+      const parent = new EventContext({ logger })
+      parent.set(a, 'parent-a')
+      parent.set(b, 'parent-b')
+      parent.get(c)
+
+      const child = new IsolatedContext({ logger, parent }, [a, c])
+
+      // b inherits from parent
+      expect(child.get(b)).toBe('parent-b')
+      expect(child.has(b)).toBe(true)
+
+      // a is isolated — not visible from parent
+      expect(child.has(a)).toBe(false)
+      expect(() => child.get(a)).toThrow('Key "a" is not set')
+
+      // c is isolated — re-computes
+      expect(cCalls).toBe(1)
+      expect(child.get(c)).toBe('computed-c')
+      expect(cCalls).toBe(2)
+
+      // set on isolated a writes locally, not to parent
+      child.set(a, 'child-a')
+      expect(child.getOwn(a)).toBe('child-a')
+      expect(parent.get(a)).toBe('parent-a')
     })
   })
 })

@@ -46,6 +46,7 @@ export class HttpResponse {
     protected readonly _req: IncomingMessage,
     protected readonly _logger: Logger,
     defaultHeaders?: Record<string, string | string[]>,
+    protected readonly _captureMode = false,
   ) {
     if (defaultHeaders) {
       for (const key in defaultHeaders) {
@@ -227,6 +228,80 @@ export class HttpResponse {
     return this._responded || !this._res.writable || this._res.writableEnded
   }
 
+  // --- Web Response (programmatic fetch) ---
+
+  /**
+   * Builds a Web Standard `Response` from the accumulated response state
+   * (status, headers, cookies, body) without writing to the underlying `ServerResponse`.
+   *
+   * Used by `WooksHttp.fetch()` for programmatic invocation.
+   */
+  toWebResponse(): Response {
+    this.finalizeCookies()
+
+    const body = this._body
+    const method = this._req.method
+
+    // Stream body
+    if (body instanceof Readable) {
+      this.autoStatus(true)
+      return new globalThis.Response(
+        method === 'HEAD' ? null : Readable.toWeb(body) as ReadableStream,
+        { status: this._status, headers: this._buildWebHeaders() },
+      )
+    }
+
+    // Fetch Response passthrough
+    if (hasFetchResponse && body instanceof globalThis.Response) {
+      this._status = this._status || (body.status as EHttpStatusCode)
+      body.headers.forEach((v, k) => {
+        if (!this._headers[k]) {
+          this._headers[k] = v
+        }
+      })
+      return new globalThis.Response(
+        method === 'HEAD' ? null : body.body,
+        { status: this._status, headers: this._buildWebHeaders() },
+      )
+    }
+
+    // Regular body — renderBody() may set content-type on this._headers
+    const rendered = this.renderBody()
+    this.autoStatus(!!rendered)
+    if (rendered) {
+      const contentLength =
+        typeof rendered === 'string' ? Buffer.byteLength(rendered) : rendered.byteLength
+      this._headers['content-length'] = contentLength.toString()
+    }
+
+    const webResponse = new globalThis.Response(
+      method === 'HEAD' ? null : (rendered || null),
+      { status: this._status, headers: this._buildWebHeaders() },
+    )
+
+    // Override text()/json() to return pre-computed values directly,
+    // avoiding redundant stream reads and JSON.parse round-trips for in-process consumers
+    if (typeof rendered === 'string' && rendered) {
+      webResponse.text = () => Promise.resolve(rendered)
+    }
+    if (
+      typeof body === 'object'
+      && body !== null
+      && !(body instanceof Uint8Array)
+      && !(body instanceof Readable)
+      && !(hasFetchResponse && body instanceof globalThis.Response)
+    ) {
+      const original = body
+      webResponse.json = () => Promise.resolve(original)
+    }
+
+    return webResponse
+  }
+
+  private _buildWebHeaders(): Headers {
+    return recordToWebHeaders(this._headers)
+  }
+
   // --- Rendering (overridable) ---
 
   protected renderBody(): string | Uint8Array {
@@ -289,6 +364,12 @@ export class HttpResponse {
     }
     this._responded = true
 
+    // Capture mode: finalize state but don't write to socket
+    if (this._captureMode) {
+      this.finalizeCookies()
+      return
+    }
+
     // Render cookies into headers
     this.finalizeCookies()
 
@@ -334,6 +415,7 @@ export class HttpResponse {
         this._headers['set-cookie'] = rendered
       }
     }
+    this._hasCookies = false
   }
 
   private autoStatus(hasBody: boolean): void {
@@ -420,4 +502,19 @@ export class HttpResponse {
 
     this._res.writeHead(this._status, this._headers).end(method === 'HEAD' ? '' : renderedBody)
   }
+}
+
+/** Converts a Record of headers to a Web Standard `Headers` object. */
+export function recordToWebHeaders(record: Record<string, string | string[]>): Headers {
+  const headers = new Headers()
+  for (const [key, value] of Object.entries(record)) {
+    if (Array.isArray(value)) {
+      for (const v of value) {
+        headers.append(key, v)
+      }
+    } else if (value) {
+      headers.set(key, value)
+    }
+  }
+  return headers
 }

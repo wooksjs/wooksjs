@@ -1,19 +1,31 @@
 import type { TConsoleBase } from '@prostojs/logger'
-import { current } from '@wooksjs/event-core'
+import { current, tryGetCurrent } from '@wooksjs/event-core'
 import type { EventContext, EventContextOptions } from '@wooksjs/event-core'
-import type { IncomingMessage, Server, ServerResponse } from 'http'
-import http from 'http'
+import { Buffer } from 'buffer'
+import http, { IncomingMessage, ServerResponse } from 'http'
+import type { Server } from 'http'
+import { Socket } from 'net'
 import type { ListenOptions } from 'net'
 import type { Duplex } from 'stream'
 import type { TWooksHandler, TWooksOptions, Wooks, WooksUpgradeHandler } from 'wooks'
 import { WooksAdapterBase } from 'wooks'
 
+import { rawBodySlot } from './composables/request'
 import { HttpError } from './errors'
 import { createHttpContext } from './event-http'
 import { httpKind } from './http-kind'
 import type { HttpResponse } from './response/http-response'
+import { recordToWebHeaders } from './response/http-response'
 import { WooksHttpResponse } from './response/wooks-http-response'
 import type { TRequestLimits } from './types'
+
+const DEFAULT_FORWARD_HEADERS = [
+  'authorization',
+  'cookie',
+  'accept-language',
+  'x-forwarded-for',
+  'x-request-id',
+]
 
 /** Configuration options for the WooksHttp adapter. */
 export interface TWooksHttpOptions {
@@ -26,6 +38,12 @@ export interface TWooksHttpOptions {
   responseClass?: typeof WooksHttpResponse
   /** Default headers applied to every response. Use `securityHeaders()` for recommended security headers. */
   defaultHeaders?: Record<string, string | string[]>
+  /**
+   * Headers forwarded from the calling HTTP context during programmatic `fetch()`.
+   * Set to `false` to disable forwarding entirely.
+   * @default ['authorization', 'cookie', 'accept-language', 'x-forwarded-for', 'x-request-id']
+   */
+  forwardHeaders?: string[] | false
 }
 
 /** HTTP adapter for Wooks that provides route registration, server lifecycle, and request handling. */
@@ -439,6 +457,217 @@ export class WooksHttp extends WooksAdapterBase {
       }
     }
   }
+
+  /**
+   * Programmatic route invocation using the Web Standard fetch API.
+   * Goes through the full dispatch pipeline: context creation, route matching,
+   * handler execution, response finalization.
+   *
+   * When called from within an existing HTTP context (e.g. during SSR),
+   * identity headers (authorization, cookie) are automatically forwarded
+   * from the calling request unless already present on the given Request.
+   *
+   * @param request - A Web Standard Request object.
+   * @returns A Web Standard Response.
+   */
+  async fetch(request: Request): Promise<Response> {
+    const url = new URL(request.url)
+    const method = request.method
+    const pathname = url.pathname + url.search
+
+    // Detect calling context for header forwarding
+    const callerCtx = tryGetCurrent()
+    let callerReq: IncomingMessage | undefined
+    if (callerCtx) {
+      try {
+        callerReq = callerCtx.get(httpKind.keys.req)
+      } catch {
+        // Not in an HTTP context — skip forwarding
+      }
+    }
+
+    // Build synthetic Node.js request
+    const fakeReq = createFakeIncomingMessage(
+      request,
+      pathname,
+      callerReq,
+      this.opts?.forwardHeaders,
+    )
+    const fakeRes = new ServerResponse(fakeReq)
+
+    // Intercept direct writes to the ServerResponse so handlers using
+    // getRawRes() still produce a valid Web Response from captured data
+    const rawChunks: Buffer[] = []
+    const rawHeaders: Record<string, string | string[]> = {}
+    let rawStatusCode = 0
+    fakeRes.writeHead = ((...args: unknown[]): ServerResponse => {
+      rawStatusCode = args[0] as number
+      // writeHead(code, headers) or writeHead(code, reason, headers)
+      for (const arg of args) {
+        if (typeof arg === 'object' && arg !== null) {
+          for (const [k, v] of Object.entries(arg as Record<string, string | string[]>)) {
+            rawHeaders[k] = v
+          }
+        }
+      }
+      return fakeRes
+    }) as typeof fakeRes.writeHead
+    fakeRes.write = ((chunk: unknown, ...args: unknown[]): boolean => {
+      if (chunk !== null && chunk !== undefined) {
+        rawChunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk as Buffer)
+      }
+      const cb = args.find(a => typeof a === 'function') as (() => void) | undefined
+      if (cb) { cb() }
+      return true
+    }) as typeof fakeRes.write
+    fakeRes.end = ((chunk?: unknown, ...args: unknown[]): ServerResponse => {
+      if (chunk !== null && chunk !== undefined && typeof chunk !== 'function') {
+        rawChunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk as Buffer)
+      }
+      const cb = args.find(a => typeof a === 'function') as (() => void) | undefined
+      if (cb) { cb() }
+      return fakeRes
+    }) as typeof fakeRes.end
+
+    const response = new this.ResponseClass(
+      fakeRes, fakeReq, this.logger, this.opts?.defaultHeaders, true,
+    )
+
+    // Pre-read body if present
+    let bodyBuffer: Buffer | undefined
+    if (request.body) {
+      bodyBuffer = Buffer.from(await request.bytes())
+    }
+
+    const ctxOptions = this.eventContextOptions
+    const requestLimits = this.opts?.requestLimits
+    const notFoundHandler = this.opts?.onNotFound
+
+    return createHttpContext(
+      ctxOptions,
+      { req: fakeReq, response, requestLimits },
+      async () => {
+        const ctx = current()
+
+        // Seed body (same pattern as prepareTestHttpContext)
+        if (bodyBuffer) {
+          ctx.set(rawBodySlot, Promise.resolve(bodyBuffer))
+        }
+
+        try {
+          // Route lookup (seeds routeParams into ctx via wooks.lookupHandlers)
+          const handlers = this.wooks.lookupHandlers(method, pathname, ctx)
+
+          if (handlers || notFoundHandler) {
+            const result = this.processHandlers(
+              handlers || [notFoundHandler as TWooksHandler],
+              ctx,
+              response,
+            )
+            // Wait for async handlers to complete
+            if (result !== null && result !== undefined && typeof (result as Promise<unknown>).then === 'function') {
+              await result.catch((error: unknown) => {
+                if (!response.responded) {
+                  this.respond(error, response, ctx)
+                }
+              })
+            }
+          } else {
+            const error = new HttpError(404)
+            this.respond(error, response, ctx)
+          }
+        } finally {
+          // Emit 'end' then 'close' on the fake request — critical for Moost's
+          // manualUnscope pattern where handlers bind raw.on('end', unscope).
+          // Order matches real Node.js HTTP: 'end' when data consumed, 'close' after socket.
+          fakeReq.emit('end')
+          fakeReq.emit('close')
+        }
+
+        // If handler used getRawRes() and wrote directly, build from captured data.
+        // Otherwise use the normal HttpResponse capture path.
+        let webResponse: Response
+        if (rawChunks.length > 0 || rawStatusCode > 0) {
+          const body = Buffer.concat(rawChunks)
+          webResponse = new Response(body.length > 0 ? body : null, {
+            status: rawStatusCode || 200,
+            headers: recordToWebHeaders(rawHeaders),
+          })
+        } else {
+          webResponse = response.toWebResponse()
+        }
+
+        // Auto-propagate set-cookie headers to the parent response
+        // so session cookies set by inner API calls reach the browser
+        if (callerReq) {
+          try {
+            const parentResponse = callerCtx?.get(httpKind.keys.response)
+            if (parentResponse) {
+              for (const cookie of webResponse.headers.getSetCookie()) {
+                parentResponse.setCookieRaw(cookie)
+              }
+            }
+          } catch {
+            // Parent context has no response slot (e.g. workflow/CLI context)
+          }
+        }
+
+        fakeReq.destroy()
+        fakeRes.destroy()
+        return webResponse
+      },
+    )
+  }
+
+  /**
+   * Convenience wrapper for programmatic route invocation.
+   * Accepts a URL string (relative paths auto-prefixed with `http://localhost`),
+   * URL object, or Request, plus optional `RequestInit`.
+   *
+   * @param input - URL string, URL object, or Request.
+   * @param init - Optional RequestInit (method, headers, body, etc.).
+   * @returns A Web Standard Response.
+   */
+  request(input: string | URL | Request, init?: RequestInit): Promise<Response> {
+    if (typeof input === 'string' && !input.startsWith('http://') && !input.startsWith('https://')) {
+      input = `http://localhost${input.startsWith('/') ? '' : '/'}${input}`
+    }
+    const req = input instanceof Request ? input : new Request(input, init)
+    return this.fetch(req)
+  }
+}
+
+function createFakeIncomingMessage(
+  request: Request,
+  pathname: string,
+  forwardFrom?: IncomingMessage,
+  forwardHeaders?: string[] | false,
+): IncomingMessage {
+  const req = new IncomingMessage(new Socket({}))
+  req.method = request.method
+  req.url = pathname
+
+  // Start with forwarded headers from calling context (if any)
+  const headers: Record<string, string> = {}
+  if (forwardFrom && forwardHeaders !== false) {
+    const headerList = Array.isArray(forwardHeaders)
+      ? forwardHeaders
+      : DEFAULT_FORWARD_HEADERS
+    for (const h of headerList) {
+      const val = forwardFrom.headers[h]
+      if (typeof val === 'string' && val) {
+        headers[h] = val
+      }
+    }
+  }
+
+  // Programmatic Request headers take precedence
+  request.headers.forEach((value, key) => {
+    headers[key] = value
+  })
+
+  req.headers = headers
+  return req
 }
 
 /**

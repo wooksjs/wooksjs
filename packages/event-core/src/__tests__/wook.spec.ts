@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { defineWook, slot, defineEventKind, cached, EventContext, run } from '../index'
 
+import { IsolatedContext } from './test-helpers'
+
 const logger = {
   info: () => {},
   warn: () => {},
@@ -90,5 +92,44 @@ describe('defineWook', () => {
       expect(body1).toBe(body2) // same cached object
       expect(parseCalls).toBe(1)
     })
+  })
+
+  it('exposes _slot as a Cached accessor', () => {
+    const useFoo = defineWook(() => ({ value: 42 }))
+    expect(useFoo._slot).toBeDefined()
+    expect(typeof useFoo._slot._id).toBe('number')
+    expect(typeof useFoo._slot._fn).toBe('function')
+  })
+
+  it('_slot can be used to isolate a wook in a child context', () => {
+    let factoryCalls = 0
+    const useReq = defineWook((ctx) => {
+      factoryCalls++
+      return {
+        method: ctx.get(http.keys.method),
+        path: ctx.get(http.keys.path),
+      }
+    })
+
+    const parent = new EventContext({ logger })
+    parent.seed(http, { method: 'GET', path: '/parent' })
+    run(parent, () => {
+      const req = useReq()
+      expect(req.method).toBe('GET')
+      expect(req.path).toBe('/parent')
+    })
+    expect(factoryCalls).toBe(1)
+
+    // Child isolates the wook's slot so it re-computes with child's keys
+    const child = new IsolatedContext({ logger, parent }, [useReq._slot])
+    child.setOwn(http.keys.method, 'POST')
+    child.setOwn(http.keys.path, '/child')
+
+    run(child, () => {
+      const req = useReq()
+      expect(req.method).toBe('POST')
+      expect(req.path).toBe('/child')
+    })
+    expect(factoryCalls).toBe(2)
   })
 })
