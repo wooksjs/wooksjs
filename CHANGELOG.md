@@ -1,3 +1,12 @@
+## [0.7.7](https://github.com/wooksjs/wooksjs/compare/v0.7.6...v0.7.7) (2026-03-21)
+
+
+### Features
+
+* onNoMatch priority over onNotFound, lazy allocations, NoopSocket singleton ([7aaec18](https://github.com/wooksjs/wooksjs/commit/7aaec1825486973bc0a510461eaf67d52f841e5a))
+
+
+
 ## [0.7.6](https://github.com/wooksjs/wooksjs/compare/v0.7.5...v0.7.6) (2026-03-21)
 
 
