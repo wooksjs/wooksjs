@@ -655,11 +655,13 @@ Handlers that call `useResponse()` to manipulate headers, status, or cookies dir
 
 ### Handler accessing `getRawRes()`
 
-Throws an error in capture mode (see Step 1). Handlers that bypass the response abstraction to write directly to the transport are inherently transport-specific. This matches the limitation in Hono and H3.
+Handlers that call `getRawRes()` and write directly to the `ServerResponse` work during programmatic fetch. The `writeHead`/`write`/`end` methods on the fake `ServerResponse` are intercepted to capture status, headers, and body chunks. The captured data is assembled into a Web `Response`. Cookie auto-propagation does not apply to this path — use `response.setCookie()` for SSR-compatible cookie handling.
 
 ### `onNotFound` handler
 
-The `notFoundHandler` is processed through the same `processHandlers()` pipeline, so it works identically in `fetch()` mode. 404 responses go through interceptors and are captured via `toWebResponse()`.
+When an `onNotFound` handler is configured, it is processed through the same `processHandlers()` pipeline, so it works identically in `fetch()` mode — the result is captured via `toWebResponse()`.
+
+When **no** `onNotFound` handler is configured and no route matches, `fetch()` returns `null` instead of a 404 response. This allows callers (e.g., Vite SSR middleware) to distinguish "no route exists" from "a handler explicitly threw `HttpError(404)`" and pass through to the next middleware.
 
 ### Context injector / OpenTelemetry
 
@@ -685,13 +687,13 @@ Test that `HttpResponse.toWebResponse()` correctly captures:
 - Cookies (rendered into `set-cookie` headers via `finalizeCookies`)
 - Body types: string → text/plain, object → JSON with content-length, Buffer → raw, Readable → ReadableStream
 - Error responses (HttpError → content-negotiated JSON/HTML/text with status code)
-- `_jsonData` optimization for object bodies
+- `json()` override returns original object for object bodies, `text()` override returns pre-rendered string
 
 ### Unit tests for capture mode
 
 - `send()` in capture mode does not call `writeHead()`/`end()` on the ServerResponse
 - `send()` in capture mode marks `_responded = true` and runs `finalizeCookies()`
-- `getRawRes()` throws in capture mode
+- `getRawRes()` works in capture mode — writes are intercepted and captured
 
 ### Unit tests for header forwarding
 
@@ -767,9 +769,9 @@ test('Response headers and cookies are captured', async () => {
   expect(res.headers.get('set-cookie')).toContain('session=abc')
 })
 
-test('404 for unmatched routes', async () => {
+test('null for unmatched routes', async () => {
   const res = await app.request('/nope')
-  expect(res.status).toBe(404)
+  expect(res).toBeNull()
 })
 
 test('content-length is set for regular bodies', async () => {
@@ -869,7 +871,7 @@ function createLocalFetch(httpAdapter: MoostHttp): typeof fetch {
 | File | Change |
 |------|--------|
 | `packages/event-http/src/response/http-response.ts` | `_captureMode` constructor param, capture guard in `send()`, `toWebResponse()`, `_buildWebHeaders()`, `recordToWebHeaders()`, `json()`/`text()` overrides, `finalizeCookies()` idempotency |
-| `packages/event-http/src/http-adapter.ts` | `fetch()`, `request()`, `createFakeIncomingMessage()`, `DEFAULT_FORWARD_HEADERS`, `forwardHeaders` option, ServerResponse write interception, cookie auto-propagation |
+| `packages/event-http/src/http-adapter.ts` | `fetch()` (returns `Response \| null`), `request()`, `getServerCb(onNoMatch?)`, `createFakeIncomingMessage()`, `DEFAULT_FORWARD_HEADERS`, `forwardHeaders` option, ServerResponse write interception, cookie auto-propagation |
 | `packages/event-http/src/ssr-fetch.spec.ts` | 50 tests: capture mode, integration, SSR forwarding, cookie propagation, response isolation, raw write capture, Moost compatibility |
 
 ### Future — Shared computation via context inheritance

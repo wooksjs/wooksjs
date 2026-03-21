@@ -256,10 +256,10 @@ describe('WooksHttp.fetch() / request()', () => {
     expect(setCookies.some(c => c.includes('session=abc'))).toBe(true)
   })
 
-  it('404 for unmatched routes', async () => {
+  it('returns null for unmatched routes (no onNotFound)', async () => {
     const app = createApp()
     const res = await app.request('/nope')
-    expect(res.status).toBe(404)
+    expect(res).toBeNull()
   })
 
   it('onNotFound handler works', async () => {

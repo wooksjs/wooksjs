@@ -256,7 +256,7 @@ export class WooksHttp extends WooksAdapterBase {
    * server.listen(3000)
    * ```
    */
-  getServerCb() {
+  getServerCb(onNoMatch?: (req: IncomingMessage, res: ServerResponse) => void) {
     const ctxOptions = this.eventContextOptions
     const RequestLimits = this.opts?.requestLimits
     const notFoundHandler = this.opts?.onNotFound
@@ -288,6 +288,8 @@ export class WooksHttp extends WooksAdapterBase {
             })
           }
           return result
+        } else if (onNoMatch) {
+          onNoMatch(req, res)
         } else {
           this.logger.debug(`404 Not found (${method})${url}`)
           const error = new HttpError(404)
@@ -468,9 +470,9 @@ export class WooksHttp extends WooksAdapterBase {
    * from the calling request unless already present on the given Request.
    *
    * @param request - A Web Standard Request object.
-   * @returns A Web Standard Response.
+   * @returns A Web Standard Response, or `null` if no route matched (and no `onNotFound` handler is set).
    */
-  async fetch(request: Request): Promise<Response> {
+  async fetch(request: Request): Promise<Response | null> {
     const url = new URL(request.url)
     const method = request.method
     const pathname = url.pathname + url.search
@@ -573,8 +575,9 @@ export class WooksHttp extends WooksAdapterBase {
               })
             }
           } else {
-            const error = new HttpError(404)
-            this.respond(error, response, ctx)
+            // No route matched and no onNotFound — return null so callers
+            // (e.g. Vite SSR middleware) can pass through to the next handler
+            return null
           }
         } finally {
           // Emit 'end' then 'close' on the fake request — critical for Moost's
@@ -582,6 +585,8 @@ export class WooksHttp extends WooksAdapterBase {
           // Order matches real Node.js HTTP: 'end' when data consumed, 'close' after socket.
           fakeReq.emit('end')
           fakeReq.emit('close')
+          fakeReq.destroy()
+          fakeRes.destroy()
         }
 
         // If handler used getRawRes() and wrote directly, build from captured data.
@@ -612,8 +617,6 @@ export class WooksHttp extends WooksAdapterBase {
           }
         }
 
-        fakeReq.destroy()
-        fakeRes.destroy()
         return webResponse
       },
     )
@@ -628,7 +631,7 @@ export class WooksHttp extends WooksAdapterBase {
    * @param init - Optional RequestInit (method, headers, body, etc.).
    * @returns A Web Standard Response.
    */
-  request(input: string | URL | Request, init?: RequestInit): Promise<Response> {
+  request(input: string | URL | Request, init?: RequestInit): Promise<Response | null> {
     if (typeof input === 'string' && !input.startsWith('http://') && !input.startsWith('https://')) {
       input = `http://localhost${input.startsWith('/') ? '' : '/'}${input}`
     }

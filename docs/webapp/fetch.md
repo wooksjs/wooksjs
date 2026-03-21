@@ -59,7 +59,7 @@ const res = await app.fetch(
 )
 ```
 
-Both methods return a standard `Response` object with status, headers, and body.
+Both methods return a standard `Response` object with status, headers, and body — or `null` if no route matched (see [Unmatched Routes](#unmatched-routes)).
 
 ## SSR Header Forwarding
 
@@ -217,6 +217,53 @@ When using `getRawRes()` during programmatic fetch:
 - **Cookie propagation** to the parent SSR response does not work — cookies written via `writeHead` are captured on the inner response but not auto-propagated. Use `response.setCookie()` instead for SSR-compatible cookie handling.
 - **`json()` / `text()` optimizations** do not apply — the response body is captured as raw bytes.
 :::
+
+## Unmatched Routes
+
+When no route matches and no `onNotFound` handler is configured, `fetch()` and `request()` return `null` instead of a 404 response. This lets callers distinguish "no route exists" from "a handler explicitly returned 404":
+
+```ts
+const res = await app.request('/maybe-exists')
+if (!res) {
+  // No route matched — handle accordingly
+}
+if (res.status === 404) {
+  // A handler matched but threw HttpError(404) — real 404
+}
+```
+
+If you configure `onNotFound`, it always runs for unmatched routes and produces a `Response`:
+
+```ts
+const app = createHttpApp({ onNotFound: () => 'custom 404 page' })
+const res = await app.request('/nope')
+// res is a Response with status 200, never null
+```
+
+## Middleware Integration
+
+### `getServerCb(onNoMatch?)`
+
+When integrating Wooks with another server (e.g., Vite dev server), pass an `onNoMatch` callback to `getServerCb()`. It receives the raw `req`/`res` when no Wooks route matches, allowing you to forward the request to the next middleware:
+
+```ts
+import { createServer } from 'http'
+import { createViteServer } from 'vite'
+import { createHttpApp } from '@wooksjs/event-http'
+
+const app = createHttpApp()
+const vite = await createViteServer({ server: { middlewareMode: true } })
+
+const server = createServer(
+  app.getServerCb((req, res) => {
+    // No Wooks route matched — let Vite handle it
+    vite.middlewares.handle(req, res)
+  })
+)
+server.listen(3000)
+```
+
+Without the callback, unmatched routes return a 404 response as usual — the standard behavior for standalone servers.
 
 ## Limitations
 

@@ -44,9 +44,9 @@ describe('Users API', () => {
     expect(await res.json()).toEqual({ created: true, name: 'Alice' })
   })
 
-  it('returns 404 for unknown routes', async () => {
+  it('returns null for unknown routes', async () => {
     const res = await app.request('/api/nope')
-    expect(res.status).toBe(404)
+    expect(res).toBeNull()
   })
 
   it('captures response headers and cookies', async () => {
