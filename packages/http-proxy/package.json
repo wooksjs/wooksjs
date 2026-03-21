@@ -1,6 +1,6 @@
 {
   "name": "@wooksjs/http-proxy",
-  "version": "0.7.5",
+  "version": "0.7.6",
   "description": "Proxy Wooks composable",
   "keywords": [
     "api",
