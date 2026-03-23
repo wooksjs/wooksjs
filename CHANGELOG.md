@@ -1,3 +1,12 @@
+## [0.7.8](https://github.com/wooksjs/wooksjs/compare/v0.7.7...v0.7.8) (2026-03-23)
+
+
+### Features
+
+* **event-wf:** add outlet system for HTTP/email workflow delivery ([082f229](https://github.com/wooksjs/wooksjs/commit/082f22926f5f9e9cf9979953d38818892a67608c))
+
+
+
 ## [0.7.7](https://github.com/wooksjs/wooksjs/compare/v0.7.6...v0.7.7) (2026-03-21)
 
 
