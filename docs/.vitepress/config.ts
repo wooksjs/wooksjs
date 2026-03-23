@@ -365,6 +365,10 @@ export default defineConfig({
                             text: 'HTTP Integration',
                             link: '/wf/http-integration',
                         },
+                        {
+                            text: 'Outlets',
+                            link: '/wf/outlets',
+                        },
                     ]
                 }],
         },

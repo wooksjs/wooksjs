@@ -157,7 +157,35 @@ You can combine both: inherit context for the initial `start()`, but rely on the
 
 ## Pause and Resume via HTTP API
 
-For workflows that pause for user input, expose endpoints for starting, checking status, and resuming:
+For workflows that pause for user input, you have two options:
+
+### Option 1: Outlets (Recommended)
+
+The **[outlets system](/wf/outlets)** handles state persistence, token management, and HTTP response building for you — a single endpoint handles both starting and resuming:
+
+```ts
+import {
+  createOutletHandler,
+  createHttpOutlet,
+  HandleStateStrategy,
+  WfStateStoreMemory,
+} from '@wooksjs/event-wf'
+
+const handle = createOutletHandler(wf)
+
+http.post('/workflows', () =>
+  handle({
+    state: new HandleStateStrategy({ store: new WfStateStoreMemory() }),
+    outlets: [createHttpOutlet()],
+  })
+)
+```
+
+The client sends `{ wfid: "signup" }` to start, and `{ wfs: "token", input: { ... } }` to resume. See the [Outlets guide](/wf/outlets) for the full API.
+
+### Option 2: Manual Endpoints
+
+If you need full control, wire start and resume endpoints yourself:
 
 ```ts
 // In-memory store (use a database in production)

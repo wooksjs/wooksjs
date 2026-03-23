@@ -46,10 +46,12 @@
     "setup-skills": "node scripts/setup-skills.js"
   },
   "dependencies": {
-    "@prostojs/wf": "^0.0.18"
+    "@prostojs/wf": "^0.1.1"
   },
   "devDependencies": {
     "@wooksjs/event-core": "workspace:^",
+    "@wooksjs/event-http": "workspace:^",
+    "@wooksjs/http-body": "workspace:^",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4",
     "wooks": "workspace:^"
@@ -57,6 +59,16 @@
   "peerDependencies": {
     "@prostojs/logger": "^0.4.3",
     "@wooksjs/event-core": "workspace:^",
+    "@wooksjs/event-http": "workspace:^",
+    "@wooksjs/http-body": "workspace:^",
     "wooks": "workspace:^"
+  },
+  "peerDependenciesMeta": {
+    "@wooksjs/event-http": {
+      "optional": true
+    },
+    "@wooksjs/http-body": {
+      "optional": true
+    }
   }
 }

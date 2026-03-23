@@ -1,5 +1,6 @@
 export * from './composables'
 export * from './event-wf'
+export * from './outlets'
 export * from './types'
 export * from './wf-adapter'
 export * from './wf-kind'
