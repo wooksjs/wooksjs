@@ -40,7 +40,7 @@ function createTestWfApp() {
   app.step('ask-input', {
     handler: () => {
       const { input } = useWfState()
-      if (input()) return // input provided on resume, continue
+      if (input()) { return }
       return outletHttp({ fields: ['email', 'password'] })
     },
   })
@@ -49,7 +49,7 @@ function createTestWfApp() {
   app.step('send-email', {
     handler: () => {
       const { input } = useWfState()
-      if (input()) return // input provided on resume, continue
+      if (input()) { return }
       return outletEmail('user@test.com', 'verify')
     },
   })
@@ -169,7 +169,7 @@ describe('createHttpOutlet', () => {
 
   it('applies custom transform', async () => {
     const outlet = createHttpOutlet({
-      transform: (payload, ctx) => ({ transformed: true, ...(payload as any), ...(ctx ?? {}) }),
+      transform: (payload, ctx) => ({ transformed: true, ...(payload as any), ...ctx }),
     })
     const result = await outlet.deliver(
       { outlet: 'http', payload: { fields: ['email'] }, context: { step: 'login' } },

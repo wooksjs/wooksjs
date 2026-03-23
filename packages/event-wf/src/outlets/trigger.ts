@@ -54,10 +54,14 @@ export async function handleWfOutletRequest(
 
   let token: string | undefined
   for (const source of tokenRead) {
-    if (source === 'body') token = body?.[tokenName] as string | undefined
-    else if (source === 'query') token = queryParams.get(tokenName) ?? undefined
-    else if (source === 'cookie') token = getCookie(tokenName) ?? undefined
-    if (token) break
+    if (source === 'body') {
+      token = body?.[tokenName] as string | undefined
+    } else if (source === 'query') {
+      token = queryParams.get(tokenName) ?? undefined
+    } else if (source === 'cookie') {
+      token = getCookie(tokenName) ?? undefined
+    }
+    if (token) { break }
   }
 
   const wfid =
@@ -68,7 +72,7 @@ export async function handleWfOutletRequest(
     typeof config.state === 'function' ? config.state(id) : config.state
 
   const shouldConsume = (outletName: string) => {
-    if (typeof tok.consume === 'boolean') return tok.consume
+    if (typeof tok.consume === 'boolean') { return tok.consume }
     return (tok.consume ?? DEFAULT_CONSUME_TOKEN)[outletName] ?? false
   }
 
@@ -157,7 +161,7 @@ export async function handleWfOutletRequest(
     if (tokenWrite === 'cookie') {
       response.setCookie(tokenName, newToken, {
         httpOnly: true,
-        sameSite: 'strict',
+        sameSite: 'Strict',
         path: '/',
       })
     }

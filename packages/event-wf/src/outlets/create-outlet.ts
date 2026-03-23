@@ -22,7 +22,7 @@ export function createHttpOutlet(opts?: {
       const body = opts?.transform
         ? opts.transform(request.payload, request.context)
         : typeof request.payload === 'object' && request.payload !== null
-          ? { ...(request.payload as Record<string, unknown>), ...(request.context ?? {}) }
+          ? { ...(request.payload as Record<string, unknown>), ...request.context }
           : request.payload
       return { response: body }
     },
