@@ -38,10 +38,6 @@ export default defineConfig({
         })],
     },
 
-    vue: {
-        reactivityTransform: true,
-    },
-
     themeConfig: {
         logo: '/wooks-full-logo.svg', //'/logo.svg',
 

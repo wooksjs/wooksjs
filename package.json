@@ -60,7 +60,8 @@
     "rollup-plugin-dts": "^6.3.0",
     "typescript": "^5.9.3",
     "unplugin-isolated-decl": "^0.10.7",
-    "vitepress": "^1.6.4",
+    "vite": "^7.3.2",
+    "vitepress": "2.0.0-alpha.17",
     "vitepress-plugin-llmstxt": "^0.5.1",
     "vitest": "^3.2.4",
     "vue-chartjs": "^5.3.3",
@@ -69,7 +70,9 @@
   "pnpm": {
     "overrides": {
       "@conventional-changelog/git-client": "^2.0.0",
-      "esbuild": ">=0.25.0"
+      "esbuild": ">=0.25.0",
+      "handlebars": ">=4.7.9",
+      "picomatch@>=4": ">=4.0.4"
     }
   }
 }
