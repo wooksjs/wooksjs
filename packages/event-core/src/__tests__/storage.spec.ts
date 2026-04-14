@@ -81,6 +81,59 @@ describe('AsyncLocalStorage integration', () => {
         expect(useLogger(ctx)).toBe(logger)
       })
     })
+
+    it('passes topic string to createTopic and returns the child logger', () => {
+      const childLogger: Logger = {
+        info: () => {},
+        warn: () => {},
+        error: () => {},
+        debug: () => {},
+      }
+      let receivedTopic: string | undefined
+      const loggerWithTopic: Logger = {
+        ...logger,
+        createTopic: (name: string) => {
+          receivedTopic = name
+          return childLogger
+        },
+      }
+      const ctx = new EventContext({ logger: loggerWithTopic })
+      run(ctx, () => {
+        const result = useLogger('auth')
+        expect(receivedTopic).toBe('auth')
+        expect(result).toBe(childLogger)
+      })
+    })
+
+    it('passes topic string to createTopic with explicit ctx', () => {
+      const childLogger: Logger = {
+        info: () => {},
+        warn: () => {},
+        error: () => {},
+        debug: () => {},
+      }
+      let receivedTopic: string | undefined
+      const loggerWithTopic: Logger = {
+        ...logger,
+        createTopic: (name: string) => {
+          receivedTopic = name
+          return childLogger
+        },
+      }
+      const ctx = new EventContext({ logger: loggerWithTopic })
+      run(ctx, () => {
+        const result = useLogger('db', ctx)
+        expect(receivedTopic).toBe('db')
+        expect(result).toBe(childLogger)
+      })
+    })
+
+    it('falls back to base logger when createTopic is not available', () => {
+      const ctx = new EventContext({ logger })
+      run(ctx, () => {
+        expect(useLogger('my-topic')).toBe(logger)
+      })
+    })
   })
 
   describe('createEventContext', () => {

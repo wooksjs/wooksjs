@@ -73,16 +73,30 @@ export function tryGetCurrent(): EventContext | undefined {
 /**
  * Returns the logger for the current event context.
  *
- * @param ctx - Optional explicit context (defaults to `current()`)
+ * When called with a `topic` string, creates a child logger via
+ * `logger.createTopic()` (if supported). Falls back to the base
+ * logger when `createTopic` is not available.
  *
  * @example
  * ```ts
  * const logger = useLogger()
  * logger.info('Processing request')
+ *
+ * const scoped = useLogger('auth')
+ * scoped.warn('Token expired')
  * ```
  */
-export function useLogger(ctx?: EventContext): Logger {
-  return (ctx ?? current()).logger
+export function useLogger(): Logger
+export function useLogger(topic: string): Logger
+export function useLogger(ctx: EventContext): Logger
+export function useLogger(topic: string, ctx: EventContext): Logger
+export function useLogger(topicOrCtx?: string | EventContext, maybeCtx?: EventContext): Logger {
+  const ctx = (typeof topicOrCtx === 'string' ? maybeCtx : topicOrCtx) ?? current()
+  const logger = ctx.logger
+  if (typeof topicOrCtx === 'string' && logger.createTopic) {
+    return logger.createTopic(topicOrCtx)
+  }
+  return logger
 }
 
 /**

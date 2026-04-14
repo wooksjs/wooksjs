@@ -68,9 +68,26 @@ logger.info('info message')
 logger.error('error message')
 ```
 
+### Topic-Scoped Logger
+
+You can pass a topic string to `useLogger()` to create a child logger scoped to a specific area. The child logger inherits all configuration (level, transports) from the parent and prefixes its output with the topic:
+
+```ts
+import { useLogger } from '@wooksjs/event-core'
+
+const dbLogger = useLogger('db')
+dbLogger.info('Connection established')
+
+const authLogger = useLogger('auth')
+authLogger.warn('Token expired')
+```
+
+Under the hood this calls `logger.createTopic(topic)` on the context's logger. If the logger does not support `createTopic` (e.g. a plain console-style logger), the base logger is returned unchanged.
+
 **Key points:**
 
 - `useLogger()` returns a `Logger` instance associated with the current event context.
+- `useLogger('topic')` returns a child logger scoped to that topic.
 - You can also import `useLogger` from `'wooks'` — it is re-exported for convenience.
 
 ## Logging Levels and Methods

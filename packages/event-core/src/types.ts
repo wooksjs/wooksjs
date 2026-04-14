@@ -10,8 +10,8 @@ export interface Logger {
   warn(msg: string, ...args: unknown[]): void
   error(msg: string, ...args: unknown[]): void
   debug(msg: string, ...args: unknown[]): void
-  /** Creates a child logger with a topic prefix (optional). */
-  topic?: (name?: string) => Logger
+  /** Creates a child logger scoped to a topic. Matches `ProstoLogger.createTopic()`. */
+  createTopic?: (name: string) => Logger
 }
 
 /**

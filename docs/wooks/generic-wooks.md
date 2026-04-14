@@ -35,21 +35,31 @@ console.log('Current Event ID:', getId())
 
 ## `useLogger()`
 
-**Signature:**
+**Signatures:**
 ```ts
-function useLogger(ctx?: EventContext): Logger
+function useLogger(): Logger
+function useLogger(topic: string): Logger
+function useLogger(ctx: EventContext): Logger
+function useLogger(topic: string, ctx: EventContext): Logger
 ```
 
 **Description:**
 Returns the `Logger` instance associated with the current event context. The logger supports standard log methods (`info`, `warn`, `error`, `debug`) and is configured when the event context is created.
 
+When called with a `topic` string, creates a child logger via `logger.createTopic()` (if the logger supports it). This is useful for scoping log output to a specific area of your application. If the logger does not implement `createTopic`, the base logger is returned unchanged.
+
 *Learn more about [Logging in Wooks](/wooks/advanced/logging) in the advanced section.*
 
-**Example:**
+**Examples:**
 ```ts
+// Base event logger
 const logger = useLogger()
 logger.debug('Processing event')
 logger.error('Something went wrong')
+
+// Topic-scoped child logger
+const authLogger = useLogger('auth')
+authLogger.warn('Token expired')
 ```
 
 ## `useRouteParams()`
