@@ -264,7 +264,7 @@ Path segments can use space or `/` (equivalent): `'install :package'` = `'/insta
 ### WebSocket (`@wooksjs/event-ws`)
 
 ```ts
-ws.onMessage(path, handler)      // routes by message path field
+ws.onMessage(event, path, handler) // routes by event type + path
 ```
 
 ### Workflows (`@wooksjs/event-wf`)

@@ -9,7 +9,7 @@ export interface WsClientMessage {
   /** Payload. */
   data?: unknown
   /** Correlation ID. When present, the server sends a reply with the same ID. */
-  id?: number
+  id?: string | number
 }
 
 /** Server-to-client reply (sent only when the client message included an `id`). */

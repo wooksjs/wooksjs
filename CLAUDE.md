@@ -84,7 +84,8 @@ Child contexts (e.g. workflow steps inheriting HTTP context) traverse the parent
 
 | Composable           | Key Properties                                                               |
 | -------------------- | ---------------------------------------------------------------------------- |
-| `useRequest()`       | `raw`, `url`, `method`, `headers`, `rawBody()`, `getIp()`, `reqId()`         |
+| `useRequest()`       | `raw`, `url`, `method`, `headers`, `rawBody()`, `getIp()`, `getIpList()`, `reqId()`, `isCompressed()`, `get/setMaxCompressed()`, `get/setMaxInflated()`, `get/setMaxRatio()`, `get/setReadTimeoutMs()` |
+| `useHeaders()`       | Returns `IncomingHttpHeaders` from the request                               |
 | `useUrlParams()`     | `params()`, `toJson()`, `raw()`                                              |
 | `useCookies()`       | `getCookie(name)`, `raw`                                                     |
 | `useAuthorization()` | `authorization`, `type()`, `credentials()`, `is(type)`, `basicCredentials()` |

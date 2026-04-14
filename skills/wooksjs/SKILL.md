@@ -123,10 +123,12 @@ import { HttpError, prepareTestHttpContext } from '@wooksjs/event-http'
 
 | Method | Body   | Status |
 | ------ | ------ | ------ |
+| GET    | truthy | 200    |
 | POST   | truthy | 201    |
-| DELETE  | void   | 204    |
-| Other  | truthy | 200    |
-| Other  | void   | 204    |
+| PUT    | truthy | 201    |
+| PATCH  | truthy | 202    |
+| DELETE | truthy | 202    |
+| Any    | void   | 204    |
 
 ### @wooksjs/event-cli
 
@@ -146,12 +148,12 @@ import {
 ### @wooksjs/event-ws
 
 ```ts
-import { WooksWs } from '@wooksjs/event-ws'
+import { createWsApp } from '@wooksjs/event-ws'
 
-const ws = new WooksWs(httpApp)          // integrated with HTTP
-const ws = new WooksWs()                 // standalone
+const ws = createWsApp(http)             // integrated with HTTP
+const ws = createWsApp()                 // standalone
 
-ws.onMessage('chat/:room', handler)
+ws.onMessage('message', '/chat/:room', handler)
 ws.onConnect(handler)
 ws.onDisconnect(handler)
 
@@ -168,10 +170,10 @@ import { prepareTestWsConnectionContext, prepareTestWsMessageContext } from '@wo
 
 ```ts
 // Client -> Server
-interface WsClientMessage { event: string; path: string; data?: unknown; id?: string }
+interface WsClientMessage { event: string; path: string; data?: unknown; id?: string | number }
 
 // Server -> Client (reply to RPC)
-interface WsReplyMessage { id: string; data?: unknown; error?: { code: number; message: string } }
+interface WsReplyMessage { id: string | number; data?: unknown; error?: { code: number; message: string } }
 
 // Server -> Client (push)
 interface WsPushMessage { event: string; path: string; params?: Record<string, string>; data?: unknown }
@@ -211,9 +213,9 @@ const unreg = client.on('push', '/chat/:room', (ev) => { ... })   // push listen
 
 ```ts
 const http = createHttpApp()
-const ws = new WooksWs(http)
+const ws = createWsApp(http)
 
-ws.onMessage('chat/:room', handler)
+ws.onMessage('message', '/chat/:room', handler)
 http.get('/api/health', () => 'ok')
 
 http.listen(3000)  // serves both HTTP and WS
