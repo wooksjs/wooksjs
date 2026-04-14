@@ -94,7 +94,7 @@ Child contexts (e.g. workflow steps inheriting HTTP context) traverse the parent
 
 ## AI Agent Skills
 
-Packages include `skills/` directories with progressive-disclosure documentation for AI agents. Setup scripts (`scripts/setup-skills.js`) copy skill files to consuming projects.
+The monorepo skill lives at `skills/wooksjs/`. It provides progressive-disclosure documentation for AI agents across all packages. Install with `npx skills add wooksjs/wooksjs`.
 
 ## Release
 

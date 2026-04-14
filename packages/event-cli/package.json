@@ -25,13 +25,8 @@
     "url": "git+https://github.com/wooksjs/wooksjs.git",
     "directory": "packages/event-cli"
   },
-  "bin": {
-    "wooksjs-event-cli-skill": "scripts/setup-skills.js"
-  },
   "files": [
-    "dist",
-    "skills",
-    "scripts"
+    "dist"
   ],
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
@@ -45,8 +40,7 @@
     }
   },
   "scripts": {
-    "build": "rolldown -c ../../rolldown.config.mjs",
-    "setup-skills": "node scripts/setup-skills.js"
+    "build": "rolldown -c ../../rolldown.config.mjs"
   },
   "dependencies": {
     "@prostojs/cli-help": "^0.0.11",

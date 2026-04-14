@@ -49,3 +49,17 @@ themeConfig:
 #       link: /wooks/what#definewook
 #       details: defineWook() lets you create reusable, cached, typed composables — just like building your own useAuth() or usePermissions().
 ---
+
+## For LLMs
+
+This documentation is available in LLM-friendly format at [llms.txt](https://wooks.moost.org/llms.txt) and [llms-full.txt](https://wooks.moost.org/llms-full.txt).
+
+## AI Agent Skills
+
+Wooks provides a unified skill for AI coding agents (Claude Code, Cursor, Windsurf, Codex, etc.) that covers all packages with progressive-disclosure reference docs.
+
+```bash
+npx skills add wooksjs/wooksjs
+```
+
+Learn more about AI agent skills at [skills.sh](https://skills.sh).

@@ -28,25 +28,13 @@ The server requires `@wooksjs/event-http` because WebSocket connections start as
 
 ### AI Agent Skills
 
-Both packages ship with structured skill files for AI coding agents (Claude Code, Cursor, Windsurf, Codex, etc.).
+Wooks provides a unified skill for AI coding agents (Claude Code, Cursor, Windsurf, Codex, etc.) that covers all packages with progressive-disclosure reference docs.
 
 ```bash
-# Server skills
-npx wooksjs-event-ws-skill
-
-# Client skills
-npx wooksjs-ws-client-skill
+npx skills add wooksjs/wooksjs
 ```
 
-To keep skills automatically up-to-date, add postinstall scripts to your `package.json`:
-
-```json
-{
-  "scripts": {
-    "postinstall": "wooksjs-event-ws-skill --postinstall && wooksjs-ws-client-skill --postinstall"
-  }
-}
-```
+Learn more about AI agent skills at [skills.sh](https://skills.sh).
 
 ## Server: Hello World
 

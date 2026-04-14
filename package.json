@@ -61,6 +61,7 @@
     "typescript": "^5.9.3",
     "unplugin-isolated-decl": "^0.10.7",
     "vitepress": "^1.6.4",
+    "vitepress-plugin-llmstxt": "^0.5.1",
     "vitest": "^3.2.4",
     "vue-chartjs": "^5.3.3",
     "zx": "^8.8.5"

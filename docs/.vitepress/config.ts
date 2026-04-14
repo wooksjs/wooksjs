@@ -1,4 +1,5 @@
 import { defineConfig, DefaultTheme } from 'vitepress'
+import { llmstxtPlugin } from 'vitepress-plugin-llmstxt'
 
 const ogDescription = 'Composables for Node.js — No req/res. No middleware. Just functions.'
 const ogImage = 'https://wooks.moost.org/og-wooks.png'
@@ -30,6 +31,12 @@ export default defineConfig({
         ['meta', { name: 'theme-color', content: '#3D90BE' }],
         ['script', { async: '', src: 'https://scripts.simpleanalyticscdn.com/latest.js' }],
     ],
+
+    vite: {
+        plugins: [llmstxtPlugin({
+            hostname: 'wooks.moost.org',
+        })],
+    },
 
     vue: {
         reactivityTransform: true,

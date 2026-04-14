@@ -25,13 +25,8 @@
     "url": "git+https://github.com/wooksjs/wooksjs.git",
     "directory": "packages/event-http"
   },
-  "bin": {
-    "wooksjs-event-http-skill": "scripts/setup-skills.js"
-  },
   "files": [
-    "dist",
-    "skills",
-    "scripts"
+    "dist"
   ],
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
@@ -45,8 +40,7 @@
     }
   },
   "scripts": {
-    "build": "rolldown -c ../../rolldown.config.mjs",
-    "setup-skills": "node scripts/setup-skills.js"
+    "build": "rolldown -c ../../rolldown.config.mjs"
   },
   "devDependencies": {
     "@wooksjs/event-core": "workspace:^",
