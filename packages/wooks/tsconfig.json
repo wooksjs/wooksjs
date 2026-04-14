@@ -2,7 +2,8 @@
   "extends": ["../../tsconfig.json"],
   "compilerOptions": {
     "noEmit": true,
-    "rootDir": ".."
+    "emitDeclarationOnly": false,
+    "rootDir": "../.."
   },
   "include": ["src", "../../globals.d.ts", "../../node_modules/@prostojs/dye/global.d.ts"],
   "exclude": []
