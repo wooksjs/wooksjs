@@ -1,17 +1,16 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
     "paths": {
-      "@wooksjs/event-core": ["packages/event-core/src"],
-      "@wooksjs/event-http": ["packages/event-http/src"],
-      "@wooksjs/event-cli": ["packages/event-cli/src"],
-      "@wooksjs/event-wf": ["packages/event-wf/src"],
-      "@wooksjs/event-ws": ["packages/event-ws/src"],
-      "@wooksjs/http-body": ["packages/http-body/src"],
-      "@wooksjs/http-static": ["packages/http-static/src"],
-      "@wooksjs/http-proxy": ["packages/http-proxy/src"],
-      "@wooksjs/ws-client": ["packages/ws-client/src"],
-      "wooks": ["packages/wooks/src"]
+      "@wooksjs/event-core": ["./packages/event-core/src"],
+      "@wooksjs/event-http": ["./packages/event-http/src"],
+      "@wooksjs/event-cli": ["./packages/event-cli/src"],
+      "@wooksjs/event-wf": ["./packages/event-wf/src"],
+      "@wooksjs/event-ws": ["./packages/event-ws/src"],
+      "@wooksjs/http-body": ["./packages/http-body/src"],
+      "@wooksjs/http-static": ["./packages/http-static/src"],
+      "@wooksjs/http-proxy": ["./packages/http-proxy/src"],
+      "@wooksjs/ws-client": ["./packages/ws-client/src"],
+      "wooks": ["./packages/wooks/src"]
     },
     "moduleResolution": "bundler",
     "esModuleInterop": true,
@@ -25,7 +24,6 @@
     "emitDecoratorMetadata": true,
     "declarationMap": false,
     "resolveJsonModule": true,
-    "downlevelIteration": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "noImplicitAny": true,
