@@ -30,6 +30,7 @@
     "skipLibCheck": true,
     "experimentalDecorators": true,
     "removeComments": false,
+    "rootDir": "./packages",
     "outDir": ".types"
   },
   "include": ["packages/*/src/**/*.ts", "globals.d.ts", "node_modules/@prostojs/dye/global.d.ts"],
