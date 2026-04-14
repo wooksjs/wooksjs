@@ -1,3 +1,13 @@
+## [0.7.9](https://github.com/wooksjs/wooksjs/compare/v0.7.8...v0.7.9) (2026-04-14)
+
+
+### Features
+
+* **event-core:** add createTopic to Logger interface and topic overloads to useLogger() ([d6cd7fd](https://github.com/wooksjs/wooksjs/commit/d6cd7fd17fcee8a4dadbd04894c3d2c9f678750f))
+* unified AI agent skill, llms.txt plugin, updated docs ([84b24b9](https://github.com/wooksjs/wooksjs/commit/84b24b9f9ccedcd015e901c25da29ee0f0e9d0af))
+
+
+
 ## [0.7.8](https://github.com/wooksjs/wooksjs/compare/v0.7.7...v0.7.8) (2026-03-23)
 
 
