@@ -1,3 +1,16 @@
+## [0.7.10](https://github.com/wooksjs/wooksjs/compare/v0.7.9...v0.7.10) (2026-04-21)
+
+
+### Bug Fixes
+
+* add explicit rootDir for TypeScript 6.0 compatibility ([bb90506](https://github.com/wooksjs/wooksjs/commit/bb90506cc68197d4fec9688dcdf108b883b6b68a))
+* correct ws-client id type, skill onMessage signatures, and CLAUDE.md composable table ([d3a36df](https://github.com/wooksjs/wooksjs/commit/d3a36dfc78ea16178ce64707d12e857198ebcbbe))
+* **event-wf:** suppress out-of-band outlet token, atomic single-use consume on every resume ([ff962cb](https://github.com/wooksjs/wooksjs/commit/ff962cb86d3d44bc94d0d6e5019c2f7105786a8a))
+* resolve dependabot alerts, unify vite to single version ([a9c9473](https://github.com/wooksjs/wooksjs/commit/a9c9473b227ff2cbc2efc33a63b0c480ae2eec1c))
+* **security:** escape HTML in error renderer and preserve baseDir on serveFile defaultExt fallback ([e8df5ea](https://github.com/wooksjs/wooksjs/commit/e8df5ea294812bdb840df2dd96391ae361e7626c))
+
+
+
 ## [0.7.9](https://github.com/wooksjs/wooksjs/compare/v0.7.8...v0.7.9) (2026-04-14)
 
 
