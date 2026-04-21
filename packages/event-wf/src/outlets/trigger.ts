@@ -10,8 +10,6 @@ import {
 } from './outlet-context'
 import type { WfOutletTriggerConfig, WfOutletTriggerDeps } from './types'
 
-const DEFAULT_CONSUME_TOKEN: Record<string, boolean> = { email: true }
-
 /**
  * Handle an HTTP request that starts or resumes a workflow.
  *
@@ -71,11 +69,6 @@ export async function handleWfOutletRequest(
   const resolveStrategy = (id: string) =>
     typeof config.state === 'function' ? config.state(id) : config.state
 
-  const shouldConsume = (outletName: string) => {
-    if (typeof tok.consume === 'boolean') { return tok.consume }
-    return (tok.consume ?? DEFAULT_CONSUME_TOKEN)[outletName] ?? false
-  }
-
   let output
 
   if (token) {
@@ -83,21 +76,18 @@ export async function handleWfOutletRequest(
     const strategy = resolveStrategy(wfid ?? '')
     ctx.set(stateStrategyKey, strategy)
 
-    const state = await strategy.retrieve(token)
+    // Consume runs on the provisional strategy (resolved from request wfid).
+    // If state.schemaId differs (per-wfid strategies, re-resolved below) and
+    // storages don't overlap, the real strategy never sees consume — known
+    // edge case documented on WfOutletTriggerConfig.state.
+    const state = await strategy.consume(token)
     if (!state) {
       return { error: 'Invalid or expired workflow state', status: 400 }
     }
 
-    // Re-resolve strategy if schemaId differs from wfid (per-workflow strategies)
     if (state.schemaId !== (wfid ?? '')) {
       const realStrategy = resolveStrategy(state.schemaId)
       ctx.set(stateStrategyKey, realStrategy)
-    }
-
-    const outletName = state.meta?.outlet as string | undefined
-    if (outletName && shouldConsume(outletName)) {
-      // Invalidate the token so it can't be reused (e.g. email magic links)
-      await strategy.consume(token)
     }
 
     output = await deps.resume(state, { input, eventContext: ctx })
@@ -158,7 +148,9 @@ export async function handleWfOutletRequest(
       output.expires ? { ttl: output.expires - Date.now() } : undefined,
     )
 
-    if (tokenWrite === 'cookie') {
+    const outOfBand = outletHandler.tokenDelivery === 'out-of-band'
+
+    if (tokenWrite === 'cookie' && !outOfBand) {
       response.setCookie(tokenName, newToken, {
         httpOnly: true,
         sameSite: 'Strict',
@@ -170,6 +162,7 @@ export async function handleWfOutletRequest(
 
     if (
       tokenWrite === 'body' &&
+      !outOfBand &&
       result?.response &&
       typeof result.response === 'object'
     ) {

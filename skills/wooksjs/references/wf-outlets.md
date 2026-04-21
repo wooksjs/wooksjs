@@ -131,6 +131,33 @@ const emailOutlet = createEmailOutlet(async (opts) => {
 
 The send function receives `{ target, template, context, token }`.
 
+### Custom outlets — `tokenDelivery`
+
+Implement the `WfOutlet` interface for custom delivery channels (SMS, Slack, webhook, pending-task queue, etc.). The `tokenDelivery` field is security-critical:
+
+```ts
+import type { WfOutlet } from '@wooksjs/event-wf'
+
+const slackOutlet: WfOutlet = {
+  name: 'slack',
+  tokenDelivery: 'out-of-band',  // resumer is a Slack user, not the HTTP caller
+  async deliver(request, token) {
+    await slack.postMessage(request.target!, {
+      actions: [{ url: `https://app.com/resume?wfs=${token}` }],
+    })
+    return { response: { sent: true } }
+  },
+}
+```
+
+**`tokenDelivery: 'caller'` (default)** — HTTP caller is the resumer; trigger merges token into body/cookie.
+
+**`tokenDelivery: 'out-of-band'`** — outlet delivers the token through its own channel (recipient ≠ HTTP caller); trigger suppresses body merge and cookie write so the caller receives no token.
+
+Built-in outlets: `createHttpOutlet()` = `'caller'`, `createEmailOutlet()` = `'out-of-band'`.
+
+Any custom outlet whose resumer is a different principal than the HTTP caller MUST declare `'out-of-band'`, otherwise the caller receives a token they shouldn't have — a privilege escalation vector.
+
 ---
 
 ## State Strategies
@@ -140,28 +167,16 @@ Persist workflow state between pause and resume.
 ```ts
 interface WfStateStrategy {
   persist(state: WfState, options?: { ttl?: number }): Promise<string>
-  retrieve(token: string): Promise<WfState | null>
-  consume(token: string): Promise<WfState | null>  // retrieve + delete (single-use)
+  retrieve(token: string): Promise<WfState | null>          // NO invalidation
+  consume(token: string): Promise<WfState | null>           // atomic retrieve + invalidate
 }
 ```
 
-### EncapsulatedStateStrategy
-
-Encrypts state into the token itself (no server-side storage needed). Good for stateless
-deployments:
-
-```ts
-import { EncapsulatedStateStrategy } from '@wooksjs/event-wf'
-
-const strategy = new EncapsulatedStateStrategy({
-  secret: process.env.WF_SECRET,  // string | Buffer
-  defaultTtl: 3600_000,           // optional, ms
-})
-```
+The outlet trigger calls `consume()` on every resume regardless of outlet type — but `consume()` is only truly invalidating when the strategy has server-side state to delete. Tokens are thus single-use with `HandleStateStrategy` and replayable-within-TTL with `EncapsulatedStateStrategy`. See the security warning below.
 
 ### HandleStateStrategy
 
-Stores state server-side with an opaque handle token. Requires a `WfStateStore`:
+Stores state server-side with an opaque handle token. Supports truly single-use tokens via the store's atomic `getAndDelete`. **Required for security-sensitive flows** (auth, password reset, invite accept, financial operations).
 
 ```ts
 import { HandleStateStrategy, WfStateStoreMemory } from '@wooksjs/event-wf'
@@ -172,6 +187,21 @@ const strategy = new HandleStateStrategy({
   generateHandle: () => crypto.randomUUID(), // optional
 })
 ```
+
+### EncapsulatedStateStrategy
+
+Encrypts state into the token itself (no server-side storage). **Stateless — cannot enforce single-use: `consume()` is a no-op alias for `retrieve()`, so a copy of the token remains valid for the full TTL regardless of consume calls.** Use only for idempotent, non-sensitive flows.
+
+```ts
+import { EncapsulatedStateStrategy } from '@wooksjs/event-wf'
+
+const strategy = new EncapsulatedStateStrategy({
+  secret: process.env.WF_SECRET,  // string | Buffer (32 bytes)
+  defaultTtl: 3600_000,           // optional, ms
+})
+```
+
+**Selection rule.** If the flow has any real-world side effect (auth, credentials, money, permissions), use `HandleStateStrategy`. Use `EncapsulatedStateStrategy` only when every step is idempotent and replay-within-TTL is harmless.
 
 ### WfStateStore interface
 
@@ -225,6 +255,13 @@ httpApp.post('/workflow', () => handleWfOutletRequest(config, {
 
 ```ts
 interface WfOutletTriggerConfig {
+  /**
+   * State persistence strategy. When using the function form (per-wfid
+   * strategies), all returned strategies MUST share underlying storage,
+   * OR every resume request MUST include `wfid` so the correct strategy
+   * is resolved. Otherwise `consume()` runs against the wrong storage and
+   * the token silently remains live — breaking single-use invalidation.
+   */
   state: WfStateStrategy | ((wfid: string) => WfStateStrategy)
   outlets: WfOutlet[]
   allow?: string[]              // whitelist of allowed workflow IDs
@@ -240,14 +277,13 @@ interface WfOutletTriggerConfig {
 
 ## WfOutletTokenConfig
 
-Controls how state tokens are read from requests and written to responses:
+Controls how state tokens are read from requests and written to responses. Single-use invalidation is not configurable — the trigger consumes on every resume. For out-of-band outlets (email, SMS, etc.), the token is NOT written to the HTTP response (body or cookie is suppressed) so the HTTP caller cannot replay it; this is controlled by the outlet's `tokenDelivery` field, not this config.
 
 ```ts
 interface WfOutletTokenConfig {
   read?: Array<'body' | 'query' | 'cookie'>   // default: ['body', 'query', 'cookie']
   write?: 'body' | 'cookie'                   // default: 'body'
   name?: string                                // token param name (default: 'wfs')
-  consume?: boolean | Record<string, boolean>  // default: { email: true }
 }
 ```
 
@@ -255,18 +291,17 @@ interface WfOutletTokenConfig {
 
 ## Trigger Request Flow
 
-The trigger reads `wfs` (state token) and `wfid` (workflow ID) from body, query params, or
-cookies per `token.read` config.
+The trigger reads `wfs` (state token) and `wfid` (workflow ID) from body, query params, or cookies per `token.read` config.
 
-- If `wfs` is present: **resume** -- retrieves state via strategy, resumes workflow.
-- If `wfid` is present (no `wfs`): **start** -- creates initial context, starts workflow.
+- If `wfs` is present: **resume** — the trigger calls `strategy.consume(token)` (atomic retrieve + invalidate) BEFORE running the step. Replay of the same `wfs` returns `{ error, status: 400 }`. With `HandleStateStrategy` the token is truly deleted; with `EncapsulatedStateStrategy` the consume is a stateless no-op and the token remains replayable until TTL (use `HandleStateStrategy` when that matters).
+- If `wfid` is present (no `wfs`): **start** — creates initial context, starts workflow.
 - If neither: returns `{ error: '...', status: 400 }`.
 
-On pause, the trigger persists state, dispatches to the outlet, and returns the outlet's response
-with the state token embedded (in body or cookie per `token.write`).
+On pause, the trigger persists state and issues a **fresh** token, dispatches to the outlet, and returns the outlet's response. The token is merged into the response (body or cookie per `token.write`) only if the outlet declares `tokenDelivery: 'caller'` (the default for HTTP outlets). For `tokenDelivery: 'out-of-band'` outlets (email, SMS, etc.), the response does NOT contain the token — the outlet delivers it through its own channel.
 
-On finish, the trigger checks `onFinished` callback, then `useWfFinished()`, then returns
-`{ finished: true }`.
+On finish, the trigger checks `onFinished` callback, then `useWfFinished()`, then returns `{ finished: true }`.
+
+**Fail-closed on unexpected errors.** Because consume fires BEFORE the step runs, an unexpected throw during resume burns the token with no fresh replacement — the user must restart the workflow. This is the security-preferred behavior (no lingering replayable token after a failed attempt). Handle expected validation failures by returning an outlet signal from the step handler (the engine issues a new token on the re-pause), not by throwing.
 
 ---
 

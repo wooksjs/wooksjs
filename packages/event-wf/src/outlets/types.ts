@@ -8,15 +8,6 @@ export interface WfOutletTokenConfig {
   write?: 'body' | 'cookie'
   /** Parameter name for state token (default: `'wfs'`) */
   name?: string
-  /**
-   * Token consumption mode per outlet. When `true`, the trigger calls
-   * `strategy.consume()` (single-use token) instead of `strategy.retrieve()`
-   * on resume. Defaults to `{ email: true }` — email magic links are consumed
-   * on first use, HTTP tokens are reusable.
-   *
-   * Can be a boolean (applies to all outlets) or a per-outlet-name map.
-   */
-  consume?: boolean | Record<string, boolean>
 }
 
 export interface WfOutletTriggerConfig {
@@ -24,11 +15,30 @@ export interface WfOutletTriggerConfig {
   allow?: string[]
   /** Blacklist of workflow IDs. Checked after allow. */
   block?: string[]
-  /** State persistence strategy */
+  /**
+   * State persistence strategy. Either a single strategy shared by all
+   * workflows, or a function that returns a strategy per workflow ID.
+   *
+   * **Constraint when using the function form.** The trigger resolves the
+   * strategy at resume time using the `wfid` from the request. If the resume
+   * request does not include `wfid` (e.g. cookie-only transport, token-only
+   * body), the trigger calls `config.state('')` — meaning:
+   *
+   * - EITHER all strategies returned by the function must share the same
+   *   underlying storage (same Redis instance, same `WfStateStore`, same
+   *   encryption key), so `consume`/`retrieve` operations work regardless of
+   *   which strategy instance is picked;
+   * - OR every resume request must carry `wfid` so the correct strategy is
+   *   always resolved.
+   *
+   * Violating this contract silently breaks single-use token invalidation:
+   * the `consume` call runs against the wrong strategy's storage, and the
+   * token remains live in the real strategy.
+   */
   state: WfStateStrategy | ((wfid: string) => WfStateStrategy)
   /** Registered outlets */
   outlets: WfOutlet[]
-  /** Token configuration (reading, writing, naming, consumption) */
+  /** Token configuration (reading, writing, naming) */
   token?: WfOutletTokenConfig
   /** Parameter name for workflow ID (default: `'wfid'`) */
   wfidName?: string

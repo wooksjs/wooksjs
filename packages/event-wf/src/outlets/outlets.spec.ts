@@ -1,7 +1,7 @@
 import { EventContext, run } from '@wooksjs/event-core'
-import { prepareTestHttpContext } from '@wooksjs/event-http'
-import { HandleStateStrategy, WfStateStoreMemory, outletEmail, outletHttp } from '@prostojs/wf/outlets'
-import type { WfStateStrategy } from '@prostojs/wf/outlets'
+import { prepareTestHttpContext, useResponse } from '@wooksjs/event-http'
+import { HandleStateStrategy, WfStateStoreMemory, outlet, outletEmail, outletHttp } from '@prostojs/wf/outlets'
+import type { WfOutlet, WfStateStrategy } from '@prostojs/wf/outlets'
 import { describe, expect, it, vi } from 'vitest'
 
 import { createWfApp } from '../wf-adapter'
@@ -15,8 +15,6 @@ import type { WfOutletTriggerConfig, WfOutletTriggerDeps } from './types'
 import { useWfFinished } from './use-wf-finished'
 import { useWfOutlet } from './use-wf-outlet'
 
-// --- Test helpers ---
-
 function createTestStore() {
   return new WfStateStoreMemory()
 }
@@ -28,7 +26,6 @@ function createTestStrategy(store?: WfStateStoreMemory) {
 function createTestWfApp() {
   const app = createWfApp<{ result?: number }>()
 
-  // A step that completes immediately
   app.step('complete', {
     handler: () => {
       const { ctx } = useWfState()
@@ -36,7 +33,6 @@ function createTestWfApp() {
     },
   })
 
-  // A step that pauses with HTTP outlet (checks input to decide pause vs continue)
   app.step('ask-input', {
     handler: () => {
       const { input } = useWfState()
@@ -45,7 +41,6 @@ function createTestWfApp() {
     },
   })
 
-  // A step that pauses with email outlet (checks input to decide pause vs continue)
   app.step('send-email', {
     handler: () => {
       const { input } = useWfState()
@@ -54,21 +49,18 @@ function createTestWfApp() {
     },
   })
 
-  // A step that sets finished response
   app.step('finish-redirect', {
     handler: () => {
       useWfFinished().set({ type: 'redirect', value: '/dashboard' })
     },
   })
 
-  // A step that sets data response
   app.step('finish-data', {
     handler: () => {
       useWfFinished().set({ type: 'data', value: { success: true } })
     },
   })
 
-  // A step that uses input
   app.step('use-input', {
     handler: () => {
       const { ctx, input } = useWfState()
@@ -79,23 +71,52 @@ function createTestWfApp() {
     },
   })
 
+  app.step('validate-retry', {
+    handler: () => {
+      const { input } = useWfState()
+      const i = input<{ password?: string }>()
+      if (i?.password === 'good') { return }
+      return outletHttp({ fields: ['password'] }, { error: 'bad password' })
+    },
+  })
+
+  app.step('throws-on-input', {
+    handler: () => {
+      const { input } = useWfState()
+      if (input()) { throw new Error('step exploded') }
+      return outletHttp({ fields: ['anything'] })
+    },
+  })
+
   app.flow('simple', ['complete'])
   app.flow('with-http-outlet', ['ask-input', 'use-input'])
   app.flow('with-email-outlet', ['send-email', 'use-input'])
   app.flow('redirect-flow', ['complete', 'finish-redirect'])
   app.flow('data-flow', ['complete', 'finish-data'])
+  app.flow('retry-flow', ['validate-retry'])
+  app.flow('throw-flow', ['throws-on-input'])
 
   return app
 }
 
-function makeDeps(app: ReturnType<typeof createTestWfApp>): WfOutletTriggerDeps {
+function makeDeps(app: {
+  start: (...args: any[]) => any
+  resume: (...args: any[]) => any
+}): WfOutletTriggerDeps {
   return {
     start: (schemaId, context, opts) => app.start(schemaId, context as any, opts as any),
     resume: (state, opts) => app.resume(state as any, opts as any),
   }
 }
 
-// --- Tests ---
+function postWf(body: unknown, extraHeaders?: Record<string, string>) {
+  return prepareTestHttpContext({
+    url: '/wf',
+    method: 'POST',
+    headers: { 'content-type': 'application/json', ...extraHeaders },
+    rawBody: JSON.stringify(body),
+  })
+}
 
 describe('useWfFinished', () => {
   it('set() stores and get() retrieves response', () => {
@@ -177,6 +198,11 @@ describe('createHttpOutlet', () => {
     )
     expect(result?.response).toEqual({ transformed: true, fields: ['email'], step: 'login' })
   })
+
+  it('declares tokenDelivery: "caller"', () => {
+    const outlet = createHttpOutlet()
+    expect(outlet.tokenDelivery).toBe('caller')
+  })
 })
 
 describe('createEmailOutlet', () => {
@@ -200,6 +226,11 @@ describe('createEmailOutlet', () => {
     const result = await outlet.deliver({ outlet: 'email' }, 'tok')
     expect(result?.response).toEqual({ sent: true, outlet: 'email' })
   })
+
+  it('declares tokenDelivery: "out-of-band"', () => {
+    const outlet = createEmailOutlet(vi.fn().mockResolvedValue(undefined))
+    expect(outlet.tokenDelivery).toBe('out-of-band')
+  })
 })
 
 describe('handleWfOutletRequest', () => {
@@ -220,12 +251,7 @@ describe('handleWfOutletRequest', () => {
     const deps = makeDeps(app)
     const config = makeConfig()
 
-    const runCtx = prepareTestHttpContext({
-      url: '/wf',
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      rawBody: JSON.stringify({ wfid: 'simple' }),
-    })
+    const runCtx = postWf({ wfid: 'simple' })
 
     const result = await runCtx(() => handleWfOutletRequest(config, deps))
     expect(result).toEqual({ finished: true })
@@ -239,16 +265,9 @@ describe('handleWfOutletRequest', () => {
       onFinished: (ctx) => ({ context: ctx.context }),
     })
 
-    const runCtx = prepareTestHttpContext({
-      url: '/wf',
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      rawBody: JSON.stringify({ wfid: 'simple' }),
-    })
+    const runCtx = postWf({ wfid: 'simple' })
 
     const result = await runCtx(() => handleWfOutletRequest(config, deps)) as any
-    // The 'complete' step sets result=42, but initial context started at 99
-    // The step does ctx.result = 42, so final is 42 regardless
     expect(result.context.result).toBe(42)
   })
 
@@ -257,12 +276,7 @@ describe('handleWfOutletRequest', () => {
     const deps = makeDeps(app)
     const config = makeConfig()
 
-    const runCtx = prepareTestHttpContext({
-      url: '/wf',
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      rawBody: JSON.stringify({ wfid: 'with-http-outlet' }),
-    })
+    const runCtx = postWf({ wfid: 'with-http-outlet' })
 
     const result = (await runCtx(() => handleWfOutletRequest(config, deps))) as any
     expect(result.fields).toEqual(['email', 'password'])
@@ -277,23 +291,11 @@ describe('handleWfOutletRequest', () => {
     const strategy = new HandleStateStrategy({ store })
     const config = makeConfig({ state: strategy })
 
-    // Start — should pause
-    const runCtx1 = prepareTestHttpContext({
-      url: '/wf',
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      rawBody: JSON.stringify({ wfid: 'with-http-outlet' }),
-    })
+    const runCtx1 = postWf({ wfid: 'with-http-outlet' })
     const startResult = (await runCtx1(() => handleWfOutletRequest(config, deps))) as any
     const token = startResult.wfs
 
-    // Resume with token + input
-    const runCtx2 = prepareTestHttpContext({
-      url: '/wf',
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      rawBody: JSON.stringify({ wfs: token, input: { email: 'a@b.com' } }),
-    })
+    const runCtx2 = postWf({ wfs: token, input: { email: 'a@b.com' } })
     const resumeResult = await runCtx2(() => handleWfOutletRequest(config, deps))
     expect(resumeResult).toEqual({ finished: true })
   })
@@ -303,12 +305,7 @@ describe('handleWfOutletRequest', () => {
     const deps = makeDeps(app)
     const config = makeConfig()
 
-    const runCtx = prepareTestHttpContext({
-      url: '/wf',
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      rawBody: JSON.stringify({ wfs: 'invalid-token' }),
-    })
+    const runCtx = postWf({ wfs: 'invalid-token' })
 
     const result = (await runCtx(() => handleWfOutletRequest(config, deps))) as any
     expect(result.error).toBeDefined()
@@ -320,12 +317,7 @@ describe('handleWfOutletRequest', () => {
     const deps = makeDeps(app)
     const config = makeConfig({ allow: ['other-flow'] })
 
-    const runCtx = prepareTestHttpContext({
-      url: '/wf',
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      rawBody: JSON.stringify({ wfid: 'simple' }),
-    })
+    const runCtx = postWf({ wfid: 'simple' })
 
     const result = (await runCtx(() => handleWfOutletRequest(config, deps))) as any
     expect(result.status).toBe(403)
@@ -336,12 +328,7 @@ describe('handleWfOutletRequest', () => {
     const deps = makeDeps(app)
     const config = makeConfig({ block: ['simple'] })
 
-    const runCtx = prepareTestHttpContext({
-      url: '/wf',
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      rawBody: JSON.stringify({ wfid: 'simple' }),
-    })
+    const runCtx = postWf({ wfid: 'simple' })
 
     const result = (await runCtx(() => handleWfOutletRequest(config, deps))) as any
     expect(result.status).toBe(403)
@@ -352,12 +339,7 @@ describe('handleWfOutletRequest', () => {
     const deps = makeDeps(app)
     const config = makeConfig()
 
-    const runCtx = prepareTestHttpContext({
-      url: '/wf',
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      rawBody: JSON.stringify({}),
-    })
+    const runCtx = postWf({})
 
     const result = (await runCtx(() => handleWfOutletRequest(config, deps))) as any
     expect(result.status).toBe(400)
@@ -369,15 +351,10 @@ describe('handleWfOutletRequest', () => {
       handler: () => ({ inputRequired: { outlet: 'nonexistent' } }),
     })
     app.flow('unknown-outlet-flow', ['unknown-outlet'])
-    const deps = makeDeps(app as any)
+    const deps = makeDeps(app)
     const config = makeConfig()
 
-    const runCtx = prepareTestHttpContext({
-      url: '/wf',
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      rawBody: JSON.stringify({ wfid: 'unknown-outlet-flow' }),
-    })
+    const runCtx = postWf({ wfid: 'unknown-outlet-flow' })
 
     const result = (await runCtx(() => handleWfOutletRequest(config, deps))) as any
     expect(result.status).toBe(500)
@@ -391,12 +368,7 @@ describe('handleWfOutletRequest', () => {
       onFinished: ({ context, schemaId }) => ({ custom: true, schemaId }),
     })
 
-    const runCtx = prepareTestHttpContext({
-      url: '/wf',
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      rawBody: JSON.stringify({ wfid: 'simple' }),
-    })
+    const runCtx = postWf({ wfid: 'simple' })
 
     const result = (await runCtx(() => handleWfOutletRequest(config, deps))) as any
     expect(result).toEqual({ custom: true, schemaId: 'simple' })
@@ -425,28 +397,226 @@ describe('handleWfOutletRequest', () => {
     const strategy = new HandleStateStrategy({ store })
     const config = makeConfig({ state: strategy })
 
-    // Start — should pause
-    const runCtx1 = prepareTestHttpContext({
-      url: '/wf',
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      rawBody: JSON.stringify({ wfid: 'with-http-outlet' }),
-    })
+    const runCtx1 = postWf({ wfid: 'with-http-outlet' })
     const startResult = (await runCtx1(() => handleWfOutletRequest(config, deps))) as any
     const token = startResult.wfs
 
-    // Resume with token in cookie
-    const runCtx2 = prepareTestHttpContext({
-      url: '/wf',
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        cookie: `wfs=${token}`,
-      },
-      rawBody: JSON.stringify({ input: { email: 'a@b.com' } }),
-    })
+    const runCtx2 = postWf({ input: { email: 'a@b.com' } }, { cookie: `wfs=${token}` })
     const resumeResult = await runCtx2(() => handleWfOutletRequest(config, deps))
     expect(resumeResult).toEqual({ finished: true })
+  })
+
+  it('does NOT merge token into body for out-of-band outlet', async () => {
+    const app = createTestWfApp()
+    const deps = makeDeps(app)
+    const config = makeConfig()
+
+    const runCtx = postWf({ wfid: 'with-email-outlet' })
+
+    const result = (await runCtx(() => handleWfOutletRequest(config, deps))) as any
+    expect(result).toEqual({ sent: true, outlet: 'email' })
+    expect(result.wfs).toBeUndefined()
+  })
+
+  it('does NOT set cookie for out-of-band outlet when tokenWrite="cookie"', async () => {
+    const app = createTestWfApp()
+    const deps = makeDeps(app)
+    const emailSendFn = vi.fn().mockResolvedValue(undefined)
+    const config = makeConfig({
+      outlets: [createHttpOutlet(), createEmailOutlet(emailSendFn)],
+      token: { write: 'cookie' },
+    })
+
+    const runCtx = postWf({ wfid: 'with-email-outlet' })
+
+    let wfsCookie: unknown
+    const result = await runCtx(async () => {
+      const r = await handleWfOutletRequest(config, deps)
+      wfsCookie = useResponse().getCookie('wfs')
+      return r
+    })
+
+    expect(result).toEqual({ sent: true, outlet: 'email' })
+    expect(wfsCookie).toBeUndefined()
+  })
+
+  it('DOES set cookie for caller outlet when tokenWrite="cookie" (regression)', async () => {
+    const app = createTestWfApp()
+    const deps = makeDeps(app)
+    const config = makeConfig({ token: { write: 'cookie' } })
+
+    const runCtx = postWf({ wfid: 'with-http-outlet' })
+
+    let wfsCookie: unknown
+    const result = (await runCtx(async () => {
+      const r = await handleWfOutletRequest(config, deps)
+      wfsCookie = useResponse().getCookie('wfs')
+      return r
+    })) as any
+
+    expect(result.fields).toEqual(['email', 'password'])
+    expect(result.wfs).toBeUndefined()
+    expect(wfsCookie).toBeDefined()
+  })
+
+  // Custom-outlet tests: verify the gate is keyed on the declared
+  // tokenDelivery, not on the outlet name. A name-based implementation
+  // would still pass the email-specific tests above.
+
+  function buildCustomOutletRig(
+    outletDef: WfOutlet,
+    args: unknown,
+  ): { deps: WfOutletTriggerDeps; flowId: string } {
+    const flowId = `${outletDef.name}-flow`
+    const stepId = `${outletDef.name}-step`
+    const app = createWfApp()
+    app.step(stepId, {
+      handler: () => {
+        const { input } = useWfState()
+        if (input()) { return }
+        return outlet(outletDef.name, args)
+      },
+    })
+    app.flow(flowId, [stepId])
+    return { flowId, deps: makeDeps(app) }
+  }
+
+  const customOutOfBand: WfOutlet = {
+    name: 'sms',
+    tokenDelivery: 'out-of-band',
+    async deliver() {
+      return { response: { dispatched: 'sms' } }
+    },
+  }
+
+  it('custom out-of-band outlet with default body-write: token not merged into body', async () => {
+    const { deps, flowId } = buildCustomOutletRig(customOutOfBand, { target: '+1555' })
+    const config: WfOutletTriggerConfig = {
+      state: createTestStrategy(),
+      outlets: [customOutOfBand],
+    }
+
+    const runCtx = postWf({ wfid: flowId })
+
+    const result = (await runCtx(() => handleWfOutletRequest(config, deps))) as any
+    expect(result).toEqual({ dispatched: 'sms' })
+    expect(result.wfs).toBeUndefined()
+  })
+
+  it('custom out-of-band outlet with cookie-write: token not set in cookie', async () => {
+    const { deps, flowId } = buildCustomOutletRig(customOutOfBand, { target: '+1555' })
+    const config: WfOutletTriggerConfig = {
+      state: createTestStrategy(),
+      outlets: [customOutOfBand],
+      token: { write: 'cookie' },
+    }
+
+    const runCtx = postWf({ wfid: flowId })
+
+    let wfsCookie: unknown
+    const result = (await runCtx(async () => {
+      const r = await handleWfOutletRequest(config, deps)
+      wfsCookie = useResponse().getCookie('wfs')
+      return r
+    })) as any
+
+    expect(result).toEqual({ dispatched: 'sms' })
+    expect(wfsCookie).toBeUndefined()
+  })
+
+  it('custom outlet without tokenDelivery defaults to caller (merges into body)', async () => {
+    const customDefault: WfOutlet = {
+      name: 'custom-form',
+      async deliver(req) {
+        return { response: { form: (req as any).payload } }
+      },
+    }
+    const { deps, flowId } = buildCustomOutletRig(customDefault, { payload: { fields: ['x'] } })
+    const config: WfOutletTriggerConfig = {
+      state: createTestStrategy(),
+      outlets: [customDefault],
+    }
+
+    const runCtx = postWf({ wfid: flowId })
+
+    const result = (await runCtx(() => handleWfOutletRequest(config, deps))) as any
+    expect(result.form).toEqual({ fields: ['x'] })
+    expect(typeof result.wfs).toBe('string')
+  })
+
+  it('invalidates HTTP-outlet token after successful resume (single-use)', async () => {
+    const app = createTestWfApp()
+    const deps = makeDeps(app)
+    const store = createTestStore()
+    const strategy = new HandleStateStrategy({ store })
+    const config = makeConfig({ state: strategy })
+
+    const runCtx1 = postWf({ wfid: 'with-http-outlet' })
+    const startResult = (await runCtx1(() => handleWfOutletRequest(config, deps))) as any
+    const token = startResult.wfs
+
+    const runCtx2 = postWf({ wfs: token, input: { email: 'a@b.com' } })
+    const r1 = await runCtx2(() => handleWfOutletRequest(config, deps))
+    expect(r1).toEqual({ finished: true })
+
+    const runCtx3 = postWf({ wfs: token, input: { email: 'again@b.com' } })
+    const r2 = (await runCtx3(() => handleWfOutletRequest(config, deps))) as any
+    expect(r2.status).toBe(400)
+    expect(r2.error).toBeDefined()
+  })
+
+  it('retriable pause: old token is single-use; new token returned for retry', async () => {
+    const app = createTestWfApp()
+    const deps = makeDeps(app)
+    const store = createTestStore()
+    const strategy = new HandleStateStrategy({ store })
+    const config = makeConfig({ state: strategy })
+
+    const run1 = postWf({ wfid: 'retry-flow' })
+    const r1 = (await run1(() => handleWfOutletRequest(config, deps))) as any
+    expect(r1.fields).toEqual(['password'])
+    const t1 = r1.wfs as string
+    expect(typeof t1).toBe('string')
+
+    const run2 = postWf({ wfs: t1, input: { password: 'wrong' } })
+    const r2 = (await run2(() => handleWfOutletRequest(config, deps))) as any
+    expect(r2.fields).toEqual(['password'])
+    expect(r2.error).toBe('bad password')
+    const t2 = r2.wfs as string
+    expect(typeof t2).toBe('string')
+    expect(t2).not.toBe(t1)
+
+    const run3 = postWf({ wfs: t1, input: { password: 'good' } })
+    const r3 = (await run3(() => handleWfOutletRequest(config, deps))) as any
+    expect(r3.status).toBe(400)
+
+    const run4 = postWf({ wfs: t2, input: { password: 'good' } })
+    const r4 = await run4(() => handleWfOutletRequest(config, deps))
+    expect(r4).toEqual({ finished: true })
+  })
+
+  it('unexpected thrown error burns the token; replay is rejected', async () => {
+    const app = createTestWfApp()
+    const deps = makeDeps(app)
+    const store = createTestStore()
+    const strategy = new HandleStateStrategy({ store })
+    const config = makeConfig({ state: strategy })
+
+    const run1 = postWf({ wfid: 'throw-flow' })
+    const r1 = (await run1(() => handleWfOutletRequest(config, deps))) as any
+    const t1 = r1.wfs as string
+    expect(typeof t1).toBe('string')
+
+    const run2 = postWf({ wfs: t1, input: { anything: true } })
+    await expect(
+      run2(() => handleWfOutletRequest(config, deps)),
+    ).rejects.toThrow('step exploded')
+
+    const run3 = postWf({ wfs: t1 })
+    const r3 = (await run3(() => handleWfOutletRequest(config, deps))) as any
+    expect(r3.status).toBe(400)
+
+    expect(await store.get(t1)).toBeNull()
   })
 })
 
@@ -459,12 +629,7 @@ describe('createOutletHandler', () => {
       outlets: [createHttpOutlet()],
     }
 
-    const runCtx = prepareTestHttpContext({
-      url: '/wf',
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      rawBody: JSON.stringify({ wfid: 'simple' }),
-    })
+    const runCtx = postWf({ wfid: 'simple' })
 
     const result = await runCtx(() => handle(config))
     expect(result).toEqual({ finished: true })
@@ -482,24 +647,12 @@ describe('integration: full round-trip', () => {
       outlets: [createHttpOutlet()],
     }
 
-    // 1. Start workflow — pauses at ask-input step
-    const run1 = prepareTestHttpContext({
-      url: '/wf',
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      rawBody: JSON.stringify({ wfid: 'with-http-outlet' }),
-    })
+    const run1 = postWf({ wfid: 'with-http-outlet' })
     const r1 = (await run1(() => handleWfOutletRequest(config, deps))) as any
     expect(r1.fields).toEqual(['email', 'password'])
     expect(r1.wfs).toBeDefined()
 
-    // 2. Resume with user input
-    const run2 = prepareTestHttpContext({
-      url: '/wf',
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      rawBody: JSON.stringify({ wfs: r1.wfs, input: { email: 'a@b.com' } }),
-    })
+    const run2 = postWf({ wfs: r1.wfs, input: { email: 'a@b.com' } })
     const r2 = await run2(() => handleWfOutletRequest(config, deps))
     expect(r2).toEqual({ finished: true })
   })
@@ -515,37 +668,46 @@ describe('integration: full round-trip', () => {
       outlets: [createEmailOutlet(emailSendFn)],
     }
 
-    // 1. Start workflow — pauses at send-email step
-    const run1 = prepareTestHttpContext({
-      url: '/wf',
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      rawBody: JSON.stringify({ wfid: 'with-email-outlet' }),
-    })
+    const run1 = postWf({ wfid: 'with-email-outlet' })
     const r1 = (await run1(() => handleWfOutletRequest(config, deps))) as any
     expect(r1.sent).toBe(true)
     expect(emailSendFn).toHaveBeenCalled()
     const token = emailSendFn.mock.calls[0][0].token
 
-    // 2. Resume with token — should consume it
-    const run2 = prepareTestHttpContext({
-      url: '/wf',
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      rawBody: JSON.stringify({ wfs: token, input: { email: 'verified@test.com' } }),
-    })
+    const run2 = postWf({ wfs: token, input: { email: 'verified@test.com' } })
     const r2 = await run2(() => handleWfOutletRequest(config, deps))
     expect(r2).toEqual({ finished: true })
 
-    // 3. Try to reuse the same token — should fail (consumed)
-    const run3 = prepareTestHttpContext({
-      url: '/wf',
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      rawBody: JSON.stringify({ wfs: token }),
-    })
+    const run3 = postWf({ wfs: token })
     const r3 = (await run3(() => handleWfOutletRequest(config, deps))) as any
     expect(r3.status).toBe(400)
     expect(r3.error).toBeDefined()
+  })
+
+  it('security: admin triggering out-of-band outlet receives no resumption token', async () => {
+    const app = createTestWfApp()
+    const deps = makeDeps(app)
+    const store = createTestStore()
+    const strategy = new HandleStateStrategy({ store })
+    const emailSendFn = vi.fn().mockResolvedValue(undefined)
+    const config: WfOutletTriggerConfig = {
+      state: strategy,
+      outlets: [createHttpOutlet(), createEmailOutlet(emailSendFn)],
+    }
+
+    const run1 = postWf({ wfid: 'with-email-outlet' })
+    const adminResponse = (await run1(() => handleWfOutletRequest(config, deps))) as any
+
+    expect(adminResponse.wfs).toBeUndefined()
+    expect(adminResponse).toEqual({ sent: true, outlet: 'email' })
+
+    expect(emailSendFn).toHaveBeenCalledTimes(1)
+    const emailedToken = emailSendFn.mock.calls[0][0].token as string
+    expect(typeof emailedToken).toBe('string')
+    expect(emailedToken.length).toBeGreaterThan(0)
+
+    const run2 = postWf({ wfs: emailedToken, input: { email: 'verified@test.com' } })
+    const inviteeResponse = await run2(() => handleWfOutletRequest(config, deps))
+    expect(inviteeResponse).toEqual({ finished: true })
   })
 })

@@ -2,7 +2,7 @@
 
 Outlets let workflows **pause and deliver a request to the outside world** — render an HTTP form, send an email with a magic link, or dispatch to any custom delivery channel. When the user responds (submits the form, clicks the link), the workflow **resumes** automatically.
 
-The outlet system handles state persistence, token generation, token consumption (single-use for email, reusable for HTTP), and HTTP response building — so your step handlers stay declarative.
+The outlet system handles state persistence, token generation, atomic `consume()` on every resume with a fresh token issued on every pause (truly single-use with `HandleStateStrategy`), and HTTP response building — so your step handlers stay declarative.
 
 [[toc]]
 
@@ -174,6 +174,7 @@ import type { WfOutlet } from '@wooksjs/event-wf'
 
 const smsOutlet: WfOutlet = {
   name: 'sms',
+  tokenDelivery: 'out-of-band',  // SMS recipient is not the HTTP caller
   async deliver(request, token) {
     await smsService.send(request.target!, `Your code: ${token}`)
     return { response: { sent: true } }
@@ -181,19 +182,33 @@ const smsOutlet: WfOutlet = {
 }
 ```
 
+#### `tokenDelivery`
+
+Declares how the resumption token reaches the resumer. This is a **security-critical** field — get it wrong and the HTTP caller who triggered the pause will receive the token intended for a different principal.
+
+- `'caller'` (default) — the HTTP caller IS the resumer. The trigger merges the token into the HTTP response body or `Set-Cookie` per `token.write`. Appropriate for multi-step HTTP forms.
+- `'out-of-band'` — the outlet delivers the token through its own channel (email, SMS, Slack message, webhook). The HTTP caller is a bystander. The trigger suppresses body merge and cookie write so the caller receives no token.
+
+Built-in outlets: `createHttpOutlet()` declares `'caller'`; `createEmailOutlet()` declares `'out-of-band'`. Any custom outlet whose resumer is a different principal than the HTTP caller MUST declare `'out-of-band'`.
+
 ## Configuration
 
 The `handleWfOutletRequest` function (or the handler returned by `createOutletHandler`) accepts a `WfOutletTriggerConfig`:
 
 ```ts
 interface WfOutletTriggerConfig {
+  /**
+   * When `state` is a function (per-wfid strategies), all strategies it
+   * returns MUST share underlying storage, OR every resume request MUST
+   * include `wfid`. Otherwise `consume()` runs against the wrong strategy
+   * and single-use invalidation breaks silently.
+   */
   state: WfStateStrategy | ((wfid: string) => WfStateStrategy)
   outlets: WfOutlet[]
   token?: {
     name?: string                              // default: 'wfs'
     read?: Array<'body' | 'query' | 'cookie'>  // default: ['body', 'query', 'cookie']
     write?: 'body' | 'cookie'                  // default: 'body'
-    consume?: boolean | Record<string, boolean> // default: { email: true }
   }
   wfidName?: string                            // default: 'wfid'
   allow?: string[]
@@ -205,9 +220,9 @@ interface WfOutletTriggerConfig {
 
 ### State Strategies
 
-State strategies control how workflow state is persisted between pause and resume.
+State strategies control how workflow state is persisted between pause and resume. **Choose based on whether the workflow is security-sensitive** — see the security note below.
 
-**`HandleStateStrategy`** — server-side storage with a short handle/UUID as token:
+**`HandleStateStrategy`** — server-side storage with a short opaque handle as token. Supports truly single-use tokens via atomic `getAndDelete` at the store layer. **Use this for any flow with real-world side effects** (auth, password reset, invite accept, financial operations).
 
 ```ts
 import { HandleStateStrategy, WfStateStoreMemory } from '@wooksjs/event-wf'
@@ -220,7 +235,7 @@ const strategy = new HandleStateStrategy({
 
 For production, implement the `WfStateStore` interface backed by Redis, a database, etc.
 
-**`EncapsulatedStateStrategy`** — stateless, encrypted token (no server storage needed):
+**`EncapsulatedStateStrategy`** — stateless, AES-256-GCM encrypted token. No server storage needed. The entire workflow state is encrypted into the token itself. **Use only for idempotent, non-sensitive flows** (multi-step forms, pure data collection).
 
 ```ts
 import { EncapsulatedStateStrategy } from '@wooksjs/event-wf'
@@ -231,7 +246,22 @@ const strategy = new EncapsulatedStateStrategy({
 })
 ```
 
-The entire workflow state is encrypted into the token itself using AES-256-GCM.
+#### Security note — token replay
+
+A workflow resumption token lets the holder re-execute the workflow from the paused step. Any token that remains valid after use is a replay vector for whoever can copy it (browser history, logs, proxies, shared devices).
+
+- `HandleStateStrategy.consume()` atomically deletes the handle — truly single-use and race-safe.
+- `EncapsulatedStateStrategy.consume()` is a stateless no-op. A copy of the token remains valid for the full TTL. **This strategy CANNOT enforce single-use.** Use `HandleStateStrategy` when that matters.
+
+The trigger unconditionally calls `strategy.consume()` on every resume, so with `HandleStateStrategy` every token is automatically single-use. With `EncapsulatedStateStrategy` the consume call is a no-op and the token remains replayable until TTL — safe only if every step is idempotent.
+
+### Resume Semantics
+
+On every resume, the trigger calls `strategy.consume()` atomically BEFORE running the step handler. With `HandleStateStrategy` the token is truly single-use — a replay returns `{ error, status: 400 }`. With `EncapsulatedStateStrategy` `consume()` is a no-op (see the security note above) and the token remains replayable until TTL.
+
+On pause — including a re-pause at the same step for validation retry — the trigger persists state and issues a **fresh** token; the old one is gone. So a step handler that validates input and decides to re-prompt via `outletHttp(form, { error: 'invalid' })` returns a new token in the response, and the caller retries with that one.
+
+**Fail-closed on unexpected errors.** Because consume fires before the step runs, an unexpected throw during resume burns the token with no fresh replacement — the user must restart the workflow. This is the security-preferred behavior (no lingering replayable token after a failed attempt). Handle expected validation failures by returning an outlet signal from the step handler (the engine issues a new token on the re-pause), NOT by throwing.
 
 ### Token Configuration
 
@@ -246,21 +276,6 @@ The entire workflow state is encrypted into the token itself using AES-256-GCM.
 
 - `'body'` (default) — merges the token into the JSON response body
 - `'cookie'` — sets an httpOnly cookie
-
-**`token.consume`** — controls single-use vs reusable tokens per outlet:
-
-```ts
-// Default: email tokens are consumed, HTTP tokens are reusable
-{ token: { consume: { email: true } } }
-
-// All tokens are single-use:
-{ token: { consume: true } }
-
-// All tokens are reusable:
-{ token: { consume: false } }
-```
-
-When a token is consumed, it is invalidated after the first resume — preventing replay attacks on email magic links.
 
 ### Access Control
 

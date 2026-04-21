@@ -18,6 +18,7 @@ export function createHttpOutlet(opts?: {
 }): WfOutlet {
   return {
     name: 'http',
+    tokenDelivery: 'caller',
     async deliver(request: WfOutletRequest, _token: string): Promise<WfOutletResult> {
       const body = opts?.transform
         ? opts.transform(request.payload, request.context)
@@ -55,6 +56,7 @@ export function createEmailOutlet(
 ): WfOutlet {
   return {
     name: 'email',
+    tokenDelivery: 'out-of-band',
     async deliver(request: WfOutletRequest, token: string): Promise<WfOutletResult> {
       await send({
         target: request.target ?? '',
