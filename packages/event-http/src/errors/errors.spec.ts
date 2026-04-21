@@ -101,7 +101,48 @@ describe('WooksHttpResponse error rendering', () => {
         additional: 'additional text',
       })
       ;(response as any).renderError(error.body, ctx)
-      expect(response.body).toContain('"additional": "additional text"')
+      // `details` is HTML-escaped before injection into <code>, so JSON quotes
+      // appear as &quot; in the rendered HTML.
+      expect(response.body).toContain('&quot;additional&quot;: &quot;additional text&quot;')
+    })
+  })
+
+  it('must escape HTML in error message (reflected XSS regression)', () => {
+    runInContext(() => {
+      useRequest().headers.accept = 'text/html'
+      const ctx = current()
+      const response = createWooksResponse()
+      const payload = '<img src=x onerror=alert(1)>'
+      const error = new HttpError(400, payload)
+      ;(response as any).renderError(error.body, ctx)
+      const body = response.body as string
+      expect(body).not.toContain('<img src=x onerror=alert(1)>')
+      expect(body).toContain('&lt;img src=x onerror=alert(1)&gt;')
+    })
+  })
+
+  it('must escape HTML inside details JSON (reflected XSS regression)', () => {
+    runInContext(() => {
+      useRequest().headers.accept = 'text/html'
+      const ctx = current()
+      const response = createWooksResponse()
+      interface MyError {
+        statusCode: number
+        message: string
+        error: string
+        additional: string
+      }
+      const payload = '</code><script>alert(1)</script>'
+      const error = new HttpError<MyError>(400, {
+        statusCode: 400,
+        message: 'm',
+        error: 'Bad Request',
+        additional: payload,
+      })
+      ;(response as any).renderError(error.body, ctx)
+      const body = response.body as string
+      expect(body).not.toContain('</code><script>alert(1)</script>')
+      expect(body).toContain('&lt;/code&gt;&lt;script&gt;alert(1)&lt;/script&gt;')
     })
   })
 })

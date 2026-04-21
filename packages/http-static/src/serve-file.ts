@@ -82,7 +82,10 @@ export async function serveFile(
     if (options.defaultExt) {
       const ext = path.extname(filePath)
       if (!ext) {
-        return serveFile(`${filePath}.${options.defaultExt}`)
+        return serveFile(`${filePath}.${options.defaultExt}`, {
+          ...options,
+          defaultExt: undefined,
+        })
       }
     }
     throw new HttpError(404)

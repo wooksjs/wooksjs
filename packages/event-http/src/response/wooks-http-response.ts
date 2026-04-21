@@ -6,6 +6,7 @@ import svg404 from '../errors/404.tl.svg'
 import svg500 from '../errors/500.tl.svg'
 import errorTemplate from '../errors/error.tl.html'
 import type { TWooksErrorBodyExt } from '../errors/http-error'
+import { escapeHtml } from '../utils/escape-html'
 import { httpStatusCodes } from '../utils/status-codes'
 import type { EHttpStatusCode } from '../utils/status-codes'
 import { HttpResponse } from './http-response'
@@ -68,8 +69,8 @@ function renderErrorHtml(data: TWooksErrorBodyExt): string {
         icon,
         statusCode: data.statusCode,
         statusMessage: httpStatusCodes[data.statusCode],
-        message: data.message,
-        details: hasDetails ? JSON.stringify(data, null, '  ') : '',
+        message: escapeHtml(data.message),
+        details: hasDetails ? escapeHtml(JSON.stringify(data, null, '  ')) : '',
         version: framework.version,
         poweredBy: framework.poweredBy,
         link: framework.link,
