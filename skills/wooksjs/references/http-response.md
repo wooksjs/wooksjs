@@ -1,24 +1,17 @@
 # @wooksjs/event-http — Response, Errors & Testing
 
-## Table of Contents
+See [event-http.md](event-http.md) for app setup/routing, [http-request.md](http-request.md) for request composables.
 
-1. [useResponse / HttpResponse](#useresponsectx-httpresponse)
-2. [Status](#status)
-3. [Headers](#headers)
-4. [Cookies (Outgoing)](#cookies-outgoing)
-5. [Cache Control](#cache-control)
-6. [Body Content-Type Inference](#body-content-type-inference)
-7. [Raw Response Access](#raw-response-access)
-8. [HttpError and Error Rendering](#httperror-and-error-rendering)
-9. [Streaming and SSE](#streaming-and-sse)
-10. [Testing](#testing)
-11. [Best Practices](#best-practices)
-12. [Gotchas](#gotchas)
+## Contents
 
-For app setup and routing, see [event-http.md](event-http.md).
-For request composables, see [http-request.md](http-request.md).
-
----
+- [`useResponse` / `HttpResponse`](#useresponsectx-httpresponse)
+- [Status](#status), [Headers](#headers), [Cookies (outgoing)](#cookies-outgoing), [Cache Control](#cache-control)
+- [Body Content-Type Inference](#body-content-type-inference)
+- [Raw Response Access](#raw-response-access) — `getRawRes()`, `responded`
+- [HttpError and Error Rendering](#httperror-and-error-rendering) — content-negotiated error body
+- [Streaming and SSE](#streaming-and-sse)
+- [Testing](#testing) — `prepareTestHttpContext`
+- [Rules & Gotchas](#rules--gotchas)
 
 ## `useResponse(ctx?): HttpResponse`
 
@@ -323,25 +316,20 @@ it('reads cookies from request', () => {
 
 ---
 
-## Best Practices
+## Rules & Gotchas
 
-- Use `useResponse()` only when explicit control over headers, cookies, or status is needed.
-- Use `HttpError` for all error responses; do not manually set error status and body.
-- Always use `prepareTestHttpContext` for tests; do not manually construct `EventContext`.
-- Pre-seed `rawBody` for body parsing tests to avoid stream setup.
-- Pre-seed `params` to test route parameter logic without a router.
-- The test runner supports async callbacks: `await run(async () => { ... })`.
+- Use `useResponse()` only when explicit control over headers/cookies/status is needed.
+- Use `HttpError` for error responses; do not manually set error status/body.
+- Calling `send()` twice throws — check `response.responded`.
+- `getRawRes()` (no arg) marks response "responded"; framework will not touch it.
+- `getRawRes(true)` passthrough: you write headers/data, framework still finalizes cookies and status.
+- Cookie `maxAge` is seconds, not milliseconds.
+- `setContentType()` overwrites any prior content-type.
 - For custom error rendering, subclass `WooksHttpResponse` and override `renderError()`.
 
----
-
-## Gotchas
-
-- Calling `send()` twice throws. Check `response.responded` if unsure.
-- `getRawRes()` without `passthrough` marks the response as "responded"; the framework will not touch it.
-- `getRawRes(true)` (passthrough mode) lets you write headers/data while the framework still finalizes cookies and status.
-- Cookie `maxAge` is in seconds, not milliseconds.
-- `setContentType()` overwrites any previously set content-type.
-- `prepareTestHttpContext` uses a real `IncomingMessage` and `ServerResponse` (from `new Socket({})`). They are functional but not connected to a network.
-- The `HttpResponse` in tests is the base `HttpResponse`, not `WooksHttpResponse`. Error rendering will not do content negotiation in tests.
-- `rawBody` pre-seeding stores a resolved Promise. `useRequest().rawBody()` returns immediately.
+Testing:
+- Always use `prepareTestHttpContext`; do not manually construct `EventContext`.
+- Pre-seed `rawBody` for body tests; pre-seed `params` for route-param tests.
+- Runner supports async: `await run(async () => { ... })`.
+- Test uses base `HttpResponse`, not `WooksHttpResponse` — no content-negotiated error rendering in tests.
+- `prepareTestHttpContext` uses real `IncomingMessage`/`ServerResponse` on a fake `Socket` (functional, not networked).

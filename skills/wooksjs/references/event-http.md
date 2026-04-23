@@ -1,26 +1,24 @@
 # @wooksjs/event-http — Core & Routing
 
-## Table of Contents
+For request composables, see [http-request.md](http-request.md). For response API, errors, testing, see [http-response.md](http-response.md).
 
-1. [App Setup](#app-setup)
-2. [Route Registration](#route-registration)
-3. [Server Lifecycle](#server-lifecycle)
-4. [Routing Patterns](#routing-patterns)
-5. [Auto-Status Inference](#auto-status-inference)
-6. [Handler Chains](#handler-chains)
-7. [Default and Security Headers](#default-and-security-headers)
-8. [Patterns](#patterns)
-9. [Best Practices](#best-practices)
-10. [Gotchas](#gotchas)
+## Contents
 
-For request composables, see [http-request.md](http-request.md).
-For response API, errors, and testing, see [http-response.md](http-response.md).
-
----
+- [App Setup](#app-setup) — `createHttpApp`, `TWooksHttpOptions`
+- [Route Registration](#route-registration) — HTTP verbs, `on`, `all`, `upgrade`, `ws`
+- [Server Lifecycle](#server-lifecycle) — `listen`, `close`, `attachServer`, `getServerCb`
+- [Routing](#routing) — pattern syntax pointer
+- [Auto-Status Inference](#auto-status-inference) — method × body → status
+- [Handler Chains](#handler-chains)
+- [Default and Security Headers](#default-and-security-headers) — `securityHeaders()`
+- [Patterns](#patterns) — auth guard, resolve context once
+- [Rules & Gotchas](#rules--gotchas)
 
 ## App Setup
 
-### `createHttpApp(opts?): WooksHttp`
+### `createHttpApp(opts?, wooks?): WooksHttp`
+
+Second argument `wooks?: Wooks | WooksAdapterBase` shares routing with another adapter.
 
 ```ts
 import { createHttpApp } from '@wooksjs/event-http'
@@ -40,6 +38,7 @@ app.listen(3000)
 | `requestLimits`  | `Omit<TRequestLimits, 'perRequest'>` | Default body size/timeout limits for all requests                |
 | `responseClass`  | `typeof WooksHttpResponse`           | Custom response subclass (default: `WooksHttpResponse`)          |
 | `defaultHeaders` | `Record<string, string \| string[]>` | Default headers applied to every response (e.g. securityHeaders) |
+| `forwardHeaders` | `string[] \| false`                  | Request headers to propagate to outgoing fetch calls; `false` disables |
 
 ---
 
@@ -53,7 +52,10 @@ app.patch(path, handler)
 app.delete(path, handler)
 app.head(path, handler)
 app.options(path, handler)
-app.all(path, handler) // matches any HTTP method
+app.all(path, handler)                    // any HTTP method
+app.on(method, path, handler)             // generic method
+app.upgrade(path, handler)                // UPGRADE method (custom routing of WebSocket upgrade)
+app.ws(handler: WooksUpgradeHandler)      // register a WS upgrade handler (fallback when no UPGRADE route matches)
 ```
 
 Handlers are plain functions. Return value becomes the response body.
@@ -187,18 +189,10 @@ app.get('/hot-path', () => {
 
 ---
 
-## Best Practices
+## Rules & Gotchas
 
-- Return values directly; the framework handles serialization and status codes.
-- Use `HttpError` for all error responses; do not manually set error status and body.
-- Composables are lazy; call them only when you need the data.
-- Pass `ctx` explicitly in hot paths with multiple composable calls to reduce ALS lookups.
-- For `getServerCb()`, call `attachServer(server)` if you want `close()` to work.
-
----
-
-## Gotchas
-
-- Handlers receive no arguments. All data comes from composables.
-- `listen()` returns a Promise. Always `await` it or handle rejection.
-- `getServerCb()` does not automatically attach the server. Call `attachServer()` separately.
+- Handlers receive no arguments. All data comes from composables. Composables are lazy — call them only when you need the data.
+- Return value becomes the body; framework handles serialization and auto-status. Throw `HttpError` for error responses — do not manually set error status/body.
+- `listen()` returns a Promise — `await` it.
+- `getServerCb()` does not attach the server. Call `attachServer(server)` separately if you want `close()` to work.
+- Pass `ctx` explicitly when calling multiple composables — saves ALS lookups.

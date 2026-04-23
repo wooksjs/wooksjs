@@ -2,20 +2,17 @@
 
 Typed per-event context engine. Foundation for all Wooks adapters.
 
-## Table of Contents
+## Contents
 
-- [Primitives](#primitives) -- key, cached, cachedBy, slot, defineEventKind
-- [Composables](#composables) -- defineWook, useRouteParams, useEventId, useLogger
-- [Composable Patterns](#composable-patterns) -- lazy props, async cached, class-based, deps, plain functions
-- [EventContext](#eventcontext) -- constructor, get/set/has, parent chain, seed
-- [Runtime](#runtime) -- run, current, tryGetCurrent, createEventContext
-- [Custom Adapter Pattern](#custom-adapter-pattern)
-- [ContextInjector](#contextinjector) -- observability hook point
-- [Types](#types)
-- [Best Practices](#best-practices)
-- [Gotchas](#gotchas)
-
----
+- [Primitives](#primitives) — `key`, `cached`, `cachedBy`, `slot`, `defineEventKind`
+- [Composables](#composables) — `defineWook`, `useRouteParams`, `useEventId`, `useLogger`
+- [Composable Patterns](#composable-patterns) — lazy props, async cached, class-based, deps, plain functions
+- [EventContext](#eventcontext) — constructor, `get`/`set`/`has`, `getOwn`/`setOwn`/`hasOwn`, `seed`, parent chain
+- [Runtime](#runtime) — `run`, `current`, `tryGetCurrent`, `createEventContext`, version safety
+- [Custom adapters (advanced)](#custom-adapters-advanced)
+- [ContextInjector](#contextinjector) — observability hook point
+- [Types](#types), [Standard Keys](#standard-keys)
+- [Rules & Gotchas](#rules--gotchas)
 
 ## Primitives
 
@@ -462,17 +459,12 @@ Uses global `Symbol.for('wooks.core.asyncStorage')` for singleton ALS. Throws at
 
 ---
 
-## Custom Adapter Pattern
+## Custom adapters (advanced)
 
-Each adapter exports a context factory that hardcodes the kind and delegates to `createEventContext`:
+Only needed to build a new adapter. Skip when consuming an existing one (HTTP/CLI/WS/WF).
 
 ```ts
-import { createEventContext, defineEventKind, slot } from '@wooksjs/event-core'
-import type { EventContextOptions, EventKindSeeds } from '@wooksjs/event-core'
-
-const myKind = defineEventKind('my-event', {
-  data: slot<unknown>(),
-})
+const myKind = defineEventKind('my-event', { data: slot<unknown>() })
 
 export function createMyEventContext<R>(
   options: EventContextOptions,
@@ -481,33 +473,14 @@ export function createMyEventContext<R>(
 ): R {
   return createEventContext(options, myKind, seeds, fn)
 }
-
-// Usage in the adapter
-function handleEvent(data: unknown, handler: () => unknown) {
-  return createMyEventContext({ logger: console }, { data }, handler)
-}
 ```
 
-Built-in adapters following this pattern: `createHttpContext`, `createCliContext`, `createWsConnectionContext`, `createWsMessageContext`, `createWfContext`, `resumeWfContext`.
+Built-ins: `createHttpContext`, `createCliContext`, `createWsConnectionContext`, `createWsMessageContext`, `createWfContext`, `resumeWfContext`.
 
-### Child Contexts with Parent Links
-
-Layer contexts instead of seeding multiple kinds into one context:
+Layer contexts with parent links (child seeds new kind, inherits parent slots):
 
 ```ts
-createEventContext({ logger }, httpKind, httpSeeds, () => {
-  const parentCtx = current()
-
-  createEventContext(
-    { logger, parent: parentCtx },
-    workflowKind,
-    { triggerId: 'deploy-42', payload },
-    () => {
-      const { method } = useRequest()     // found via parent chain
-      const { triggerId } = useWorkflow() // found locally
-    },
-  )
-})
+createEventContext({ logger, parent: parentCtx }, workflowKind, seeds, fn)
 ```
 
 ---
@@ -622,39 +595,35 @@ eventTypeKey    // Key for event type name (set by ctx.seed())
 
 ---
 
-## Best Practices
+## Rules & Gotchas
 
-- Define `key`/`cached`/`cachedBy` at **module level** -- they are descriptors, not values
-- Use `cached` for anything computed from request data -- guarantees single computation
-- Use `cachedBy` when computation varies by a parameter (cookie name, header name)
-- Use `defineWook` when returning an object with multiple properties/methods
-- Use plain functions for trivial single-value access
-- Always accept optional `ctx` parameter in composables for performance
-- Pass `ctx` explicitly when calling multiple composables in sequence (saves ALS lookups)
-- Use classes for composables with 4+ methods (prototype methods, zero closures per event)
-- Use thunks for non-trivial properties in composable return objects
-- Let adapters handle context creation -- in handler code, just use composables
-- Use `tryGetCurrent()` in library code that may run outside event scope
-- Prefer parent-linked child contexts over seeding multiple kinds into one context
-- Use `getOwn()`/`setOwn()`/`hasOwn()` when you need local-only access and want to avoid reads/writes to parent contexts
-- Keep parent chains shallow -- traversal is O(depth) per lookup
+Primitive placement:
+- Define `key`/`cached`/`cachedBy` at **module level** — they are descriptors, not values.
 
----
+Picking the right primitive:
+- `defineWook` → factory returns object with multiple properties/methods.
+- Plain function → single-value access (no cache overhead).
+- `cached` → expensive per-event computation (single compute, error-cached, circular-detected).
+- `cachedBy` → computation varies by parameter; keys compared by `===`.
 
-## Gotchas
+Factory rules:
+- `cached` / `defineWook` factories receive `ctx` — use it, don't call `current()` inside.
+- Factory runs once per context — put per-call logic in thunks, not in the factory body.
 
-- `key` throws on `get` if never `set` -- use `ctx.has(k)` to check first
-- `cached` factory receives `ctx` as parameter -- use it instead of calling `current()` inside the factory
-- `defineWook` factory receives `ctx` as parameter -- same rule applies
-- The factory in `defineWook` runs once per context -- do not put per-call logic in it (use thunks)
-- Calling a composable outside an event context throws `No active event context`
-- Different event contexts get different composable instances -- cache is per-context
-- Circular `cached` dependencies throw immediately at runtime
-- `cachedBy` keys compared by identity (`===`), not deep equality
-- Errors from `cached` are also cached -- a failing computation will not retry
-- `current()` throws outside `run()` scope -- use `tryGetCurrent()` if that is expected
-- `AsyncLocalStorage` propagates through `await`, `setTimeout`, `setImmediate`, and Promise chains
-- `EventContext` is not thread-safe -- designed for single-event, single-async-chain use
-- The global singleton ALS means all `@wooksjs/event-core` consumers in a process share context -- version mismatches caught at import
-- `set()` writes to the first context in the parent chain where the key exists -- use `setOwn()` to shadow a parent value locally
-- `get()` on a `Cached<T>` found in a parent returns the parent's cached value without re-computing -- use `getOwn()` for a fresh local computation
+Context access:
+- Pass `ctx` explicitly when calling multiple composables in one handler — saves ALS lookups.
+- `key.get()` before `set()` throws `Key "name" is not set` — use `ctx.has(k)` first.
+- Outside `run()` scope, `current()` throws `[Wooks] No active event context` — use `tryGetCurrent()` in library code.
+- `cached` errors are cached too — a failing computation never retries in the same context.
+
+Parent chain:
+- `get`/`set`/`has` traverse parent. `getOwn`/`setOwn`/`hasOwn` are local-only.
+- `set()` writes to the first context in the chain that has the key — use `setOwn()` to shadow a parent value.
+- `get()` on a `Cached<T>` cached in a parent reuses the parent's value — use `getOwn()` to force local recompute.
+- Prefer parent-linked child contexts over seeding multiple kinds into one context.
+- Traversal is O(depth). Keep chains shallow.
+
+Runtime:
+- `AsyncLocalStorage` propagates through `await`, timers, Promise chains.
+- `EventContext` is single-event, single-async-chain — not thread-safe.
+- Global singleton ALS: version mismatches throw at import.

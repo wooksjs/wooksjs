@@ -2,21 +2,18 @@
 
 WebSocket adapter for Wooks. Path-based message routing, connection management, rooms, and broadcasting.
 
-## Table of Contents
+## Contents
 
-- [Context Layers](#context-layers) -- connection vs message context
-- [Wire Protocol](#wire-protocol) -- WsClientMessage, WsReplyMessage, WsPushMessage
-- [App Setup](#app-setup) -- createWsApp, TWooksWsOptions
-- [WooksWs Class](#wooksws-class) -- onMessage, onConnect, onDisconnect, upgrade, handleUpgrade, listen, close
+- [Context Layers](#context-layers) — connection vs message context
+- [Wire Protocol](#wire-protocol) — `WsClientMessage`, `WsReplyMessage`, `WsPushMessage`
+- [App Setup](#app-setup) — `createWsApp`, `TWooksWsOptions`
+- [WooksWs Class](#wooksws-class) — `onMessage`, `onConnect`, `onDisconnect`, `upgrade`, `handleUpgrade`, `listen`, `close`
 - [WsError](#wserror)
-- [Composables](#composables) -- useWsConnection, useWsMessage, useWsRooms, useWsServer, currentConnection
-- [Rooms & Broadcasting](#rooms--broadcasting) -- WsRoomManager, WsBroadcastTransport
-- [Patterns](#patterns) -- HTTP-integrated, standalone, auth, chat rooms, Redis transport, custom serializer
-- [Testing](#testing) -- prepareTestWsConnectionContext, prepareTestWsMessageContext
-- [Best Practices](#best-practices)
-- [Gotchas](#gotchas)
-
----
+- [Composables](#composables) — `useWsConnection`, `useWsMessage`, `useWsRooms`, `useWsServer`, `currentConnection`
+- [Rooms & Broadcasting](#rooms--broadcasting) — `WsRoomManager`, `WsBroadcastTransport`, `WsConnection`
+- [Patterns](#patterns) — HTTP-integrated, standalone, chat rooms, Redis transport, custom serializer
+- [Testing](#testing) — `prepareTestWsConnectionContext`, `prepareTestWsMessageContext`
+- [Rules & Gotchas](#rules--gotchas)
 
 ## Context Layers
 
@@ -269,21 +266,7 @@ Returns the connection `EventContext` regardless of handler type. In `onConnect`
 
 ### WsRoomManager
 
-Internal class managing `Map<string, Set<WsConnection>>`. Use `useWsRooms()` composable in handlers. Direct use only needed for advanced scenarios.
-
-```ts
-class WsRoomManager {
-  join(connection: WsConnection, room: string): void
-  leave(connection: WsConnection, room: string): void
-  leaveAll(connection: WsConnection): void       // called automatically on disconnect
-  connections(room: string): Set<WsConnection>
-  broadcast(room: string, event: string, path: string,
-            data?: unknown, params?: Record<string, string>,
-            exclude?: WsConnection): void
-}
-```
-
-Constructor accepts an optional `WsBroadcastTransport` for cross-instance pub/sub.
+Internal — use `useWsRooms()` in handlers. Constructor accepts optional `WsBroadcastTransport` for cross-instance pub/sub; empty rooms auto-cleaned; `leaveAll` on disconnect is automatic.
 
 ### WsBroadcastTransport
 
@@ -310,22 +293,7 @@ Transport payload format (JSON-stringified):
 
 ### WsConnection (internal)
 
-```ts
-class WsConnection {
-  readonly id: string
-  readonly ws: WsSocket
-  readonly ctx: EventContext
-  readonly rooms: Set<string>
-  alive: boolean
-
-  send(event: string, path: string, data?: unknown, params?: Record<string, string>): void
-  reply(id: string | number, data?: unknown): void
-  replyError(id: string | number, code: number, message: string): void
-  close(code?: number, reason?: string): void
-}
-```
-
-`send`/`reply`/`replyError` silently drop if `ws.readyState !== 1` (not OPEN).
+Obtained via `useWsServer().getConnection(id)` / `roomConnections(room)`. Methods: `send(event, path, data?, params?)`, `reply(id, data?)`, `replyError(id, code, message)`, `close(code?, reason?)`. Fields: `id`, `ws`, `ctx`, `rooms`, `alive`. Send methods silently drop if `ws.readyState !== 1` (not OPEN).
 
 ---
 
@@ -497,34 +465,26 @@ runInCtx(() => {
 
 ---
 
-## Best Practices
+## Rules & Gotchas
 
-- Use HTTP-integrated mode for production -- shares the HTTP server and handles UPGRADE routing cleanly
-- Set `maxMessageSize` appropriate for the use case to prevent memory abuse
-- Use `WsError` with HTTP-style codes for structured error replies; keep `onConnect` handlers fast (they block connection acceptance)
-- Heartbeat is enabled by default (30s); set to 0 only for short-lived connections
-- Always type `useWsMessage<T>()` with the expected payload type
-- Call `useWsRooms()` without arguments to default to the current message path; prefer `useWsServer().broadcast()` for server-wide announcements vs `useWsRooms().broadcast()` for room-scoped messages
-- Implement `WsBroadcastTransport` for horizontal scaling -- without it, broadcasts only reach the same process
-- Always use test helpers (`prepareTestWs*Context`) rather than manually constructing `EventContext` -- they ensure proper kind seeding
-- The mock `WsSocket` has no-op methods -- to assert on sent messages, create a custom mock and use `WsConnection` directly
+- Handler return value sent as reply only if client message had `id`. Fire-and-forget messages get no reply.
+- `useWsMessage()` / `useWsRooms()` throw outside message context (e.g. in `onConnect`/`onDisconnect`).
+- `useWsServer()` is NOT a `defineWook` — works anywhere but requires adapter initialization first.
+- `useWsConnection().send()` silently drops when `ws.readyState !== 1`.
+- HTTP-integrated mode: connection context's parent is HTTP context, so HTTP composables (headers/cookies) work in WS handlers — by design.
+- `WsError` in `onConnect`: 401/403 → WS close code 1008; others → 1011.
+- Messages exceeding `maxMessageSize` (default 1MB) and invalid JSON are silently dropped (no error reply).
+- Transport channel format: `ws:room:{roomName}`. `excludeId` is per-connection — same user on multiple sockets will still get the broadcast on other sockets.
+- Empty rooms auto-cleaned.
+- The `ws` package is a peer dependency — install explicitly.
+- Typing: always pass `T` to `useWsMessage<T>()`.
+- Heartbeat defaults to 30s; set to 0 to disable.
+- Use `useWsServer().broadcast()` for server-wide; `useWsRooms().broadcast()` for room-scoped (defaults to current message path).
+- Implement `WsBroadcastTransport` for multi-instance broadcasting.
 
----
-
-## Gotchas
-
-- Handler return values are only sent as replies when the client message included an `id` field. Fire-and-forget messages (no `id`) produce no reply even if the handler returns a value.
-- The `ws` package is a peer dependency -- install it explicitly.
-- `useWsMessage()` and `useWsRooms()` throw if called outside a message context (e.g. inside `onConnect` or `onDisconnect`).
-- When a connection context has an HTTP parent (integrated mode), composables from `@wooksjs/event-http` can read HTTP headers/cookies via the parent chain -- this is by design, not a leak.
-- `useWsServer()` is not a `defineWook` -- it reads from module-level adapter state, so it works anywhere but requires the adapter to be initialized first.
-- `useWsConnection().send()` silently drops messages if the socket is not in OPEN state (`readyState !== 1`).
-- The transport channel format is `ws:room:{roomName}` -- ensure Redis/NATS key patterns do not conflict.
-- Transport messages include `excludeId` to prevent echo on the originating instance, but the exclude is by connection ID -- if the same user has multiple connections, other connections still receive the broadcast.
-- Empty rooms are automatically cleaned up (removed from the internal Map).
-- `prepareTestWsMessageContext` requires `event` and `path` -- they are not optional.
-- Test contexts use `console` as the logger -- there is no direct override; wrap with a custom `EventContext` if needed.
-- The mock socket's `readyState` is `1` (OPEN) by default -- `send()` calls pass the guard check in tests.
-- When `onConnect` throws or rejects, the connection is rejected with WS close code 1008 (for 401/403) or 1011 (other errors).
-- Messages exceeding `maxMessageSize` (default 1MB) are silently dropped with no error reply.
-- Messages that fail to parse (invalid JSON, missing `event`/`path`) are silently dropped.
+Testing:
+- Use `prepareTestWs*Context` helpers — do not construct `EventContext` manually.
+- `prepareTestWsMessageContext` requires `event` and `path`.
+- Mock `WsSocket` has `readyState = 1` (OPEN) and no-op methods. For assertions on sent messages, wire a custom mock.
+- Test contexts use `console` as the logger — no direct override.
+- Composables that access adapter state (`useWsConnection`, `useWsRooms`, `useWsServer`) require `setAdapterState` (internal) before use in tests.

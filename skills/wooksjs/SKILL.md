@@ -187,7 +187,7 @@ import { createWfApp } from '@wooksjs/event-wf'
 const app = createWfApp<MyContext>()
 
 app.step('step-id', { handler: (ctx) => { /* ... */ } })
-app.flow('flow-id', ['step-a', 'step-b', { if: 'ctx.ready', then: 'step-c' }])
+app.flow('flow-id', ['step-a', 'step-b', { id: 'step-c', condition: 'ready' }])
 
 const result = await app.start('flow-id', initialContext)
 
@@ -201,10 +201,10 @@ import { createWsClient } from '@wooksjs/ws-client'
 
 const client = createWsClient('ws://localhost:3000', { reconnect: { enabled: true } })
 
-client.send('chat', '/room/general', { text: 'hello' })           // fire-and-forget
-const reply = await client.call('rpc', '/api/users', { id: 1 })   // RPC with correlation
-const unsub = client.subscribe('/notifications')                    // auto-resubscribe on reconnect
-const unreg = client.on('push', '/chat/:room', (ev) => { ... })   // push listener
+client.send('chat', '/room/general', { text: 'hello' })             // fire-and-forget
+const reply = await client.call('rpc', '/api/users', { id: 1 })     // RPC with correlation
+const unsub = await client.subscribe('/notifications')              // RPC + auto-resubscribe on reconnect
+const unreg = client.on('push', '/chat/*', (ev) => { /* ... */ })   // push listener (suffix wildcard only)
 ```
 
 ## Cross-cutting patterns
@@ -226,9 +226,9 @@ http.listen(3000)  // serves both HTTP and WS
 Child contexts traverse the parent chain for slot lookups, enabling composables to work transparently across boundaries:
 
 ```ts
-// HTTP -> Workflow: pass HTTP context as parent
+// HTTP -> Workflow: pass the HTTP context directly; WF creates a child linked to it.
 const result = await wfApp.start('flow-id', ctx, {
-  eventContext: { parent: current() }   // workflow composables can read HTTP slots
+  eventContext: current()   // workflow composables can read HTTP slots via parent chain
 })
 
 // HTTP -> WebSocket: connection context parents from HTTP upgrade
@@ -236,12 +236,13 @@ const result = await wfApp.start('flow-id', ctx, {
 
 ### Shared router
 
-Multiple adapters can share a single Wooks instance:
+Adapter factories accept `(opts?, wooks?)`. Pass another adapter or a `Wooks` as the second arg to share routing:
 
 ```ts
-const wooks = new Wooks()
-const http = new WooksHttp(wooks)
-const cli = new WooksCli(wooks)
+const http = createHttpApp()
+const cli = createCliApp({}, http)       // shares http's router
+const wf  = createWfApp<Ctx>({}, http)   // shares http's router
+const ws  = createWsApp(http)            // first arg detects adapter vs opts
 ```
 
 ### Performance: resolve context once

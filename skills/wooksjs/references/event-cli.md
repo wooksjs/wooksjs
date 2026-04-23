@@ -1,17 +1,15 @@
 # @wooksjs/event-cli -- CLI adapter reference
 
-## Table of Contents
+## Contents
 
-1. [App Setup](#app-setup)
-2. [Command Routing](#command-routing)
-3. [Running and Response Handling](#running-and-response-handling)
-4. [Command Metadata](#command-metadata)
-5. [Composables](#composables)
-6. [Patterns](#patterns)
-7. [Best Practices](#best-practices)
-8. [Gotchas](#gotchas)
-
----
+- [App Setup](#app-setup) — `createCliApp`, `TWooksCliOptions`
+- [Command Routing](#command-routing) — `app.cli`, parametric paths
+- [Running and Response Handling](#running-and-response-handling) — `app.run`, return type → stdout mapping
+- [Command Metadata](#command-metadata) — `TWooksCliEntry`, `TCliOption`, `TCliExample`
+- [Composables](#composables) — `useCliOptions`, `useCliOption`, `useCliHelp`, `useAutoHelp`, `useCommandLookupHelp`
+- [Patterns](#patterns) — auto-help, boolean/value flags, shared CLI+HTTP router
+- [Rules & Gotchas](#rules--gotchas)
+- [Event Kind Slots](#event-kind-slots)
 
 ## App Setup
 
@@ -300,29 +298,19 @@ cliApp.cli('start', () => httpApp.listen(3000))
 
 ---
 
-## Best Practices
+## Rules & Gotchas
 
-- Use `useRouteParams()` for positional arguments and `useCliOptions()`/`useCliOption()` for flags.
-- Prefer the options-object form of `app.cli()` to enable auto-generated help.
-- Add `useAutoHelp()` at the top of every command handler.
-- Use `useCommandLookupHelp()` in `onUnknownCommand` for "did you mean?" UX.
-- Use `aliases` for common abbreviations (e.g., `aliases: ['dep']` for `deploy`).
-- Always provide `description` and `options` for production CLI tools -- they power `--help`.
-- Use command paths with spaces or `/` interchangeably; pick whichever reads better.
-
----
-
-## Gotchas
-
-- `app.run()` is async -- always `await` it.
-- Default error handling calls `process.exit(1)` -- override with `onError` for testing.
-- Colons in command names must be escaped: `app.cli('use\\:dev', handler)` for `$ mycli use:dev`.
-- `minimist` treats `--no-flag` as `flag: false` when the flag is in the `boolean` array.
-- `useCliOptions()` returns raw `minimist` output -- `_` contains positional args, everything else is flags.
-- `useCliOption(name)` resolves aliases from option definitions; `useCliOptions()[name]` does **not** resolve aliases.
-- Help entries are auto-registered from `app.cli()` metadata -- no separate help registration step needed.
-- `useAutoHelp()` returns `true` when help was printed, `undefined` otherwise (not `false`).
-- `useCommandLookupHelp()` **throws** on match -- wrap in try/catch if you need fallback logic beyond `raiseError()`.
+- `app.run()` is async — `await` it.
+- Default error handling `process.exit(1)` — override `onError` for tests.
+- Use `useRouteParams()` for positional args, `useCliOptions()`/`useCliOption()` for flags.
+- `useCliOption(name)` resolves aliases from the command's `options` definitions; `useCliOptions()[name]` does NOT.
+- `useCliOptions()` is raw minimist output (`_` = positional args, rest = flags).
+- `useAutoHelp()` returns `true` when help was printed, else `undefined` (not `false`).
+- `useCommandLookupHelp()` **throws** on match — wrap in try/catch if you need fallback beyond `raiseError()`.
+- Escape colons in command paths: `app.cli('use\\:dev', handler)` matches `$ mycli use:dev`.
+- Command paths accept space or `/` as segment separator — equivalent.
+- Prefer options-object form of `app.cli()` — enables auto-help; required `description`/`options` for production CLIs.
+- Add `useAutoHelp()` at the top of every handler.
 
 ---
 

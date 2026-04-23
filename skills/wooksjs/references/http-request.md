@@ -1,22 +1,16 @@
 # @wooksjs/event-http — Request Composables
 
-## Table of Contents
+All composables accept an optional `ctx` parameter to skip the ALS lookup. See [event-http.md](event-http.md) for app setup/routing, [http-response.md](http-response.md) for response/errors/testing.
 
-1. [useRequest](#userequestctx)
-2. [useHeaders](#useheadersctx)
-3. [useCookies](#usecookiesctx)
-4. [useUrlParams](#useurlparamsctx)
-5. [useAuthorization](#useauthorizationctx)
-6. [useAccept](#useacceptctx)
-7. [Best Practices](#best-practices)
-8. [Gotchas](#gotchas)
+## Contents
 
-All composables accept an optional `ctx` parameter to skip the ALS lookup.
-
-For app setup and routing, see [event-http.md](event-http.md).
-For response API and testing, see [http-response.md](http-response.md).
-
----
+- [`useRequest`](#userequestctx) — method/url/headers/body/IP/limits
+- [`useHeaders`](#useheadersctx) — `IncomingHttpHeaders` shortcut
+- [`useCookies`](#usecookiesctx) — `getCookie(name)` (returns `null` if missing)
+- [`useUrlParams`](#useurlparamsctx) — query params
+- [`useAuthorization`](#useauthorizationctx) — Basic/Bearer parsing
+- [`useAccept`](#useacceptctx) — Accept header matching
+- [Rules & Gotchas](#rules--gotchas)
 
 ## `useRequest(ctx?)`
 
@@ -126,18 +120,9 @@ if (has('image/png')) { /* ... */ }
 
 ---
 
-## Best Practices
+## Rules & Gotchas
 
-- Use `getCookie(name)` over parsing all cookies when you need only a few.
-- `rawBody()` handles decompression (gzip, deflate, brotli) automatically with limits enforcement.
-- Composables are lazy; call them only when you need the data.
-- Pass `ctx` explicitly in hot paths with multiple composable calls to reduce ALS lookups.
-
----
-
-## Gotchas
-
-- `rawBody()` returns `Promise<Buffer>`. Always `await` it.
-- `rawBody()` consumes the stream. It is cached; the second call returns the same buffer.
-- `getCookie()` returns `null` (not `undefined`) when a cookie does not exist.
-- `useRequest()` limit setters use copy-on-write. They do not affect other requests.
+- `rawBody()` returns `Promise<Buffer>` — `await` it. Consumed+cached: second call returns same buffer.
+- `rawBody()` decompresses gzip/deflate/brotli automatically; limits enforced.
+- `getCookie(name)` returns `null` (not `undefined`) for missing. Use it instead of parsing all cookies when you need a few.
+- `useRequest()` limit setters are copy-on-write — do not affect other requests.

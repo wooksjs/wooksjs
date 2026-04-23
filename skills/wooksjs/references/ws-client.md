@@ -1,32 +1,17 @@
 # @wooksjs/ws-client -- Reference
 
-## Table of Contents
+## Contents
 
-1. [Overview](#overview)
-2. [Setup: createWsClient](#setup)
-3. [WsClientOptions](#wsclientoptions)
-4. [WsClient API](#wsclient-api)
-   - [send](#clientsendevent-path-data)
-   - [call](#clientcalltevent-path-data-promiset)
-   - [subscribe](#clientsubscribepath-data-promise---void)
-   - [on](#clientontevent-pathpattern-handler---void)
-   - [close](#clientclose)
-   - [Lifecycle events](#lifecycle-events)
-5. [Push Listeners](#push-listeners)
-   - [Matching rules](#matching-rules)
-   - [WsClientPushEvent](#wsclientpusheventt)
-6. [RPC](#rpc)
-7. [Reconnection](#reconnection)
-   - [WsClientReconnectOptions](#wsclientreconnectoptions)
-   - [Backoff calculation](#backoff-calculation)
-   - [Message queuing](#message-queuing)
-   - [Auto-resubscribe](#auto-resubscribe)
-8. [WsClientError Codes](#wsclienterror-codes)
-9. [Patterns](#patterns)
-10. [Best Practices](#best-practices)
-11. [Gotchas](#gotchas)
-
----
+- [Overview](#overview)
+- [Setup](#setup) — `createWsClient`
+- [WsClientOptions](#wsclientoptions) — `protocols`, `reconnect`, `rpcTimeout`, parser/serializer
+- [WsClient API](#wsclient-api) — `send`, `call`, `subscribe`, `on`, `close`, lifecycle events
+- [Push Listeners](#push-listeners) — matching rules, `WsClientPushEvent`
+- [RPC](#rpc) — correlation IDs, `RpcTracker`
+- [Reconnection](#reconnection) — `WsClientReconnectOptions`, backoff, queuing, auto-resubscribe
+- [WsClientError Codes](#wsclienterror-codes) — 408, 503, 4xx/5xx server codes
+- [Patterns](#patterns) — error handling, UI feedback, custom serializer/backoff, typed RPC
+- [Rules & Gotchas](#rules--gotchas)
 
 ## Overview
 
@@ -280,7 +265,7 @@ When disconnected and reconnect is enabled:
 
 Subscriptions created via `subscribe()` are stored as `Map<path, data>`. On successful reconnect, the client calls `call('subscribe', path, data)` for each stored subscription. Failures are silently caught and retry on the next reconnect.
 
-Auto-resubscribe happens after `onOpen` handlers fire -- `onOpen` handler runs before subscriptions are re-established.
+Order on reconnect: reset backoff → flush queued sends → initiate `subscribe` RPCs → fire `onOpen` handlers. Subscribe RPCs are in-flight (not yet confirmed) when `onOpen` runs.
 
 ---
 
@@ -389,39 +374,36 @@ console.log(response.roomId)
 
 ---
 
-## Best Practices
+## Rules & Gotchas
 
-- Always enable `reconnect` for production clients -- network interruptions are inevitable.
-- Set `rpcTimeout` appropriate for your use case (default: 10s).
-- Use typed generics with `call<T>()` and `on<T>()` for type-safe payloads.
-- Store the unsubscribe/unregister functions returned by `subscribe()`, `on()`, `onOpen()`, etc. to prevent leaks.
-- Call `client.close()` when the client is no longer needed.
-- Use exponential backoff (default) for production -- reduce server load during outages.
-- Set `maxRetries` for scenarios where giving up is better than infinite retry (e.g., auth failures).
-- Monitor `onReconnect` to update UI state.
-- Use `send()` for messages that can tolerate delayed delivery; use `call()` only when an immediate response is needed.
-- Use `subscribe()` for durable subscriptions that should survive reconnections; use `send()` for one-off events.
-- Always handle `WsClientError` in `.catch()` -- unhandled rejections from timeout or disconnect are common.
-- Prefer exact paths over wildcard patterns when the set of paths is known at compile time. Each incoming push message is checked against all wildcards (linear scan).
+Lifecycle:
+- Client connects immediately on construction — no `connect()` method.
+- `close()` permanently disables reconnection — create a new `WsClient` to reconnect. Queued messages cleared.
+- Node.js < 22: install `ws` peer dep or constructor throws `TypeError`.
 
----
+`send()` vs `call()` when disconnected:
+- `send()` queues **only if** `reconnect` is enabled, else silently dropped.
+- `call()` rejects immediately with `WsClientError(503)` — never queued, even with reconnect.
+- On disconnect, ALL pending RPCs reject with 503 — no retry.
 
-## Gotchas
+Reconnect:
+- Order on reconnect: backoff reset → flush queue → initiate subscribe RPCs → fire `onOpen`.
+- Attempt counter resets on successful connect; a later drop restarts from `baseDelay`.
+- Auto-resubscribe swallows subscribe errors — next reconnect retries.
+- `subscribe()` rejects (and does NOT store) if the server's subscribe handler throws — no auto-resubscribe for rejected subscriptions.
 
-- **`call()` always rejects when disconnected** -- it does NOT queue like `send()`, even with reconnect enabled. There is no "queue and resolve later" mode for RPCs.
-- **`send()` only queues when disconnected if `reconnect` is enabled**; otherwise the message is silently dropped.
-- **`client.close()` permanently disables reconnection** -- there is no way to re-enable it; create a new `WsClient` instead.
-- **Queued messages are lost if `client.close()` is called** -- the queue is cleared.
-- The client connects immediately on construction -- there is no `connect()` method.
-- For Node.js < 22 without the `ws` package, the constructor throws `TypeError`.
-- Auto-resubscribe on reconnect silently swallows errors -- check server logs if subscriptions seem lost. The next reconnect will retry.
-- Auto-resubscribe happens after `onOpen` handlers fire -- `onOpen` runs before subscriptions are re-established.
-- On disconnect, ALL pending RPCs are rejected with code 503 -- there is no retry mechanism for in-flight calls.
-- RPC IDs are auto-incrementing integers, not UUIDs -- they reset to 1 on new `WsClient` instances.
-- `subscribe()` rejects if the server's subscribe handler throws/rejects -- the subscription is NOT stored in that case.
-- The attempt counter resets to 0 on successful connection -- if the connection drops again, backoff restarts from `baseDelay`.
-- Wildcard only works as a **suffix** (`/path/*`); it is NOT a glob or regex.
-- The `params` field in push events comes from the server (Wooks router) -- the client does NOT parse path params itself.
-- If no handler matches a push message, it is silently dropped.
-- Handlers are called synchronously in iteration order -- a slow handler delays dispatch to subsequent handlers.
-- The event type must match exactly -- there is no wildcard for event types.
+RPC:
+- IDs auto-increment starting at 1 per `WsClient` instance (not UUIDs, no per-reconnect reset).
+- Always catch `WsClientError` from `call()` — timeout/disconnect rejections are common.
+
+Push listeners:
+- Wildcard `*` is **suffix-only** (`/path/*`) — not glob/regex. Event type must match exactly.
+- Each push is checked against all wildcard patterns (linear scan) — prefer exact paths when known.
+- `params` comes from the server's router extraction — client does NOT parse path params.
+- Unmatched pushes silently dropped. Handlers run sync in iteration order.
+
+Usage tips:
+- Enable `reconnect` in production. Set `maxRetries` for give-up scenarios (e.g. auth failures).
+- Store returned unsubscribe/unregister functions; call them on teardown.
+- Use `send()` for fire-and-forget, `call()` only when a response is required.
+- Use `subscribe()` for durable subscriptions (survive reconnects).

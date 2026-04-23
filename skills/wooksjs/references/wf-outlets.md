@@ -1,24 +1,21 @@
 # @wooksjs/event-wf -- Outlets
 
-## Table of Contents
+For workflow core (steps, flows, schema), see [event-wf.md](event-wf.md). For parent context, spies, error handling, see [wf-advanced.md](wf-advanced.md).
 
-1. [Core Concepts](#core-concepts)
-2. [Outlet Signal Helpers](#outlet-signal-helpers)
-3. [WfOutletRequest](#wfoutletrequest)
-4. [Creating Outlets](#creating-outlets)
-5. [State Strategies](#state-strategies)
-6. [Trigger Handler](#trigger-handler)
-7. [WfOutletTriggerConfig](#wfoutlettriggerconfig)
-8. [WfOutletTokenConfig](#wfoutlettokenconfig)
-9. [Trigger Request Flow](#trigger-request-flow)
-10. [useWfFinished](#usewffinished-composable)
-11. [useWfOutlet](#usewfoutlet-composable)
-12. [Full Round-Trip Example](#full-outlet-round-trip-example)
+## Contents
 
-For workflow core (steps, flows, schema), see [event-wf.md](event-wf.md).
-For parent context, spies, and error handling, see [wf-advanced.md](wf-advanced.md).
-
----
+- [Core Concepts](#core-concepts)
+- [Outlet Signal Helpers](#outlet-signal-helpers) — `outlet`, `outletHttp`, `outletEmail`
+- [WfOutletRequest](#wfoutletrequest)
+- [Creating Outlets](#creating-outlets) — `createHttpOutlet`, `createEmailOutlet`, custom outlets (`tokenDelivery`)
+- [State Strategies](#state-strategies) — `HandleStateStrategy` vs `EncapsulatedStateStrategy`, `WfStateStore`
+- [Trigger Handler](#trigger-handler) — `createOutletHandler`, `handleWfOutletRequest`
+- [WfOutletTriggerConfig](#wfoutlettriggerconfig)
+- [WfOutletTokenConfig](#wfoutlettokenconfig)
+- [Trigger Request Flow](#trigger-request-flow) — consume semantics, fail-closed behavior
+- [useWfFinished](#usewffinished-composable)
+- [useWfOutlet](#usewfoutlet-composable)
+- [Full Round-Trip Example](#full-outlet-round-trip-example)
 
 ## Core Concepts
 

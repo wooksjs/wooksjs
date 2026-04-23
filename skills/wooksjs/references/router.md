@@ -1,22 +1,19 @@
 # Routing — @prostojs/router
 
-## Table of Contents
+## Contents
 
-1. [Overview](#overview)
-2. [Configuration](#configuration)
-3. [Parametric Routes](#parametric-routes)
-4. [Wildcards](#wildcards)
-5. [Optional Parameters](#optional-parameters)
-6. [Escaping Special Characters](#escaping-special-characters)
-7. [Retrieving Route Params](#retrieving-route-params)
-8. [Path Builders](#path-builders)
-9. [Query Parameters](#query-parameters)
-10. [Route Priority](#route-priority)
-11. [Adapter-Specific Methods](#adapter-specific-methods)
-12. [Best Practices](#best-practices)
-13. [Gotchas](#gotchas)
-
----
+- [Overview](#overview)
+- [Configuration](#configuration) — `ignoreTrailingSlash`, `ignoreCase`, `cacheLimit`
+- [Parametric Routes](#parametric-routes) — `:param`, separators, regex constraints
+- [Wildcards](#wildcards) — `*` positions, suffix filter, multiple wildcards
+- [Optional Parameters](#optional-parameters) — `:param?`, perf note
+- [Escaping Special Characters](#escaping-special-characters) — `\\:` for literal colons
+- [Retrieving Route Params](#retrieving-route-params) — `useRouteParams`
+- [Path Builders](#path-builders) — `getPath`, `getStaticPart`, `getArgs`, static/parametric/wildcard flags
+- [Query Parameters](#query-parameters)
+- [Route Priority](#route-priority) — static → parametric → wildcard
+- [Adapter-Specific Methods](#adapter-specific-methods) — HTTP/CLI/WS/WF/shared
+- [Rules & Gotchas](#rules--gotchas)
 
 ## Overview
 
@@ -276,35 +273,25 @@ app.flow(id, schema)             // flow ID is a router path (method: 'WF_FLOW')
 
 ### Shared router
 
-Multiple adapters can share one router via the same Wooks instance:
+Adapters share one router via the same Wooks instance or by passing an existing adapter:
 
 ```ts
-const wooks = new Wooks()
-const http = new WooksHttp(wooks)
-const ws = new WooksWs(http)        // shares router with http
-const wf = createWfApp({}, http)    // shares router with http
+const http = createHttpApp()
+const ws   = createWsApp(http)        // shares router with http
+const wf   = createWfApp({}, http)    // shares router with http
+const cli  = createCliApp({}, http)   // shares router with http
 ```
 
 ---
 
-## Best Practices
+## Rules & Gotchas
 
-- Prefer static routes over parametric for known paths — faster lookup.
-- Use regex constraints to avoid ambiguous matches: `:id(\\d+)` vs `:slug`.
-- Use optional params sparingly — they degrade to wildcard performance.
-- Enable `cacheLimit` in production for frequently accessed parametric routes.
-- Use `ignoreTrailingSlash: true` to avoid 404s from trailing slash mismatches.
-- Use path builders (`getPath()`) to construct URLs rather than string concatenation.
-
----
-
-## Gotchas
-
-- **Optional params must be terminal** — no required segments after optional ones.
-- **Same-name params create arrays** — `/:a/:a` yields `{ a: ['x', 'y'] }`, not overwrite.
-- **Wildcards capture everything** — `/static/*` matches `/static/a/b/c/d`.
-- **Colon is always a param marker** — escape with `\\:` for literal colons.
-- **CLI paths normalize** — spaces and `/` are equivalent separators.
-- **Duplicate routes accumulate handlers** — registering the same path twice creates a handler chain, not a replacement.
-- **URL decoding is automatic** — `%20`, `%2F` etc. are decoded before matching.
-- **Query strings ignored** — the router never sees `?key=value`.
+- Optional params must be terminal — no required segments after optional ones.
+- Same-name params yield arrays: `/:a/:a` → `{ a: ['x', 'y'] }`.
+- Wildcards capture everything: `/static/*` matches `/static/a/b/c/d`.
+- Colon is always a param marker — escape `\\:` for literal.
+- CLI paths: space and `/` are equivalent separators.
+- Duplicate routes accumulate into a handler chain (not replace).
+- URL decoding automatic (`%20`, `%2F` decoded before matching).
+- Query strings ignored (router never sees `?key=value` — use `useUrlParams()`).
+- Prefer static > parametric > wildcard for speed. Regex constraints disambiguate (`:id(\\d+)` vs `:slug`). Use `cacheLimit` in production. Use `getPath()` to build URLs, not string concat.

@@ -1,26 +1,22 @@
 # @wooksjs/event-wf -- Workflow Core
 
-## Table of Contents
+For outlets (HTTP/email delivery), see [wf-outlets.md](wf-outlets.md). For parent context, spies, error handling, testing, see [wf-advanced.md](wf-advanced.md).
 
-1. [Mental Model](#mental-model)
-2. [App Setup](#app-setup)
-3. [Starting and Resuming](#starting-and-resuming)
-4. [Defining Steps](#defining-steps)
-5. [String Handlers](#string-handlers)
-6. [Parametric Steps](#parametric-steps)
-7. [Defining Flows](#defining-flows)
-8. [Schema Syntax](#schema-syntax)
-9. [useWfState Composable](#usewfstate-composable)
-10. [User Input and Pause/Resume](#user-input-and-pauseresume)
-11. [State Serialization](#state-serialization)
-12. [Patterns](#patterns)
-13. [Best Practices](#best-practices)
-14. [Gotchas](#gotchas)
+## Contents
 
-For outlets (HTTP/email delivery), see [wf-outlets.md](wf-outlets.md).
-For parent context, spies, error handling, and testing, see [wf-advanced.md](wf-advanced.md).
-
----
+- [Mental Model](#mental-model)
+- [App Setup](#app-setup) — `createWfApp<T>`, `TWooksWfOptions`
+- [Starting and Resuming](#starting-and-resuming) — `start`, `resume`, `TFlowOutput`
+- [Defining Steps](#defining-steps) — `app.step`, function & string handlers
+- [String Handlers](#string-handlers) — sandbox restrictions
+- [Parametric Steps](#parametric-steps) — named params, regex, wildcards, parametric flow IDs
+- [Defining Flows](#defining-flows) — `app.flow`, init function
+- [Schema Syntax](#schema-syntax) — items, conditions, loops, subflows
+- [useWfState](#usewfstate-composable) — `ctx<T>()`, `input<I>()`, `schemaId`, `stepId`, `indexes`, `resume`
+- [User Input and Pause/Resume](#user-input-and-pauseresume)
+- [State Serialization](#state-serialization)
+- [Patterns](#patterns) — calculator, interactive wizard
+- [Rules & Gotchas](#rules--gotchas)
 
 ## Mental Model
 
@@ -638,26 +634,16 @@ output = await app.resume(output.state, { input: 'pro' })
 
 ---
 
-## Best Practices
+## Rules & Gotchas
 
-- Provide the generic `<T>` to `createWfApp<T>()` and `ctx<T>()` for type safety.
-- Use string handlers for simple mutations. Use function handlers for composables, async, or imports.
-- Use parametric steps instead of duplicating: one `add/:n` instead of separate `add-5`, `add-10`.
-- Keep branching logic in schema conditions, not in step handlers.
-- Serialize `output.state` for long-running workflows.
-- Use `flow` init functions for pre-step context setup.
-- Always provide `onError` in production to avoid `process.exit(1)`.
-
----
-
-## Gotchas
-
-- **Composables must be called within a step handler** (inside the async context).
-- **`start()` and `resume()` return promises** -- always `await` them.
-- **Input is cleared after the first step** -- subsequent steps get input only on resume.
-- **String handlers are sandboxed** -- no `require`, `import`, `process`, `console`, or Node.js globals.
-- **Step IDs are router paths** -- `'process/items'` is two segments. Use `'process-items'` for flat IDs.
-- **Conditions access context properties directly** -- `'result > 10'` checks `context.result`.
-- **Flow `init` runs in context** -- the init function has access to composables.
-- **`resume()` requires the exact state object** -- do not modify `output.state`.
-- **Default error behavior is `process.exit(1)`** -- always provide `onError`.
+- Provide `<T>` to `createWfApp<T>()` and `ctx<T>()` for type safety.
+- `start()` / `resume()` return Promises — `await` them.
+- Composables must be called inside a step handler (or flow `init`, which runs in context).
+- String handlers are sandboxed: only `ctx` and `input` available. No `require`/`import`/`process`/`console`/Node globals. Use function handlers for anything non-trivial.
+- Step IDs are router paths: `'process/items'` is two segments. Use `'process-items'` for flat IDs.
+- Conditions access context properties directly: `'result > 10'` checks `context.result` (no `ctx.` prefix).
+- Input is cleared after first step — subsequent steps get input only via `resume()`.
+- Prefer parametric steps over duplication (`add/:n` vs `add-5`/`add-10`).
+- Keep branching in schema conditions, not handler code.
+- Do not modify `output.state` — `indexes` tracks exact position.
+- Default `onError` is `console.error` + `process.exit(1)` — always provide `onError` in production.

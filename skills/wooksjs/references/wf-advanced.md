@@ -1,16 +1,13 @@
 # @wooksjs/event-wf -- Advanced
 
-## Table of Contents
+For workflow core (steps, flows, schema), see [event-wf.md](event-wf.md). For outlets (HTTP/email delivery), see [wf-outlets.md](wf-outlets.md).
 
-1. [Parent Context Sharing](#parent-context-sharing)
-2. [Spies](#spies)
-3. [Error Handling](#error-handling)
-4. [Testing](#testing)
+## Contents
 
-For workflow core (steps, flows, schema), see [event-wf.md](event-wf.md).
-For outlets (HTTP/email delivery), see [wf-outlets.md](wf-outlets.md).
-
----
+- [Parent Context Sharing](#parent-context-sharing) — inherit HTTP context into workflow steps
+- [Spies](#spies) — `attachSpy`/`detachSpy`, per-execution spy
+- [Error Handling](#error-handling) — `onError`, `StepRetriableError`
+- [Testing](#testing) — unit tests, resume tests, outlet tests
 
 ## Parent Context Sharing
 
