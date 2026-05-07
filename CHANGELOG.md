@@ -1,3 +1,12 @@
+## [0.7.11](https://github.com/wooksjs/wooksjs/compare/v0.7.10...v0.7.11) (2026-05-07)
+
+
+### Bug Fixes
+
+* **event-wf:** set HTTP status via useResponse in outlet trigger error/finish branches ([ebd9302](https://github.com/wooksjs/wooksjs/commit/ebd9302e35888936ee99934e3a8d79d8abeacef3))
+
+
+
 ## [0.7.10](https://github.com/wooksjs/wooksjs/compare/v0.7.9...v0.7.10) (2026-04-21)
 
 
