@@ -300,16 +300,20 @@ describe('handleWfOutletRequest', () => {
     expect(resumeResult).toEqual({ finished: true })
   })
 
-  it('returns 400 for expired/invalid token', async () => {
+  it('returns 410 for expired/invalid token', async () => {
     const app = createTestWfApp()
     const deps = makeDeps(app)
     const config = makeConfig()
 
     const runCtx = postWf({ wfs: 'invalid-token' })
 
-    const result = (await runCtx(() => handleWfOutletRequest(config, deps))) as any
-    expect(result.error).toBeDefined()
-    expect(result.status).toBe(400)
+    const result = (await runCtx(async () => {
+      const r = await handleWfOutletRequest(config, deps)
+      return { body: r as any, status: useResponse().status }
+    })) as any
+    expect(result.body.error).toBeDefined()
+    expect(result.body.status).toBeUndefined()
+    expect(result.status).toBe(410)
   })
 
   it('returns 403 for disallowed wfid', async () => {
@@ -319,7 +323,11 @@ describe('handleWfOutletRequest', () => {
 
     const runCtx = postWf({ wfid: 'simple' })
 
-    const result = (await runCtx(() => handleWfOutletRequest(config, deps))) as any
+    const result = (await runCtx(async () => {
+      const r = await handleWfOutletRequest(config, deps)
+      return { body: r as any, status: useResponse().status }
+    })) as any
+    expect(result.body.status).toBeUndefined()
     expect(result.status).toBe(403)
   })
 
@@ -330,7 +338,11 @@ describe('handleWfOutletRequest', () => {
 
     const runCtx = postWf({ wfid: 'simple' })
 
-    const result = (await runCtx(() => handleWfOutletRequest(config, deps))) as any
+    const result = (await runCtx(async () => {
+      const r = await handleWfOutletRequest(config, deps)
+      return { body: r as any, status: useResponse().status }
+    })) as any
+    expect(result.body.status).toBeUndefined()
     expect(result.status).toBe(403)
   })
 
@@ -341,7 +353,11 @@ describe('handleWfOutletRequest', () => {
 
     const runCtx = postWf({})
 
-    const result = (await runCtx(() => handleWfOutletRequest(config, deps))) as any
+    const result = (await runCtx(async () => {
+      const r = await handleWfOutletRequest(config, deps)
+      return { body: r as any, status: useResponse().status }
+    })) as any
+    expect(result.body.status).toBeUndefined()
     expect(result.status).toBe(400)
   })
 
@@ -356,9 +372,30 @@ describe('handleWfOutletRequest', () => {
 
     const runCtx = postWf({ wfid: 'unknown-outlet-flow' })
 
-    const result = (await runCtx(() => handleWfOutletRequest(config, deps))) as any
+    const result = (await runCtx(async () => {
+      const r = await handleWfOutletRequest(config, deps)
+      return { body: r as any, status: useResponse().status }
+    })) as any
+    expect(result.body.status).toBeUndefined()
+    expect(result.body.error).toContain('nonexistent')
     expect(result.status).toBe(500)
-    expect(result.error).toContain('nonexistent')
+  })
+
+  it('sets HTTP status + Location header for redirect-on-finish', async () => {
+    const app = createTestWfApp()
+    const deps = makeDeps(app)
+    const config = makeConfig()
+
+    const runCtx = postWf({ wfid: 'redirect-flow' })
+
+    const result = (await runCtx(async () => {
+      const r = await handleWfOutletRequest(config, deps)
+      const res = useResponse()
+      return { body: r, status: res.status, location: res.getHeader('location') }
+    })) as any
+    expect(result.body).toBe('')
+    expect(result.status).toBe(302)
+    expect(result.location).toBe('/dashboard')
   })
 
   it('uses onFinished callback when provided', async () => {
@@ -560,9 +597,12 @@ describe('handleWfOutletRequest', () => {
     expect(r1).toEqual({ finished: true })
 
     const runCtx3 = postWf({ wfs: token, input: { email: 'again@b.com' } })
-    const r2 = (await runCtx3(() => handleWfOutletRequest(config, deps))) as any
-    expect(r2.status).toBe(400)
-    expect(r2.error).toBeDefined()
+    const r2 = (await runCtx3(async () => {
+      const r = await handleWfOutletRequest(config, deps)
+      return { body: r as any, status: useResponse().status }
+    })) as any
+    expect(r2.status).toBe(410)
+    expect(r2.body.error).toBeDefined()
   })
 
   it('retriable pause: old token is single-use; new token returned for retry', async () => {
@@ -587,8 +627,11 @@ describe('handleWfOutletRequest', () => {
     expect(t2).not.toBe(t1)
 
     const run3 = postWf({ wfs: t1, input: { password: 'good' } })
-    const r3 = (await run3(() => handleWfOutletRequest(config, deps))) as any
-    expect(r3.status).toBe(400)
+    const r3 = (await run3(async () => {
+      const r = await handleWfOutletRequest(config, deps)
+      return { body: r as any, status: useResponse().status }
+    })) as any
+    expect(r3.status).toBe(410)
 
     const run4 = postWf({ wfs: t2, input: { password: 'good' } })
     const r4 = await run4(() => handleWfOutletRequest(config, deps))
@@ -613,8 +656,11 @@ describe('handleWfOutletRequest', () => {
     ).rejects.toThrow('step exploded')
 
     const run3 = postWf({ wfs: t1 })
-    const r3 = (await run3(() => handleWfOutletRequest(config, deps))) as any
-    expect(r3.status).toBe(400)
+    const r3 = (await run3(async () => {
+      const r = await handleWfOutletRequest(config, deps)
+      return { body: r as any, status: useResponse().status }
+    })) as any
+    expect(r3.status).toBe(410)
 
     expect(await store.get(t1)).toBeNull()
   })
@@ -679,9 +725,12 @@ describe('integration: full round-trip', () => {
     expect(r2).toEqual({ finished: true })
 
     const run3 = postWf({ wfs: token })
-    const r3 = (await run3(() => handleWfOutletRequest(config, deps))) as any
-    expect(r3.status).toBe(400)
-    expect(r3.error).toBeDefined()
+    const r3 = (await run3(async () => {
+      const r = await handleWfOutletRequest(config, deps)
+      return { body: r as any, status: useResponse().status }
+    })) as any
+    expect(r3.status).toBe(410)
+    expect(r3.body.error).toBeDefined()
   })
 
   it('security: admin triggering out-of-band outlet receives no resumption token', async () => {

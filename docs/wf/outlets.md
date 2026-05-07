@@ -257,7 +257,19 @@ The trigger unconditionally calls `strategy.consume()` on every resume, so with 
 
 ### Resume Semantics
 
-On every resume, the trigger calls `strategy.consume()` atomically BEFORE running the step handler. With `HandleStateStrategy` the token is truly single-use — a replay returns `{ error, status: 400 }`. With `EncapsulatedStateStrategy` `consume()` is a no-op (see the security note above) and the token remains replayable until TTL.
+On every resume, the trigger calls `strategy.consume()` atomically BEFORE running the step handler. With `HandleStateStrategy` the token is truly single-use — a replay responds with HTTP **410 Gone** and body `{ error: 'Invalid or expired workflow state' }`. With `EncapsulatedStateStrategy` `consume()` is a no-op (see the security note above) and the token remains replayable until TTL.
+
+### Error Status Codes
+
+The trigger sets the HTTP status via `useResponse().setStatus(...)` — the body always carries `{ error: '...' }` only:
+
+| Branch                                | HTTP status |
+| ------------------------------------- | ----------- |
+| Expired / invalid resume token        | 410 Gone    |
+| `wfid` not in `allow` list            | 403         |
+| `wfid` in `block` list                | 403         |
+| Missing both `wfs` and `wfid`         | 400         |
+| Unknown outlet name returned by step  | 500         |
 
 On pause — including a re-pause at the same step for validation retry — the trigger persists state and issues a **fresh** token; the old one is gone. So a step handler that validates input and decides to re-prompt via `outletHttp(form, { error: 'invalid' })` returns a new token in the response, and the caller retries with that one.
 

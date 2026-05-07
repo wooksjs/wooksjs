@@ -290,9 +290,21 @@ interface WfOutletTokenConfig {
 
 The trigger reads `wfs` (state token) and `wfid` (workflow ID) from body, query params, or cookies per `token.read` config.
 
-- If `wfs` is present: **resume** — the trigger calls `strategy.consume(token)` (atomic retrieve + invalidate) BEFORE running the step. Replay of the same `wfs` returns `{ error, status: 400 }`. With `HandleStateStrategy` the token is truly deleted; with `EncapsulatedStateStrategy` the consume is a stateless no-op and the token remains replayable until TTL (use `HandleStateStrategy` when that matters).
+- If `wfs` is present: **resume** — the trigger calls `strategy.consume(token)` (atomic retrieve + invalidate) BEFORE running the step. Replay of the same `wfs` responds with HTTP **410 Gone** and body `{ error: 'Invalid or expired workflow state' }`. With `HandleStateStrategy` the token is truly deleted; with `EncapsulatedStateStrategy` the consume is a stateless no-op and the token remains replayable until TTL (use `HandleStateStrategy` when that matters).
 - If `wfid` is present (no `wfs`): **start** — creates initial context, starts workflow.
-- If neither: returns `{ error: '...', status: 400 }`.
+- If neither: HTTP **400** with body `{ error: '...' }`.
+
+The trigger sets HTTP status via `useResponse().setStatus(...)`; the body never carries a `status` field. Status mapping for error branches:
+
+| Condition                            | Status |
+| ------------------------------------ | ------ |
+| Expired/invalid resume token          | 410    |
+| `wfid` not in `allow`                 | 403    |
+| `wfid` in `block`                     | 403    |
+| Missing both `wfs` and `wfid`         | 400    |
+| Step returned an unknown outlet name  | 500    |
+
+For finished workflows, `useWfFinished().set({ type, value, status })` propagates `status` to the HTTP response: redirects default to 302, data responses leave the status untouched (HTTP method default) unless `status` is set explicitly.
 
 On pause, the trigger persists state and issues a **fresh** token, dispatches to the outlet, and returns the outlet's response. The token is merged into the response (body or cookie per `token.write`) only if the outlet declares `tokenDelivery: 'caller'` (the default for HTTP outlets). For `tokenDelivery: 'out-of-band'` outlets (email, SMS, etc.), the response does NOT contain the token — the outlet delivers it through its own channel.
 

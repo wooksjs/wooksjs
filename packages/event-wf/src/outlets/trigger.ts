@@ -82,7 +82,8 @@ export async function handleWfOutletRequest(
     // edge case documented on WfOutletTriggerConfig.state.
     const state = await strategy.consume(token)
     if (!state) {
-      return { error: 'Invalid or expired workflow state', status: 400 }
+      response.setStatus(410)
+      return { error: 'Invalid or expired workflow state' }
     }
 
     if (state.schemaId !== (wfid ?? '')) {
@@ -94,17 +95,20 @@ export async function handleWfOutletRequest(
   } else if (wfid) {
     // --- START ---
     if (config.allow?.length && !config.allow.includes(wfid)) {
-      return { error: `Workflow '${wfid}' is not allowed`, status: 403 }
+      response.setStatus(403)
+      return { error: `Workflow '${wfid}' is not allowed` }
     }
     if (config.block?.includes(wfid)) {
-      return { error: `Workflow '${wfid}' is blocked`, status: 403 }
+      response.setStatus(403)
+      return { error: `Workflow '${wfid}' is blocked` }
     }
     const strategy = resolveStrategy(wfid)
     ctx.set(stateStrategyKey, strategy)
     const initialContext = config.initialContext ? config.initialContext(body, wfid) : {}
     output = await deps.start(wfid, initialContext, { input, eventContext: ctx })
   } else {
-    return { error: 'Missing wfs (state token) or wfid (workflow ID)', status: 400 }
+    response.setStatus(400)
+    return { error: 'Missing wfs (state token) or wfid (workflow ID)' }
   }
 
   if (output.finished) {
@@ -122,10 +126,14 @@ export async function handleWfOutletRequest(
       }
     }
     if (finished?.type === 'redirect') {
+      response.setStatus(finished.status ?? 302)
       response.setHeader('location', finished.value as string)
-      return { status: finished.status ?? 302 }
+      return ''
     }
     if (finished) {
+      if (finished.status) {
+        response.setStatus(finished.status)
+      }
       return finished.value
     }
     return { finished: true }
@@ -135,7 +143,8 @@ export async function handleWfOutletRequest(
     const outletReq = output.inputRequired as WfOutletRequest
     const outletHandler = registry.get(outletReq.outlet)
     if (!outletHandler) {
-      return { error: `Unknown outlet: '${outletReq.outlet}'`, status: 500 }
+      response.setStatus(500)
+      return { error: `Unknown outlet: '${outletReq.outlet}'` }
     }
 
     const strategy = ctx.get(stateStrategyKey)!
