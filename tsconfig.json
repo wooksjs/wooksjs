@@ -18,7 +18,7 @@
     "module": "es2020",
     "lib": ["ESNext", "DOM", "WebWorker", "DOM.Iterable"],
     "noUnusedLocals": true,
-    "types": ["node"],
+    "types": ["node", "@prostojs/dye"],
     "declaration": true,
     "emitDeclarationOnly": true,
     "emitDecoratorMetadata": true,
@@ -33,6 +33,6 @@
     "rootDir": "./packages",
     "outDir": ".types"
   },
-  "include": ["packages/*/src/**/*.ts", "globals.d.ts", "node_modules/@prostojs/dye/global.d.ts"],
+  "include": ["packages/*/src/**/*.ts", "globals.d.ts"],
   "exclude": ["**/*.spec.ts"]
 }

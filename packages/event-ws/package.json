@@ -50,7 +50,7 @@
   },
   "peerDependencies": {
     "@prostojs/logger": "^0.4.3",
-    "@prostojs/router": "^0.3.3",
+    "@prostojs/router": "^0.3.4",
     "@wooksjs/event-core": "workspace:^",
     "wooks": "workspace:^",
     "ws": "^8.0.0"

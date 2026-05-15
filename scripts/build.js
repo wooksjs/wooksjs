@@ -76,19 +76,20 @@ async function rollupTypes(ws) {
 async function generateBundles() {
     step('Rolldown Bundles')
     for (const ws of workspaces) {
-        rolldownPackages(ws)
+        await rolldownPackages(ws)
     }
 }
 
-const dplg = dyePlugin()
 async function rolldownPackages(ws) {
     const inputOptions = {
         input: `packages/${ws}/src/index.ts`,
         external: externals.get(ws),
-        define: {
-            __VERSION__: JSON.stringify(pkg.version),
+        transform: {
+            define: {
+                __VERSION__: JSON.stringify(pkg.version),
+            },
         },
-        plugins: [dplg, templatePlugin()],
+        plugins: [dyePlugin(), templatePlugin()],
     }
     const bundle = await rolldown(inputOptions)
     const { output: esOut } = await bundle.generate(ESM);

@@ -43,7 +43,7 @@
     "build": "rolldown -c ../../rolldown.config.mjs"
   },
   "dependencies": {
-    "@prostojs/cli-help": "^0.0.11",
+    "@prostojs/cli-help": "^0.0.12",
     "minimist": "^1.2.8"
   },
   "devDependencies": {
@@ -55,7 +55,7 @@
   },
   "peerDependencies": {
     "@prostojs/logger": "^0.4.3",
-    "@prostojs/router": "^0.3.3",
+    "@prostojs/router": "^0.3.4",
     "@wooksjs/event-core": "workspace:^",
     "wooks": "workspace:^"
   }
