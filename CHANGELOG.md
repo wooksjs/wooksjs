@@ -1,3 +1,12 @@
+## [0.7.12](https://github.com/wooksjs/wooksjs/compare/v0.7.11...v0.7.12) (2026-05-15)
+
+
+### Bug Fixes
+
+* **deps:** override fast-uri >=3.1.2, drop stale event-core lockfile (CVE-2026-6321/6322) ([f2f807d](https://github.com/wooksjs/wooksjs/commit/f2f807dbdb71c7671252ad22161297c7a258dcf7))
+
+
+
 ## [0.7.11](https://github.com/wooksjs/wooksjs/compare/v0.7.10...v0.7.11) (2026-05-07)
 
 
