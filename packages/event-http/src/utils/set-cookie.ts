@@ -28,12 +28,19 @@ export function renderCookie(key: string, data: TSetCookieData) {
 
 const cookieAttrFunc = {
   expires: (v: TCookieAttributes['expires']) =>
-    `Expires=${
-      typeof v === 'string' || typeof v === 'number' ? new Date(v).toUTCString() : v.toUTCString()
-    }`,
-  maxAge: (v: TCookieAttributes['maxAge']) => `Max-Age=${convertTime(v, 's').toString()}`,
-  domain: (v: TCookieAttributes['domain']) => `Domain=${sanitizeCookieAttrValue(String(v))}`,
-  path: (v: TCookieAttributes['path']) => `Path=${sanitizeCookieAttrValue(String(v))}`,
+    v === undefined
+      ? ''
+      : `Expires=${
+          typeof v === 'string' || typeof v === 'number'
+            ? new Date(v).toUTCString()
+            : v.toUTCString()
+        }`,
+  maxAge: (v: TCookieAttributes['maxAge']) =>
+    v === undefined ? '' : `Max-Age=${convertTime(v, 's').toString()}`,
+  domain: (v: TCookieAttributes['domain']) =>
+    v === undefined ? '' : `Domain=${sanitizeCookieAttrValue(String(v))}`,
+  path: (v: TCookieAttributes['path']) =>
+    v === undefined ? '' : `Path=${sanitizeCookieAttrValue(String(v))}`,
   secure: (v: TCookieAttributes['secure']) => (v ? 'Secure' : ''),
   httpOnly: (v: TCookieAttributes['httpOnly']) => (v ? 'HttpOnly' : ''),
   sameSite: (v: TCookieAttributes['sameSite']) =>

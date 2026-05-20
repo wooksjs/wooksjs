@@ -72,4 +72,21 @@ describe('set-cookie', () => {
       }),
     ).toEqual('cookie-key=cookie-value; SameSite=Lax')
   })
+  it('omits attrs whose value is undefined', () => {
+    expect(
+      renderCookie('k', {
+        value: 'v',
+        attrs: {
+          httpOnly: true,
+          domain: undefined,
+          path: undefined,
+          expires: undefined,
+          maxAge: undefined,
+        },
+      }),
+    ).toEqual('k=v; HttpOnly')
+  })
+  it('still emits Max-Age=0 for cookie deletion', () => {
+    expect(renderCookie('k', { value: '', attrs: { maxAge: 0 } })).toEqual('k=; Max-Age=0')
+  })
 })
