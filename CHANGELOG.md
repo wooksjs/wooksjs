@@ -1,3 +1,12 @@
+## [0.7.13](https://github.com/wooksjs/wooksjs/compare/v0.7.12...v0.7.13) (2026-05-20)
+
+
+### Bug Fixes
+
+* **event-http:** omit cookie attrs whose value is undefined ([520b0a5](https://github.com/wooksjs/wooksjs/commit/520b0a55b07cc547603b4afc89ecca5c3c1b5334))
+
+
+
 ## [0.7.12](https://github.com/wooksjs/wooksjs/compare/v0.7.11...v0.7.12) (2026-05-15)
 
 
