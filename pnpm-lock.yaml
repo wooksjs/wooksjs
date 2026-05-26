@@ -175,8 +175,8 @@ importers:
         specifier: ^0.4.3
         version: 0.4.3
       '@prostojs/wf':
-        specifier: ^0.2.0
-        version: 0.2.0
+        specifier: ^0.2.1
+        version: 0.2.1
     devDependencies:
       '@wooksjs/event-core':
         specifier: workspace:^
@@ -1114,8 +1114,8 @@ packages:
   '@prostojs/tree@0.3.0':
     resolution: {integrity: sha512-9Ki9sg7UJvAy3IRXZuTBoVaepiYD+Ok3ucozNiMVWyjKmXjkgmqYUZGzDYAjTygS0s6Ze19X9ECM/0uQVfvHsw==}
 
-  '@prostojs/wf@0.2.0':
-    resolution: {integrity: sha512-7QLXsyz0b/o3BoKIzN6KGwxLjjUdfIy7Uhk3inEVjvaQ9kVV25r9MkW8iZ6kkrcP9ru05z5CMl08XSMIn4wIZg==}
+  '@prostojs/wf@0.2.1':
+    resolution: {integrity: sha512-Zy/b+rFrY15pichqn9p3Q/zTdPQwiZcvAEY7PAa5M5AaH8+08b7+KHVISI68lWGlwIKviSJ3PhsS7fV0iVDBCg==}
 
   '@rolldown/binding-android-arm64@1.0.0-rc.5':
     resolution: {integrity: sha512-zCEmUrt1bggwgBgeKLxNj217J1OrChrp3jJt24VK9jAharSTeVaHODNL+LpcQVhRz+FktYWfT9cjo5oZ99ZLpg==}
@@ -1450,8 +1450,8 @@ packages:
   '@swc/counter@0.1.3':
     resolution: {integrity: sha512-e2BR4lsJkkRlKZ/qCHPw9ZaSxc0MVUd7gtbtaB7aMvHeJVYe8sOB8DBZkP2DtISHGSku9sCK6T6cnY0CtXrOCQ==}
 
-  '@swc/types@0.1.25':
-    resolution: {integrity: sha512-iAoY/qRhNH8a/hBvm3zKj9qQ4oc2+3w1unPJa2XvTK3XjeLXtzcCingVPw/9e5mn1+0yPqxcBGp9Jf0pkfMb1g==}
+  '@swc/types@0.1.26':
+    resolution: {integrity: sha512-lyMwd7WGgG79RS7EERZV3T8wMdmPq3xwyg+1nmAM64kIhx5yl+juO2PYIHb7vTiPgPCj8LYjsNV2T5wiQHUEaw==}
 
   '@tybys/wasm-util@0.10.1':
     resolution: {integrity: sha512-9tTaPJLSiejZKx+Bmog4uSubteqTvFrVrURwkmHixBo0G4seD0zUxp98E1DzUBJxLQ3NPwXrGKDiVjwx/DpPsg==}
@@ -3342,7 +3342,7 @@ snapshots:
 
   '@prostojs/tree@0.3.0': {}
 
-  '@prostojs/wf@0.2.0':
+  '@prostojs/wf@0.2.1':
     dependencies:
       '@prostojs/ftring': 0.0.4
 
@@ -3549,7 +3549,7 @@ snapshots:
   '@swc/core@1.10.7':
     dependencies:
       '@swc/counter': 0.1.3
-      '@swc/types': 0.1.25
+      '@swc/types': 0.1.26
     optionalDependencies:
       '@swc/core-darwin-arm64': 1.10.7
       '@swc/core-darwin-x64': 1.10.7
@@ -3566,7 +3566,7 @@ snapshots:
   '@swc/counter@0.1.3':
     optional: true
 
-  '@swc/types@0.1.25':
+  '@swc/types@0.1.26':
     dependencies:
       '@swc/counter': 0.1.3
     optional: true

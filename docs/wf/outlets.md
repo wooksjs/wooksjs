@@ -2,7 +2,7 @@
 
 Outlets let workflows **pause and deliver a request to the outside world** — render an HTTP form, send an email with a magic link, or dispatch to any custom delivery channel. When the user responds (submits the form, clicks the link), the workflow **resumes** automatically.
 
-The outlet system handles state persistence, token generation, atomic `consume()` on every resume with a fresh token issued on every pause (truly single-use with `HandleStateStrategy`), and HTTP response building — so your step handlers stay declarative.
+The outlet system handles state persistence, token generation, atomic `consume()` on every resume (as a short mutex against concurrent resumes), re-persisting under the **same handle** so the `wfs` token stays stable across the entire workflow run, and HTTP response building — so your step handlers stay declarative.
 
 [[toc]]
 
@@ -246,18 +246,23 @@ const strategy = new EncapsulatedStateStrategy({
 })
 ```
 
-#### Security note — token replay
+#### Security note — token replay and session stability
 
-A workflow resumption token lets the holder re-execute the workflow from the paused step. Any token that remains valid after use is a replay vector for whoever can copy it (browser history, logs, proxies, shared devices).
+The `wfs` token is a **workflow session credential**, not a per-step single-use token. It is minted on start, reused on every resume, and dies when the workflow finishes (or when an unexpected error burns the handle before the engine can re-persist).
 
-- `HandleStateStrategy.consume()` atomically deletes the handle — truly single-use and race-safe.
-- `EncapsulatedStateStrategy.consume()` is a stateless no-op. A copy of the token remains valid for the full TTL. **This strategy CANNOT enforce single-use.** Use `HandleStateStrategy` when that matters.
+What this means in practice:
 
-The trigger unconditionally calls `strategy.consume()` on every resume, so with `HandleStateStrategy` every token is automatically single-use. With `EncapsulatedStateStrategy` the consume call is a no-op and the token remains replayable until TTL — safe only if every step is idempotent.
+- The same `wfs` survives browser refresh, bookmark-and-resume, magic-link reopen on a different device, and lost-connection-then-retry. The URL token stays valid across the entire workflow.
+- With `HandleStateStrategy`, `consume()` still runs atomically on every resume — but only as a short mutex against simultaneous resumes. Two concurrent tabs calling the same `wfs`: one wins, the other gets 410. After the winner re-persists under the same handle, the loser's *next* attempt succeeds (the token is alive again).
+- With `EncapsulatedStateStrategy`, the token IS the state; `consume()` is a stateless no-op, and a copy of the token remains valid for the full TTL. The strategy cannot enforce any kind of single-use semantics. The token also changes on every persist because the ciphertext is a function of the (now-advanced) state — so `EncapsulatedStateStrategy` does effectively rotate the token even though the engine asks it to reuse the handle.
+
+Replay protection on a leaked `HandleStateStrategy` token: the workflow record advances after each step, so a replayed token resumes from wherever the workflow currently is — there is no way to re-execute a previous step. An attacker who can intercept the token in transit can also intercept anything that would have rotated it, so transport-level rotation never provided meaningful protection against that threat model. Steps with non-idempotent side effects should guard themselves at the step layer (idempotency keys in the form payload, advance counters, etc.); do not rely on token rotation for replay safety.
 
 ### Resume Semantics
 
-On every resume, the trigger calls `strategy.consume()` atomically BEFORE running the step handler. With `HandleStateStrategy` the token is truly single-use — a replay responds with HTTP **410 Gone** and body `{ error: 'Invalid or expired workflow state' }`. With `EncapsulatedStateStrategy` `consume()` is a no-op (see the security note above) and the token remains replayable until TTL.
+On every resume the trigger calls `strategy.consume()` atomically before running the step handler. After the step returns, the engine re-persists under the **same** handle so the URL `wfs` stays live for the duration of the workflow.
+
+A replay that loses the race against a concurrent resume — or a request after the workflow has finished — responds with HTTP **410 Gone** and body `{ error: 'Invalid or expired workflow state' }`. With `EncapsulatedStateStrategy`, `consume()` is a stateless no-op (see the security note above) and the token remains replayable until TTL.
 
 ### Error Status Codes
 
@@ -271,9 +276,11 @@ The trigger sets the HTTP status via `useResponse().setStatus(...)` — the body
 | Missing both `wfs` and `wfid`         | 400         |
 | Unknown outlet name returned by step  | 500         |
 
-On pause — including a re-pause at the same step for validation retry — the trigger persists state and issues a **fresh** token; the old one is gone. So a step handler that validates input and decides to re-prompt via `outletHttp(form, { error: 'invalid' })` returns a new token in the response, and the caller retries with that one.
+On pause — including a re-pause at the same step for validation retry, and on advance to the next paused step — the trigger re-persists state under the **same** handle (with `HandleStateStrategy`). The `wfs` returned in the response equals the one in the request, so a step handler that validates input and decides to re-prompt via `outletHttp(form, { error: 'invalid' })` returns the unchanged token, and the caller (or a refresh) keeps using it.
 
-**Fail-closed on unexpected errors.** Because consume fires before the step runs, an unexpected throw during resume burns the token with no fresh replacement — the user must restart the workflow. This is the security-preferred behavior (no lingering replayable token after a failed attempt). Handle expected validation failures by returning an outlet signal from the step handler (the engine issues a new token on the re-pause), NOT by throwing.
+`EncapsulatedStateStrategy` is the exception: the token IS the encrypted state, so the returned `wfs` differs from the one in the request whenever the state changes. The client should always read the token from the response body or cookie on this strategy.
+
+**Fail-closed on unexpected errors.** A consumed handle is restored only after the step returns. If the step throws unexpectedly, the engine never reaches the re-persist call — the handle is gone and the user must restart the workflow. This is the security-preferred behavior (no lingering replayable token after a failed attempt). Handle expected validation failures by returning an outlet signal from the step handler (the engine re-persists under the same handle on the re-pause), NOT by throwing.
 
 ### Token Configuration
 

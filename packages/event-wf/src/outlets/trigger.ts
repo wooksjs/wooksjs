@@ -70,6 +70,11 @@ export async function handleWfOutletRequest(
     typeof config.state === 'function' ? config.state(id) : config.state
 
   let output
+  // True when the resume path re-resolved the strategy because
+  // state.schemaId disagreed with the request wfid. In that case the handle
+  // belongs to the provisional strategy's keyspace, so we must not reuse it
+  // against the real strategy.
+  let strategyReResolved = false
 
   if (token) {
     // --- RESUME ---
@@ -88,7 +93,10 @@ export async function handleWfOutletRequest(
 
     if (state.schemaId !== (wfid ?? '')) {
       const realStrategy = resolveStrategy(state.schemaId)
-      ctx.set(stateStrategyKey, realStrategy)
+      if (realStrategy !== strategy) {
+        ctx.set(stateStrategyKey, realStrategy)
+        strategyReResolved = true
+      }
     }
 
     output = await deps.resume(state, { input, eventContext: ctx })
@@ -152,9 +160,15 @@ export async function handleWfOutletRequest(
       ...(output.state as WfState),
       meta: { outlet: outletReq.outlet },
     }
+    // Reuse the incoming handle so the URL token stays valid across the
+    // whole workflow (refresh / bookmark / lost-connection-then-resume).
+    // Mint fresh on start (no incoming token) or when the strategy was
+    // re-resolved (the incoming handle belongs to a different keyspace).
+    const reuseHandle = token && !strategyReResolved ? { handle: token } : undefined
     const newToken = await strategy.persist(
       stateWithMeta,
       output.expires ? { ttl: output.expires - Date.now() } : undefined,
+      reuseHandle,
     )
 
     const outOfBand = outletHandler.tokenDelivery === 'out-of-band'

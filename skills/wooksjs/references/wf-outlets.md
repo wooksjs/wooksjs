@@ -163,17 +163,21 @@ Persist workflow state between pause and resume.
 
 ```ts
 interface WfStateStrategy {
-  persist(state: WfState, options?: { ttl?: number }): Promise<string>
+  persist(
+    state: WfState,
+    options?: { ttl?: number },
+    overrides?: { handle?: string },                        // hint to reuse a handle
+  ): Promise<string>
   retrieve(token: string): Promise<WfState | null>          // NO invalidation
   consume(token: string): Promise<WfState | null>           // atomic retrieve + invalidate
 }
 ```
 
-The outlet trigger calls `consume()` on every resume regardless of outlet type — but `consume()` is only truly invalidating when the strategy has server-side state to delete. Tokens are thus single-use with `HandleStateStrategy` and replayable-within-TTL with `EncapsulatedStateStrategy`. See the security warning below.
+The outlet trigger calls `consume()` on every resume as a brief mutex against concurrent resumes, then re-persists with `{ handle: token }` so the URL `wfs` stays stable across the entire workflow. `HandleStateStrategy` honors the handle hint and reuses the same storage key. `EncapsulatedStateStrategy` ignores it (the token IS the ciphertext) and mints a fresh token on every persist anyway. See the security warning below.
 
 ### HandleStateStrategy
 
-Stores state server-side with an opaque handle token. Supports truly single-use tokens via the store's atomic `getAndDelete`. **Required for security-sensitive flows** (auth, password reset, invite accept, financial operations).
+Stores state server-side with an opaque handle token. The handle is **minted on workflow start and reused on every resume** (the outlet trigger passes `{ handle: token }` to `persist()`), so the URL token survives refreshes, bookmarks, and lost-connection-then-resume across the entire workflow. **Required for security-sensitive flows** (auth, password reset, invite accept, financial operations) — and for any flow where the resume URL must remain stable across user actions.
 
 ```ts
 import { HandleStateStrategy, WfStateStoreMemory } from '@wooksjs/event-wf'
@@ -187,7 +191,7 @@ const strategy = new HandleStateStrategy({
 
 ### EncapsulatedStateStrategy
 
-Encrypts state into the token itself (no server-side storage). **Stateless — cannot enforce single-use: `consume()` is a no-op alias for `retrieve()`, so a copy of the token remains valid for the full TTL regardless of consume calls.** Use only for idempotent, non-sensitive flows.
+Encrypts state into the token itself (no server-side storage). **Stateless — `consume()` is a no-op alias for `retrieve()`, so a copy of the token remains valid for the full TTL.** The `{ handle }` hint from the engine is silently ignored: the ciphertext is a function of the (advanced) state, so the returned token differs from the consumed token on every resume that mutates state. Use only for idempotent, non-sensitive flows.
 
 ```ts
 import { EncapsulatedStateStrategy } from '@wooksjs/event-wf'
@@ -274,7 +278,7 @@ interface WfOutletTriggerConfig {
 
 ## WfOutletTokenConfig
 
-Controls how state tokens are read from requests and written to responses. Single-use invalidation is not configurable — the trigger consumes on every resume. For out-of-band outlets (email, SMS, etc.), the token is NOT written to the HTTP response (body or cookie is suppressed) so the HTTP caller cannot replay it; this is controlled by the outlet's `tokenDelivery` field, not this config.
+Controls how state tokens are read from requests and written to responses. The trigger consumes on every resume (as a brief mutex) and re-persists under the same handle so the `wfs` stays stable across the workflow. For out-of-band outlets (email, SMS, etc.), the token is NOT written to the HTTP response (body or cookie is suppressed) so the HTTP caller cannot replay it; this is controlled by the outlet's `tokenDelivery` field, not this config.
 
 ```ts
 interface WfOutletTokenConfig {
@@ -290,7 +294,7 @@ interface WfOutletTokenConfig {
 
 The trigger reads `wfs` (state token) and `wfid` (workflow ID) from body, query params, or cookies per `token.read` config.
 
-- If `wfs` is present: **resume** — the trigger calls `strategy.consume(token)` (atomic retrieve + invalidate) BEFORE running the step. Replay of the same `wfs` responds with HTTP **410 Gone** and body `{ error: 'Invalid or expired workflow state' }`. With `HandleStateStrategy` the token is truly deleted; with `EncapsulatedStateStrategy` the consume is a stateless no-op and the token remains replayable until TTL (use `HandleStateStrategy` when that matters).
+- If `wfs` is present: **resume** — the trigger calls `strategy.consume(token)` (atomic retrieve + invalidate) BEFORE running the step, then re-persists the advanced state under the **same** handle so the URL token stays valid. A request that loses the race against a concurrent resume — or any request after the workflow finished or an unexpected error burned the handle — responds with HTTP **410 Gone** and body `{ error: 'Invalid or expired workflow state' }`. With `EncapsulatedStateStrategy` `consume()` is a stateless no-op and the token remains replayable until TTL.
 - If `wfid` is present (no `wfs`): **start** — creates initial context, starts workflow.
 - If neither: HTTP **400** with body `{ error: '...' }`.
 
@@ -306,11 +310,13 @@ The trigger sets HTTP status via `useResponse().setStatus(...)`; the body never 
 
 For finished workflows, `useWfFinished().set({ type, value, status })` propagates `status` to the HTTP response: redirects default to 302, data responses leave the status untouched (HTTP method default) unless `status` is set explicitly.
 
-On pause, the trigger persists state and issues a **fresh** token, dispatches to the outlet, and returns the outlet's response. The token is merged into the response (body or cookie per `token.write`) only if the outlet declares `tokenDelivery: 'caller'` (the default for HTTP outlets). For `tokenDelivery: 'out-of-band'` outlets (email, SMS, etc.), the response does NOT contain the token — the outlet delivers it through its own channel.
+On pause (initial or re-pause), the trigger persists state, dispatches to the outlet, and returns the outlet's response. With `HandleStateStrategy` the persisted handle equals the incoming `wfs` on resume (or a freshly minted UUID on start); with `EncapsulatedStateStrategy` the token always changes because the ciphertext is a function of the new state. The token is merged into the response (body or cookie per `token.write`) only if the outlet declares `tokenDelivery: 'caller'` (the default for HTTP outlets). For `tokenDelivery: 'out-of-band'` outlets (email, SMS, etc.), the response does NOT contain the token — the outlet delivers it through its own channel.
 
-On finish, the trigger checks `onFinished` callback, then `useWfFinished()`, then returns `{ finished: true }`.
+On finish, the trigger checks `onFinished` callback, then `useWfFinished()`, then returns `{ finished: true }`. The handle is not re-persisted, so it remains deleted from the consume call earlier in the request.
 
-**Fail-closed on unexpected errors.** Because consume fires BEFORE the step runs, an unexpected throw during resume burns the token with no fresh replacement — the user must restart the workflow. This is the security-preferred behavior (no lingering replayable token after a failed attempt). Handle expected validation failures by returning an outlet signal from the step handler (the engine issues a new token on the re-pause), not by throwing.
+**Fail-closed on unexpected errors.** A consumed handle is restored only after the step returns. An unexpected throw during resume skips the re-persist call — the handle is gone and the user must restart the workflow. This is the security-preferred behavior (no lingering replayable token after a failed attempt). Handle expected validation failures by returning an outlet signal from the step handler (the engine re-persists under the same handle on the re-pause), not by throwing.
+
+**Strategy divergence guard.** When the persisted `state.schemaId` disagrees with the request `wfid` and the per-`wfid` strategy factory returns a *different strategy reference*, the engine skips the handle-reuse optimization and mints a fresh token (the original handle belongs to the provisional strategy's keyspace, not the real strategy's). When the factory returns the same strategy for both ids, reuse proceeds.
 
 ---
 

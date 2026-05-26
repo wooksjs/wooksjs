@@ -88,6 +88,22 @@ function createTestWfApp() {
     },
   })
 
+  app.step('first-pause', {
+    handler: () => {
+      const { input } = useWfState()
+      if (input()) { return }
+      return outletHttp({ fields: ['step-one'] })
+    },
+  })
+
+  app.step('second-pause', {
+    handler: () => {
+      const { input } = useWfState()
+      if (input()) { return }
+      return outletHttp({ fields: ['step-two'] })
+    },
+  })
+
   app.flow('simple', ['complete'])
   app.flow('with-http-outlet', ['ask-input', 'use-input'])
   app.flow('with-email-outlet', ['send-email', 'use-input'])
@@ -95,6 +111,7 @@ function createTestWfApp() {
   app.flow('data-flow', ['complete', 'finish-data'])
   app.flow('retry-flow', ['validate-retry'])
   app.flow('throw-flow', ['throws-on-input'])
+  app.flow('two-pause-form', ['first-pause', 'second-pause'])
 
   return app
 }
@@ -605,7 +622,7 @@ describe('handleWfOutletRequest', () => {
     expect(r2.body.error).toBeDefined()
   })
 
-  it('retriable pause: old token is single-use; new token returned for retry', async () => {
+  it('retriable pause keeps the same token across error retries', async () => {
     const app = createTestWfApp()
     const deps = makeDeps(app)
     const store = createTestStore()
@@ -622,20 +639,89 @@ describe('handleWfOutletRequest', () => {
     const r2 = (await run2(() => handleWfOutletRequest(config, deps))) as any
     expect(r2.fields).toEqual(['password'])
     expect(r2.error).toBe('bad password')
-    const t2 = r2.wfs as string
-    expect(typeof t2).toBe('string')
-    expect(t2).not.toBe(t1)
+    expect(r2.wfs).toBe(t1)
 
     const run3 = postWf({ wfs: t1, input: { password: 'good' } })
-    const r3 = (await run3(async () => {
+    const r3 = await run3(() => handleWfOutletRequest(config, deps))
+    expect(r3).toEqual({ finished: true })
+
+    // Token is gone after finish.
+    const run4 = postWf({ wfs: t1 })
+    const r4 = (await run4(async () => {
       const r = await handleWfOutletRequest(config, deps)
       return { body: r as any, status: useResponse().status }
     })) as any
-    expect(r3.status).toBe(410)
+    expect(r4.status).toBe(410)
+  })
 
-    const run4 = postWf({ wfs: t2, input: { password: 'good' } })
+  it('refresh on a paused step preserves the URL token (no input)', async () => {
+    const app = createTestWfApp()
+    const deps = makeDeps(app)
+    const store = createTestStore()
+    const strategy = new HandleStateStrategy({ store })
+    const config = makeConfig({ state: strategy })
+
+    const run1 = postWf({ wfid: 'with-http-outlet' })
+    const r1 = (await run1(() => handleWfOutletRequest(config, deps))) as any
+    const t1 = r1.wfs as string
+    expect(typeof t1).toBe('string')
+    expect(r1.fields).toEqual(['email', 'password'])
+
+    // Simulate browser refresh: same wfs, no input → re-pauses on same step.
+    const run2 = postWf({ wfs: t1 })
+    const r2 = (await run2(() => handleWfOutletRequest(config, deps))) as any
+    expect(r2.fields).toEqual(['email', 'password'])
+    expect(r2.wfs).toBe(t1)
+
+    // Refresh again — still the same token.
+    const run3 = postWf({ wfs: t1 })
+    const r3 = (await run3(() => handleWfOutletRequest(config, deps))) as any
+    expect(r3.wfs).toBe(t1)
+
+    // Eventually submit with input → finishes; the original URL token is the
+    // one the SPA actually used end-to-end.
+    const run4 = postWf({ wfs: t1, input: { email: 'a@b.com' } })
     const r4 = await run4(() => handleWfOutletRequest(config, deps))
     expect(r4).toEqual({ finished: true })
+  })
+
+  it('multi-step advance preserves the URL token across paused steps', async () => {
+    const app = createTestWfApp()
+    const deps = makeDeps(app)
+    const store = createTestStore()
+    const strategy = new HandleStateStrategy({ store })
+    const config = makeConfig({ state: strategy })
+
+    const run1 = postWf({ wfid: 'two-pause-form' })
+    const r1 = (await run1(() => handleWfOutletRequest(config, deps))) as any
+    const t1 = r1.wfs as string
+    expect(r1.fields).toEqual(['step-one'])
+    expect(typeof t1).toBe('string')
+
+    // Advance step 1 with input → workflow moves to step 2 (still paused).
+    // The URL token MUST remain the same so the SPA can survive refresh on step 2.
+    const run2 = postWf({ wfs: t1, input: { step: 1 } })
+    const r2 = (await run2(() => handleWfOutletRequest(config, deps))) as any
+    expect(r2.fields).toEqual(['step-two'])
+    expect(r2.wfs).toBe(t1)
+
+    // Refresh on step 2 — same token.
+    const run3 = postWf({ wfs: t1 })
+    const r3 = (await run3(() => handleWfOutletRequest(config, deps))) as any
+    expect(r3.fields).toEqual(['step-two'])
+    expect(r3.wfs).toBe(t1)
+
+    // Submit final input → finishes; token is dead after that.
+    const run4 = postWf({ wfs: t1, input: { step: 2 } })
+    const r4 = await run4(() => handleWfOutletRequest(config, deps))
+    expect(r4).toEqual({ finished: true })
+
+    const run5 = postWf({ wfs: t1 })
+    const r5 = (await run5(async () => {
+      const r = await handleWfOutletRequest(config, deps)
+      return { body: r as any, status: useResponse().status }
+    })) as any
+    expect(r5.status).toBe(410)
   })
 
   it('unexpected thrown error burns the token; replay is rejected', async () => {
