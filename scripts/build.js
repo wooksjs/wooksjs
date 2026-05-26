@@ -30,6 +30,15 @@ for (const ws of workspaces) {
     externals.set(ws, getExternals(ws))
 }
 
+// Match bare specifiers AND their subpaths (e.g. '@prostojs/wf/outlets'
+// against dep '@prostojs/wf'). Rolldown's array-form `external:` does
+// exact string match after resolution, so subpath imports of declared
+// deps would otherwise be silently inlined into the bundle.
+function externalMatcher(ws) {
+    const ids = externals.get(ws)
+    return (id) => ids.some((dep) => id === dep || id.startsWith(`${dep}/`))
+}
+
 async function run() {
     console.log()
     if (target) {
@@ -62,7 +71,7 @@ async function rollupTypes(ws) {
     const inputOptions = {
         input: `packages/${ws}/dist/index.d.ts`,
         plugins: [dts()],
-        external: externals.get(ws),
+        external: externalMatcher(ws),
     }
     const bundle = await rollup(inputOptions)
     const { output } = await bundle.generate(ESM);
@@ -83,7 +92,7 @@ async function generateBundles() {
 async function rolldownPackages(ws) {
     const inputOptions = {
         input: `packages/${ws}/src/index.ts`,
-        external: externals.get(ws),
+        external: externalMatcher(ws),
         transform: {
             define: {
                 __VERSION__: JSON.stringify(pkg.version),
