@@ -1,3 +1,12 @@
+## [0.7.15](https://github.com/wooksjs/wooksjs/compare/v0.7.14...v0.7.15) (2026-05-26)
+
+
+### Bug Fixes
+
+* fix build externals ([26382c0](https://github.com/wooksjs/wooksjs/commit/26382c01c94aa0ffa82805a9b6eccdb39b29a7d3))
+
+
+
 ## [0.7.14](https://github.com/wooksjs/wooksjs/compare/v0.7.13...v0.7.14) (2026-05-26)
 
 
