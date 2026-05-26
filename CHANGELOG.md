@@ -1,3 +1,12 @@
+## [0.7.14](https://github.com/wooksjs/wooksjs/compare/v0.7.13...v0.7.14) (2026-05-26)
+
+
+### Bug Fixes
+
+* **event-wf:** keep wfs token stable across workflow resumes ([300c4f9](https://github.com/wooksjs/wooksjs/commit/300c4f9769ccc76024cdbc2c76bc8c50626a3973))
+
+
+
 ## [0.7.13](https://github.com/wooksjs/wooksjs/compare/v0.7.12...v0.7.13) (2026-05-20)
 
 
