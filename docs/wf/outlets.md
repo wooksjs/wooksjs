@@ -408,7 +408,7 @@ import { useWfOutlet } from '@wooksjs/event-wf'
 
 wf.step('custom-step', {
   handler: () => {
-    const { getStateStrategy, getOutlet } = useWfOutlet()
+    const { getOutlet } = useWfOutlet()
     const httpOutlet = getOutlet('http')
     // ...
   },

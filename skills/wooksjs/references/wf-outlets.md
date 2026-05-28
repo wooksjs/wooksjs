@@ -395,9 +395,8 @@ Advanced composable for inspecting outlet infrastructure from within steps:
 ```ts
 import { useWfOutlet } from '@wooksjs/event-wf'
 
-const { getStateStrategy, getOutlets, getOutlet } = useWfOutlet()
+const { getOutlets, getOutlet } = useWfOutlet()
 getOutlet('http')          // WfOutlet | null
-getStateStrategy()         // WfStateStrategy
 getOutlets()               // Map<string, WfOutlet>
 ```
 

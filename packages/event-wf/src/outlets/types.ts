@@ -1,5 +1,7 @@
 import type { TFlowOutput } from '@prostojs/wf'
-import type { WfOutlet, WfOutletRequest, WfStateStrategy } from '@prostojs/wf/outlets'
+import type { WfOutlet, WfStateStrategy } from '@prostojs/wf/outlets'
+
+import type { WfPauseRequest } from '../pause-request'
 
 export interface WfOutletTokenConfig {
   /** Where to read state token from incoming request (default: `['body', 'query', 'cookie']`) */
@@ -67,11 +69,19 @@ export interface WfOutletTriggerDeps {
   start: (
     schemaId: string,
     context: unknown,
-    opts?: { input?: unknown; eventContext?: unknown },
-  ) => Promise<TFlowOutput<unknown, unknown, WfOutletRequest>>
+    opts?: {
+      input?: unknown
+      eventContext?: unknown
+      strategy?: { name: string }
+    },
+  ) => Promise<TFlowOutput<unknown, unknown, WfPauseRequest>>
   /** Resume a workflow. Provided by WooksWf or MoostWf. */
   resume: (
     state: { schemaId: string; indexes: number[]; context: unknown },
-    opts?: { input?: unknown; eventContext?: unknown },
-  ) => Promise<TFlowOutput<unknown, unknown, WfOutletRequest>>
+    opts?: {
+      input?: unknown
+      eventContext?: unknown
+      strategy?: { name: string }
+    },
+  ) => Promise<TFlowOutput<unknown, unknown, WfPauseRequest>>
 }

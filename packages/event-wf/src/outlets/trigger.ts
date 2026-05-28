@@ -1,18 +1,13 @@
-import type { WfOutletRequest, WfState, WfStateStrategy } from '@prostojs/wf/outlets'
+import type { WfState, WfStateStrategy } from '@prostojs/wf/outlets'
 import { current } from '@wooksjs/event-core'
 import { useCookies, useResponse, useUrlParams } from '@wooksjs/event-http'
 import { useBody } from '@wooksjs/http-body'
 
-import {
-  outletsRegistryKey,
-  stateStrategyKey,
-  stateStrategyNameKey,
-  strategyRegistryKey,
-  wfFinishedKey,
-} from './outlet-context'
-import type { WfOutletTriggerConfig, WfOutletTriggerDeps } from './types'
+import type { WfPauseRequest } from '../pause-request'
+import { STRATEGY_NAME_RE } from '../strategy-context'
 
-const STRATEGY_NAME_RE = /^[A-Za-z0-9_-]+$/
+import { outletsRegistryKey, wfFinishedKey } from './outlet-context'
+import type { WfOutletTriggerConfig, WfOutletTriggerDeps } from './types'
 
 function wrapToken(name: string, raw: string): string {
   return `${name}.${raw}`
@@ -84,7 +79,6 @@ export async function handleWfOutletRequest(
   const { registry: strategyRegistry, resolveDefaultName } = normalizeStateConfig(
     config.state,
   )
-  ctx.set(strategyRegistryKey, strategyRegistry)
 
   const { parseBody } = useBody()
   const { params } = useUrlParams()
@@ -133,8 +127,6 @@ export async function handleWfOutletRequest(
     }
     incomingName = unwrapped.name
     incomingRaw = unwrapped.raw
-    ctx.set(stateStrategyKey, strategy)
-    ctx.set(stateStrategyNameKey, incomingName)
 
     const state = await strategy.consume(unwrapped.raw)
     if (!state) {
@@ -142,7 +134,11 @@ export async function handleWfOutletRequest(
       return { error: 'Invalid or expired workflow state' }
     }
 
-    output = await deps.resume(state, { input, eventContext: ctx })
+    output = await deps.resume(state, {
+      input,
+      eventContext: ctx,
+      strategy: { name: incomingName },
+    })
   } else if (wfid) {
     // --- START ---
     if (config.allow?.length && !config.allow.includes(wfid)) {
@@ -154,16 +150,24 @@ export async function handleWfOutletRequest(
       return { error: `Workflow '${wfid}' is blocked` }
     }
     const defaultName = resolveDefaultName(wfid)
-    const strategy = strategyRegistry[defaultName]
-    if (!strategy) {
+    // hasOwn guard mirrors the resume/pause-time lookups — a custom
+    // resolveDefaultName that returns 'constructor' / '__proto__' must
+    // surface as 'not found in registry', not as a confusing TypeError
+    // from calling .persist() on an inherited prototype value.
+    const startStrategy = Object.prototype.hasOwnProperty.call(strategyRegistry, defaultName)
+      ? strategyRegistry[defaultName]
+      : undefined
+    if (!startStrategy) {
       throw new Error(
         `Default strategy '${defaultName}' not found in registry. Known: ${Object.keys(strategyRegistry).join(', ')}`,
       )
     }
-    ctx.set(stateStrategyKey, strategy)
-    ctx.set(stateStrategyNameKey, defaultName)
     const initialContext = config.initialContext ? config.initialContext(body, wfid) : {}
-    output = await deps.start(wfid, initialContext, { input, eventContext: ctx })
+    output = await deps.start(wfid, initialContext, {
+      input,
+      eventContext: ctx,
+      strategy: { name: defaultName },
+    })
   } else {
     response.setStatus(400)
     return { error: 'Missing wfs (state token) or wfid (workflow ID)' }
@@ -198,15 +202,31 @@ export async function handleWfOutletRequest(
   }
 
   if (output.inputRequired) {
-    const outletReq = output.inputRequired as WfOutletRequest
+    const outletReq = output.inputRequired as WfPauseRequest
     const outletHandler = registry.get(outletReq.outlet)
     if (!outletHandler) {
       response.setStatus(500)
       return { error: `Unknown outlet: '${outletReq.outlet}'` }
     }
 
-    const currentStrategy = ctx.get(stateStrategyKey)!
-    const currentName = ctx.get(stateStrategyNameKey)!
+    // The adapter augments `output.inputRequired.stateStrategy` with the
+    // post-swap name on every pause. Treat its absence as a bug — fall back
+    // and we mask misconfigured deps / regressions silently.
+    const finalName = outletReq.stateStrategy
+    if (finalName === undefined) {
+      throw new Error(
+        "Workflow paused without `stateStrategy` on inputRequired — the WF adapter must augment the output with the active strategy name.",
+      )
+    }
+    const finalStrategy = Object.prototype.hasOwnProperty.call(strategyRegistry, finalName)
+      ? strategyRegistry[finalName]
+      : undefined
+    if (!finalStrategy) {
+      throw new Error(
+        `Workflow paused with unknown strategy '${finalName}' — step swapped to a name not in the trigger's registry. Known: ${Object.keys(strategyRegistry).join(', ')}`,
+      )
+    }
+
     const stateWithMeta: WfState = {
       ...(output.state as WfState),
       meta: { outlet: outletReq.outlet },
@@ -215,15 +235,15 @@ export async function handleWfOutletRequest(
     // whole workflow (refresh / bookmark / lost-connection-then-resume).
     // Mint fresh on start (no incoming token) or after a strategy swap —
     // the incoming raw handle belongs to a different keyspace.
-    const sameStrategy = incomingName !== undefined && incomingName === currentName
+    const sameStrategy = incomingName !== undefined && incomingName === finalName
     const reuseHandle =
       sameStrategy && incomingRaw !== undefined ? { handle: incomingRaw } : undefined
-    const newRaw = await currentStrategy.persist(
+    const newRaw = await finalStrategy.persist(
       stateWithMeta,
       output.expires ? { ttl: output.expires - Date.now() } : undefined,
       reuseHandle,
     )
-    const newToken = wrapToken(currentName, newRaw)
+    const newToken = wrapToken(finalName, newRaw)
 
     const outOfBand = outletHandler.tokenDelivery === 'out-of-band'
 

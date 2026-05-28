@@ -1,7 +1,7 @@
 import { defineWook } from '@wooksjs/event-core'
 import type { EventContext } from '@wooksjs/event-core'
 
-import { outletsRegistryKey, stateStrategyKey } from './outlet-context'
+import { outletsRegistryKey } from './outlet-context'
 
 /**
  * Composable for accessing outlet infrastructure from within workflow steps.
@@ -11,7 +11,6 @@ import { outletsRegistryKey, stateStrategyKey } from './outlet-context'
  * where steps need to inspect or modify outlet state directly.
  */
 export const useWfOutlet = defineWook((ctx: EventContext) => ({
-  getStateStrategy: () => ctx.get(stateStrategyKey),
   getOutlets: () => ctx.get(outletsRegistryKey),
   getOutlet: (name: string) => ctx.get(outletsRegistryKey)?.get(name) ?? null,
 }))

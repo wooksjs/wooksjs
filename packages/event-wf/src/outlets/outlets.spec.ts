@@ -9,13 +9,7 @@ import { useWfState } from '../composables'
 
 import { createEmailOutlet, createHttpOutlet } from './create-outlet'
 import { createOutletHandler } from './create-handler'
-import {
-  outletsRegistryKey,
-  stateStrategyKey,
-  stateStrategyNameKey,
-  strategyRegistryKey,
-  wfFinishedKey,
-} from './outlet-context'
+import { outletsRegistryKey } from './outlet-context'
 import { handleWfOutletRequest } from './trigger'
 import type { WfOutletTriggerConfig, WfOutletTriggerDeps } from './types'
 import { useWfFinished } from './use-wf-finished'
@@ -182,17 +176,6 @@ describe('useWfOutlet', () => {
     })
   })
 
-  it('getStateStrategy returns active strategy', () => {
-    const ctx = new EventContext({ logger: console as any })
-    const strategy = createTestStrategy()
-    ctx.set(stateStrategyKey, strategy)
-    ctx.set(stateStrategyNameKey, 'default')
-    ctx.set(strategyRegistryKey, { default: strategy })
-
-    run(ctx, () => {
-      expect(useWfOutlet().getStateStrategy()).toBe(strategy)
-    })
-  })
 })
 
 describe('createHttpOutlet', () => {
@@ -997,14 +980,20 @@ describe('strategy swap', () => {
     expect(a.persistCalls).toBe(0)
   })
 
-  it('swap to unknown name surfaces an error from the engine', async () => {
-    // A step that throws should bubble up via the engine — verifies that
-    // misconfigured swaps are loud, not silent.
+  it('swap to unknown name surfaces an error at pause time', async () => {
+    // The composable validates only format; the trigger throws loudly when
+    // it tries to persist under a name not in its registry. The error must
+    // bubble up — silent fallbacks would mask misconfigured swaps.
     const a = spyStrategy()
 
     const app = createWfApp()
-    app.step('bad-swap', { handler: () => { swapStrategy('nonexistent') } })
-    app.flow('bad-swap-flow', ['bad-swap'])
+    app.step('bad-swap-then-pause', {
+      handler: () => {
+        swapStrategy('nonexistent')
+        return outletHttp({ fields: ['x'] })
+      },
+    })
+    app.flow('bad-swap-flow', ['bad-swap-then-pause'])
 
     const config: WfOutletTriggerConfig = {
       state: { strategies: { A: a.strategy }, default: 'A' },
@@ -1015,7 +1004,33 @@ describe('strategy swap', () => {
       postWf({ wfid: 'bad-swap-flow' })(() =>
         handleWfOutletRequest(config, makeDeps(app)),
       ),
-    ).rejects.toThrow(/unknown strategy/)
+    ).rejects.toThrow(/unknown strategy 'nonexistent'/)
+  })
+
+  it('rejects swap to a name that violates the regex inside a step', async () => {
+    // Format check is synchronous inside the composable — the step throws
+    // immediately, before the engine sees any pause. The trigger never even
+    // gets to inspect the inputRequired.
+    const a = spyStrategy()
+
+    const app = createWfApp()
+    app.step('bad-format', {
+      handler: () => {
+        swapStrategy('bad.name')
+      },
+    })
+    app.flow('bad-format-flow', ['bad-format'])
+
+    const config: WfOutletTriggerConfig = {
+      state: { strategies: { A: a.strategy }, default: 'A' },
+      outlets: [httpOutlet],
+    }
+
+    await expect(
+      postWf({ wfid: 'bad-format-flow' })(() =>
+        handleWfOutletRequest(config, makeDeps(app)),
+      ),
+    ).rejects.toThrow(/invalid name 'bad\.name'/)
   })
 
   it('unknown prefix on resume returns 410 without leaking which strategies exist', async () => {

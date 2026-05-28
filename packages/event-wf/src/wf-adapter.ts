@@ -7,6 +7,8 @@ import type { TWooksHandler, TWooksOptions, Wooks } from 'wooks'
 import { WooksAdapterBase } from 'wooks'
 
 import { createWfContext, resumeWfContext } from './event-wf'
+import type { WfPauseRequest } from './pause-request'
+import { stateStrategyNameKey } from './strategy-context'
 import { wfKind } from './wf-kind'
 import { WooksWorkflow } from './workflow'
 
@@ -42,6 +44,18 @@ export interface TWfRunOptions<I = unknown, T = unknown, IR = unknown> {
    * Pass `current()` from within an active event scope (HTTP handler, etc.).
    */
   eventContext?: EventContext
+  /**
+   * Initial state strategy for the workflow run. Sets the strategy name on
+   * the WF event context so steps can inspect it via `useWfStrategy().current()`
+   * and swap it via `useWfStrategy().swap(name)`. The final post-swap name
+   * is reflected on `output.inputRequired.stateStrategy` (when paused) so
+   * callers can persist under the right keyspace without depending on
+   * EventContext write-through.
+   *
+   * The adapter only carries the name — strategy instances live in the
+   * caller (HTTP trigger, offline driver, etc.).
+   */
+  strategy?: { name: string }
 }
 
 /** Wooks adapter for defining and executing workflow schemas with step-based routing. */
@@ -151,6 +165,9 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
     const seeds = { inputContext, schemaId, stepId: null, indexes, input }
 
     return factory(ctxOptions, seeds, async () => {
+      if (opts?.strategy?.name !== undefined) {
+        current().set(stateStrategyNameKey, opts.strategy.name)
+      }
       const { handlers: foundHandlers } = this.wooks.lookup(
         'WF_FLOW',
         `/${schemaId}`.replace(/^\/+/u, '/'),
@@ -196,6 +213,15 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
           throw error
         }
         clean()
+        if (result.inputRequired) {
+          // Augment inputRequired with the post-swap strategy name so callers
+          // (trigger / offline driver) read it from the output instead of
+          // depending on parent-context write-through.
+          const finalName = current().get(stateStrategyNameKey)
+          if (finalName !== undefined) {
+            ;(result.inputRequired as WfPauseRequest).stateStrategy = finalName
+          }
+        }
         if (result.resume) {
           result.resume = (_input?: I) =>
             this.resume(result.state, { input: _input, spy, cleanup } as TWfRunOptions<
