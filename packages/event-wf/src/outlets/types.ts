@@ -16,26 +16,30 @@ export interface WfOutletTriggerConfig {
   /** Blacklist of workflow IDs. Checked after allow. */
   block?: string[]
   /**
-   * State persistence strategy. Either a single strategy shared by all
-   * workflows, or a function that returns a strategy per workflow ID.
+   * State persistence strategy. Two forms:
    *
-   * **Constraint when using the function form.** The trigger resolves the
-   * strategy at resume time using the `wfid` from the request. If the resume
-   * request does not include `wfid` (e.g. cookie-only transport, token-only
-   * body), the trigger calls `config.state('')` — meaning:
+   * - **Single-strategy shortcut**: pass a `WfStateStrategy` directly. The
+   *   trigger registers it internally under the name `'default'`.
+   * - **Named map**: `{ strategies, default }` where `strategies` is a
+   *   `Record<name, WfStateStrategy>` and `default` is either the name to use
+   *   on workflow start or a function `(wfid) => name` that picks per
+   *   workflow id. Steps may then call `swapStrategy(name)` to escalate the
+   *   *next* outlet pause to a different strategy.
    *
-   * - EITHER all strategies returned by the function must share the same
-   *   underlying storage (same Redis instance, same `WfStateStore`, same
-   *   encryption key), so `consume`/`retrieve` operations work regardless of
-   *   which strategy instance is picked;
-   * - OR every resume request must carry `wfid` so the correct strategy is
-   *   always resolved.
+   * The active strategy name is embedded in the issued token as `<name>.<raw>`,
+   * so resume always picks the strategy that persisted the state. Each
+   * strategy can therefore have its own independent storage (no need for
+   * shared keyspaces between strategies).
    *
-   * Violating this contract silently breaks single-use token invalidation:
-   * the `consume` call runs against the wrong strategy's storage, and the
-   * token remains live in the real strategy.
+   * Strategy names must match `/^[A-Za-z0-9_-]+$/` (validated at trigger
+   * invocation).
    */
-  state: WfStateStrategy | ((wfid: string) => WfStateStrategy)
+  state:
+    | WfStateStrategy
+    | {
+        strategies: Record<string, WfStateStrategy>
+        default: string | ((wfid: string) => string)
+      }
   /** Registered outlets */
   outlets: WfOutlet[]
   /** Token configuration (reading, writing, naming) */

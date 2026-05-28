@@ -198,12 +198,24 @@ The `handleWfOutletRequest` function (or the handler returned by `createOutletHa
 ```ts
 interface WfOutletTriggerConfig {
   /**
-   * When `state` is a function (per-wfid strategies), all strategies it
-   * returns MUST share underlying storage, OR every resume request MUST
-   * include `wfid`. Otherwise `consume()` runs against the wrong strategy
-   * and single-use invalidation breaks silently.
+   * State persistence strategy.
+   *
+   * - Single-strategy shortcut: pass a `WfStateStrategy` directly.
+   * - Named registry: pass `{ strategies, default }` to enable per-step
+   *   `swapStrategy(name)` calls (see "Swapping strategies" below).
+   *
+   * The active strategy name is embedded in the issued token as a
+   * `<name>.<rawToken>` prefix, so each strategy's storage is independent —
+   * resume picks the strategy from the token itself.
+   *
+   * Strategy names must match `/^[A-Za-z0-9_-]+$/`.
    */
-  state: WfStateStrategy | ((wfid: string) => WfStateStrategy)
+  state:
+    | WfStateStrategy
+    | {
+        strategies: Record<string, WfStateStrategy>
+        default: string | ((wfid: string) => string)
+      }
   outlets: WfOutlet[]
   token?: {
     name?: string                              // default: 'wfs'
@@ -217,6 +229,40 @@ interface WfOutletTriggerConfig {
   onFinished?: (ctx: { context, schemaId }) => unknown
 }
 ```
+
+### Swapping strategies
+
+A workflow step can switch which strategy persists the **next** outlet pause by
+calling `swapStrategy(name)`. The change is sticky for the rest of the
+workflow because the new name travels with the token prefix.
+
+```ts
+import { swapStrategy, outletHttp } from '@wooksjs/event-wf'
+
+app.step('escalate-storage', {
+  handler: (ctx) => {
+    if (ctx.payloadIsLarge) swapStrategy('kv')  // escalate to durable storage
+    return outletHttp({ fields: ['decision'] })
+  },
+})
+```
+
+The trigger config must use the named-registry form for `swapStrategy` to
+resolve names:
+
+```ts
+{
+  strategies: {
+    enc: new EncapsulatedStateStrategy({ secret }),
+    kv:  new HandleStateStrategy({ store }),
+  },
+  default: 'enc',
+}
+```
+
+Unknown names throw at the call site (config bug). Tokens whose prefix names
+an unknown strategy return HTTP 410 (same as any invalid token — the trigger
+does not leak which strategies are registered).
 
 ### State Strategies
 

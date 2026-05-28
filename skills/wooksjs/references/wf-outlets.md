@@ -257,13 +257,23 @@ httpApp.post('/workflow', () => handleWfOutletRequest(config, {
 ```ts
 interface WfOutletTriggerConfig {
   /**
-   * State persistence strategy. When using the function form (per-wfid
-   * strategies), all returned strategies MUST share underlying storage,
-   * OR every resume request MUST include `wfid` so the correct strategy
-   * is resolved. Otherwise `consume()` runs against the wrong storage and
-   * the token silently remains live — breaking single-use invalidation.
+   * State persistence strategy.
+   *
+   * - `WfStateStrategy` — single-strategy shortcut.
+   * - `{ strategies, default }` — named registry, required if any step calls
+   *   `swapStrategy(name)`. `default` is the name (or `(wfid) => name`)
+   *   picked at start time.
+   *
+   * The active strategy name is embedded in the token as a `<name>.<raw>`
+   * prefix, so storages are independent and resume picks the strategy from
+   * the token. Strategy names must match `/^[A-Za-z0-9_-]+$/`.
    */
-  state: WfStateStrategy | ((wfid: string) => WfStateStrategy)
+  state:
+    | WfStateStrategy
+    | {
+        strategies: Record<string, WfStateStrategy>
+        default: string | ((wfid: string) => string)
+      }
   outlets: WfOutlet[]
   allow?: string[]              // whitelist of allowed workflow IDs
   block?: string[]              // blacklist (checked after allow)
@@ -273,6 +283,25 @@ interface WfOutletTriggerConfig {
   onFinished?: (ctx: { context: unknown; schemaId: string }) => unknown
 }
 ```
+
+### Swapping strategies inside a step
+
+```ts
+import { swapStrategy, useWfStrategy } from '@wooksjs/event-wf'
+
+// Switch the strategy for the next persist. Sticky across resumes because
+// the new name is embedded in the issued token prefix.
+swapStrategy('kv')
+
+// Or via composable:
+useWfStrategy().swap('kv')
+useWfStrategy().current()      // → currently-active strategy name
+```
+
+- Unknown name → throws synchronously (config / step author bug).
+- Token whose prefix names an unknown strategy → HTTP 410 (no leak of registered names).
+- Token without a `.` prefix → HTTP 410.
+- After a swap, the next persist mints a fresh handle in the new strategy's keyspace; before any swap, the trigger reuses the incoming raw handle so `wfs` stays stable across the workflow.
 
 ---
 

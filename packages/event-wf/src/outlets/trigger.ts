@@ -1,4 +1,4 @@
-import type { WfOutletRequest, WfState } from '@prostojs/wf/outlets'
+import type { WfOutletRequest, WfState, WfStateStrategy } from '@prostojs/wf/outlets'
 import { current } from '@wooksjs/event-core'
 import { useCookies, useResponse, useUrlParams } from '@wooksjs/event-http'
 import { useBody } from '@wooksjs/http-body'
@@ -6,9 +6,48 @@ import { useBody } from '@wooksjs/http-body'
 import {
   outletsRegistryKey,
   stateStrategyKey,
+  stateStrategyNameKey,
+  strategyRegistryKey,
   wfFinishedKey,
 } from './outlet-context'
 import type { WfOutletTriggerConfig, WfOutletTriggerDeps } from './types'
+
+const STRATEGY_NAME_RE = /^[A-Za-z0-9_-]+$/
+
+function wrapToken(name: string, raw: string): string {
+  return `${name}.${raw}`
+}
+
+function unwrapToken(token: string): { name: string; raw: string } | null {
+  const i = token.indexOf('.')
+  if (i <= 0 || i === token.length - 1) { return null }
+  return { name: token.slice(0, i), raw: token.slice(i + 1) }
+}
+
+function normalizeStateConfig(state: WfOutletTriggerConfig['state']): {
+  registry: Record<string, WfStateStrategy>
+  resolveDefaultName: (wfid: string) => string
+} {
+  if (typeof state === 'object' && state !== null && 'strategies' in state) {
+    const registry = state.strategies
+    for (const name of Object.keys(registry)) {
+      if (!STRATEGY_NAME_RE.test(name)) {
+        throw new Error(
+          `Invalid strategy name '${name}': must match /^[A-Za-z0-9_-]+$/`,
+        )
+      }
+    }
+    const def = state.default
+    const resolveDefaultName =
+      typeof def === 'function' ? def : (_wfid: string) => def
+    return { registry, resolveDefaultName }
+  }
+  // Single-strategy shortcut → auto-promote to { default: state }
+  return {
+    registry: { default: state },
+    resolveDefaultName: () => 'default',
+  }
+}
 
 /**
  * Handle an HTTP request that starts or resumes a workflow.
@@ -42,6 +81,11 @@ export async function handleWfOutletRequest(
   ctx.set(outletsRegistryKey, registry)
   ctx.set(wfFinishedKey, undefined)
 
+  const { registry: strategyRegistry, resolveDefaultName } = normalizeStateConfig(
+    config.state,
+  )
+  ctx.set(strategyRegistryKey, strategyRegistry)
+
   const { parseBody } = useBody()
   const { params } = useUrlParams()
   const { getCookie } = useCookies()
@@ -66,37 +110,36 @@ export async function handleWfOutletRequest(
     (body?.[wfidName] as string | undefined) ?? queryParams.get(wfidName) ?? undefined
   const input = body?.input
 
-  const resolveStrategy = (id: string) =>
-    typeof config.state === 'function' ? config.state(id) : config.state
-
   let output
-  // True when the resume path re-resolved the strategy because
-  // state.schemaId disagreed with the request wfid. In that case the handle
-  // belongs to the provisional strategy's keyspace, so we must not reuse it
-  // against the real strategy.
-  let strategyReResolved = false
+  let incomingName: string | undefined
+  let incomingRaw: string | undefined
 
   if (token) {
     // --- RESUME ---
-    const strategy = resolveStrategy(wfid ?? '')
+    const unwrapped = unwrapToken(token)
+    if (!unwrapped) {
+      response.setStatus(410)
+      return { error: 'Invalid workflow state token' }
+    }
+    // hasOwn guard prevents prototype keys (e.g. 'constructor') from
+    // resolving to inherited values and bypassing the 410.
+    const strategy = Object.prototype.hasOwnProperty.call(strategyRegistry, unwrapped.name)
+      ? strategyRegistry[unwrapped.name]
+      : undefined
+    if (!strategy) {
+      // Do not leak which strategies are configured.
+      response.setStatus(410)
+      return { error: 'Invalid workflow state token' }
+    }
+    incomingName = unwrapped.name
+    incomingRaw = unwrapped.raw
     ctx.set(stateStrategyKey, strategy)
+    ctx.set(stateStrategyNameKey, incomingName)
 
-    // Consume runs on the provisional strategy (resolved from request wfid).
-    // If state.schemaId differs (per-wfid strategies, re-resolved below) and
-    // storages don't overlap, the real strategy never sees consume — known
-    // edge case documented on WfOutletTriggerConfig.state.
-    const state = await strategy.consume(token)
+    const state = await strategy.consume(unwrapped.raw)
     if (!state) {
       response.setStatus(410)
       return { error: 'Invalid or expired workflow state' }
-    }
-
-    if (state.schemaId !== (wfid ?? '')) {
-      const realStrategy = resolveStrategy(state.schemaId)
-      if (realStrategy !== strategy) {
-        ctx.set(stateStrategyKey, realStrategy)
-        strategyReResolved = true
-      }
     }
 
     output = await deps.resume(state, { input, eventContext: ctx })
@@ -110,8 +153,15 @@ export async function handleWfOutletRequest(
       response.setStatus(403)
       return { error: `Workflow '${wfid}' is blocked` }
     }
-    const strategy = resolveStrategy(wfid)
+    const defaultName = resolveDefaultName(wfid)
+    const strategy = strategyRegistry[defaultName]
+    if (!strategy) {
+      throw new Error(
+        `Default strategy '${defaultName}' not found in registry. Known: ${Object.keys(strategyRegistry).join(', ')}`,
+      )
+    }
     ctx.set(stateStrategyKey, strategy)
+    ctx.set(stateStrategyNameKey, defaultName)
     const initialContext = config.initialContext ? config.initialContext(body, wfid) : {}
     output = await deps.start(wfid, initialContext, { input, eventContext: ctx })
   } else {
@@ -155,21 +205,25 @@ export async function handleWfOutletRequest(
       return { error: `Unknown outlet: '${outletReq.outlet}'` }
     }
 
-    const strategy = ctx.get(stateStrategyKey)!
+    const currentStrategy = ctx.get(stateStrategyKey)!
+    const currentName = ctx.get(stateStrategyNameKey)!
     const stateWithMeta: WfState = {
       ...(output.state as WfState),
       meta: { outlet: outletReq.outlet },
     }
     // Reuse the incoming handle so the URL token stays valid across the
     // whole workflow (refresh / bookmark / lost-connection-then-resume).
-    // Mint fresh on start (no incoming token) or when the strategy was
-    // re-resolved (the incoming handle belongs to a different keyspace).
-    const reuseHandle = token && !strategyReResolved ? { handle: token } : undefined
-    const newToken = await strategy.persist(
+    // Mint fresh on start (no incoming token) or after a strategy swap —
+    // the incoming raw handle belongs to a different keyspace.
+    const sameStrategy = incomingName !== undefined && incomingName === currentName
+    const reuseHandle =
+      sameStrategy && incomingRaw !== undefined ? { handle: incomingRaw } : undefined
+    const newRaw = await currentStrategy.persist(
       stateWithMeta,
       output.expires ? { ttl: output.expires - Date.now() } : undefined,
       reuseHandle,
     )
+    const newToken = wrapToken(currentName, newRaw)
 
     const outOfBand = outletHandler.tokenDelivery === 'out-of-band'
 

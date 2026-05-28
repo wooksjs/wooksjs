@@ -9,11 +9,18 @@ import { useWfState } from '../composables'
 
 import { createEmailOutlet, createHttpOutlet } from './create-outlet'
 import { createOutletHandler } from './create-handler'
-import { outletsRegistryKey, stateStrategyKey, wfFinishedKey } from './outlet-context'
+import {
+  outletsRegistryKey,
+  stateStrategyKey,
+  stateStrategyNameKey,
+  strategyRegistryKey,
+  wfFinishedKey,
+} from './outlet-context'
 import { handleWfOutletRequest } from './trigger'
 import type { WfOutletTriggerConfig, WfOutletTriggerDeps } from './types'
 import { useWfFinished } from './use-wf-finished'
 import { useWfOutlet } from './use-wf-outlet'
+import { swapStrategy, useWfStrategy } from './use-wf-strategy'
 
 function createTestStore() {
   return new WfStateStoreMemory()
@@ -179,6 +186,8 @@ describe('useWfOutlet', () => {
     const ctx = new EventContext({ logger: console as any })
     const strategy = createTestStrategy()
     ctx.set(stateStrategyKey, strategy)
+    ctx.set(stateStrategyNameKey, 'default')
+    ctx.set(strategyRegistryKey, { default: strategy })
 
     run(ctx, () => {
       expect(useWfOutlet().getStateStrategy()).toBe(strategy)
@@ -844,5 +853,307 @@ describe('integration: full round-trip', () => {
     const run2 = postWf({ wfs: emailedToken, input: { email: 'verified@test.com' } })
     const inviteeResponse = await run2(() => handleWfOutletRequest(config, deps))
     expect(inviteeResponse).toEqual({ finished: true })
+  })
+})
+
+describe('strategy swap', () => {
+  const httpOutlet = createHttpOutlet()
+
+  /**
+   * Wraps a HandleStateStrategy to track consume()/persist() calls — so
+   * tests can assert which strategy actually handled a given operation.
+   */
+  function spyStrategy(): {
+    strategy: WfStateStrategy
+    store: WfStateStoreMemory
+    consumeCalls: string[]
+    persistCalls: number
+  } {
+    const store = new WfStateStoreMemory()
+    const inner = new HandleStateStrategy({ store })
+    const consumeCalls: string[] = []
+    let persistCalls = 0
+    const strategy: WfStateStrategy = {
+      persist: (state, options, overrides) => {
+        persistCalls++
+        return inner.persist(state, options, overrides)
+      },
+      retrieve: (token) => inner.retrieve(token),
+      consume: (token) => {
+        consumeCalls.push(token)
+        return inner.consume(token)
+      },
+    }
+    return { strategy, store, consumeCalls, get persistCalls() { return persistCalls } } as any
+  }
+
+  it('swap mid-workflow persists with the new strategy', async () => {
+    // Step 1 swaps the strategy; step 2 pauses. The next token must carry
+    // the new strategy's name and the new strategy's storage must hold the
+    // state, not the original.
+    const a = spyStrategy()
+    const b = spyStrategy()
+
+    const app = createWfApp()
+    app.step('switch', { handler: () => { swapStrategy('B') } })
+    app.step('pause', {
+      handler: () => {
+        const { input } = useWfState()
+        if (input()) { return }
+        return outletHttp({ fields: ['x'] })
+      },
+    })
+    app.flow('swap-then-pause', ['switch', 'pause'])
+
+    const config: WfOutletTriggerConfig = {
+      state: { strategies: { A: a.strategy, B: b.strategy }, default: 'A' },
+      outlets: [httpOutlet],
+    }
+    const deps = makeDeps(app)
+
+    const runCtx = postWf({ wfid: 'swap-then-pause' })
+    const result = (await runCtx(() => handleWfOutletRequest(config, deps))) as any
+
+    expect(typeof result.wfs).toBe('string')
+    expect(result.wfs.startsWith('B.')).toBe(true)
+    const rawHandle = (result.wfs as string).slice(2)
+    expect(await b.store.get(rawHandle)).not.toBeNull()
+    // A's store stays empty — its strategy was never asked to persist.
+    expect(b.persistCalls).toBeGreaterThan(0)
+    expect(a.persistCalls).toBe(0)
+  })
+
+  it('resume reads strategy from token prefix', async () => {
+    // After swap-and-pause, resuming must consume from B (the one that
+    // persisted), not A.
+    const a = spyStrategy()
+    const b = spyStrategy()
+
+    const app = createWfApp()
+    app.step('switch', { handler: () => { swapStrategy('B') } })
+    app.step('pause', {
+      handler: () => {
+        const { input } = useWfState()
+        if (input()) { return }
+        return outletHttp({ fields: ['x'] })
+      },
+    })
+    app.flow('swap-resume', ['switch', 'pause'])
+
+    const config: WfOutletTriggerConfig = {
+      state: { strategies: { A: a.strategy, B: b.strategy }, default: 'A' },
+      outlets: [httpOutlet],
+    }
+    const deps = makeDeps(app)
+
+    const r1 = (await postWf({ wfid: 'swap-resume' })(() =>
+      handleWfOutletRequest(config, deps),
+    )) as any
+    const token = r1.wfs as string
+    expect(token.startsWith('B.')).toBe(true)
+
+    const r2 = await postWf({ wfs: token, input: { ok: true } })(() =>
+      handleWfOutletRequest(config, deps),
+    )
+    expect(r2).toEqual({ finished: true })
+    // Only B saw consume.
+    expect(b.consumeCalls.length).toBe(1)
+    expect(a.consumeCalls.length).toBe(0)
+  })
+
+  it('multiple swaps in one event collapse to the last name', async () => {
+    // The strategy at pause time is whatever the final swap set —
+    // intermediate swaps have no effect on the token.
+    const a = spyStrategy()
+    const b = spyStrategy()
+    const c = spyStrategy()
+
+    const app = createWfApp()
+    app.step('to-b', { handler: () => { swapStrategy('B') } })
+    app.step('to-c', { handler: () => { swapStrategy('C') } })
+    app.step('pause', {
+      handler: () => {
+        const { input } = useWfState()
+        if (input()) { return }
+        return outletHttp({ fields: ['x'] })
+      },
+    })
+    app.flow('two-swaps', ['to-b', 'to-c', 'pause'])
+
+    const config: WfOutletTriggerConfig = {
+      state: {
+        strategies: { A: a.strategy, B: b.strategy, C: c.strategy },
+        default: 'A',
+      },
+      outlets: [httpOutlet],
+    }
+
+    const r = (await postWf({ wfid: 'two-swaps' })(() =>
+      handleWfOutletRequest(config, makeDeps(app)),
+    )) as any
+    expect((r.wfs as string).startsWith('C.')).toBe(true)
+    expect(c.persistCalls).toBeGreaterThan(0)
+    expect(b.persistCalls).toBe(0)
+    expect(a.persistCalls).toBe(0)
+  })
+
+  it('swap to unknown name surfaces an error from the engine', async () => {
+    // A step that throws should bubble up via the engine — verifies that
+    // misconfigured swaps are loud, not silent.
+    const a = spyStrategy()
+
+    const app = createWfApp()
+    app.step('bad-swap', { handler: () => { swapStrategy('nonexistent') } })
+    app.flow('bad-swap-flow', ['bad-swap'])
+
+    const config: WfOutletTriggerConfig = {
+      state: { strategies: { A: a.strategy }, default: 'A' },
+      outlets: [httpOutlet],
+    }
+
+    await expect(
+      postWf({ wfid: 'bad-swap-flow' })(() =>
+        handleWfOutletRequest(config, makeDeps(app)),
+      ),
+    ).rejects.toThrow(/unknown strategy/)
+  })
+
+  it('unknown prefix on resume returns 410 without leaking which strategies exist', async () => {
+    // Generic 410 — never disclose registered strategy names.
+    const a = spyStrategy()
+    const app = createWfApp()
+    app.flow('noop', [])
+    const config: WfOutletTriggerConfig = {
+      state: { strategies: { A: a.strategy }, default: 'A' },
+      outlets: [httpOutlet],
+    }
+
+    const r = (await postWf({ wfs: 'evil.somehandle' })(async () => {
+      const body = await handleWfOutletRequest(config, makeDeps(app))
+      return { body: body as any, status: useResponse().status }
+    })) as any
+    expect(r.status).toBe(410)
+    expect(r.body.error).toBe('Invalid workflow state token')
+  })
+
+  it('token without strategy prefix returns 410', async () => {
+    // No dot → cannot resolve a strategy → reject before touching storage.
+    const a = spyStrategy()
+    const app = createWfApp()
+    app.flow('noop', [])
+    const config: WfOutletTriggerConfig = {
+      state: { strategies: { A: a.strategy }, default: 'A' },
+      outlets: [httpOutlet],
+    }
+
+    const r = (await postWf({ wfs: 'rawtokenwithoutdot' })(async () => {
+      const body = await handleWfOutletRequest(config, makeDeps(app))
+      return { body: body as any, status: useResponse().status }
+    })) as any
+    expect(r.status).toBe(410)
+    expect(r.body.error).toBe('Invalid workflow state token')
+    expect(a.consumeCalls.length).toBe(0)
+  })
+
+  it('handle reuse only when strategy name unchanged', async () => {
+    // Stable session (no swap) reuses the raw handle → the outer token is
+    // stable across pauses. After a swap, a fresh raw handle is minted.
+    const a = spyStrategy()
+    const b = spyStrategy()
+
+    const app = createWfApp()
+    app.step('first-pause', {
+      handler: () => {
+        const { input } = useWfState()
+        if (input()) { return }
+        return outletHttp({ fields: ['one'] })
+      },
+    })
+    app.step('switch-then-pause', {
+      handler: () => {
+        const { input } = useWfState()
+        if (input()) { return }
+        swapStrategy('B')
+        return outletHttp({ fields: ['two'] })
+      },
+    })
+    app.flow('stable-then-swap', ['first-pause', 'switch-then-pause'])
+
+    const config: WfOutletTriggerConfig = {
+      state: { strategies: { A: a.strategy, B: b.strategy }, default: 'A' },
+      outlets: [httpOutlet],
+    }
+    const deps = makeDeps(app)
+
+    const r1 = (await postWf({ wfid: 'stable-then-swap' })(() =>
+      handleWfOutletRequest(config, deps),
+    )) as any
+    const t1 = r1.wfs as string
+    expect(t1.startsWith('A.')).toBe(true)
+    const t1Raw = t1.slice(2)
+
+    // Refresh on first pause — same A.<raw>, raw handle reused.
+    const r2 = (await postWf({ wfs: t1 })(() =>
+      handleWfOutletRequest(config, deps),
+    )) as any
+    expect(r2.wfs).toBe(t1)
+
+    // Submit input → advances to second pause which swaps to B.
+    const r3 = (await postWf({ wfs: t1, input: { ok: true } })(() =>
+      handleWfOutletRequest(config, deps),
+    )) as any
+    const t3 = r3.wfs as string
+    expect(t3.startsWith('B.')).toBe(true)
+    // Fresh handle — not the prior raw value.
+    expect(t3.slice(2)).not.toBe(t1Raw)
+  })
+
+  it('useWfStrategy().current() reports the active name (default and after swap)', async () => {
+    // Steps can inspect which strategy is currently active — useful for
+    // diagnostic logs / branching.
+    const a = spyStrategy()
+    const b = spyStrategy()
+    const seen: string[] = []
+
+    const app = createWfApp()
+    app.step('observe-1', {
+      handler: () => { seen.push(useWfStrategy().current() ?? '<none>') },
+    })
+    app.step('observe-2', {
+      handler: () => {
+        swapStrategy('B')
+        seen.push(useWfStrategy().current() ?? '<none>')
+      },
+    })
+    app.flow('observe', ['observe-1', 'observe-2'])
+
+    const config: WfOutletTriggerConfig = {
+      state: { strategies: { A: a.strategy, B: b.strategy }, default: 'A' },
+      outlets: [httpOutlet],
+    }
+
+    await postWf({ wfid: 'observe' })(() =>
+      handleWfOutletRequest(config, makeDeps(app)),
+    )
+    expect(seen).toEqual(['A', 'B'])
+  })
+
+  it('rejects strategy names that violate the regex at trigger time', async () => {
+    // Name 'bad.name' would corrupt the token-split contract — reject early.
+    const a = spyStrategy()
+    const app = createWfApp()
+    app.flow('noop', [])
+    const config: WfOutletTriggerConfig = {
+      state: {
+        strategies: { 'bad.name': a.strategy },
+        default: 'bad.name',
+      },
+      outlets: [httpOutlet],
+    }
+    await expect(
+      postWf({ wfid: 'noop' })(() =>
+        handleWfOutletRequest(config, makeDeps(app)),
+      ),
+    ).rejects.toThrow(/Invalid strategy name/)
   })
 })
