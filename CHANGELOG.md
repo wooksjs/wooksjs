@@ -1,3 +1,12 @@
+## [0.7.16](https://github.com/wooksjs/wooksjs/compare/v0.7.15...v0.7.16) (2026-05-28)
+
+
+### Features
+
+* **event-wf:** swappable state strategy via swapStrategy() with name-prefixed tokens ([7874bb8](https://github.com/wooksjs/wooksjs/commit/7874bb86ae963751e92fefddb973a433d7cf8f9e))
+
+
+
 ## [0.7.15](https://github.com/wooksjs/wooksjs/compare/v0.7.14...v0.7.15) (2026-05-26)
 
 
