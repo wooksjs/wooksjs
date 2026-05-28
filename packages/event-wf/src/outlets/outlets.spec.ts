@@ -1108,6 +1108,65 @@ describe('strategy swap', () => {
     expect(t3.slice(2)).not.toBe(t1Raw)
   })
 
+  it('strategy is sticky across resumes without re-swap', async () => {
+    // After a swap, the new strategy name travels in the token prefix.
+    // Every subsequent resume reads the prefix and re-sets the EventContext,
+    // so persist on the *next* pause re-emits the same prefix without the
+    // step needing to swap again. This is the cross-event persistence guarantee.
+    const a = spyStrategy()
+    const b = spyStrategy()
+
+    const app = createWfApp()
+    app.step('swap-on-first', {
+      handler: () => {
+        const { input } = useWfState()
+        if (input()) { return }
+        swapStrategy('B')
+        return outletHttp({ fields: ['first'] })
+      },
+    })
+    app.step('second-pause', {
+      handler: () => {
+        const { input } = useWfState()
+        if (input()) { return }
+        // No swap here — relies on the prefix-restored strategy.
+        return outletHttp({ fields: ['second'] })
+      },
+    })
+    app.flow('sticky', ['swap-on-first', 'second-pause'])
+
+    const config: WfOutletTriggerConfig = {
+      state: { strategies: { A: a.strategy, B: b.strategy }, default: 'A' },
+      outlets: [httpOutlet],
+    }
+    const deps = makeDeps(app)
+
+    // Event 1: start → swap to B → pause-1 → B.<raw1>
+    const r1 = (await postWf({ wfid: 'sticky' })(() =>
+      handleWfOutletRequest(config, deps),
+    )) as any
+    const t1 = r1.wfs as string
+    expect(t1.startsWith('B.')).toBe(true)
+
+    // Event 2: resume with B.<raw1>, no swap, pause-2 → must still be B-prefixed.
+    const r2 = (await postWf({ wfs: t1, input: { ok: true } })(() =>
+      handleWfOutletRequest(config, deps),
+    )) as any
+    const t2 = r2.wfs as string
+    expect(t2.startsWith('B.')).toBe(true)
+    // B saw both consume calls; A never did after the initial start.
+    expect(b.consumeCalls.length).toBe(1)
+    expect(a.consumeCalls.length).toBe(0)
+
+    // Event 3: resume with B.<raw2>, finish — still B all the way.
+    const r3 = await postWf({ wfs: t2, input: { ok: true } })(() =>
+      handleWfOutletRequest(config, deps),
+    )
+    expect(r3).toEqual({ finished: true })
+    expect(b.consumeCalls.length).toBe(2)
+    expect(a.consumeCalls.length).toBe(0)
+  })
+
   it('useWfStrategy().current() reports the active name (default and after swap)', async () => {
     // Steps can inspect which strategy is currently active — useful for
     // diagnostic logs / branching.
