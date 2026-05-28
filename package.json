@@ -1,6 +1,6 @@
 {
   "name": "wooksjs",
-  "version": "0.7.15",
+  "version": "0.7.16",
   "private": true,
   "description": "wooksjs - web app framework with hooks",
   "keywords": [
