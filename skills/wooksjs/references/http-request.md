@@ -45,6 +45,8 @@ setReadTimeoutMs(30_000)          // 30 seconds
 
 Default limits: `maxCompressed: 1MB`, `maxInflated: 10MB`, `maxRatio: 100`, `readTimeoutMs: 10s`.
 
+Matching getters read the current (possibly overridden) values: `getMaxCompressed()`, `getMaxInflated()`, `getMaxRatio()`, `getReadTimeoutMs()`.
+
 Limit setters use copy-on-write; they do not affect other requests.
 
 ---
@@ -75,16 +77,21 @@ const session = getCookie('session_id') // parsed + cached
 
 ## `useUrlParams(ctx?)`
 
-Access URL query parameters.
+Access URL query parameters. `params()` returns a `WooksURLSearchParams` — `URLSearchParams` plus a typed `toJson<T>()`.
 
 ```ts
 const { params, toJson, raw } = useUrlParams()
 
-const page = params().get('page')         // URLSearchParams API
-const tags = params().getAll('tag')
-const query = toJson()                     // { page: '1', tag: ['a', 'b'] }
-const rawQuery = raw()                     // '?page=1&tag=a&tag=b'
+const page = params().get('page')         // standard URLSearchParams API
+const tags = params().getAll('tags')      // raw repeated values
+const query = toJson<{ page: string }>()  // safe plain object (rules below)
+const rawQuery = raw()                     // '?page=1&tags[]=a&tags[]=b'
 ```
+
+`toJson()` invariants:
+1. Arrays use a trailing `[]` and the suffix is **kept** in the key: `?tags[]=a&tags[]=b` → `{ 'tags[]': ['a', 'b'] }`.
+2. A repeated **non-`[]`** key throws `HttpError(400)` (`Duplicate key`). Use `[]`, or read repeats with `params().getAll('k')`.
+3. Keys `__proto__` / `constructor` / `prototype` throw `HttpError(400)`; the result is a null-prototype object.
 
 ---
 

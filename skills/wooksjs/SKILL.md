@@ -12,7 +12,7 @@ description: >-
   onDisconnect, useWsConnection, useWsMessage, useWsRooms, useWsServer,
   WsRoomManager, WsBroadcastTransport, WsError), @wooksjs/event-wf (createWfApp,
   workflow steps and flows, useWfState, pause/resume, conditions, loops, string
-  handlers, StepRetriableError, outlets), @wooksjs/ws-client (createWsClient,
+  handlers, StepRetriableError, outlets, swapStrategy), @wooksjs/ws-client (createWsClient,
   WsClient, send, call, subscribe, on, reconnection, RPC, push listeners,
   WsClientError).
 ---

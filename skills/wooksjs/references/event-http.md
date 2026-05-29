@@ -7,6 +7,7 @@ For request composables, see [http-request.md](http-request.md). For response AP
 - [App Setup](#app-setup) — `createHttpApp`, `TWooksHttpOptions`
 - [Route Registration](#route-registration) — HTTP verbs, `on`, `all`, `upgrade`, `ws`
 - [Server Lifecycle](#server-lifecycle) — `listen`, `close`, `attachServer`, `getServerCb`
+- [Programmatic Invocation](#programmatic-invocation-fetch--request) — `fetch`, `request`, SSR header forwarding
 - [Routing](#routing) — pattern syntax pointer
 - [Auto-Status Inference](#auto-status-inference) — method × body → status
 - [Handler Chains](#handler-chains)
@@ -81,7 +82,24 @@ app.attachServer(server) // required if you want app.close() to work
 await app.close()
 ```
 
-`getServerCb()` returns a `(req, res) => void` callback usable with any Node.js HTTP/HTTPS/HTTP2 server.
+`getServerCb(onNoMatch?)` returns a `(req, res) => void` callback usable with any Node.js HTTP/HTTPS/HTTP2 server. Pass `onNoMatch(req, res)` to delegate unmatched routes (mount Wooks as middleware ahead of another handler) instead of emitting the default 404.
+
+---
+
+## Programmatic Invocation (fetch / request)
+
+Call the app in-process without a socket — for SSR, tests, or composing apps. Returns a Web `Response`, or `null` when no route matches (so a caller can fall through).
+
+```ts
+const res = await app.fetch(new Request('http://local/api/users', { method: 'POST', body }))
+// or the convenience overload:
+const res = await app.request('/api/users', { method: 'POST' }) // string | URL | Request
+if (res === null) { /* no route matched — fall through */ }
+```
+
+- `fetch(request: Request): Promise<Response | null>`
+- `request(input: string | URL | Request, init?: RequestInit): Promise<Response | null>` — sugar that builds the `Request` then calls `fetch`.
+- Headers in `forwardHeaders` (default: `authorization`, `cookie`, `accept-language`, `x-forwarded-for`, `x-request-id`) propagate from the calling HTTP context; `Set-Cookie` from the inner response propagates back out.
 
 ---
 

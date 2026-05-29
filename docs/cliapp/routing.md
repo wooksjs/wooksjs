@@ -52,7 +52,7 @@ You can define optional route parameter
 'app build :target?'
 ```
 
-In th example above parameter `target` will be optional.
+In the example above parameter `target` will be optional.
 
 ```bash
 my-cli app build

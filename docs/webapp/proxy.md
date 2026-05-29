@@ -101,3 +101,33 @@ app.get('*', async () => {
 ```
 
 The `fetchResponse` can be returned directly from the handler, or you can modify it before returning.
+
+## Header & Cookie Controls
+
+The four filtering options — `reqHeaders`, `reqCookies`, `resHeaders`, `resCookies` — all take the same **controls** object. Each field is optional and they compose (allow/block filter, then `overwrite` is applied):
+
+| Field | Type | Behavior |
+|-------|------|----------|
+| `allow` | `Array<string \| RegExp>` or `'*'` | Allowlist of keys to forward. Strings match by name; `RegExp` matches the key. `'*'` allows all. |
+| `block` | `Array<string \| RegExp>` or `'*'` | Blocklist of keys to suppress. `'*'` blocks all. |
+| `overwrite` | `Record<string, string>` or `(data) => Record<string, string>` | Override specific key→value pairs, or pass a function that receives the current map and returns the replacement map. |
+
+```js
+import { useProxy } from '@wooksjs/http-proxy';
+
+app.get('*', () => {
+    const proxy = useProxy();
+    return proxy('https://upstream.example.com', {
+        // RegExp + string allowlist
+        reqHeaders: { allow: [/^x-/, 'authorization'] },
+        // block everything, then re-add via overwrite
+        resCookies: { block: '*' },
+        // function form — derive headers from the existing set
+        resHeaders: {
+            overwrite: (headers) => ({ ...headers, 'x-proxied-by': 'wooks-proxy' }),
+        },
+    });
+});
+```
+
+Other `useProxy` options: `method` (override the proxied HTTP method, defaults to the incoming request's method) and `debug` (log proxy paths, headers, and cookies).

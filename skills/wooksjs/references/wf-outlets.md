@@ -303,6 +303,21 @@ useWfStrategy().current()      // → currently-active strategy name
 - Token without a `.` prefix → HTTP 410.
 - After a swap, the next persist mints a fresh handle in the new strategy's keyspace; before any swap, the trigger reuses the incoming raw handle so `wfs` stays stable across the workflow.
 
+### Strategy across direct start/resume (no trigger)
+
+Driving `app.start()` / `app.resume()` yourself (offline resume drivers, queues):
+
+```ts
+// set the initial strategy name for the run
+const output = await wf.start('signup', ctx, { strategy: { name: 'enc' } })
+// post-swap name surfaces on the paused output (reflects any swapStrategy() call)
+const next = output.inputRequired?.stateStrategy   // e.g. 'kv' | undefined
+await wf.resume(saved, { input, strategy: { name: next } })
+```
+
+- The adapter carries only the **name** (`strategy: { name }`); strategy instances live in your registry, never in workflow state.
+- `output.inputRequired.stateStrategy` (`WfPauseRequest` field) = strategy name active at pause, so the caller persists `output.state` under the right keyspace without reading EventContext.
+
 ---
 
 ## WfOutletTokenConfig
@@ -339,13 +354,13 @@ The trigger sets HTTP status via `useResponse().setStatus(...)`; the body never 
 
 For finished workflows, `useWfFinished().set({ type, value, status })` propagates `status` to the HTTP response: redirects default to 302, data responses leave the status untouched (HTTP method default) unless `status` is set explicitly.
 
-On pause (initial or re-pause), the trigger persists state, dispatches to the outlet, and returns the outlet's response. With `HandleStateStrategy` the persisted handle equals the incoming `wfs` on resume (or a freshly minted UUID on start); with `EncapsulatedStateStrategy` the token always changes because the ciphertext is a function of the new state. The token is merged into the response (body or cookie per `token.write`) only if the outlet declares `tokenDelivery: 'caller'` (the default for HTTP outlets). For `tokenDelivery: 'out-of-band'` outlets (email, SMS, etc.), the response does NOT contain the token — the outlet delivers it through its own channel.
+On pause (initial or re-pause), the trigger persists state, dispatches to the outlet, and returns the outlet's response. With `HandleStateStrategy` the persisted handle equals the incoming `wfs` on resume — unless a step called `swapStrategy()`, which mints a fresh handle in the new strategy's keyspace — and is freshly minted on start; with `EncapsulatedStateStrategy` the token always changes because the ciphertext is a function of the new state. The token is merged into the response (body or cookie per `token.write`) only if the outlet declares `tokenDelivery: 'caller'` (the default for HTTP outlets). For `tokenDelivery: 'out-of-band'` outlets (email, SMS, etc.), the response does NOT contain the token — the outlet delivers it through its own channel.
 
 On finish, the trigger checks `onFinished` callback, then `useWfFinished()`, then returns `{ finished: true }`. The handle is not re-persisted, so it remains deleted from the consume call earlier in the request.
 
 **Fail-closed on unexpected errors.** A consumed handle is restored only after the step returns. An unexpected throw during resume skips the re-persist call — the handle is gone and the user must restart the workflow. This is the security-preferred behavior (no lingering replayable token after a failed attempt). Handle expected validation failures by returning an outlet signal from the step handler (the engine re-persists under the same handle on the re-pause), not by throwing.
 
-**Strategy divergence guard.** When the persisted `state.schemaId` disagrees with the request `wfid` and the per-`wfid` strategy factory returns a *different strategy reference*, the engine skips the handle-reuse optimization and mints a fresh token (the original handle belongs to the provisional strategy's keyspace, not the real strategy's). When the factory returns the same strategy for both ids, reuse proceeds.
+**Strategy comes from the token prefix, not `wfid`.** On resume the strategy is selected from the token's `<name>.` prefix; `wfid` is read only on *start* (allow/block checks + resolving the `default` name). There is no per-`wfid` strategy re-resolution. The trigger reuses the incoming handle (keeping `wfs` stable) only when the post-swap strategy name equals the incoming prefix — a `swapStrategy()` during the step, or a start with no incoming token, mints a fresh handle in the new strategy's keyspace. See [Swapping strategies inside a step](#swapping-strategies-inside-a-step).
 
 ---
 

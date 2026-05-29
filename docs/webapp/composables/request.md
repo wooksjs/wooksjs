@@ -54,6 +54,23 @@ curl http://localhost:3000/hello?name=World
 # Hello World!
 ```
 
+### Arrays and safe `toJson()` conversion
+
+`params()` returns a `WooksURLSearchParams` — a subclass of the standard `URLSearchParams` whose only addition is a typed `toJson<T>()` method. The standard accessors (`get`, `getAll`, `has`, `entries`, …) work exactly as in Node's `URLSearchParams`.
+
+`toJson()` follows a few rules that protect against malformed or hostile query strings:
+
+-   **Arrays use a trailing `[]`.** A key ending in `[]` collects all its values into a `string[]`, and the `[]` is kept in the resulting key. So `?tags[]=a&tags[]=b` becomes `{ 'tags[]': ['a', 'b'] }`.
+-   **Repeated plain keys throw.** A non-`[]` key that appears more than once raises `HttpError(400)` (`Duplicate key`). Use the `[]` form when you expect multiple values; if you need the raw repeated values without the array convention, read them with `params().getAll('key')` instead of `toJson()`.
+
+`toJson()` also rejects the prototype-pollution keys `__proto__`, `constructor`, and `prototype` with `HttpError(400)`, and builds a null-prototype object.
+
+```js
+// ?status=open&tags[]=urgent&tags[]=api
+const query = useUrlParams().toJson()
+// { status: 'open', 'tags[]': ['urgent', 'api'] }
+```
+
 ## Method and Headers
 
 The `useRequest` composable provides additional shortcuts for accessing useful data related to the request, such as the URL, method, headers, and the raw request body.

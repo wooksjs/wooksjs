@@ -109,6 +109,7 @@ Parameters:
   - `spy` -- spy function for observing step execution
   - `cleanup` -- cleanup function called when execution ends
   - `eventContext` -- parent `EventContext` to link to (pass `current()` from an active scope)
+  - `strategy` -- `{ name: string }`, initial state strategy name for this run (named-registry outlets). The adapter carries only the name; on pause the post-swap name is reflected on `output.inputRequired.stateStrategy`. See [wf-outlets.md](wf-outlets.md).
 
 ### `app.resume(state, opts?)`
 

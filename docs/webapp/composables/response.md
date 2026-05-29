@@ -241,6 +241,26 @@ If you don't set a status, Wooks auto-assigns one based on the HTTP method and r
 | `PATCH` / `DELETE` with body | 202 Accepted |
 | No body | 204 No Content |
 
+### Status code constants
+
+Two named helpers are exported from `@wooksjs/event-http` so you can avoid magic numbers:
+
+-   `EHttpStatusCode` — a numeric enum of status codes (`EHttpStatusCode.Created === 201`, `EHttpStatusCode.NotFound === 404`, …).
+-   `httpStatusCodes` — a record mapping each numeric code to its human-readable description (`httpStatusCodes[201] === 'Created'`).
+
+```js
+import { useResponse, EHttpStatusCode, httpStatusCodes } from '@wooksjs/event-http';
+
+app.post('/items', () => {
+    useResponse().setStatus(EHttpStatusCode.Created); // 201
+    return { created: true };
+});
+
+httpStatusCodes[404]; // 'Not Found'
+```
+
+Both are plain values — use them anywhere a status code is needed (e.g. `useResponse().setStatus(...)` or `new HttpError(...)`). The same `EHttpStatusCode` enum drives the auto-status table above.
+
 ## Cache-Control
 
 ::: tip

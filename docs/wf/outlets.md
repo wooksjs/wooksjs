@@ -264,6 +264,24 @@ Unknown names throw at the call site (config bug). Tokens whose prefix names
 an unknown strategy return HTTP 410 (same as any invalid token — the trigger
 does not leak which strategies are registered).
 
+When you drive `start()` / `resume()` directly (instead of through the outlet
+trigger), set the initial strategy with the `strategy` run option and read the
+post-swap name off the paused output — handy for offline resume drivers that
+persist state under a strategy-specific keyspace:
+
+```ts
+const output = await wf.start('signup', ctx, { strategy: { name: 'enc' } })
+
+if (output.inputRequired) {
+  const next = output.inputRequired.stateStrategy // post-swap name, e.g. 'kv'
+  // persist output.state under `next`'s keyspace, then later:
+  // await wf.resume(saved, { input, strategy: { name: next } })
+}
+```
+
+The adapter carries only the strategy *name* — the strategy instances live in
+your trigger registry (or your own resume driver), never in the workflow state.
+
 ### State Strategies
 
 State strategies control how workflow state is persisted between pause and resume. **Choose based on whether the workflow is security-sensitive** — see the security note below.

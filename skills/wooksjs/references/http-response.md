@@ -32,6 +32,14 @@ response.setStatus(201)            // set via method (chainable)
 const code = response.status       // get current status
 ```
 
+Two constants are exported from `@wooksjs/event-http` to avoid magic numbers (use with `setStatus`, `HttpError`, anywhere):
+
+```ts
+import { EHttpStatusCode, httpStatusCodes } from '@wooksjs/event-http'
+EHttpStatusCode.Created   // 201 (numeric enum: OK, Created, NotFound, ...)
+httpStatusCodes[404]      // 'Not Found' (code → description map)
+```
+
 If not set explicitly, status is inferred via [auto-status table](event-http.md#auto-status-inference).
 
 ---

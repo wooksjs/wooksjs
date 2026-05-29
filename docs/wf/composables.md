@@ -12,7 +12,8 @@ These are available out of the box in workflow step handlers:
 |------------|--------|-----------------|
 | `useWfState()` | `@wooksjs/event-wf` | Workflow context, input, schema/step ids, resume flag |
 | `useWfFinished()` | `@wooksjs/event-wf` | Set the HTTP response for workflow completion (used with [outlets](/wf/outlets)) |
-| `useWfOutlet()` | `@wooksjs/event-wf` | Access outlet infrastructure (state strategy, outlet registry) |
+| `useWfStrategy()` | `@wooksjs/event-wf` | Read / swap the active state strategy name for the next outlet pause (see [Swapping strategies](/wf/outlets#swapping-strategies)) |
+| `useWfOutlet()` | `@wooksjs/event-wf` | Access the outlet registry — `getOutlets()`, `getOutlet(name)` (advanced) |
 | `useRouteParams()` | `@wooksjs/event-core` | Route parameters from parametric step ids |
 | `useEventId()` | `@wooksjs/event-core` | Unique per-execution UUID |
 | `useLogger()` | `@wooksjs/event-core` | Event-scoped logger instance |

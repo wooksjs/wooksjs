@@ -42,6 +42,16 @@ send('update', '/users/42', { name: 'Alice' }, { id: '42' })
 
 Push messages bypass room membership — they go directly to the connection regardless of which rooms it has joined.
 
+### currentConnection()
+
+A lower-level escape hatch that returns the connection-level `EventContext` from either handler type — `current()` in `onConnect`/`onDisconnect`, or `current().parent` (the connection context) in `onMessage`. Most code should use `useWsConnection()` instead; reach for `currentConnection()` only when you need the raw context to read/write connection-scoped slots directly.
+
+```ts
+import { currentConnection } from '@wooksjs/event-ws'
+
+const connCtx = currentConnection() // connection EventContext, from any WS handler
+```
+
 ## useWsMessage
 
 Returns the current message payload and metadata. Available **only** in message handlers (`onMessage`).
@@ -268,6 +278,7 @@ The server sends periodic `ping` frames to detect dead connections. Connections 
 ```ts
 const ws = createWsApp(http, {
   heartbeatInterval: 30000, // ms between pings (default: 30000)
+  heartbeatTimeout: 5000,   // ms to wait for pong before closing (default: 5000)
 })
 ```
 
