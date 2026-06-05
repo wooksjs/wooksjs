@@ -24,6 +24,40 @@ app.step('increment', {
 })
 ```
 
+## Step IDs Must Be Unique
+
+Steps are registered on a router, and **the first registration of an id wins** — registering the same id again is ignored and the later handler is never reached. A duplicate logs a warning so the mistake is visible instead of silent:
+
+```
+WF step "increment" registered more than once — the first registration wins.
+```
+
+By default the router is a **process-global singleton**, shared across every workflow app created without an explicit `Wooks` instance. So ids can collide _across apps_, not just within one — this most often bites tests that build a fresh app per case and reuse an id.
+
+### Fail loudly with `strictStepIds`
+
+Pass `strictStepIds: true` to turn a duplicate id into a thrown error instead of a warning — handy in CI where a collision should fail the build:
+
+```ts
+const app = createWfApp({ strictStepIds: true })
+
+app.step('process', { handler: () => {} })
+app.step('process', { handler: () => {} })
+// throws: WF step "process" already registered. Step ids must be unique (strictStepIds enabled).
+```
+
+### Resetting the router between tests
+
+Because the router is shared, reset it before each test so ids need not be globally unique and each test stays hermetic:
+
+```ts
+import { clearGlobalWooks } from 'wooks'
+
+beforeEach(() => clearGlobalWooks())
+```
+
+After the reset every test gets a fresh router, so re-registering the same ids across cases is fine. The same `clearGlobalWooks()` call is what HMR / dev-restart flows use to re-register steps cleanly.
+
 ## Accessing State with `useWfState`
 
 Inside any step handler, call `useWfState()` to access the full workflow execution state:

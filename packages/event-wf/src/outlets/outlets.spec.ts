@@ -2,7 +2,8 @@ import { EventContext, run } from '@wooksjs/event-core'
 import { prepareTestHttpContext, useResponse } from '@wooksjs/event-http'
 import { HandleStateStrategy, WfStateStoreMemory, outlet, outletEmail, outletHttp } from '@prostojs/wf/outlets'
 import type { WfOutlet, WfStateStrategy } from '@prostojs/wf/outlets'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { clearGlobalWooks } from 'wooks'
 
 import { createWfApp } from '../wf-adapter'
 import { useWfState } from '../composables'
@@ -15,6 +16,13 @@ import type { WfOutletTriggerConfig, WfOutletTriggerDeps } from './types'
 import { useWfFinished } from './use-wf-finished'
 import { useWfOutlet } from './use-wf-outlet'
 import { swapStrategy, useWfStrategy } from './use-wf-strategy'
+
+// Every test below builds its app inside the `it()` body, and they reuse step
+// ids (e.g. `pause`, `first-pause`) across cases. Step ids live on a shared,
+// process-global router, so without a reset the second registration of an id is
+// silently ignored (first-win) and now warns. Reset the router before each test
+// to keep them hermetic.
+beforeEach(() => clearGlobalWooks())
 
 function createTestStore() {
   return new WfStateStoreMemory()

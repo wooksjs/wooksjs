@@ -79,10 +79,13 @@ interface TWooksWfOptions {
     ignoreCase?: boolean
     cacheLimit?: number
   }
+  strictStepIds?: boolean // throw on duplicate WF_STEP id instead of warn (default false)
 }
 ```
 
 Default error behavior: `console.error` + `process.exit(1)`. Always provide `onError` in production.
+
+Duplicate step ids are not fatal by default — the **first** registration wins, later ones are ignored with a `logger.warn`. Set `strictStepIds: true` to throw instead (see [Rules & Gotchas](#rules--gotchas)).
 
 ---
 
@@ -642,6 +645,8 @@ output = await app.resume(output.state, { input: 'pro' })
 - Composables must be called inside a step handler (or flow `init`, which runs in context).
 - String handlers are sandboxed: only `ctx` and `input` available. No `require`/`import`/`process`/`console`/Node globals. Use function handlers for anything non-trivial.
 - Step IDs are router paths: `'process/items'` is two segments. Use `'process-items'` for flat IDs.
+- Step IDs must be unique: re-registering an id is **first-win** (later handler ignored) + a `logger.warn`. Set `strictStepIds: true` to throw instead. Flow ids already throw on duplicate.
+- The router is a process-global singleton unless you pass an explicit `Wooks`/adapter to `createWfApp`, so step ids collide **across apps too**. In tests, `beforeEach(() => clearGlobalWooks())` (from `wooks`) to reset it — see [wf-advanced.md](wf-advanced.md#testing).
 - Conditions access context properties directly: `'result > 10'` checks `context.result` (no `ctx.` prefix).
 - Input is cleared after first step — subsequent steps get input only via `resume()`.
 - Prefer parametric steps over duplication (`add/:n` vs `add-5`/`add-10`).

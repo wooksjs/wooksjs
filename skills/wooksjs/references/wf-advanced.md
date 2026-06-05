@@ -181,6 +181,8 @@ class StepRetriableError<IR> extends Error {
 
 ## Testing
 
+> **Reset the shared router when building apps per-test.** The router is a process-global singleton unless you pass an explicit `Wooks`. Two tests that each `createWfApp()` _inside the test body_ and reuse a step id will silently run the **first** test's handler (first-win) — a green suite hiding a mismatch. Add `beforeEach(() => clearGlobalWooks())` (from `wooks`) so each test gets a fresh router and ids need not be globally unique. (Or set `strictStepIds: true` to make the collision throw.) Not needed when a single module-level app owns all ids, as below. See [event-wf.md](event-wf.md#rules--gotchas).
+
 Test workflows by calling `app.start()` directly with explicit contexts:
 
 ```ts

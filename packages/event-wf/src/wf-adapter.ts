@@ -26,6 +26,17 @@ export interface TWooksWfOptions {
   logger?: TConsoleBase
   eventOptions?: EventContextOptions
   router?: TWooksOptions['router']
+  /**
+   * When `true`, registering a `WF_STEP` id that is already registered throws
+   * instead of warning. Useful in CI to fail loudly on step-id collisions.
+   * Mirrors the router's `disableDuplicatePath`.
+   *
+   * Default (`false`) keeps the permissive behavior — a duplicate id logs a
+   * warning and the **first** registration wins — so HMR / dev-restart flows
+   * that re-register steps (and reset the shared router via `clearGlobalWooks()`)
+   * are not broken.
+   */
+  strictStepIds?: boolean
 }
 
 /** Options for {@link WooksWf.start} and {@link WooksWf.resume}. */
@@ -95,6 +106,25 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
     },
   ) {
     const step = createStep<T, I, IR>(id, opts)
+    // The router is shared (a process-global singleton when no Wooks is passed),
+    // and it appends duplicate paths instead of throwing — so a step id reused
+    // across calls or across adapter instances silently keeps the FIRST handler
+    // (resolveStep uses handlers[0]). Surface that here: throw under strict mode,
+    // warn otherwise. After clearGlobalWooks() the router is empty, so HMR /
+    // dev-restart re-registration that resets the router stays quiet.
+    const stepIdNorm = `/${id}`.replace(/^\/+/u, '/')
+    const existing = this.wooks.getRouter().lookup('WF_STEP' as 'GET', stepIdNorm)
+    if (existing?.route?.handlers.length) {
+      if (this.opts?.strictStepIds) {
+        throw new Error(
+          `WF step "${id}" already registered. Step ids must be unique (strictStepIds enabled).`,
+        )
+      }
+      this.logger.warn(
+        `WF step "${id}" registered more than once — the first registration wins. ` +
+          `In tests, reset the shared router with clearGlobalWooks() in beforeEach().`,
+      )
+    }
     return this.on<Step<T, I, IR>>('WF_STEP', id, () => step)
   }
 
