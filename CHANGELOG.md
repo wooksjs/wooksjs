@@ -1,3 +1,12 @@
+## [0.7.17](https://github.com/wooksjs/wooksjs/compare/v0.7.16...v0.7.17) (2026-06-05)
+
+
+### Features
+
+* **event-wf:** warn on duplicate step id and add strictStepIds option ([528953b](https://github.com/wooksjs/wooksjs/commit/528953bd2467b3ab13591257afb8066272463c35))
+
+
+
 ## [0.7.16](https://github.com/wooksjs/wooksjs/compare/v0.7.15...v0.7.16) (2026-05-28)
 
 
