@@ -12,6 +12,13 @@ export interface TWooksProxyControls {
 export interface TWooksProxyOptions {
   /** Override the HTTP method used for the proxied request. */
   method?: string
+  /**
+   * Allowlist of upstream hostnames. When set, the resolved target host must match
+   * one entry (string = case-insensitive exact match, RegExp = tested against the
+   * hostname) or the request is rejected with `502`. Use this when the target is
+   * built from request input. An empty array denies every host.
+   */
+  allowedHosts?: Array<string | RegExp>
   /** Controls for filtering/transforming outgoing request headers. */
   reqHeaders?: TWooksProxyControls
   /** Controls for filtering/transforming outgoing request cookies. */

@@ -1,8 +1,77 @@
 import { describe, expect, it } from 'vitest'
 
-import { applyProxyControls, CookiesIterable, HeadersIterable } from './proxy-utils'
+import {
+  applyProxyControls,
+  CookiesIterable,
+  HeadersIterable,
+  resolveProxyTarget,
+} from './proxy-utils'
 
 describe('event-http/proxy', () => {
+  describe('resolveProxyTarget (SSRF host-hijack protection)', () => {
+    const base = 'https://backend.example.com'
+    // attacker-controlled request paths concatenated onto a fixed base host,
+    // as in the documented `proxy(base + useRequest().url)` pattern
+    const hijackAttempts = [
+      '//evil.com/p',
+      '/\\evil.com/p',
+      '/\\@evil.com/p',
+      '/..//@evil.com',
+      '/@evil.com/p',
+    ]
+    it('must keep the host fixed to the parsed target for all path-based hijack attempts', () => {
+      for (const attack of hijackAttempts) {
+        const resolved = resolveProxyTarget(base + attack)
+        expect(resolved.host).toBe('backend.example.com')
+      }
+    })
+    it('must preserve a legitimate path and query string', () => {
+      expect(resolveProxyTarget(`${base}/api/users?id=5`).toString()).toBe(
+        'https://backend.example.com/api/users?id=5',
+      )
+    })
+    it('must strip the fragment', () => {
+      expect(resolveProxyTarget(`${base}/api#frag`).hash).toBe('')
+    })
+    it('must reject non-http(s) protocols', () => {
+      expect(() => resolveProxyTarget('file:///etc/passwd')).toThrow()
+      expect(() => resolveProxyTarget('ftp://host/x')).toThrow()
+    })
+    it('must reject an invalid target URL', () => {
+      expect(() => resolveProxyTarget('not a url')).toThrow()
+    })
+  })
+
+  describe('resolveProxyTarget (allowedHosts)', () => {
+    it('must allow a host on the allowlist (string, case-insensitive)', () => {
+      expect(resolveProxyTarget('https://API.Example.com/x', ['api.example.com']).hostname).toBe(
+        'api.example.com',
+      )
+    })
+    it('must allow a host matching an allowlist RegExp', () => {
+      expect(
+        resolveProxyTarget('https://svc-1.internal/x', [/^svc-\d+\.internal$/u]).hostname,
+      ).toBe('svc-1.internal')
+    })
+    it('must reject a host not on the allowlist', () => {
+      expect(() => resolveProxyTarget('https://evil.com/x', ['api.example.com'])).toThrow()
+    })
+    it('must deny every host when the allowlist is empty', () => {
+      expect(() => resolveProxyTarget('https://api.example.com/x', [])).toThrow()
+    })
+    it('must apply no restriction when allowedHosts is undefined', () => {
+      expect(resolveProxyTarget('https://anything.example.com/x').hostname).toBe(
+        'anything.example.com',
+      )
+    })
+    it('must reject a hijacked host even if the intended base is allowlisted', () => {
+      // defense-in-depth: path-based hijack would resolve to the base host anyway,
+      // but the allowlist also blocks any host that is not explicitly permitted
+      expect(() =>
+        resolveProxyTarget('https://backend.example.com', ['nope.example.com']),
+      ).toThrow()
+    })
+  })
   const headers = {
     'content-type': 'application/json',
     'content-length': '256',

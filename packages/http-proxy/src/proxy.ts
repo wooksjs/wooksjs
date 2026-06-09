@@ -1,8 +1,11 @@
-import { URL } from 'node:url'
-
 import { useLogger, useRequest, useResponse } from '@wooksjs/event-http'
 
-import { applyProxyControls, CookiesIterable, HeadersIterable } from './proxy-utils'
+import {
+  applyProxyControls,
+  CookiesIterable,
+  HeadersIterable,
+  resolveProxyTarget,
+} from './proxy-utils'
 import type { TWooksProxyOptions } from './types'
 
 const reqHeadersToBlock = [
@@ -41,9 +44,10 @@ export function useProxy() {
   const logger = useLogger()
 
   return async function proxy(target: string, opts?: TWooksProxyOptions): Promise<Response> {
-    const targetUrl = new URL(target)
-    const path = targetUrl.pathname || '/'
-    const url = new URL(path, targetUrl.origin).toString() + targetUrl.search
+    // Authority is fixed to the parsed target; the pathname is never re-parsed
+    // against the origin, so request-derived path data cannot hijack the host (SSRF).
+    const targetUrl = resolveProxyTarget(target, opts?.allowedHosts)
+    const url = targetUrl.toString()
 
     // preparing request headers and cookies
     const modifiedHeaders = { ...req.headers, host: targetUrl.hostname }
