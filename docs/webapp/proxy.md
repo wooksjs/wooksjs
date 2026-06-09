@@ -85,6 +85,9 @@ app.get('*', async () => {
     const fetchResponse = await proxy('https://www.google.com' + url, {
         method: 'GET', // Optional method, defaults to the original request method
 
+        // Restrict the upstream host (recommended when the target is built from request input)
+        allowedHosts: ['www.google.com'],
+
         // Filtering options for request headers/cookies
         reqHeaders: { block: ['referer'] },
         reqCookies: { allow: ['cookie-to-pass-upstream'] },
@@ -101,6 +104,10 @@ app.get('*', async () => {
 ```
 
 The `fetchResponse` can be returned directly from the handler, or you can modify it before returning.
+
+::: warning Securing the upstream host
+The proxy fixes the upstream host to whatever `new URL(target)` resolves, so request **path** data cannot redirect the request to another host. When you build the target from request input (as in `'https://www.google.com' + url` above), also set `allowedHosts` to the hostnames you trust — the proxy then rejects any resolved host outside the list with `502`. Only `http:`/`https:` targets are allowed. `allowedHosts` accepts exact hostname strings (case-insensitive) or `RegExp` entries; an empty array denies every host.
+:::
 
 ## Header & Cookie Controls
 
@@ -130,4 +137,4 @@ app.get('*', () => {
 });
 ```
 
-Other `useProxy` options: `method` (override the proxied HTTP method, defaults to the incoming request's method) and `debug` (log proxy paths, headers, and cookies).
+Other `useProxy` options: `method` (override the proxied HTTP method, defaults to the incoming request's method), `allowedHosts` (allowlist of upstream hostnames — strings or `RegExp` — rejecting any other resolved host with `502`), and `debug` (log proxy paths, headers, and cookies).

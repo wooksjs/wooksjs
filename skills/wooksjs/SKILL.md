@@ -7,14 +7,14 @@ description: >-
   useEventId, useLogger), @wooksjs/event-http (createHttpApp, HTTP routing,
   useRequest, useHeaders, useCookies, useUrlParams, useAuthorization, useAccept,
   useResponse, HttpResponse, HttpError, prepareTestHttpContext),
-  @wooksjs/event-cli (createCliApp, command routing, useCliOptions, useCliOption,
+  @wooksjs/http-proxy (useProxy), @wooksjs/event-cli
+  (createCliApp, command routing, useCliOptions, useCliOption,
   useCliHelp, useAutoHelp), @wooksjs/event-ws (WooksWs, onMessage, onConnect,
   onDisconnect, useWsConnection, useWsMessage, useWsRooms, useWsServer,
   WsRoomManager, WsBroadcastTransport, WsError), @wooksjs/event-wf (createWfApp,
   workflow steps and flows, useWfState, pause/resume, conditions, loops, string
   handlers, StepRetriableError, outlets, swapStrategy), @wooksjs/ws-client (createWsClient,
-  WsClient, send, call, subscribe, on, reconnection, RPC, push listeners,
-  WsClientError).
+  WsClient, reconnection, RPC, push listeners, WsClientError).
 ---
 
 # wooksjs
@@ -71,6 +71,7 @@ Read the reference file that matches the task. Do not load all files — only wh
 | HTTP core/routing | [event-http.md](references/event-http.md)         | Creating HTTP apps, routing, server lifecycle, security headers  |
 | HTTP request      | [http-request.md](references/http-request.md)     | Reading headers, cookies, query params, body, authorization      |
 | HTTP response     | [http-response.md](references/http-response.md)   | Status, headers, cookies, cache, errors, streaming, testing      |
+| HTTP proxy        | [http-proxy.md](references/http-proxy.md)         | Proxying/forwarding requests, header/cookie filtering, allowedHosts |
 | CLI apps          | [event-cli.md](references/event-cli.md)           | Building CLI tools, command routing, options, help system         |
 | WebSocket server  | [event-ws.md](references/event-ws.md)             | WS server, rooms, broadcasting, message routing, wire protocol   |
 | Workflow core     | [event-wf.md](references/event-wf.md)             | Steps, flows, schema syntax, pause/resume, useWfState            |
