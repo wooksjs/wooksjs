@@ -207,11 +207,12 @@ if (!output.finished && output.error) {
   console.log('Step failed:', output.error.message)
 
   // Retry the same step (no input needed)
-  const retried = await app.resume(output.state)
+  const retried = await output.retry()
+  // equivalent: await app.resume(output.state)
 }
 ```
 
-You can also provide new input when retrying, or add delay/backoff logic in your application code before calling `resume()`.
+You can also provide new input when retrying (`output.retry(input)`), or add delay/backoff logic in your application code before retrying. See [Handling Retriable Errors](/wf/steps#handling-retriable-errors).
 
 ## Spies — Observing Execution
 

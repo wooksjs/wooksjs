@@ -185,7 +185,8 @@ const output = await app.start('my-flow', initialContext)
 if (!output.finished && output.error) {
   console.log(output.error.message)  // "API returned 503"
   // retry the failed step:
-  const retried = await app.resume(output.state)
+  const retried = await output.retry()
+  // equivalent: await app.resume(output.state)
 }
 ```
 

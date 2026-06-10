@@ -247,13 +247,24 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
           // Augment inputRequired with the post-swap strategy name so callers
           // (trigger / offline driver) read it from the output instead of
           // depending on parent-context write-through.
-          const finalName = current().get(stateStrategyNameKey)
+          const ctx = current()
+          const finalName = ctx.has(stateStrategyNameKey)
+            ? ctx.get(stateStrategyNameKey)
+            : undefined
           if (finalName !== undefined) {
             ;(result.inputRequired as WfPauseRequest).stateStrategy = finalName
           }
         }
         if (result.resume) {
           result.resume = (_input?: I) =>
+            this.resume(result.state, { input: _input, spy, cleanup } as TWfRunOptions<
+              I,
+              T,
+              IR
+            >) as Promise<TFlowOutput<T, unknown, IR>>
+        }
+        if (result.retry) {
+          result.retry = (_input?: I) =>
             this.resume(result.state, { input: _input, spy, cleanup } as TWfRunOptions<
               I,
               T,

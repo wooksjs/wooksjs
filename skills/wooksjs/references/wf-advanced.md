@@ -151,7 +151,7 @@ if (!output.finished && output.error) {
 
 Constructor: `originalError: Error` first, then optional `errorList`, `inputRequired`, `expires`.
 
-- `output.retry(input?)` exists on the failed output, but it invokes the raw engine resume outside a WF event context (only `resume` on paused outputs is rewrapped by the adapter), so handlers using composables throw — prefer `app.resume(output.state, ...)`.
+- `output.retry(input?)` on the failed output is rewrapped by the adapter (same as `resume` on paused outputs) — it re-enters with a fresh WF event context, so composables work. Like `resume()`, it does not carry `strategy`/`eventContext` run options forward; re-pass them via `app.resume(output.state, opts)` when needed.
 - String handlers signal retriable failure by RETURNING the error as a value: `return new StepRetriableError(new Error(...))` — the class is available in the sandbox scope (see [event-wf.md](event-wf.md#string-handlers)). Function handlers may throw it or return it.
 
 ---
