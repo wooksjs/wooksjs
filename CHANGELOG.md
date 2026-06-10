@@ -1,3 +1,12 @@
+## [0.7.19](https://github.com/wooksjs/wooksjs/compare/v0.7.18...v0.7.19) (2026-06-10)
+
+
+### Bug Fixes
+
+* **event-wf:** result.retry rewrapped and Guarded strategy read ([249bb72](https://github.com/wooksjs/wooksjs/commit/249bb7264c5df65d90026ed59b69e607b8c617ee))
+
+
+
 ## [0.7.18](https://github.com/wooksjs/wooksjs/compare/v0.7.17...v0.7.18) (2026-06-10)
 
 
