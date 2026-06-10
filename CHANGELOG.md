@@ -1,3 +1,12 @@
+## [0.7.18](https://github.com/wooksjs/wooksjs/compare/v0.7.17...v0.7.18) (2026-06-10)
+
+
+### Bug Fixes
+
+* **http-proxy:** lock upstream host to parsed target, add allowedHosts option ([2a52e9c](https://github.com/wooksjs/wooksjs/commit/2a52e9ce9a0ce9b7fd92413babc667f6fed68d4d))
+
+
+
 ## [0.7.17](https://github.com/wooksjs/wooksjs/compare/v0.7.16...v0.7.17) (2026-06-05)
 
 
