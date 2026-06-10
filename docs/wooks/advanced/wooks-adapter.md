@@ -160,9 +160,82 @@ http.post('/submit', async () => {
 })
 ```
 
+## The Wooks Router Instance
+
+All adapters delegate routing to a shared `Wooks` instance — a thin wrapper around [`@prostojs/router`](https://github.com/prostojs/router).
+
+### Global Singleton
+
+When the `wooks` constructor argument is omitted, `WooksAdapterBase` calls `getGlobalWooks()` — a process-global singleton created on first use. Every adapter created without an explicit instance shares this router. The optional `logger` and `routerOpts` arguments only take effect on the call that creates the singleton; later calls return the existing instance unchanged. Use `clearGlobalWooks()` to reset it (useful in tests or dev-mode hot reload):
+
+```ts
+import { getGlobalWooks, clearGlobalWooks } from 'wooks'
+
+const wooks = getGlobalWooks() // creates on first call, reuses afterwards
+clearGlobalWooks() // next getGlobalWooks() creates a fresh instance
+```
+
+### Router Options
+
+To control routing behavior, construct a `Wooks` instance explicitly with `TWooksOptions` and pass it to your adapters:
+
+```ts
+import { Wooks } from 'wooks'
+
+const wooks = new Wooks({
+  router: {
+    ignoreTrailingSlash: true, // `/path` and `/path/` match the same route
+    ignoreCase: true,          // case-insensitive route matching
+    cacheLimit: 1000,          // max parsed routes to cache
+  },
+})
+
+const jobs = new WooksJob({}, wooks)
+```
+
+### `lookup()` and `lookupHandlers()`
+
+Both resolve handlers for `(method, path)` against an event context (defaults to `current()`), and as a side effect:
+
+- write the matched route params to the context (the `routeParamsKey` slot, read by `useRouteParams()`)
+- fire the `ContextInjector` hooks `'Handler:routed'` / `'Handler:not_found'` (see below)
+
+`lookup()` returns `{ handlers, segments, firstStatic, path }` — all fields are `null` on a miss. `lookupHandlers()` is the fast variant: it returns just `TWooksHandler[] | null` without allocating a result object.
+
+`getRouter()` exposes the underlying `ProstoRouter` for direct access.
+
+For HTTP upgrade integration (`httpApp.ws(handler)`), the `WooksUpgradeHandler` type defines the contract a WebSocket-style adapter implements.
+
+## Observability (`ContextInjector`)
+
+`@wooksjs/event-core` ships a no-op `ContextInjector` base class. Subclass it and install your instance globally to add tracing, metrics, or logging around event lifecycle points — e.g. OpenTelemetry spans:
+
+```ts
+import { ContextInjector, replaceContextInjector } from '@wooksjs/event-core'
+
+class OtelInjector extends ContextInjector<string> {
+  with<T>(name: string, attrs: Record<string, string | number | boolean>, cb: () => T): T {
+    return tracer.startActiveSpan(name, (span) => {
+      span.setAttributes(attrs)
+      try { return cb() } finally { span.end() }
+    })
+  }
+  hook(method: string, name: 'Handler:routed' | 'Handler:not_found', route?: string) {
+    // record routing metrics
+  }
+}
+
+replaceContextInjector(new OtelInjector())
+```
+
+- `with(name, attributes, cb)` wraps a callback. The framework wraps every kinded event in `'Event:start'` with `{ eventType }` attributes — which is why adapter callbacks should return their results (sync or async) so the span covers the full handler execution.
+- `hook(method, name, route?)` fires on every route lookup: `'Handler:routed'` with the matched route path, or `'Handler:not_found'`.
+- `getContextInjector()` returns the installed injector, or `null` until one is installed.
+- `resetContextInjector()` removes the installed injector, restoring the no-op default (useful in tests).
+
 ## Summary
 
 - **Define an event kind:** `defineEventKind` with `slot<T>()` markers declares your event's typed shape.
 - **Build wooks:** Use `defineWook`, `key`, `cached` to provide clean APIs for accessing event-scoped data.
 - **Create a context factory:** Export a function `(options, seeds, fn)` that calls `createEventContext(options, kind, seeds, fn)` with the kind hardcoded — the standard pattern across all adapters.
-- **Extend `WooksAdapterBase`:** Use `this.on()` to register handlers and `this.wooks.lookup()` to find them. Use the context factory to run handlers inside the event context. **Return results** from callbacks to enable span tracking via `ContextInjector`.
+- **Extend `WooksAdapterBase`:** Use `this.on()` to register handlers and `this.wooks.lookup()` to find them. Use the context factory to run handlers inside the event context. **Return results** from callbacks to enable span tracking via [`ContextInjector`](#observability-contextinjector).

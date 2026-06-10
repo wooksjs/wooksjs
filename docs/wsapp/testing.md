@@ -8,6 +8,21 @@ This package is in an experimental phase. The API may change without following s
 
 [[toc]]
 
+::: warning Adapter required for some composables
+`useWsConnection()`, `useWsRooms()` and `useWsServer()` require a constructed `WooksWs` adapter even in tests — construct one once in test setup:
+
+```ts
+import { beforeAll } from 'vitest'
+import { createWsApp } from '@wooksjs/event-ws'
+
+beforeAll(() => {
+  createWsApp()
+})
+```
+
+On a test context, only `id`, `close` and `context` of `useWsConnection()` are usable — `send()` resolves the connection from the adapter's connection map, which does not contain the mock test connection.
+:::
+
 ## Test Utilities
 
 ### prepareTestWsMessageContext
@@ -97,9 +112,9 @@ run(() => {
 To test composables that read from the HTTP upgrade request (like `useCookies()`, `useHeaders()`), provide a parent context:
 
 ```ts
-import { prepareTestHttpContext } from '@wooksjs/event-http'
-import { prepareTestWsMessageContext, useWsMessage } from '@wooksjs/event-ws'
-import { useCookies } from '@wooksjs/event-http'
+import { current } from '@wooksjs/event-core'
+import { prepareTestHttpContext, useCookies } from '@wooksjs/event-http'
+import { prepareTestWsMessageContext } from '@wooksjs/event-ws'
 
 // Create an HTTP context to act as the parent
 const httpRun = prepareTestHttpContext({
@@ -108,12 +123,12 @@ const httpRun = prepareTestHttpContext({
   headers: { cookie: 'session=abc123' },
 })
 
-httpRun((httpCtx) => {
-  // Create a WS message context with the HTTP context as parent
+httpRun(() => {
+  // Create a WS message context with the current (HTTP) context as parent
   const wsRun = prepareTestWsMessageContext({
     event: 'query',
     path: '/me',
-    parentCtx: httpCtx,
+    parentCtx: current(),
   })
 
   wsRun(() => {

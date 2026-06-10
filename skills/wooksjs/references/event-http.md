@@ -75,6 +75,7 @@ await app.listen(3000, '0.0.0.0')
 // Use with existing server
 import http from 'http'
 const server = http.createServer(app.getServerCb())
+server.on('upgrade', app.getUpgradeCb()) // required for app.ws()/app.upgrade() routes on an external server
 server.listen(3000)
 app.attachServer(server) // required if you want app.close() to work
 
@@ -126,10 +127,11 @@ When no explicit status is set, inferred from HTTP method and response body:
 
 ## Handler Chains
 
-Multiple handlers per route. If one throws, the next is tried:
+Multiple handlers per route. Register the same method+path again to append a handler; each verb method takes exactly one handler. If one throws, the next is tried:
 
 ```ts
-app.get('/resource', authHandler, mainHandler)
+app.get('/resource', authHandler)
+app.get('/resource', mainHandler) // tried if authHandler throws
 ```
 
 If all handlers throw, the last error is sent as the response.
@@ -213,4 +215,5 @@ app.get('/hot-path', () => {
 - Return value becomes the body; framework handles serialization and auto-status. Throw `HttpError` for error responses — do not manually set error status/body.
 - `listen()` returns a Promise — `await` it.
 - `getServerCb()` does not attach the server. Call `attachServer(server)` separately if you want `close()` to work.
+- `getServerCb()` does not wire WebSocket upgrades — attach `getUpgradeCb()` to the server's `upgrade` event yourself (`listen()` does this only for the internally created server).
 - Pass `ctx` explicitly when calling multiple composables — saves ALS lookups.

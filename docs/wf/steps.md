@@ -72,7 +72,7 @@ app.step('process', {
     const context = ctx<MyContext>()   // typed workflow context
     const stepInput = input<string>()  // input provided for this step (if any)
     const flowId = schemaId            // id of the running flow
-    const currentStep = stepId()       // id of the current step
+    const currentStep = stepId()       // normalized step id, e.g. '/add/5' (null before the first step)
     const position = indexes()         // position in the flow schema
     const isResumed = resume           // true if this is a resumed execution
   },
@@ -131,7 +131,15 @@ app.step('double', {
 })
 ```
 
-String handlers run in a restricted sandbox with only `ctx` (the workflow context) and `input` (the step input) available. They cannot access Node.js APIs, imports, or composables.
+String handlers run in a restricted sandbox with only `ctx` (the workflow context), `input` (the step input), and `StepRetriableError` available. They cannot access Node.js APIs, imports, or composables.
+
+A string handler signals a retriable failure by **returning** (not throwing) a `StepRetriableError`:
+
+```ts
+app.step('check-balance', {
+  handler: 'ctx.balance < 0 ? new StepRetriableError(new Error("negative balance")) : undefined',
+})
+```
 
 Use string handlers when you need steps to be **serializable** (e.g., stored in a database or sent over the wire). Use function handlers for everything else.
 
@@ -178,8 +186,6 @@ if (!output.finished && output.error) {
   console.log(output.error.message)  // "API returned 503"
   // retry the failed step:
   const retried = await app.resume(output.state)
-  // or shortcut:
-  // const retried = await output.retry()
 }
 ```
 

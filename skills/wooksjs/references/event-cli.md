@@ -5,11 +5,13 @@
 - [App Setup](#app-setup) — `createCliApp`, `TWooksCliOptions`
 - [Command Routing](#command-routing) — `app.cli`, parametric paths
 - [Running and Response Handling](#running-and-response-handling) — `app.run`, return type → stdout mapping
-- [Command Metadata](#command-metadata) — `TWooksCliEntry`, `TCliOption`, `TCliExample`
+- [Command Metadata](#command-metadata) — `TWooksCliEntry`, option/example entries
 - [Composables](#composables) — `useCliOptions`, `useCliOption`, `useCliHelp`, `useAutoHelp`, `useCommandLookupHelp`
 - [Patterns](#patterns) — auto-help, boolean/value flags, shared CLI+HTTP router
 - [Rules & Gotchas](#rules--gotchas)
-- [Event Kind Slots](#event-kind-slots)
+- [Event Kind Slots](#event-kind-slots) — `cliKind`, `flagsKey`, `cliShortcuts`, `TCliHelpCustom`
+- [Key Imports](#key-imports)
+- [See Also](#see-also)
 
 ## App Setup
 
@@ -33,7 +35,7 @@ const app = createCliApp()
 | `onUnknownCommand` | `(params: string[], raiseError: () => void) => unknown` | Callback before "unknown command" error    |
 | `cliHelp`          | `TCliHelpRenderer \| TCliHelpOptions` | Help renderer instance or help options                    |
 | `router`           | `TWooksOptions['router']`             | Custom router configuration                               |
-| `eventOptions`     | `EventContextOptions`                 | Options passed to event context creation                  |
+| `eventOptions`     | `EventContextOptions`                 | Declared but not consumed by `WooksCli` — passing it has no effect; context options are derived from the Wooks logger |
 
 Second argument `wooks` accepts a `Wooks` or `WooksAdapterBase` instance to share routing with another adapter (e.g., HTTP).
 
@@ -100,7 +102,7 @@ await app.run(['build', 'production', '--verbose'])    // override argv
 await app.run(['cmd', '-cA'], { boolean: ['A'] })      // with minimist options
 ```
 
-Returns the handler's return value, or an `Error` on failure.
+Resolves to the `Error` on handler failure or unknown command, otherwise `undefined`. Handler return values are printed to stdout (see table below), never returned — do not rely on `await app.run()` for command output.
 
 Internally, `run()` creates a CLI `EventContext` via `AsyncLocalStorage`, parses flags with `minimist`, resolves the route, and calls the handler.
 
@@ -127,14 +129,14 @@ Pass as the second argument to `app.cli()` instead of a bare handler to attach h
 | `handler`     | `TWooksHandler<T>`                                          | The command handler function (required)                  |
 | `description` | `string`                                                    | Command description for help output                      |
 | `args`        | `Record<string, string>`                                    | Argument descriptions (auto-populated from route params) |
-| `options`     | `TCliOption[]`                                              | Flag/option definitions                                  |
+| `options`     | `TWooksCliEntry<unknown>['options']`                                 | Flag/option definitions (inline shapes, no named type)   |
 | `aliases`     | `string[]`                                                  | Alternative command names                                |
-| `examples`    | `TCliExample[]`                                             | Usage examples shown in help                             |
+| `examples`    | `TWooksCliEntry<unknown>['examples']`                                | Usage examples shown in help (inline shapes)             |
 | `onRegister`  | `(path: string, aliasType: number, route?) => void`         | Callback when command/alias is registered                |
 
-`aliasType` values: 0 = direct command, 1 = direct alias, 2 = computed alias, 3 = computed alias from `cliHelp`.
+`aliasType` values: 0 = direct command, 1 = direct alias, 3 = computed alias (combinations derived from registered aliases). For computed aliases the `route` argument is `undefined`, and the callback fires lazily on the first `run()` call, not at `app.cli()` time.
 
-### Option definition (`TCliOption`)
+### Option entries (`TWooksCliEntry<unknown>['options']`)
 
 ```ts
 { keys: ['verbose', 'v'], description: 'Enable verbose output' }            // boolean flag
@@ -145,7 +147,7 @@ Pass as the second argument to `app.cli()` instead of a bare handler to attach h
 - `description` -- help text for the flag
 - `value` -- if present, the option expects a value; shown in help as `--config <file>`
 
-### Example definition (`TCliExample`)
+### Example entries (`TWooksCliEntry<unknown>['examples']`)
 
 ```ts
 {
@@ -203,7 +205,7 @@ const { print, render, getEntry, getCliHelp } = useCliHelp()
 | Method                        | Return type            | Description                                |
 | ----------------------------- | ---------------------- | ------------------------------------------ |
 | `print(withColors?: boolean)` | `void`                 | Print help to stdout                       |
-| `render(width?, withColors?)` | `string`               | Render help as string                      |
+| `render(width?, withColors?)` | `string[]`             | Render help as an array of lines           |
 | `getEntry()`                  | `TCliEntry`            | Get the help entry for the current command |
 | `getCliHelp()`                | `CliHelpRenderer`      | Get the full `CliHelpRenderer` instance    |
 
@@ -300,23 +302,36 @@ cliApp.cli('start', () => httpApp.listen(3000))
 
 ## Rules & Gotchas
 
-- `app.run()` is async — `await` it.
-- Default error handling `process.exit(1)` — override `onError` for tests.
-- Use `useRouteParams()` for positional args, `useCliOptions()`/`useCliOption()` for flags.
-- `useCliOption(name)` resolves aliases from the command's `options` definitions; `useCliOptions()[name]` does NOT.
-- `useCliOptions()` is raw minimist output (`_` = positional args, rest = flags).
-- `useAutoHelp()` returns `true` when help was printed, else `undefined` (not `false`).
-- `useCommandLookupHelp()` **throws** on match — wrap in try/catch if you need fallback beyond `raiseError()`.
-- Escape colons in command paths: `app.cli('use\\:dev', handler)` matches `$ mycli use:dev`.
-- Command paths accept space or `/` as segment separator — equivalent.
-- Prefer options-object form of `app.cli()` — enables auto-help; required `description`/`options` for production CLIs.
-- Add `useAutoHelp()` at the top of every handler.
+| #   | Rule                                                                                                                                                                |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | `app.run()` is async — `await` it.                                                                                                                                  |
+| 2   | Default error handling `process.exit(1)` — override `onError` for tests.                                                                                            |
+| 3   | Use `useRouteParams()` for positional args, `useCliOptions()`/`useCliOption()` for flags.                                                                           |
+| 4   | `useCliOption(name)` resolves aliases from the command's `options` definitions; `useCliOptions()[name]` does NOT.                                                   |
+| 5   | `useCliOptions()` is raw minimist output (`_` = positional args, rest = flags). Its declared type omits `_` — cast to `string[]` for typed access to positionals.    |
+| 6   | `useAutoHelp()` returns `true` when help was printed, else `undefined` (not `false`). Triggers only on strict boolean `true` — `--help=x` does not trigger.          |
+| 7   | `useCliHelp().getEntry()`/`render()`/`print()` throw if no help entry matches the current command — try/catch in `onNotFound`/`onUnknownCommand` paths.             |
+| 8   | `onNotFound` replaces unknown-command handling — `onUnknownCommand` never fires when `onNotFound` is set.                                                           |
+| 9   | `useCommandLookupHelp()` **throws** on match — wrap in try/catch if you need fallback beyond `raiseError()`.                                                        |
+| 10  | Aliases auto-append the command's `:arg` variables — alias `'cmd'` for `'command/:arg'` registers `'cmd/:arg'`.                                                     |
+| 11  | Escape colons in command paths: `app.cli('use\\:dev', handler)` matches `$ mycli use:dev`.                                                                          |
+| 12  | Command paths accept space or `/` as segment separator — equivalent.                                                                                                |
+| 13  | Prefer options-object form of `app.cli()` — enables auto-help; required `description`/`options` for production CLIs.                                                |
+| 14  | Add `useAutoHelp()` at the top of every handler.                                                                                                                    |
 
 ---
 
 ## Event Kind Slots
 
-The CLI adapter defines these context slots via `defineEventKind('CLI', ...)`:
+The CLI adapter defines its slots via `cliKind = defineEventKind('CLI', ...)`. Both `cliKind` and `flagsKey` are public exports — read them with `current()`:
+
+```ts
+import { cliKind, flagsKey } from '@wooksjs/event-cli'
+import { current } from '@wooksjs/event-core'
+
+const command = current().get(cliKind.keys.command)
+const flags = current().get(flagsKey) // parsed minimist flags, seeded by run()
+```
 
 | Slot         | Type                       | Description                       |
 | ------------ | -------------------------- | --------------------------------- |
@@ -326,10 +341,38 @@ The CLI adapter defines these context slots via `defineEventKind('CLI', ...)`:
 | `opts`       | `minimist.Opts \| undefined` | Minimist parse options          |
 | `cliHelp`    | `TCliHelpRenderer`         | Help renderer instance            |
 
-Internal flag storage uses `key<Record<string, boolean | string>>('cli.flags')`.
+Parsed flags live under `flagsKey` (`'cli.flags'`, type `Record<string, boolean | string>`), set by `run()` after minimist parsing.
 
-## Re-exports
+Other exports: `cliShortcuts` (`{ cli: 'CLI' }` — event-method shortcut mapping for frameworks layering on top) and `TCliHelpCustom` (custom payload attached to help entries; `TCliHelpCustom['cb']` is the `onRegister` callback type). For building a CLI context manually with `createCliContext`, see the Custom adapters section in [event-core.md](./event-core.md).
 
-`useRouteParams` and `useLogger` are re-exported from `@wooksjs/event-core`. Refer to the event-core reference for their API.
+## Key Imports
 
-Also re-exports `EventContext` and `EventContextOptions` types from `@wooksjs/event-core`.
+```ts
+import {
+  createCliApp,
+  useCliOptions,
+  useCliOption,
+  useCliHelp,
+  useAutoHelp,
+  useCommandLookupHelp,
+  useRouteParams, // re-exported from @wooksjs/event-core
+  useLogger,      // re-exported from @wooksjs/event-core
+  cliKind,
+  flagsKey,
+  createCliContext,
+  cliShortcuts,
+} from '@wooksjs/event-cli'
+import type {
+  TWooksCliOptions,
+  TWooksCliEntry,
+  TCliHelpCustom,
+  TCliHelpRenderer,
+  EventContext,        // re-exported from @wooksjs/event-core
+  EventContextOptions, // re-exported from @wooksjs/event-core
+} from '@wooksjs/event-cli'
+```
+
+## See Also
+
+- [event-core.md](./event-core.md) — `EventContext`, `useRouteParams`, `useLogger`, `createCliContext` (Custom adapters section)
+- [router.md](./router.md) — path syntax, parametric routes, wildcards

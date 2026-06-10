@@ -7,11 +7,12 @@
 - [WsClientOptions](#wsclientoptions) — `protocols`, `reconnect`, `rpcTimeout`, parser/serializer
 - [WsClient API](#wsclient-api) — `send`, `call`, `subscribe`, `on`, `close`, lifecycle events
 - [Push Listeners](#push-listeners) — matching rules, `WsClientPushEvent`
-- [RPC](#rpc) — correlation IDs, `RpcTracker`
+- [RPC](#rpc) — correlation IDs
 - [Reconnection](#reconnection) — `WsClientReconnectOptions`, backoff, queuing, auto-resubscribe
 - [WsClientError Codes](#wsclienterror-codes) — 408, 503, 4xx/5xx server codes
 - [Patterns](#patterns) — error handling, UI feedback, custom serializer/backoff, typed RPC
 - [Rules & Gotchas](#rules--gotchas)
+- [See Also](#see-also)
 
 ## Overview
 
@@ -28,7 +29,7 @@ Provides:
 - Auto-reconnection with configurable backoff
 - Message queuing when disconnected (with reconnect enabled)
 
-Uses the native `WebSocket` API (browsers and Node.js >= 22). For Node.js < 22, install the `ws` package (optional peer dependency).
+Uses the native `WebSocket` API (browsers and Node.js >= 22). Node.js < 22: the package never imports `ws` itself — expose it as the global before constructing the client: `import { WebSocket } from 'ws'; globalThis.WebSocket = WebSocket as any`; otherwise the constructor throws `TypeError`.
 
 ---
 
@@ -53,16 +54,13 @@ The client connects immediately on construction -- there is no `connect()` metho
 
 ## WsClientOptions
 
-```ts
-interface WsClientOptions {
-  protocols?: string | string[]                          // WebSocket sub-protocols
-  reconnect?: boolean | WsClientReconnectOptions         // default: disabled
-  rpcTimeout?: number                                    // ms (default: 10000)
-  messageParser?: (raw: string) => WsReplyMessage | WsPushMessage
-  messageSerializer?: (msg: WsClientMessage) => string
-  _WebSocket?: WebSocketConstructor                      // @internal -- for testing
-}
-```
+| Option              | Default          | Effect                                                            |
+|---------------------|------------------|--------------------------------------------------------------------|
+| `protocols`         | —                | WebSocket sub-protocols (`string \| string[]`)                     |
+| `reconnect`         | disabled         | `true` for defaults, or a [WsClientReconnectOptions](#reconnection) object |
+| `rpcTimeout`        | `10000`          | ms before `call()` rejects with code 408                           |
+| `messageParser`     | `JSON.parse`     | `(raw: string) => WsReplyMessage \| WsPushMessage`                 |
+| `messageSerializer` | `JSON.stringify` | `(msg: WsClientMessage) => string`                                 |
 
 ---
 
@@ -141,16 +139,14 @@ All lifecycle methods return an unregister function.
 
 ### `WsClientPushEvent<T>`
 
-```ts
-interface WsClientPushEvent<T = unknown> {
-  event: string                   // event type from server
-  path: string                    // concrete path from server
-  params: Record<string, string>  // route params from server
-  data: T                         // typed payload
-}
+Handlers receive a single `WsClientPushEvent<T>` argument (type exported from `@wooksjs/ws-client`):
 
-type WsPushHandler<T = unknown> = (ev: WsClientPushEvent<T>) => void
-```
+| Field    | Meaning                                                          |
+|----------|-------------------------------------------------------------------|
+| `event`  | event type from server                                            |
+| `path`   | concrete path from server                                         |
+| `params` | route params extracted by the server router (`Record<string, string>`) |
+| `data`   | typed payload (`T`)                                               |
 
 ### Matching Rules
 
@@ -195,28 +191,19 @@ The server must include the `id` in its `WsReplyMessage` for the response to be 
 
 Subscriptions build on RPC -- `subscribe()` calls `call('subscribe', path, data)` and remembers the subscription for auto-resubscribe on reconnect.
 
-**RpcTracker (internal):**
-
-- `generateId()` -- auto-incrementing numeric IDs (reset to 1 on new `WsClient` instances)
-- `track(id, timeout)` -- return a Promise, start timeout timer
-- `resolve(reply)` -- match `reply.id`, resolve or reject based on `reply.error`
-- `rejectAll(code, message)` -- called on disconnect/close, reject all pending promises
-
 ---
 
 ## Reconnection
 
 ### WsClientReconnectOptions
 
-```ts
-interface WsClientReconnectOptions {
-  enabled: boolean           // must be true to enable
-  maxRetries?: number        // default: Infinity
-  baseDelay?: number         // ms (default: 1000)
-  maxDelay?: number          // ms (default: 30000)
-  backoff?: 'linear' | 'exponential'  // default: 'exponential'
-}
-```
+| Option       | Default         | Effect                            |
+|--------------|-----------------|------------------------------------|
+| `enabled`    | required        | must be `true` to enable          |
+| `maxRetries` | `Infinity`      | give up after N attempts          |
+| `baseDelay`  | `1000`          | initial delay ms                  |
+| `maxDelay`   | `30000`         | delay cap ms                      |
+| `backoff`    | `'exponential'` | or `'linear'`                     |
 
 Shorthand: pass `reconnect: true` for defaults, `reconnect: false` to disable.
 
@@ -271,11 +258,7 @@ Order on reconnect: reset backoff → flush queued sends → initiate `subscribe
 
 ## WsClientError Codes
 
-```ts
-class WsClientError extends Error {
-  constructor(public readonly code: number, message?: string)
-}
-```
+`WsClientError` extends `Error` with a numeric `code` field. Import from `@wooksjs/ws-client`; check `err instanceof WsClientError` when catching `call()` rejections.
 
 | Code  | Meaning                                              | Source           |
 | ----- | ---------------------------------------------------- | ---------------- |
@@ -376,34 +359,35 @@ console.log(response.roomId)
 
 ## Rules & Gotchas
 
-Lifecycle:
-- Client connects immediately on construction — no `connect()` method.
-- `close()` permanently disables reconnection — create a new `WsClient` to reconnect. Queued messages cleared.
-- Node.js < 22: install `ws` peer dep or constructor throws `TypeError`.
-
-`send()` vs `call()` when disconnected:
-- `send()` queues **only if** `reconnect` is enabled, else silently dropped.
-- `call()` rejects immediately with `WsClientError(503)` — never queued, even with reconnect.
-- On disconnect, ALL pending RPCs reject with 503 — no retry.
-
-Reconnect:
-- Order on reconnect: backoff reset → flush queue → initiate subscribe RPCs → fire `onOpen`.
-- Attempt counter resets on successful connect; a later drop restarts from `baseDelay`.
-- Auto-resubscribe swallows subscribe errors — next reconnect retries.
-- `subscribe()` rejects (and does NOT store) if the server's subscribe handler throws — no auto-resubscribe for rejected subscriptions.
-
-RPC:
-- IDs auto-increment starting at 1 per `WsClient` instance (not UUIDs, no per-reconnect reset).
-- Always catch `WsClientError` from `call()` — timeout/disconnect rejections are common.
-
-Push listeners:
-- Wildcard `*` is **suffix-only** (`/path/*`) — not glob/regex. Event type must match exactly.
-- Each push is checked against all wildcard patterns (linear scan) — prefer exact paths when known.
-- `params` comes from the server's router extraction — client does NOT parse path params.
-- Unmatched pushes silently dropped. Handlers run sync in iteration order.
+| #  | Invariant |
+|----|-----------|
+| 1  | Client connects immediately on construction — no `connect()` method. |
+| 2  | `close()` permanently disables reconnection — create a new `WsClient` to reconnect. Queued messages cleared. |
+| 3  | Node.js < 22: the package never imports `ws` — set `globalThis.WebSocket` (e.g. from the `ws` package) before constructing the client, or the constructor throws `TypeError`. |
+| 4  | `send()` while disconnected queues **only if** `reconnect` is enabled, else silently dropped. |
+| 5  | `call()` while disconnected rejects immediately with `WsClientError(503)` — never queued, even with reconnect. |
+| 6  | On disconnect, ALL pending RPCs reject with 503 — no retry. |
+| 7  | Order on reconnect: backoff reset → flush queue → initiate subscribe RPCs → fire `onOpen` (subscribe RPCs still in flight when `onOpen` runs). |
+| 8  | Attempt counter resets on successful connect; a later drop restarts from `baseDelay`. |
+| 9  | Auto-resubscribe swallows subscribe errors — next reconnect retries. |
+| 10 | `subscribe()` rejects (and does NOT store) if the server's subscribe handler throws — no auto-resubscribe for rejected subscriptions. |
+| 11 | RPC IDs auto-increment starting at 1 per `WsClient` instance (not UUIDs, no per-reconnect reset). |
+| 12 | Always catch `WsClientError` from `call()` — timeout/disconnect rejections are common. |
+| 13 | Wildcard `*` is **suffix-only** (`/path/*`) — not glob/regex. Event type must match exactly. |
+| 14 | Each push is checked against all wildcard patterns (linear scan) — prefer exact paths when known. |
+| 15 | `params` comes from the server's router extraction — client does NOT parse path params. |
+| 16 | Unmatched pushes silently dropped. Handlers run sync in iteration order. |
 
 Usage tips:
 - Enable `reconnect` in production. Set `maxRetries` for give-up scenarios (e.g. auth failures).
 - Store returned unsubscribe/unregister functions; call them on teardown.
 - Use `send()` for fire-and-forget, `call()` only when a response is required.
 - Use `subscribe()` for durable subscriptions (survive reconnects).
+
+---
+
+## See Also
+
+| Ref | Covers |
+|-----|--------|
+| [event-ws.md](event-ws.md) | server adapter — canonical wire protocol, reply/error semantics, rooms & broadcasting |

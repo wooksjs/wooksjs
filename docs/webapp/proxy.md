@@ -28,10 +28,16 @@ app.get('/to-proxy', () => {
 The `useProxy` function returns a function that you can call with the target URL you want to proxy.
 The function will make the proxy request and return the `fetch` response from the target server.
 
-## Restrict cookies/headers to pass
+By default the proxy forwards **no** request headers or cookies and applies **no** upstream response headers — forwarding is opt-in.
+Pass `reqHeaders: { allow: '*' }` (or any controls object) to forward incoming headers, `reqCookies` to forward cookies,
+and `resHeaders`/`resCookies` to apply upstream response headers/cookies to the outgoing response.
+When you return the fetch response from the handler, the upstream status, `content-type`, and `content-length` are applied automatically.
 
-You can restrict the cookies and headers that are passed in the proxy request by specifying
-the `reqCookies` and `reqHeaders` options in the `useProxy` function.
+## Choose which cookies/headers to pass
+
+You can choose the cookies and headers that are passed in the proxy request by passing
+the `reqCookies` and `reqHeaders` options to the `proxy` function returned by `useProxy`.
+Providing a controls object defaults `allow` to `'*'`, so everything passes unless blocked.
 
 Example:
 ```js
@@ -59,7 +65,7 @@ import { useProxy } from '@wooksjs/http-proxy';
 
 app.get('/to-proxy', async () => {
     const proxy = useProxy();
-    const response = proxy('https://mayapi.com/json-api');
+    const response = await proxy('https://myapi.com/json-api');
     const data = { ...(await response.json()), newField: 'new value' };
     return data;
 });
@@ -70,7 +76,7 @@ and the response is then modified by adding a new field before returning it from
 
 ## Advanced Options
 
-The `useProxy` function provides advanced options for customizing the proxy behavior.
+The `proxy` function accepts advanced options for customizing the proxy behavior.
 You can specify options such as the request method, filtering request and response headers/cookies, overwriting data, and enabling debug mode.
 
 Example:
@@ -119,6 +125,13 @@ The four filtering options — `reqHeaders`, `reqCookies`, `resHeaders`, `resCoo
 | `block` | `Array<string \| RegExp>` or `'*'` | Blocklist of keys to suppress. `'*'` blocks all. |
 | `overwrite` | `Record<string, string>` or `(data) => Record<string, string>` | Override specific key→value pairs, or pass a function that receives the current map and returns the replacement map. |
 
+`block` wins over `allow`; `allow` defaults to `'*'` when a controls object is given. `overwrite` runs after filtering and can still force any key.
+
+Some headers are always stripped regardless of `allow`:
+
+-   **Request:** `connection`, `accept-encoding`, `content-length`, `upgrade-insecure-requests`, `cookie` — forward cookies via `reqCookies`, not `reqHeaders`.
+-   **Response:** `transfer-encoding`, `content-encoding`, `set-cookie` — apply cookies via `resCookies`.
+
 ```js
 import { useProxy } from '@wooksjs/http-proxy';
 
@@ -127,7 +140,7 @@ app.get('*', () => {
     return proxy('https://upstream.example.com', {
         // RegExp + string allowlist
         reqHeaders: { allow: [/^x-/, 'authorization'] },
-        // block everything, then re-add via overwrite
+        // block all upstream cookies
         resCookies: { block: '*' },
         // function form — derive headers from the existing set
         resHeaders: {
@@ -137,4 +150,4 @@ app.get('*', () => {
 });
 ```
 
-Other `useProxy` options: `method` (override the proxied HTTP method, defaults to the incoming request's method), `allowedHosts` (allowlist of upstream hostnames — strings or `RegExp` — rejecting any other resolved host with `502`), and `debug` (log proxy paths, headers, and cookies).
+Other `proxy` options: `method` (override the proxied HTTP method, defaults to the incoming request's method), `allowedHosts` (allowlist of upstream hostnames — strings or `RegExp` — rejecting any other resolved host with `502`), and `debug` (log proxy paths, headers, and cookies).

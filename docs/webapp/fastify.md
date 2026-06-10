@@ -70,6 +70,10 @@ wooks.get('/api/users', () => {
 app.listen({ port: 3000 })
 ```
 
+::: warning Content-type parsers are replaced
+`WooksFastify` replaces all Fastify content-type parsers with a raw-buffer parser so Wooks can read bodies on demand. Native Fastify routes on the same instance receive `request.body` as a `Buffer` instead of parsed JSON — re-add parsers or parse manually in native routes if you mix them.
+:::
+
 ## API
 
 ### `new WooksFastify(fastifyApp, options?)`
@@ -84,7 +88,7 @@ Creates a new adapter instance and registers a catch-all route on the Fastify ap
 | `router`         | `object`                   | —       | Router options (`ignoreTrailingSlash`, `ignoreCase`, `cacheLimit`)                |
 | `requestLimits`  | `object`                   | —       | Default request body size limits                                                  |
 | `defaultHeaders` | `Record<string, string>`   | —       | Headers added to every response                                                   |
-| `responseClass`  | `typeof WooksHttpResponse` | —       | Custom response class                                                             |
+| `responseClass`  | `typeof WooksHttpResponse` | —       | Custom response class, see [Error Responses](/webapp/composables/response#error-responses)       |
 
 ### Route Methods
 
@@ -131,18 +135,4 @@ await wooks.close()
 
 ## Available Composables
 
-These come from `@wooksjs/event-http` and work inside any Wooks handler:
-
-| Composable           | Purpose                                     |
-| -------------------- | ------------------------------------------- |
-| `useRequest()`       | Request method, URL, headers, body, IP      |
-| `useRouteParams()`   | Route parameters (`:id`, etc.)              |
-| `useHeaders()`       | Request headers                             |
-| `useResponse()`      | Set status, headers, cookies, cache control |
-| `useCookies()`       | Read request cookies                        |
-| `useUrlParams()`     | URL query parameters                        |
-| `useAuthorization()` | Parse Authorization header                  |
-| `useAccept()`        | Check Accept header                         |
-| `useLogger()`        | Event-scoped logger                         |
-
-See the [Composables](/webapp/composables/) section for full reference.
+All `@wooksjs/event-http` composables work inside Wooks handlers — see the [Composables reference](/webapp/composables/).

@@ -4,22 +4,26 @@ Wooks integrates with [`@prostojs/logger`](https://github.com/prostojs/logger) t
 
 ## Configuring the Logger
 
-You can set global logger options when creating the Wooks application. These options control:
+You can pass a configured logger instance when creating the Wooks application. The `logger` option accepts any `TConsoleBase`-compatible logger — an object with `error`, `warn`, `log`, `info`, `debug`, and `trace` methods. `ProstoLogger` is the recommended implementation; it lets you configure:
 
-- **Logging Level:** Determines which log messages are displayed (e.g., `fatal`, `error`, `warn`, `log`, `info`, `debug`).
-- **Transports:** Functions or utilities that handle the output of log messages. By default, logs go to the console, but you can add custom transports to write to files, external services, etc.
+- **Logging Level:** Determines which log messages are displayed (e.g., `fatal`, `error`, `warn`, `log`, `info`, `debug`, `trace`).
+- **Transports:** Functions that handle the output of log messages — write to the console, files, external services, etc. Without at least one transport, a `ProstoLogger` emits nothing.
+- **Topic:** The constructor's second argument — a label attached to the logger's messages.
 
 **Example (HTTP app):**
 
 ```ts
 import { createHttpApp } from '@wooksjs/event-http'
+import { ProstoLogger } from '@prostojs/logger'
 
 const app = createHttpApp({
-  logger: {
-    topic: 'my-app',
-    level: 2, // Only fatal and error logs will show globally
-    transports: [(log) => console.log(`[${log.topic}][${log.type}] ${log.timestamp}`, ...log.messages)],
-  },
+  logger: new ProstoLogger(
+    {
+      level: 1, // Only fatal and error logs will show
+      transports: [(log) => console.log(`[${log.topic}][${log.type}] ${log.timestamp}`, ...log.messages)],
+    },
+    'my-app', // topic
+  ),
 })
 ```
 
@@ -27,16 +31,20 @@ const app = createHttpApp({
 
 ```ts
 import { createCliApp } from '@wooksjs/event-cli'
+import { coloredConsole, createConsoleTransort, ProstoLogger } from '@prostojs/logger'
 
 const app = createCliApp({
-  logger: {
-    topic: 'my-cli',
-    level: 4, // Show up to info level
-  },
+  logger: new ProstoLogger(
+    {
+      level: 4, // Show up to info level
+      transports: [createConsoleTransort({ format: coloredConsole })],
+    },
+    'my-cli', // topic
+  ),
 })
 ```
 
-Logger options are the same across all Wooks adapters.
+The `logger` option works the same across all Wooks adapters.
 
 ## Accessing the Logger
 
@@ -100,8 +108,9 @@ Under the hood this calls `logger.createTopic(topic)` on the context's logger. I
 - `log(message: unknown, ...args: unknown[])`
 - `info(message: unknown, ...args: unknown[])`
 - `debug(message: unknown, ...args: unknown[])`
+- `trace(message: unknown, ...args: unknown[])`
 
-The `level` number controls which of these methods produce output. For instance, a level of `2` allows `fatal` (0) and `error` (1) logs only.
+The `level` number controls which of these methods produce output — it is inclusive: messages with a level less than or equal to `level` are emitted. For instance, a level of `1` allows `fatal` (0) and `error` (1) logs only, while a level of `2` additionally allows `warn`.
 
 ## Summary
 

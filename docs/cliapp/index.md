@@ -34,9 +34,17 @@ const app = createCliApp({
     // Implementing onUnknownCommand hook
     onUnknownCommand: (path, raiseError) => {
         // Whenever cli command was not recognized by router
-        // this callback will be called        
-        if (!useAutoHelp()) {
-            // fallback to useCommandLookupHelp if command help was not found
+        // this callback will be called
+        let printed = false
+        try {
+            // prints help when --help is provided; throws when --help
+            // is set but the entered command has no matching help entry
+            printed = !!useAutoHelp()
+        } catch {
+            // no help entry for this input
+        }
+        if (!printed) {
+            // suggest similar commands if possible
             useCommandLookupHelp()
             // fallback to a standard error handling when command not recognized
             raiseError()
@@ -56,14 +64,14 @@ The cli() method allows you to register CLI commands along with their respective
 ```ts [plain]
 app.cli('command/:arg', () => {
   // Handle the command and its parameters
-  return 'Command executed with argument:', useRouteParams().get('arg')
+  return `Command executed with argument: ${useRouteParams().get('arg')}`
 });
 ```
 ```ts [with auto-help]
 app.cli('command/:arg', () => {
   useAutoHelp() && process.exit(0)  // Print help if --help option provided
   // Handle the command and its parameters
-  return 'Command executed with argument:', useRouteParams().get('arg')
+  return `Command executed with argument: ${useRouteParams().get('arg')}`
 });
 ```
 :::
@@ -88,6 +96,18 @@ node your-script.js command test
 
 This will execute the registered CLI command with the argument "test" and log the result to the console.
 
+## Configuration
+
+`createCliApp()` accepts an options object:
+
+-   `onError` — called when a handler throws or returns an `Error`. By default the message is printed to `stderr` and the process exits with code `1`.
+-   `onNotFound` — a regular handler invoked when no command matches; its return value is printed like any handler result. When provided, it takes precedence over `onUnknownCommand`.
+-   `onUnknownCommand` — callback for unrecognized commands. It receives the entered command segments and a `raiseError()` function that prints the standard "Unknown command" error and exits with code `1` (that is also the default behavior when neither `onNotFound` nor `onUnknownCommand` is set).
+-   `router` — options for the underlying [@prostojs/router](https://github.com/prostojs/router).
+-   `cliHelp` — an existing `CliHelpRenderer` instance or options for a new one. Use `cliHelp: { name: 'my-cli' }` to set the CLI name shown in generated help output (defaults to the script filename).
+-   `logger` — custom logger, see [Logging in Wooks](/cliapp/logging).
+-   `eventOptions` — `EventContextOptions` applied to each event context (e.g. a `parent` context); see [Wooks Context](/wooks/advanced/wooks-context).
+
 ## Advanced Usage
 
 Wooks CLI provides additional features and options for building more complex CLIs. Some of the notable features include:
@@ -96,6 +116,14 @@ Wooks CLI provides additional features and options for building more complex CLI
 -   Adding [descriptions](/cliapp/cli-help#command-description), [options](/cliapp/cli-help#options), and [examples](/cliapp/cli-help#examples) to commands
 -   Handling unknown commands
 -   Error handling and customization
+
+## What Each Page Covers
+
+-   [Introduction](/cliapp/introduction) — what `@wooksjs/event-cli` is and its key components
+-   [Routing](/cliapp/routing) — command patterns, arguments, and optional parameters
+-   [Command Options](/cliapp/options) — declaring options and reading parsed flags
+-   [Command Usage (Help)](/cliapp/cli-help) — command metadata and auto-generated `--help` output
+-   [Logging in Wooks](/cliapp/logging) — configuring the logger for your CLI app
 
 ## AI Agent Skills
 
@@ -106,5 +134,3 @@ npx skills add wooksjs/wooksjs
 ```
 
 Learn more about AI agent skills at [skills.sh](https://skills.sh).
-
-For more details, explore [Routing](/cliapp/routing), [Options](/cliapp/options), and [Help Generation](/cliapp/cli-help).

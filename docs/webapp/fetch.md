@@ -213,9 +213,7 @@ res.headers.get('x-custom')  // 'value'
 ```
 
 ::: warning Limitations of raw access
-When using `getRawRes()` during programmatic fetch:
-- **Cookie propagation** to the parent SSR response does not work — cookies written via `writeHead` are captured on the inner response but not auto-propagated. Use `response.setCookie()` instead for SSR-compatible cookie handling.
-- **`json()` / `text()` optimizations** do not apply — the response body is captured as raw bytes.
+When using `getRawRes()` during programmatic fetch, the `json()` / `text()` optimizations do not apply — the response body is captured as raw bytes.
 :::
 
 ## Unmatched Routes
@@ -256,8 +254,11 @@ const server = createServer(
     vite.middlewares.handle(req, res)
   })
 )
+app.attachServer(server)
 server.listen(3000)
 ```
+
+When you create the server yourself, call `app.attachServer(server)` so `app.close()` can stop it — `app.getServer()` returns the attached server later. If your app registers WebSocket upgrade routes, also wire the upgrade event: `server.on('upgrade', app.getUpgradeCb())`.
 
 When `onNoMatch` is provided, it takes priority over the `onNotFound` option. This means you can use both — `onNotFound` handles 404s for standalone server mode, while `onNoMatch` bypasses it for middleware integration.
 

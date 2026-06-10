@@ -105,3 +105,12 @@ app.get('/data', async () => {
 ```
 
 Since `defineWook` caches per context, `Date.now()` captures the time when the composable is first accessed in the request, giving you accurate timing.
+
+## HTTP Context Access
+
+Composable factories receive the event context as an argument (`ctx` above). Two `@wooksjs/event-http` exports help when you need the context explicitly:
+
+- `useHttpContext()` — returns the current HTTP event context (`EventContext`).
+- `httpKind` — the HTTP event-kind definition; its `keys` (`req`, `response`, `requestLimits`) address the slots seeded into every HTTP context, e.g. `ctx.get(httpKind.keys.req)`.
+
+For creating HTTP contexts manually (e.g. in a custom adapter), see [Custom Wooks Adapter](/wooks/advanced/wooks-adapter).

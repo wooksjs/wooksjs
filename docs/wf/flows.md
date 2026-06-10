@@ -36,9 +36,11 @@ app.flow('calculate', [
 
 This is useful when the same step is reused with different values across a flow.
 
+Schema-hardcoded input is delivered to the handler's **second argument** (and to [string handlers](/wf/steps#string-handlers)) — it does not reach `useWfState().input()`. See [Hardcoding Input in Flows](/wf/input-and-resume#hardcoding-input-in-flows).
+
 ## Conditional Steps
 
-Attach a `condition` to skip a step when the condition is false. Conditions are string expressions evaluated against the workflow context:
+Attach a `condition` to skip a step when the condition is false. A condition is either a string expression evaluated against the workflow context or a function `(ctx) => boolean | Promise<boolean>`:
 
 ```ts
 app.flow('process-order', [
@@ -46,9 +48,16 @@ app.flow('process-order', [
   { id: 'apply-discount', condition: 'total > 100' },
   'charge-payment',
 ])
+
+// The same condition as a function:
+app.flow('process-order-fn', [
+  'calculate-total',
+  { id: 'apply-discount', condition: (ctx) => ctx.total > 100 },
+  'charge-payment',
+])
 ```
 
-`apply-discount` only runs if `context.total > 100`.
+`apply-discount` only runs if `context.total > 100`. Use string conditions when the flow must be serializable; use functions for type-safe logic. `while`, `break`, and `continue` (below) accept the same two forms.
 
 ## Subflows
 
@@ -157,18 +166,20 @@ The third argument to `flow()` is prepended to every step id in the schema.
 
 ## Flow Initialization
 
-The fourth argument is an `init` callback that runs before the first step, inside the workflow context:
+The fourth argument is an `init` callback that runs inside the workflow context before **every** execution of the flow — on each `start()` _and_ each `resume()`. Make it idempotent, or it will overwrite state every time a paused run resumes:
 
 ```ts
 app.flow('report', ['gather-data', 'format', 'send'], '', async () => {
   const { ctx } = useWfState()
   const context = ctx<ReportContext>()
-  context.startedAt = Date.now()
-  context.reportId = await generateId()
+  if (!context.reportId) {
+    context.startedAt = Date.now()
+    context.reportId = await generateId()
+  }
 })
 ```
 
-Use `init` to set up derived context values or run async setup before the flow starts. Composables like `useWfState()` are available inside `init`.
+Use `init` to set up derived context values or run async setup. Composables like `useWfState()` are available inside `init`.
 
 ## Parametric Flows
 
@@ -194,9 +205,14 @@ output.state.schemaId    // the flow id
 output.state.indexes     // position in the schema (for resuming)
 output.inputRequired     // set if the flow paused for input
 output.error             // set if a StepRetriableError was thrown
-output.stepResult        // return value of the last executed step
+output.stepId            // id of the last step the engine touched
 output.resume?.(input)   // shortcut to resume the flow
-output.retry?.()         // shortcut to retry a failed step
 ```
 
 When `finished` is `false`, the flow paused because a step needs input or threw a retriable error. See [Input & Resume](/wf/input-and-resume) for how to continue execution.
+
+## Gotchas
+
+- **Register steps before flows.** `app.flow()` validates every step id in the schema at registration time and throws `Step "/<id>" not found.` if a referenced step isn't registered yet.
+- **Flow ids are unique per app.** Registering the same flow id twice throws `Workflow schema with id "<id>" already registered.`
+- **Parametric references are validated against parametric routes.** A schema entry like `'add/5'` is valid as long as a step `'add/:n'` is registered.

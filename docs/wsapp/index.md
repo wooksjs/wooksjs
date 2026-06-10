@@ -24,7 +24,7 @@ npm install @wooksjs/event-ws @wooksjs/event-http ws
 npm install @wooksjs/ws-client
 ```
 
-The server requires `@wooksjs/event-http` because WebSocket connections start as HTTP upgrade requests. The `ws` package provides the underlying WebSocket implementation for Node.js.
+`@wooksjs/event-http` is needed when you serve WebSocket alongside HTTP routes (integrated mode). For a standalone WebSocket server, only `@wooksjs/event-ws` and `ws` are required (see [Standalone Server](#standalone-server) below). The `ws` package provides the underlying WebSocket implementation for Node.js.
 
 ### AI Agent Skills
 
@@ -84,17 +84,18 @@ console.log(result) // → { echoed: { message: 'Hi!' }, path: '/hello' }
 
 ### Node.js
 
+Node.js 22+ has a native global `WebSocket` — the browser example above works as-is, no extra setup. On Node.js < 22, install the `ws` package and expose it as a global polyfill before creating the client:
+
 ```ts
 import WebSocket from 'ws'
 import { createWsClient } from '@wooksjs/ws-client'
 
+globalThis.WebSocket ??= WebSocket as any // [!code hl]
+
 const client = createWsClient('ws://localhost:3000/ws', {
-  _WebSocket: WebSocket as any, // [!code hl]
   rpcTimeout: 5000,
 })
 ```
-
-The only difference is passing the `ws` package as `_WebSocket`. Everything else works the same.
 
 ## Adding Rooms
 
@@ -171,9 +172,23 @@ ws.listen(3000)
 
 In standalone mode, all connections are accepted — there's no HTTP upgrade route to configure.
 
+### Shutting down
+
+Shut down with `ws.close()` — it stops the heartbeat and closes every connection with code `1001` (Server shutting down). Note that `close()` does not close the underlying HTTP server created by `listen()`; retrieve it with `ws.getServer()` and close it yourself:
+
+```ts
+ws.close()
+ws.getServer()?.close()
+```
+
+In HTTP-integrated mode, `getServer()` returns `undefined` — the HTTP server belongs to `@wooksjs/event-http`.
+
 ## Next Steps
 
-- [Composables](/wsapp/composables) — Full reference for all server composables.
+- [Introduction](/wsapp/introduction) — Philosophy and an overview of the server and client packages.
+- [Composables](/wsapp/composables) — Full reference for all server composables and server options.
 - [Rooms & Broadcasting](/wsapp/rooms) — Deep dive into room management and broadcasting.
 - [Client Guide](/wsapp/client) — Complete client API: RPC, subscriptions, reconnection, error handling.
 - [Wire Protocol](/wsapp/protocol) — Understand the JSON message format.
+- [Testing](/wsapp/testing) — Run WS handlers in isolated test contexts.
+- [Logging](/wsapp/logging) — Event-scoped logging in WS handlers.

@@ -35,9 +35,9 @@ All four frameworks support parametric routes. The differences are in edge cases
 
 **Fastify (find-my-way):** Radix-tree based. Fast for static routes, handles parameters well. Some quirks with URI encoding/decoding in edge cases.
 
-**h3 (rou3, formerly radix3):** Fast for static lookups. Weaker on complex dynamic patterns — regex constraints and multi-segment wildcards are not supported.
+**h3 (rou3):** Fast for static lookups. Weaker on complex dynamic patterns — regex constraints on parameters and wildcards are not supported.
 
-**Wooks ([@prostojs/router](https://github.com/prostojs/router)):** Categorizes routes into statics, parameters, and wildcards with indexing and caching. Supports features the others don't:
+**Wooks ([@prostojs/router](https://github.com/prostojs/router)):** Categorizes routes into statics, parameters, and wildcards with indexing and caching. Notable capabilities:
 
 - Multiple wildcards in one path: `/static/*/assets/*`
 - Regex constraints on parameters: `/api/time/:hours(\\d{2})h:minutes(\\d{2})m`
@@ -82,7 +82,7 @@ See the full benchmark analysis with charts: [Router benchmarks](/benchmarks/rou
 
 ```ts
 // h3
-export default defineEventHandler((event) => {
+export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   const query = getQuery(event)
   const cookie = getCookie(event, 'session')
@@ -120,7 +120,7 @@ app.get('/data', () => {
 })
 ```
 
-All methods live on one object. No separate `useSetHeaders()`, `useSetCookies()`, `useSetCacheControl()` — just `useResponse()`.
+All response methods live on one chainable object — `useResponse()` is the single entry point for status, headers, cookies, and cache control.
 
 ## Summary
 
@@ -131,4 +131,4 @@ All methods live on one object. No separate `useSetHeaders()`, `useSetCookies()`
 | Routing | Linear scan | Radix tree | Radix tree | Indexed + cached, regex params, multi-wildcard |
 | Response API | `res.status().json()` | `reply.code().send()` | Return value + `setResponseStatus(event)` | Return value + `useResponse()` chainable |
 | TypeScript | Bolted on | Schema-driven | Good | Native, composable-level inference |
-| Beyond HTTP | No | No | WebSocket (crossws), SSE | CLI, Workflows, custom events |
+| Beyond HTTP | No | No | WebSocket (crossws), SSE | CLI, WebSocket, Workflows, custom events |

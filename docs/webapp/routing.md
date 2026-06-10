@@ -16,6 +16,34 @@ The router effectively parses URIs and quickly identifies the corresponding hand
 
 [[toc]]
 
+## Registering Routes
+
+Each HTTP method has a shortcut on the app instance, plus `all()` for matching every method and the generic `on()`:
+
+```js
+import { createHttpApp } from '@wooksjs/event-http'
+
+const app = createHttpApp()
+
+app.get('/path', () => 'ok')        // also: post, put, patch, delete, head, options
+app.all('/path', () => 'ok')        // matches every HTTP method
+app.on('GET', '/path', () => 'ok')  // generic form
+```
+
+### Router options
+
+Router behavior is configured via the `router` option of `createHttpApp`:
+
+```js
+const app = createHttpApp({
+    router: {
+        ignoreTrailingSlash: true, // `/path` and `/path/` match the same route
+        ignoreCase: true,          // case-insensitive route matching
+        cacheLimit: 1000,          // max number of parsed routes to cache
+    },
+})
+```
+
 ## Parametric routes
 
 Parameters in routes begin with a colon (`:`).
@@ -74,13 +102,13 @@ To define a parameter (wildcard) as optional, simply add `?` at the end.
 
 ```ts
 // Optional parameter
-router.get('/api/vars/:optionalKey?', () => 'ok')
+app.get('/api/vars/:optionalKey?', () => 'ok')
 
 // Optional wildcard
-router.get('/api/vars/:*?', () => 'ok')
+app.get('/api/vars/:*?', () => 'ok')
 
 // Several optional parameters
-router.get('/api/vars/:v1/:v2?/:v3?', () => 'ok')
+app.get('/api/vars/:v1/:v2?/:v3?', () => 'ok')
 ```
 
 In the above example, the router allows routes with optional parameters to be defined using the `?` symbol at the end of the parameter name. For instance, `/api/vars/myKey` and `/api/vars/` are both valid routes for the first example. Similarly, the second example allows routes like `/api/vars/param1/param2` and `/api/vars/` to be matched. Lastly, the third example permits routes with one, two, or three parameters to be matched, with any combination of parameters being optional.
@@ -91,7 +119,7 @@ Access route parameters with the `useRouteParams` composable:
 
 ```ts
 function useRouteParams<
-    T extends object = Record<string, string | string[]>
+    T extends Record<string, string | string[]> = Record<string, string | string[]>
 >(): {
     params: T
     get: <K extends keyof T>(name: K) => T[K]
@@ -123,6 +151,7 @@ app.get('hello/*', () => {
     const { get } = useRouteParams()
     return get('*') // Returns everything that follows `hello/`
 })
+```
 
 Multiple wildcards are stored as an array, similar to repeated param names.
 
@@ -153,7 +182,7 @@ console.log(
 
 const { getPath: multiParamsBuilder } = app.get('/api/asset/:type/:type/:id', () => 'ok')
 console.log(
-    userPathBuilder({
+    multiParamsBuilder({
         type: ['CJ', 'REV'],
         id: '443551',
     })
@@ -161,7 +190,7 @@ console.log(
 ```
 
 ```ts [typescript]
-interface MyParamsType = {
+interface MyParamsType {
     name: string
 }
 const { getPath: userPathBuilder } = app.get<string, MyParamsType>('/api/user/:name', () => 'ok')

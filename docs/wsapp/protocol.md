@@ -138,7 +138,7 @@ When a non-`WsError` exception is thrown:
 { "id": 1, "error": { "code": 500, "message": "Internal Error" } }
 ```
 
-If the client didn't send an `id`, errors are logged server-side but nothing is sent to the client.
+If the client didn't send an `id`, nothing is sent to the client; unexpected (non-`WsError`) exceptions are logged server-side, while thrown `WsError` instances are silently swallowed.
 
 ## Message Discrimination
 

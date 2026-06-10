@@ -94,6 +94,12 @@ app.step('ask-plan', {
   },
 })
 
+app.step('create-account', {
+  handler: () => {
+    // persist the account using the collected context
+  },
+})
+
 app.flow('signup', ['ask-name', 'ask-email', 'ask-plan', 'create-account'])
 ```
 
@@ -114,21 +120,31 @@ output = await output.resume('premium')
 // context: { name: 'Alice', email: 'alice@example.com', plan: 'premium' }
 ```
 
+The input passed to a run is visible only to the **first** step executed in that run — the paused step that consumes it. Later steps in the same run see `undefined` from `input()`.
+
 ## Hardcoding Input in Flows
 
-If you know the input value ahead of time, provide it in the flow schema to skip the pause:
+If you know the input value ahead of time, provide it in the flow schema to skip the pause.
+
+Schema-hardcoded input is delivered to the handler's **second argument** (and to [string handlers](/wf/steps#string-handlers)) — it does **not** reach `useWfState().input()`, which only carries the run-level input passed to `start()` / `resume()`. Steps meant to accept hardcoded input should read the handler argument:
 
 ```ts
+app.step('set-plan', {
+  input: 'plan',
+  handler: (ctx, input) => {
+    ctx.plan = (input as string) ?? 'free'
+  },
+})
+
 app.flow('auto-signup', [
-  { id: 'ask-name', input: 'System User' },
-  { id: 'ask-email', input: 'system@internal.dev' },
-  { id: 'ask-plan', input: 'enterprise' },
+  { id: 'set-plan', input: 'enterprise' },
   'create-account',
 ])
 
 // Runs to completion without pausing
 const output = await app.start('auto-signup', { name: '', email: '', plan: '' })
-console.log(output.finished) // true
+console.log(output.finished)           // true
+console.log(output.state.context.plan) // 'enterprise'
 ```
 
 ## Rich Input Schemas
@@ -192,8 +208,6 @@ if (!output.finished && output.error) {
 
   // Retry the same step (no input needed)
   const retried = await app.resume(output.state)
-  // or use the shortcut:
-  const retried = await output.retry()
 }
 ```
 
@@ -223,3 +237,13 @@ app.detachSpy(spy)
 ```
 
 Spy events let you track which steps ran, in what order, and with what results — without modifying your step handlers.
+
+## Cleanup Hook
+
+Pass `cleanup` to `start()` / `resume()` to run teardown when the execution ends — whether the flow finished, paused, or threw (the error is re-thrown after cleanup):
+
+```ts
+const output = await app.start('my-flow', context, {
+  cleanup: () => connection.release(),
+})
+```

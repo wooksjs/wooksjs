@@ -2,6 +2,16 @@
 
 WebSocket adapter for Wooks. Path-based message routing, connection management, rooms, and broadcasting.
 
+Key imports (everything ships from the package root — no subpath exports):
+
+```ts
+import {
+  createWsApp, WooksWs, WsError, WsRoomManager,
+  useWsConnection, useWsMessage, useWsRooms, useWsServer, currentConnection,
+  prepareTestWsConnectionContext, prepareTestWsMessageContext,
+} from '@wooksjs/event-ws'
+```
+
 ## Contents
 
 - [Context Layers](#context-layers) — connection vs message context
@@ -14,6 +24,7 @@ WebSocket adapter for Wooks. Path-based message routing, connection management, 
 - [Patterns](#patterns) — HTTP-integrated, standalone, chat rooms, Redis transport, custom serializer
 - [Testing](#testing) — `prepareTestWsConnectionContext`, `prepareTestWsMessageContext`
 - [Rules & Gotchas](#rules--gotchas)
+- [See Also](#see-also)
 
 ## Context Layers
 
@@ -34,20 +45,12 @@ When using HTTP-integrated mode, the HTTP context becomes the parent of the conn
 
 ### Event Kinds
 
-```ts
-const wsConnectionKind = defineEventKind('ws:connection', {
-  id: slot<string>(),
-  ws: slot<WsSocket>(),
-})
+| Kind            | Seeded slots                                                                                          |
+|-----------------|-------------------------------------------------------------------------------------------------------|
+| `ws:connection` | `id` (UUID string), `ws` (`WsSocket`)                                                                  |
+| `ws:message`    | `data` (unknown), `rawMessage` (Buffer/string), `messageId` (string/number/undefined), `messagePath`, `messageEvent` |
 
-const wsMessageKind = defineEventKind('ws:message', {
-  data: slot<unknown>(),
-  rawMessage: slot<Buffer | string>(),
-  messageId: slot<string | number | undefined>(),
-  messagePath: slot<string>(),
-  messageEvent: slot<string>(),
-})
-```
+`wsConnectionKind` / `wsMessageKind` are exported from `@wooksjs/event-ws` for advanced slot access.
 
 ---
 
@@ -111,18 +114,16 @@ const ws = createWsApp({ heartbeatInterval: 30_000 })
 
 ### TWooksWsOptions
 
-```ts
-interface TWooksWsOptions {
-  heartbeatInterval?: number       // ping interval ms (default: 30000, 0 = disabled)
-  heartbeatTimeout?: number        // pong timeout ms (default: 5000)
-  messageParser?: (raw: Buffer | string) => WsClientMessage
-  messageSerializer?: (msg: WsReplyMessage | WsPushMessage) => string | Buffer
-  logger?: TConsoleBase
-  maxMessageSize?: number          // bytes (default: 1MB), oversized silently dropped
-  wsServerAdapter?: WsServerAdapter
-  broadcastTransport?: WsBroadcastTransport
-}
-```
+| Option               | Default                | Effect                                                                          |
+|----------------------|------------------------|----------------------------------------------------------------------------------|
+| `heartbeatInterval`  | `30000`                | ping interval ms; `0` disables. Standalone `listen()` mode only.                 |
+| `heartbeatTimeout`   | —                      | declared but currently unused — liveness is checked at the next `heartbeatInterval` tick |
+| `messageParser`      | JSON parse + shape check | `(raw: Buffer \| string) => WsClientMessage`                                   |
+| `messageSerializer`  | `JSON.stringify`       | `(msg: WsReplyMessage \| WsPushMessage) => string \| Buffer`                     |
+| `logger`             | built-in logger        | `TConsoleBase`                                                                   |
+| `maxMessageSize`     | 1 MB                   | oversized messages silently dropped                                              |
+| `wsServerAdapter`    | `ws`-based default     | custom WS engine factory (see below)                                             |
+| `broadcastTransport` | —                      | cross-instance pub/sub (see [Rooms & Broadcasting](#rooms--broadcasting))        |
 
 ### WsSocket / WsServerAdapter
 
@@ -153,6 +154,8 @@ Signature: `onMessage<ResType, ParamsType>(event: string, path: string, handler:
 
 Register handlers for connection lifecycle. Both run inside the connection context. Throwing or rejecting in `onConnect` closes the connection immediately.
 
+Each accepts exactly ONE handler — calling `onConnect`/`onDisconnect` again replaces the previous handler (last registration wins). Compose multiple concerns (auth + metrics + ...) inside a single handler.
+
 ### `ws.upgrade()`
 
 Complete the WebSocket handshake from inside an HTTP UPGRADE route handler. Reads `req`/`socket`/`head` from the current HTTP context. The HTTP context becomes the parent of the WS connection context. Usage: `http.upgrade('/ws', () => ws.upgrade())`
@@ -163,7 +166,7 @@ Fallback for when no UPGRADE route matches. Called by the HTTP adapter automatic
 
 ### `ws.listen(port, hostname?)` / `ws.close()` / `ws.getServer()`
 
-`listen` starts a standalone server (without `event-http`), returns `Promise<void>`, starts heartbeat automatically. `close` stops the server, closes all connections (code 1001), cleans up heartbeat. `getServer` returns the underlying `http.Server` (standalone mode) or `undefined`.
+`listen` starts a standalone server (without `event-http`), returns `Promise<void>`, starts heartbeat automatically. `close` stops the heartbeat, closes the WS server and all connections (code 1001 "Server shutting down"); it does NOT close the `http.Server` created by `listen()` — call `ws.getServer()?.close()` to release the port. `getServer` returns the underlying `http.Server` (standalone mode) or `undefined`.
 
 ---
 
@@ -252,9 +255,11 @@ Server-wide operations. **Not a `defineWook`** -- reads from module-level adapte
 }
 ```
 
+`broadcast()` reaches connections on the current instance only — it does not use `broadcastTransport`. For cross-instance delivery use room broadcasts via `useWsRooms().broadcast()` (the adapter's room manager applies `broadcastTransport`; it is not directly exposed).
+
 ### `currentConnection(ctx?)`
 
-Returns the connection `EventContext` regardless of handler type. In `onConnect`/`onDisconnect`: returns `current()` directly. In `onMessage`: returns `current().parent` (the connection context).
+Returns `ctx.parent ?? ctx` (`ctx` defaults to `current()`). In `onMessage` this is the connection context. In `onConnect`/`onDisconnect` under HTTP-integrated mode it returns the HTTP parent context — use `current()` directly there when you need the connection context. `useWsConnection().context` is computed via `currentConnection`, so it behaves identically (NOT a workaround in `onConnect`/`onDisconnect`).
 
 ### Re-exports from @wooksjs/event-core
 
@@ -387,16 +392,16 @@ Import test helpers from `@wooksjs/event-ws`.
 
 Create a connection context with a mock `WsSocket`. Returns a runner function `<T>(cb: (...a: any[]) => T) => T`.
 
-```ts
-interface TTestWsConnectionContext {
-  id?: string                                    // default: 'test-conn-id'
-  params?: Record<string, string | string[]>     // pre-set route params
-  parentCtx?: EventContext                        // optional parent (e.g. HTTP context)
-}
-```
+| Option      | Default          | Effect                                       |
+|-------------|------------------|----------------------------------------------|
+| `id`        | `'test-conn-id'` | connection ID                                |
+| `params`    | —                | pre-set route params                         |
+| `parentCtx` | —                | parent context (e.g. an HTTP test context)   |
 
 ```ts
-import { prepareTestWsConnectionContext, useWsConnection } from '@wooksjs/event-ws'
+import { createWsApp, prepareTestWsConnectionContext, useWsConnection } from '@wooksjs/event-ws'
+
+createWsApp({}) // once in test setup — useWsConnection reads adapter state
 
 const runInCtx = prepareTestWsConnectionContext({ id: 'conn-1' })
 
@@ -408,17 +413,15 @@ runInCtx(() => {
 
 ### `prepareTestWsMessageContext(options)`
 
-Create a message context with a parent connection context. Both contexts are fully seeded. Returns a runner function.
+Create a message context with a parent connection context. Both contexts are fully seeded. Returns a runner function. Accepts all `prepareTestWsConnectionContext` options plus:
 
-```ts
-interface TTestWsMessageContext extends TTestWsConnectionContext {
-  event: string                      // required
-  path: string                       // required
-  data?: unknown
-  messageId?: string | number
-  rawMessage?: Buffer | string       // default: JSON.stringify of the message
-}
-```
+| Option       | Default                       | Effect                                  |
+|--------------|-------------------------------|------------------------------------------|
+| `event`      | required                      | message event type                       |
+| `path`       | required                      | message path                             |
+| `data`       | —                             | parsed message data                      |
+| `messageId`  | —                             | correlation ID                           |
+| `rawMessage` | `JSON.stringify` of the message | raw message before parsing             |
 
 ```ts
 import { prepareTestWsMessageContext, useWsMessage } from '@wooksjs/event-ws'
@@ -440,19 +443,23 @@ runInCtx(() => {
 
 ### Testing with adapter state
 
-Composables that access adapter state (`useWsConnection`, `useWsRooms`, `useWsServer`) require initialization. `setAdapterState` is internal -- import from source in tests:
+Composables that read adapter state (`useWsConnection`, `useWsRooms`, `useWsServer`) require a constructed adapter — call `createWsApp({})` once in test setup (the `WooksWs` constructor publishes the adapter state singleton):
 
 ```ts
-import { setAdapterState } from '@wooksjs/event-ws/composables/state'
-setAdapterState({ connections: new Map(), roomManager: new WsRoomManager(), serializer: JSON.stringify, wooks: {} as any })
+import { createWsApp } from '@wooksjs/event-ws'
+
+beforeAll(() => { createWsApp({}) })
 ```
 
 ### Testing with HTTP parent / route params
 
-Pass `parentCtx` to simulate HTTP-integrated mode. Pass `params` to pre-set route params:
+Pass `parentCtx` to simulate HTTP-integrated mode — build it with `prepareTestHttpContext` from `@wooksjs/event-http`. Pass `params` to pre-set route params:
 
 ```ts
-const httpCtx = new EventContext({ logger: console as any })
+import { current } from '@wooksjs/event-core'
+import { prepareTestHttpContext } from '@wooksjs/event-http'
+
+const httpCtx = prepareTestHttpContext({ url: '/ws' })(() => current())
 const runInCtx = prepareTestWsMessageContext({
   event: 'message', path: '/chat/rooms/lobby',
   params: { roomId: 'lobby' }, parentCtx: httpCtx,
@@ -467,24 +474,44 @@ runInCtx(() => {
 
 ## Rules & Gotchas
 
-- Handler return value sent as reply only if client message had `id`. Fire-and-forget messages get no reply.
-- `useWsMessage()` / `useWsRooms()` throw outside message context (e.g. in `onConnect`/`onDisconnect`).
-- `useWsServer()` is NOT a `defineWook` — works anywhere but requires adapter initialization first.
-- `useWsConnection().send()` silently drops when `ws.readyState !== 1`.
-- HTTP-integrated mode: connection context's parent is HTTP context, so HTTP composables (headers/cookies) work in WS handlers — by design.
-- `WsError` in `onConnect`: 401/403 → WS close code 1008; others → 1011.
-- Messages exceeding `maxMessageSize` (default 1MB) and invalid JSON are silently dropped (no error reply).
-- Transport channel format: `ws:room:{roomName}`. `excludeId` is per-connection — same user on multiple sockets will still get the broadcast on other sockets.
-- Empty rooms auto-cleaned.
-- The `ws` package is a peer dependency — install explicitly.
-- Typing: always pass `T` to `useWsMessage<T>()`.
-- Heartbeat defaults to 30s; set to 0 to disable.
-- Use `useWsServer().broadcast()` for server-wide; `useWsRooms().broadcast()` for room-scoped (defaults to current message path).
-- Implement `WsBroadcastTransport` for multi-instance broadcasting.
+| #  | Invariant |
+|----|-----------|
+| 1  | Handler return value is sent as a reply only if the client message had `id`. Fire-and-forget messages get no reply. |
+| 2  | Unmatched event/path: error reply `{ code: 404, message: 'Not found' }` if the message has an `id`; silently dropped otherwise. |
+| 3  | A non-`WsError` throw from a handler replies `{ code: 500, message: 'Internal Error' }` (when `id` present) and is logged; `WsError` code/message pass through verbatim. |
+| 4  | `useWsMessage()` / `useWsRooms()` throw outside message context (e.g. in `onConnect`/`onDisconnect`). |
+| 5  | `useWsServer()` is NOT a `defineWook` — works anywhere, but throws until a `WooksWs` adapter has been constructed. |
+| 6  | `useWsServer().broadcast()` reaches connections on the current instance only — it does not use `broadcastTransport`. For cross-instance delivery use room broadcasts via `useWsRooms().broadcast()` (the adapter's room manager applies `broadcastTransport`; it is not directly exposed). |
+| 7  | `useWsConnection().send()` silently drops when `ws.readyState !== 1`. |
+| 8  | HTTP-integrated mode: connection context's parent is HTTP context, so HTTP composables (headers/cookies) work in WS handlers — by design. |
+| 9  | `onConnect`/`onDisconnect` each hold exactly ONE handler — a second registration silently replaces the first. |
+| 10 | `WsError` in `onConnect`: 401/403 → WS close code 1008; others → 1011. |
+| 11 | Messages exceeding `maxMessageSize` (default 1MB) and invalid JSON are silently dropped (no error reply). |
+| 12 | Heartbeat runs only in standalone `listen()` mode — it is NOT started in HTTP-integrated mode (`createWsApp(http)` + `http.upgrade`); stale connections are not pinged/closed there. |
+| 13 | Heartbeat interval defaults to 30s; set to 0 to disable. `heartbeatTimeout` has no effect — dead connections are closed (1001 "Heartbeat timeout") on the next interval tick. |
+| 14 | `ws.close()` does NOT close the `http.Server` created by `listen()` — call `ws.getServer()?.close()` to release the port. |
+| 15 | Transport channel format: `ws:room:{roomName}`. `excludeId` is per-connection — same user on multiple sockets will still get the broadcast on other sockets. |
+| 16 | Empty rooms auto-cleaned; `leaveAll` on disconnect is automatic. |
+| 17 | The `ws` package is a peer dependency — install explicitly. |
+| 18 | Typing: always pass `T` to `useWsMessage<T>()`. |
+| 19 | Implement `WsBroadcastTransport` for multi-instance broadcasting. |
 
 Testing:
-- Use `prepareTestWs*Context` helpers — do not construct `EventContext` manually.
-- `prepareTestWsMessageContext` requires `event` and `path`.
-- Mock `WsSocket` has `readyState = 1` (OPEN) and no-op methods. For assertions on sent messages, wire a custom mock.
-- Test contexts use `console` as the logger — no direct override.
-- Composables that access adapter state (`useWsConnection`, `useWsRooms`, `useWsServer`) require `setAdapterState` (internal) before use in tests.
+
+| # | Invariant |
+|---|-----------|
+| 1 | Use `prepareTestWs*Context` helpers — do not construct `EventContext` manually. Build an HTTP parent with `prepareTestHttpContext` from `@wooksjs/event-http`. |
+| 2 | `prepareTestWsMessageContext` requires `event` and `path`. |
+| 3 | Mock `WsSocket` has `readyState = 1` (OPEN) and no-op methods. For assertions on sent messages, wire a custom mock. |
+| 4 | Test contexts use `console` as the logger — no direct override. |
+| 5 | Composables that read adapter state (`useWsConnection`, `useWsRooms`, `useWsServer`) need `createWsApp({})` called once in test setup. |
+
+---
+
+## See Also
+
+| Ref | Covers |
+|-----|--------|
+| [ws-client.md](ws-client.md) | client counterpart — `createWsClient`, RPC, reconnection, push listeners |
+| [event-http.md](event-http.md) | HTTP adapter — `http.upgrade` routes, `prepareTestHttpContext` |
+| [event-core.md](event-core.md) | `EventContext`, `current()`, `useRouteParams`, `useLogger` |

@@ -72,8 +72,10 @@ const { getJobId, getStatus } = useJob()
 No manual type annotation. The factory return type flows through `defineWook` and becomes the wook's return type:
 
 ```ts
-function defineWook<T>(factory: (ctx: EventContext) => T): (ctx?: EventContext) => T
+function defineWook<T>(factory: (ctx: EventContext) => T): WookComposable<T>
 ```
+
+`WookComposable<T>` is callable as `(ctx?: EventContext) => T` and exposes a readonly `_slot` — the underlying `Cached` slot, for advanced slot-isolation scenarios (see [Event Context](/wooks/advanced/wooks-context)).
 
 ## Parameterized Caching
 

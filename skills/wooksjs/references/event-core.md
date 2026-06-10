@@ -2,6 +2,23 @@
 
 Typed per-event context engine. Foundation for all Wooks adapters.
 
+## Quick start
+
+```ts
+import { key, cached, defineWook } from '@wooksjs/event-core'
+
+const userId = key<string>('userId')              // module-level typed slot
+const profile = cached((ctx) => loadProfile(ctx)) // lazy, cached per event
+
+export const useUser = defineWook((ctx) => ({
+  id: () => ctx.get(userId),
+  profile: () => ctx.get(profile),
+}))
+
+// inside any adapter handler:
+const { id } = useUser()
+```
+
 ## Contents
 
 - [Primitives](#primitives) — `key`, `cached`, `cachedBy`, `slot`, `defineEventKind`
@@ -9,10 +26,10 @@ Typed per-event context engine. Foundation for all Wooks adapters.
 - [Composable Patterns](#composable-patterns) — lazy props, async cached, class-based, deps, plain functions
 - [EventContext](#eventcontext) — constructor, `get`/`set`/`has`, `getOwn`/`setOwn`/`hasOwn`, `seed`, parent chain
 - [Runtime](#runtime) — `run`, `current`, `tryGetCurrent`, `createEventContext`, version safety
-- [Custom adapters (advanced)](#custom-adapters-advanced)
+- [Custom adapters (advanced)](#custom-adapters-advanced) — context factory + `WooksAdapterBase`
 - [ContextInjector](#contextinjector) — observability hook point
-- [Types](#types), [Standard Keys](#standard-keys)
-- [Rules & Gotchas](#rules--gotchas)
+- [Key Imports](#key-imports), [Standard Keys](#standard-keys)
+- [Rules & Gotchas](#rules--gotchas), [See also](#see-also)
 
 ## Primitives
 
@@ -483,6 +500,39 @@ Layer contexts with parent links (child seeds new kind, inherits parent slots):
 createEventContext({ logger, parent: parentCtx }, workflowKind, seeds, fn)
 ```
 
+### Routing half — extend `WooksAdapterBase`
+
+The context factory covers slots only. To route events, extend `WooksAdapterBase` from the `wooks` package:
+
+```ts
+import { WooksAdapterBase, Wooks } from 'wooks'
+import type { TWooksHandler } from 'wooks'
+import type { TConsoleBase } from '@prostojs/logger'
+
+export class WooksMy extends WooksAdapterBase {
+  constructor(opts?: { logger?: TConsoleBase }, wooks?: Wooks | WooksAdapterBase) {
+    super(wooks, opts?.logger) // no wooks arg -> shared global instance (getGlobalWooks)
+  }
+
+  // Register routes under your own "method" via this.on(method, path, handler)
+  my<T>(path: string, handler: TWooksHandler<T>) {
+    return this.on<T>('MY_EVENT', path, handler)
+  }
+
+  // Dispatch: create the context, resolve handlers, run them inside it
+  trigger(path: string, data: unknown) {
+    return createMyEventContext(this.getEventContextOptions(), { data }, async () => {
+      const handlers = this.getWooks().lookupHandlers('MY_EVENT', path) // sets routeParamsKey
+      if (!handlers) throw new Error(`No handler for ${path}`)
+      for (const handler of handlers) return await handler()
+    })
+  }
+}
+```
+
+- Pass an existing `Wooks` or adapter to the constructor to share its router; omit it to use the global singleton (`getGlobalWooks` creates on first call, `clearGlobalWooks` resets it — both exported from `wooks`).
+- `lookupHandlers` writes route params into the active context, so `useRouteParams()` works in handlers. See [router.md](router.md#programmatic-api-wooks-package) for the full `Wooks` API.
+
 ---
 
 ## ContextInjector
@@ -536,53 +586,31 @@ type TContextInjectorHooks = 'Event:start'
 
 ---
 
-## Types
+## Key Imports
 
 ```ts
-interface Logger {
-  info(msg: string, ...args: unknown[]): void
-  warn(msg: string, ...args: unknown[]): void
-  error(msg: string, ...args: unknown[]): void
-  debug(msg: string, ...args: unknown[]): void
-  createTopic?: (name: string) => Logger
-}
+import {
+  key, cached, cachedBy, slot, defineEventKind, defineWook,
+  EventContext, run, current, tryGetCurrent, createEventContext,
+  useRouteParams, useEventId, useLogger,
+  routeParamsKey, eventTypeKey,
+  ContextInjector, getContextInjector, replaceContextInjector, resetContextInjector,
+} from '@wooksjs/event-core'
 
-interface Key<T> {
-  readonly _id: number
-  readonly _name: string
-}
-
-interface Cached<T> {
-  readonly _id: number
-  readonly _name: string
-  readonly _fn: (ctx: EventContext) => T
-}
-
-type Accessor<T> = Key<T> | Cached<T>
-
-interface SlotMarker<T> {}  // phantom type marker
-
-interface EventKind<S extends Record<string, SlotMarker<any>>> {
-  readonly name: string
-  readonly keys: { [K in keyof S]: S[K] extends SlotMarker<infer V> ? Key<V> : never }
-  readonly _entries: Array<[string, Key<unknown>]>
-}
-
-type EventKindSeeds<K> =
-  K extends EventKind<infer S>
-    ? { [P in keyof S]: S[P] extends SlotMarker<infer V> ? V : never }
-    : never
-
-interface EventContextOptions {
-  logger: Logger
-  parent?: EventContext
-}
-
-interface WookComposable<T> {
-  (ctx?: EventContext): T
-  readonly _slot: Cached<T>
-}
+import type {
+  Logger, Key, Cached, Accessor, SlotMarker,
+  EventKind, EventKindSeeds, EventContextOptions, WookComposable,
+} from '@wooksjs/event-core'
 ```
+
+Type purposes:
+
+- `Logger` — `info`/`warn`/`error`/`debug` + optional `createTopic(name)`; compatible with `@prostojs/logger`.
+- `Key<T>` / `Cached<T>` — slot descriptors returned by `key()` / `cached()`; `Accessor<T>` is either.
+- `SlotMarker<T>` — phantom marker returned by `slot<T>()` for `defineEventKind` schemas.
+- `EventKind<S>` — kind descriptor (`name`, `keys`); `EventKindSeeds<K>` — seed object accepted by `ctx.seed()` / `createEventContext()`.
+- `EventContextOptions` — `{ logger, parent? }` for the constructor and `createEventContext`.
+- `WookComposable<T>` — `(ctx?) => T` with `_slot: Cached<T>`; returned by `defineWook`.
 
 ### Standard Keys
 
@@ -597,33 +625,26 @@ eventTypeKey    // Key for event type name (set by ctx.seed())
 
 ## Rules & Gotchas
 
-Primitive placement:
-- Define `key`/`cached`/`cachedBy` at **module level** — they are descriptors, not values.
+| #  | Invariant                                                                                                                                                       |
+| -- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1  | Define `key`/`cached`/`cachedBy` at **module level** — they are descriptors, not values.                                                                           |
+| 2  | Pick the right primitive: `defineWook` → object with multiple properties/methods; plain function → single-value access (no cache overhead); `cached` → expensive per-event computation (single compute, error-cached, circular-detected); `cachedBy` → computation varies by parameter (keys compared by `===`). |
+| 3  | `cached` / `defineWook` factories receive `ctx` — use it, don't call `current()` inside.                                                                           |
+| 4  | Factory runs once per context — put per-call logic in thunks, not in the factory body.                                                                             |
+| 5  | Pass `ctx` explicitly when calling multiple composables in one handler — saves ALS lookups.                                                                        |
+| 6  | `ctx.get(key)` before `set()` throws `Key "name" is not set` — use `ctx.has(k)` first.                                                                             |
+| 7  | Outside `run()` scope, `current()` throws `[Wooks] No active event context` — use `tryGetCurrent()` in library code.                                               |
+| 8  | `cached` errors are cached too — a failing computation never retries in the same context.                                                                          |
+| 9  | `get`/`set`/`has` traverse the parent chain; `getOwn`/`setOwn`/`hasOwn` are local-only.                                                                            |
+| 10 | `set()` writes to the first context in the chain that has the key — use `setOwn()` to shadow a parent value.                                                       |
+| 11 | `get()` on a `Cached<T>` cached in a parent reuses the parent's value — use `getOwn()` to force local recompute.                                                   |
+| 12 | Prefer parent-linked child contexts over seeding multiple kinds into one context. Traversal is O(depth) — keep chains shallow.                                     |
+| 13 | `AsyncLocalStorage` propagates through `await`, timers, Promise chains — but `EventContext` is single-event, single-async-chain, not thread-safe.                  |
+| 14 | Global singleton ALS via `Symbol.for('wooks.core.asyncStorage')` — incompatible versions throw at import.                                                          |
 
-Picking the right primitive:
-- `defineWook` → factory returns object with multiple properties/methods.
-- Plain function → single-value access (no cache overhead).
-- `cached` → expensive per-event computation (single compute, error-cached, circular-detected).
-- `cachedBy` → computation varies by parameter; keys compared by `===`.
+---
 
-Factory rules:
-- `cached` / `defineWook` factories receive `ctx` — use it, don't call `current()` inside.
-- Factory runs once per context — put per-call logic in thunks, not in the factory body.
+## See also
 
-Context access:
-- Pass `ctx` explicitly when calling multiple composables in one handler — saves ALS lookups.
-- `key.get()` before `set()` throws `Key "name" is not set` — use `ctx.has(k)` first.
-- Outside `run()` scope, `current()` throws `[Wooks] No active event context` — use `tryGetCurrent()` in library code.
-- `cached` errors are cached too — a failing computation never retries in the same context.
-
-Parent chain:
-- `get`/`set`/`has` traverse parent. `getOwn`/`setOwn`/`hasOwn` are local-only.
-- `set()` writes to the first context in the chain that has the key — use `setOwn()` to shadow a parent value.
-- `get()` on a `Cached<T>` cached in a parent reuses the parent's value — use `getOwn()` to force local recompute.
-- Prefer parent-linked child contexts over seeding multiple kinds into one context.
-- Traversal is O(depth). Keep chains shallow.
-
-Runtime:
-- `AsyncLocalStorage` propagates through `await`, timers, Promise chains.
-- `EventContext` is single-event, single-async-chain — not thread-safe.
-- Global singleton ALS: version mismatches throw at import.
+- [router.md](router.md) — route syntax/priority and the `wooks` programmatic API that populates `routeParamsKey`
+- [event-http.md](event-http.md), [event-cli.md](event-cli.md), [event-ws.md](event-ws.md), [event-wf.md](event-wf.md) — adapters built on these primitives

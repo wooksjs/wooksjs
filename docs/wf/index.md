@@ -27,6 +27,13 @@ interface OrderContext {
 const app = createWfApp<OrderContext>()
 ```
 
+`createWfApp(options?)` accepts:
+
+- `onNotFound` — fallback flow resolver called when `start()` receives an unknown flow id; it returns `{ id, init? }` pointing to a registered flow. Without it, `start()` throws `Unknown schemaId: <id>`.
+- `logger` — custom logger instance.
+- `router` — router options for the underlying Wooks instance.
+- `strictStepIds` — throw (instead of warn) on duplicate step ids. See [Steps](/wf/steps#fail-loudly-with-strictstepids).
+
 ## Step 2: Define Steps
 
 Steps are the building blocks. Each step has an **id** and a **handler** function.
@@ -102,6 +109,11 @@ The output includes the full final state under `output.state.context`, and `outp
 
 ## Next Steps
 
-- [Steps](/wf/steps) — handlers, parametric routing, composables, string handlers
+- [Introduction](/wf/introduction) — what workflows are and the core concepts
+- [Why Workflows](/wf/why) — the motivation and design rationale
+- [Steps](/wf/steps) — handlers, parametric routing, string handlers, retriable errors
 - [Flows](/wf/flows) — conditions, loops, subflows, break/continue
 - [Input & Resume](/wf/input-and-resume) — pause workflows for user input, resume later
+- [Composables](/wf/composables) — built-in and custom composables for steps
+- [HTTP Integration](/wf/http-integration) — start workflows from HTTP handlers
+- [Outlets](/wf/outlets) — pause to HTTP forms or emails with state tokens

@@ -81,15 +81,7 @@ app.step('send-verify', {
 
 ## WfOutletRequest
 
-```ts
-interface WfOutletRequest<P = unknown> {
-  outlet: string                    // outlet name ('http', 'email', custom)
-  payload?: P                       // data for the outlet
-  target?: string                   // recipient (email address, etc.)
-  template?: string                 // template identifier
-  context?: Record<string, unknown> // extra context passed to outlet
-}
-```
+The signal object a step returns (built by the helpers above). Fields: `outlet` (outlet name — `'http'`, `'email'`, or custom) plus optional `payload` (data for the outlet), `target` (recipient, e.g. email address), `template` (template identifier), and `context` (extra data passed to the outlet).
 
 ---
 
@@ -155,29 +147,21 @@ Built-in outlets: `createHttpOutlet()` = `'caller'`, `createEmailOutlet()` = `'o
 
 Any custom outlet whose resumer is a different principal than the HTTP caller MUST declare `'out-of-band'`, otherwise the caller receives a token they shouldn't have — a privilege escalation vector.
 
+`deliver()` returns a `WfOutletResult`, but the trigger consumes only `.response` — `status`/`headers`/`cookies` returned by an outlet are ignored. Set HTTP status/headers via `useResponse()` inside `deliver()` if needed.
+
 ---
 
 ## State Strategies
 
 Persist workflow state between pause and resume.
 
-```ts
-interface WfStateStrategy {
-  persist(
-    state: WfState,
-    options?: { ttl?: number },
-    overrides?: { handle?: string },                        // hint to reuse a handle
-  ): Promise<string>
-  retrieve(token: string): Promise<WfState | null>          // NO invalidation
-  consume(token: string): Promise<WfState | null>           // atomic retrieve + invalidate
-}
-```
+A `WfStateStrategy` implements three async methods: `persist(state, { ttl? }, { handle? })` → token (the `handle` override is a hint to reuse an existing handle), `retrieve(token)` → state with NO invalidation, and `consume(token)` → state via atomic retrieve + invalidate.
 
-The outlet trigger calls `consume()` on every resume as a brief mutex against concurrent resumes, then re-persists with `{ handle: token }` so the URL `wfs` stays stable across the entire workflow. `HandleStateStrategy` honors the handle hint and reuses the same storage key. `EncapsulatedStateStrategy` ignores it (the token IS the ciphertext) and mints a fresh token on every persist anyway. See the security warning below.
+Strategies receive the RAW handle — the token minus the `<name>.` strategy prefix; they never see the prefixed token. The outlet trigger calls `strategy.consume(rawHandle)` on every resume as a brief mutex against concurrent resumes, then re-persists with `{ handle: rawHandle }` so the URL `wfs` stays stable across the entire workflow. `HandleStateStrategy` honors the handle hint and reuses the same storage key. `EncapsulatedStateStrategy` ignores it (the token IS the ciphertext) and mints a fresh token on every persist anyway. See the security warning below.
 
 ### HandleStateStrategy
 
-Stores state server-side with an opaque handle token. The handle is **minted on workflow start and reused on every resume** (the outlet trigger passes `{ handle: token }` to `persist()`), so the URL token survives refreshes, bookmarks, and lost-connection-then-resume across the entire workflow. **Required for security-sensitive flows** (auth, password reset, invite accept, financial operations) — and for any flow where the resume URL must remain stable across user actions.
+Stores state server-side with an opaque handle token. The handle is **minted on workflow start and reused on every resume** (the outlet trigger passes `{ handle: rawHandle }` to `persist()`), so the URL token survives refreshes, bookmarks, and lost-connection-then-resume across the entire workflow. **Required for security-sensitive flows** (auth, password reset, invite accept, financial operations) — and for any flow where the resume URL must remain stable across user actions.
 
 ```ts
 import { HandleStateStrategy, WfStateStoreMemory } from '@wooksjs/event-wf'
@@ -197,7 +181,7 @@ Encrypts state into the token itself (no server-side storage). **Stateless — `
 import { EncapsulatedStateStrategy } from '@wooksjs/event-wf'
 
 const strategy = new EncapsulatedStateStrategy({
-  secret: process.env.WF_SECRET,  // string | Buffer (32 bytes)
+  secret: process.env.WF_SECRET,  // 32-byte Buffer, or 64-char hex string (hex-decoded); constructor throws otherwise
   defaultTtl: 3600_000,           // optional, ms
 })
 ```
@@ -206,17 +190,7 @@ const strategy = new EncapsulatedStateStrategy({
 
 ### WfStateStore interface
 
-Implement for custom persistence (Redis, database, etc.):
-
-```ts
-interface WfStateStore {
-  set(handle: string, state: WfState, expiresAt?: number): Promise<void>
-  get(handle: string): Promise<{ state: WfState; expiresAt?: number } | null>
-  delete(handle: string): Promise<void>
-  getAndDelete(handle: string): Promise<{ state: WfState; expiresAt?: number } | null>
-  cleanup?(): Promise<number>
-}
-```
+Implement for custom persistence (Redis, database, etc.) and pass to `HandleStateStrategy`. Async methods: `set(handle, state, expiresAt?)`, `get(handle)`, `delete(handle)`, `getAndDelete(handle)` (must be atomic — it backs `consume()`), optional `cleanup()` returning the number of purged entries.
 
 `WfStateStoreMemory` is an in-memory implementation for development/testing.
 
@@ -254,35 +228,15 @@ httpApp.post('/workflow', () => handleWfOutletRequest(config, {
 
 ## WfOutletTriggerConfig
 
-```ts
-interface WfOutletTriggerConfig {
-  /**
-   * State persistence strategy.
-   *
-   * - `WfStateStrategy` — single-strategy shortcut.
-   * - `{ strategies, default }` — named registry, required if any step calls
-   *   `swapStrategy(name)`. `default` is the name (or `(wfid) => name`)
-   *   picked at start time.
-   *
-   * The active strategy name is embedded in the token as a `<name>.<raw>`
-   * prefix, so storages are independent and resume picks the strategy from
-   * the token. Strategy names must match `/^[A-Za-z0-9_-]+$/`.
-   */
-  state:
-    | WfStateStrategy
-    | {
-        strategies: Record<string, WfStateStrategy>
-        default: string | ((wfid: string) => string)
-      }
-  outlets: WfOutlet[]
-  allow?: string[]              // whitelist of allowed workflow IDs
-  block?: string[]              // blacklist (checked after allow)
-  token?: WfOutletTokenConfig
-  wfidName?: string             // param name for workflow ID (default: 'wfid')
-  initialContext?: (body: Record<string, unknown> | undefined, wfid: string) => unknown
-  onFinished?: (ctx: { context: unknown; schemaId: string }) => unknown
-}
-```
+The config object passed to the trigger handler. Fields:
+
+- `state` (required) — a single `WfStateStrategy`, or a named registry `{ strategies: Record<name, strategy>, default: name | (wfid) => name }`. The registry form is required if any step calls `swapStrategy(name)`; `default` is picked at start time. The active strategy name is embedded in the token as a `<name>.<raw>` prefix, so storages are independent and resume picks the strategy from the token. Strategy names must match `/^[A-Za-z0-9_-]+$/`.
+- `outlets` (required) — array of `WfOutlet` instances, dispatched by name.
+- `allow` / `block` — workflow-ID whitelist / blacklist (`block` checked after `allow`; rejection → 403).
+- `token` — see [WfOutletTokenConfig](#wfoutlettokenconfig).
+- `wfidName` — param name for the workflow ID (default `'wfid'`).
+- `initialContext(body, wfid)` — build the initial context from the request body on start.
+- `onFinished({ context, schemaId })` — override the response for finished workflows.
 
 ### Swapping strategies inside a step
 
@@ -298,7 +252,8 @@ useWfStrategy().swap('kv')
 useWfStrategy().current()      // → currently-active strategy name
 ```
 
-- Unknown name → throws synchronously (config / step author bug).
+- Format-invalid name (fails `/^[A-Za-z0-9_-]+$/`) → `swap()` throws synchronously.
+- Format-valid but unregistered name → no throw at `swap()`; the trigger throws loudly at the next pause (500).
 - Token whose prefix names an unknown strategy → HTTP 410 (no leak of registered names).
 - Token without a `.` prefix → HTTP 410.
 - After a swap, the next persist mints a fresh handle in the new strategy's keyspace; before any swap, the trigger reuses the incoming raw handle so `wfs` stays stable across the workflow.
@@ -324,13 +279,7 @@ await wf.resume(saved, { input, strategy: { name: next } })
 
 Controls how state tokens are read from requests and written to responses. The trigger consumes on every resume (as a brief mutex) and re-persists under the same handle so the `wfs` stays stable across the workflow. For out-of-band outlets (email, SMS, etc.), the token is NOT written to the HTTP response (body or cookie is suppressed) so the HTTP caller cannot replay it; this is controlled by the outlet's `tokenDelivery` field, not this config.
 
-```ts
-interface WfOutletTokenConfig {
-  read?: Array<'body' | 'query' | 'cookie'>   // default: ['body', 'query', 'cookie']
-  write?: 'body' | 'cookie'                   // default: 'body'
-  name?: string                                // token param name (default: 'wfs')
-}
-```
+Fields: `read` — where to look for the token (default `['body', 'query', 'cookie']`); `write` — `'body'` (default) or `'cookie'`; `name` — token param name (default `'wfs'`).
 
 ---
 
@@ -338,7 +287,7 @@ interface WfOutletTokenConfig {
 
 The trigger reads `wfs` (state token) and `wfid` (workflow ID) from body, query params, or cookies per `token.read` config.
 
-- If `wfs` is present: **resume** — the trigger calls `strategy.consume(token)` (atomic retrieve + invalidate) BEFORE running the step, then re-persists the advanced state under the **same** handle so the URL token stays valid. A request that loses the race against a concurrent resume — or any request after the workflow finished or an unexpected error burned the handle — responds with HTTP **410 Gone** and body `{ error: 'Invalid or expired workflow state' }`. With `EncapsulatedStateStrategy` `consume()` is a stateless no-op and the token remains replayable until TTL.
+- If `wfs` is present: **resume** — the trigger calls `strategy.consume(rawHandle)` (the token minus its `<name>.` prefix; atomic retrieve + invalidate) BEFORE running the step, then re-persists the advanced state under the **same** raw handle so the URL token stays valid. A request that loses the race against a concurrent resume — or any request after the workflow finished or an unexpected error burned the handle — responds with HTTP **410 Gone** and body `{ error: 'Invalid or expired workflow state' }`. With `EncapsulatedStateStrategy` `consume()` is a stateless no-op and the token remains replayable until TTL.
 - If `wfid` is present (no `wfs`): **start** — creates initial context, starts workflow.
 - If neither: HTTP **400** with body `{ error: '...' }`.
 
@@ -352,15 +301,18 @@ The trigger sets HTTP status via `useResponse().setStatus(...)`; the body never 
 | Missing both `wfs` and `wfid`         | 400    |
 | Step returned an unknown outlet name  | 500    |
 
-For finished workflows, `useWfFinished().set({ type, value, status })` propagates `status` to the HTTP response: redirects default to 302, data responses leave the status untouched (HTTP method default) unless `status` is set explicitly.
+### Trigger invariants
 
-On pause (initial or re-pause), the trigger persists state, dispatches to the outlet, and returns the outlet's response. With `HandleStateStrategy` the persisted handle equals the incoming `wfs` on resume — unless a step called `swapStrategy()`, which mints a fresh handle in the new strategy's keyspace — and is freshly minted on start; with `EncapsulatedStateStrategy` the token always changes because the ciphertext is a function of the new state. The token is merged into the response (body or cookie per `token.write`) only if the outlet declares `tokenDelivery: 'caller'` (the default for HTTP outlets). For `tokenDelivery: 'out-of-band'` outlets (email, SMS, etc.), the response does NOT contain the token — the outlet delivers it through its own channel.
-
-On finish, the trigger checks `onFinished` callback, then `useWfFinished()`, then returns `{ finished: true }`. The handle is not re-persisted, so it remains deleted from the consume call earlier in the request.
-
-**Fail-closed on unexpected errors.** A consumed handle is restored only after the step returns. An unexpected throw during resume skips the re-persist call — the handle is gone and the user must restart the workflow. This is the security-preferred behavior (no lingering replayable token after a failed attempt). Handle expected validation failures by returning an outlet signal from the step handler (the engine re-persists under the same handle on the re-pause), not by throwing.
-
-**Strategy comes from the token prefix, not `wfid`.** On resume the strategy is selected from the token's `<name>.` prefix; `wfid` is read only on *start* (allow/block checks + resolving the `default` name). There is no per-`wfid` strategy re-resolution. The trigger reuses the incoming handle (keeping `wfs` stable) only when the post-swap strategy name equals the incoming prefix — a `swapStrategy()` during the step, or a start with no incoming token, mints a fresh handle in the new strategy's keyspace. See [Swapping strategies inside a step](#swapping-strategies-inside-a-step).
+| #   | Invariant |
+| --- | --------- |
+| 1   | Resume consumes first: `strategy.consume(rawHandle)` runs BEFORE the step. A consumed handle is restored (re-persisted) only after the step returns. |
+| 2   | On pause (initial or re-pause), the trigger persists state, dispatches to the outlet, and returns the outlet's `.response`. |
+| 3   | With `HandleStateStrategy` the persisted handle equals the incoming `wfs` on resume (freshly minted on start, or after `swapStrategy()` in the new strategy's keyspace); with `EncapsulatedStateStrategy` the token always changes — the ciphertext is a function of the new state. |
+| 4   | The token is merged into the response (body or cookie per `token.write`) only if the outlet declares `tokenDelivery: 'caller'` (the default for HTTP outlets). For `'out-of-band'` outlets (email, SMS, etc.) the response does NOT contain the token — the outlet delivers it through its own channel. |
+| 5   | On finish: `onFinished` callback, then `useWfFinished()`, then `{ finished: true }`. The handle is NOT re-persisted — it remains deleted from the consume call earlier in the request. |
+| 6   | For finished workflows, `useWfFinished().set({ type, value, status })` propagates `status` to the HTTP response: redirects default to 302; data responses leave the status untouched (HTTP method default) unless `status` is set explicitly. |
+| 7   | Fail-closed on unexpected errors: an unexpected throw during resume skips the re-persist — the handle is gone and the user must restart the workflow (no lingering replayable token after a failed attempt). Handle expected validation failures by returning an outlet signal from the step handler (the engine re-persists under the same handle on the re-pause), not by throwing. |
+| 8   | Strategy comes from the token's `<name>.` prefix on resume, never from `wfid` (`wfid` is read only on start: allow/block checks + resolving the `default` name). The trigger reuses the incoming handle (keeping `wfs` stable) only when the post-swap strategy name equals the incoming prefix — a `swapStrategy()` during the step, or a start with no incoming token, mints a fresh handle in the new strategy's keyspace. See [Swapping strategies inside a step](#swapping-strategies-inside-a-step). |
 
 ---
 
@@ -389,17 +341,7 @@ app.step('complete-signup', {
 })
 ```
 
-```ts
-interface WfFinishedResponse {
-  type: 'redirect' | 'data'
-  value: unknown                // redirect URL or response body
-  status?: number               // HTTP status (default: 200 for data, 302 for redirect)
-  cookies?: Record<string, {
-    value: string
-    options?: Record<string, unknown>
-  }>
-}
-```
+`set()` accepts: `type` (`'redirect' | 'data'`), `value` (redirect URL or response body), optional `status` (default 200 for data, 302 for redirect), optional `cookies` (`Record<name, { value, options? }>`).
 
 ---
 

@@ -42,6 +42,8 @@ function createEventContext<S extends Record<string, any>, R>(
 ): R
 ```
 
+The kindless overload is a convenience for tests — it performs no seeding and skips `ContextInjector` instrumentation. Production adapters should always provide an event kind.
+
 **Example:**
 
 ```ts
@@ -56,6 +58,14 @@ createEventContext({ logger }, myKind, { payload: data }, () => {
   // All wooks and current() work here
 })
 ```
+
+### `run()`
+
+```ts
+function run<R>(ctx: EventContext, fn: () => R): R
+```
+
+Use `run()` when you already have an `EventContext` — e.g. one created with `new EventContext(options)` — and need to activate it for a callback. All wooks and `current()` calls inside `fn` resolve to `ctx`. `createEventContext()` uses it internally.
 
 ### `current()` and `tryGetCurrent()`
 
@@ -79,6 +89,14 @@ const val = ctx.get(myKey)
 
 // Cached slot — computed lazily on first access
 const val = ctx.get(myCachedSlot) // runs the factory function once, caches result
+```
+
+### Checking Slots
+
+`ctx.has(accessor)` returns `true` if the slot has been set or computed — in this context or any parent. Use it to read optional state without triggering the "Key is not set" error:
+
+```ts
+const status = ctx.has(statusKey) ? ctx.get(statusKey) : 'pending'
 ```
 
 ### `key<T>(name)`
@@ -130,6 +148,28 @@ parseCookieValue('theme')    // computed and cached for 'theme'
 parseCookieValue('session')  // returns cached result
 ```
 
+## Parent Contexts
+
+`EventContextOptions` accepts an optional `parent` context, forming a chain. This is how child events — workflow steps started from an HTTP request, or WebSocket messages tied to their upgrade request — transparently expose the parent's data:
+
+```ts
+const child = new EventContext({ logger, parent: parentCtx })
+```
+
+- `get()` reads through the chain — if a slot is not found locally, parent contexts are consulted.
+- `set()` writes to the nearest context in the chain that already holds the slot; if none does, the value is stored locally.
+- `has()` checks the whole chain.
+
+To bypass the chain, use the `*Own` variants, which operate on the current context only:
+
+```ts
+ctx.getOwn(myKey)        // ignores parents
+ctx.setOwn(myKey, value) // always stores locally
+ctx.hasOwn(myKey)        // true only if set/computed locally
+```
+
+See [HTTP Integration for workflows](/wf/http-integration) and [WebSocket composables](/wsapp/composables) for applied examples of parent-chain contexts.
+
 ## Defining Event Kinds
 
 An `EventKind` declares the shape of an event — the named slots that must be seeded when the context is created.
@@ -164,6 +204,19 @@ ctx.seed(httpKind, {
 
 This is typically done inside `createEventContext()` or inside an adapter's request handler.
 
+## Standard Keys
+
+`@wooksjs/event-core` exports two predefined keys available across all event types:
+
+- `routeParamsKey` — route parameters, written by `Wooks.lookup()`/`lookupHandlers()` during routing and read by `useRouteParams()`.
+- `eventTypeKey` — the event kind name (`'http'`, `'CLI'`, `'WF'`, `'ws:connection'`, `'ws:message'`), set by `ctx.seed()`. Useful for detecting the current event type.
+
+```ts
+import { eventTypeKey } from '@wooksjs/event-core'
+
+const type = current().get(eventTypeKey) // e.g. 'http'
+```
+
 ## Building Wooks
 
 ### `defineWook<T>(factory)`
@@ -194,6 +247,8 @@ The optional `ctx` parameter lets you pass an explicit context (useful in tests)
 ```ts
 const result = useMyFeature(testCtx)
 ```
+
+`defineWook` returns a `WookComposable<T>` — callable as `(ctx?) => T` — that also exposes a readonly `_slot` property: the underlying `Cached` slot. This is useful in advanced scenarios such as building slot-isolation lists for child contexts.
 
 ## Best Practices
 

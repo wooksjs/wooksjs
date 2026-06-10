@@ -154,7 +154,7 @@ import { HttpError } from '@wooksjs/event-http'
 
 throw new HttpError(404)                                      // default message
 throw new HttpError(400, 'Invalid email')                     // custom message
-throw new HttpError(422, { message: 'Validation failed', fields: ['email'] }) // structured body
+throw new HttpError(422, { message: 'Validation failed', statusCode: 422, fields: ['email'] }) // structured body (statusCode is required by the body type; the code argument wins)
 ```
 
 `HttpError` skips stack trace capture (performance optimization for expected control-flow errors).
@@ -168,8 +168,10 @@ throw new HttpError(422, { message: 'Validation failed', fields: ['email'] }) //
 Override by subclassing `WooksHttpResponse`:
 
 ```ts
+import { WooksHttpResponse, type TWooksErrorBodyExt, type EventContext } from '@wooksjs/event-http'
+
 class MyResponse extends WooksHttpResponse {
-  protected renderError(data, ctx) {
+  protected renderError(data: TWooksErrorBodyExt, _ctx: EventContext): void {
     this._status = data.statusCode
     this._headers['content-type'] = 'application/json'
     this._body = JSON.stringify({ error: data.message })

@@ -7,6 +7,10 @@ import { createWfApp, useWfState } from '@wooksjs/event-wf'
 
 const app = createWfApp<{ approved: boolean; email: string }>()
 
+app.step('validate', { handler: () => { /* validate the request */ } })
+app.step('notify-success', { handler: () => { /* send approval email */ } })
+app.step('notify-rejection', { handler: () => { /* send rejection email */ } })
+
 app.step('review', {
   input: 'approval',             // pauses until input is provided
   handler: () => {

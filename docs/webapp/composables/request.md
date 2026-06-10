@@ -1,6 +1,6 @@
 # Request Composables
 
-Composables for reading incoming HTTP request data: headers, query parameters, cookies, authorization, body size limits.
+Composables for reading incoming HTTP request data: headers, query parameters, cookies, authorization, client IP, body size limits.
 
 [[toc]]
 
@@ -84,12 +84,49 @@ app.get('/test', async () => {
         method, // Request method (string)
         headers, // Request headers (object)
         rawBody, // Request body (() => Promise<Buffer>)
+        reqId, // Per-event UUID (() => string)
+        isCompressed, // Whether the body is gzip/deflate/br compressed (() => boolean)
     } = useRequest()
 
     const body = await rawBody() // Body as a Buffer
 })
 
 ```
+
+`reqId()` returns a stable per-event UUID — the same value as `useEventId().getId()` from `@wooksjs/event-core`.
+
+`useHeaders()` is a shortcut that returns the request headers record directly (`IncomingHttpHeaders`, lowercased names) — equivalent to `useRequest().headers`:
+
+```js
+import { useHeaders } from '@wooksjs/event-http'
+
+app.get('/test', () => {
+    const { 'content-type': contentType } = useHeaders()
+})
+```
+
+## Client IP
+
+`useRequest()` provides two helpers for resolving the client's IP address:
+
+```js
+import { useRequest } from '@wooksjs/event-http'
+
+app.get('/test', () => {
+    const { getIp, getIpList } = useRequest()
+
+    getIp() // Socket remote address
+    getIp({ trustProxy: true }) // First `x-forwarded-for` entry, falling back to the socket address
+
+    getIpList()
+    // {
+    //     remoteIp: '...',    // socket remote address
+    //     forwarded: ['...'], // all `x-forwarded-for` entries
+    // }
+})
+```
+
+By default `getIp()` returns the socket's remote address and ignores `x-forwarded-for`, which any client can spoof. Pass `{ trustProxy: true }` only when your app runs behind a trusted reverse proxy that sets that header.
 
 ## Cookies
 
@@ -137,7 +174,7 @@ app.get('/test', async () => {
 })
 ```
 
-Note: `authorization` is a plain string value. All other properties are lazy functions — they compute on first call and cache the result.
+Note: `authorization` is a plain string value. All other properties are lazy functions — they compute on first call and cache the result. The `is()` argument is typed as `KnownAuthType` (`'basic' | 'bearer'`), but any other string is also accepted.
 
 ## Accept Header
 
@@ -163,7 +200,7 @@ app.get('/test', () => {
 })
 ```
 
-Short names: `'json'` (application/json), `'html'` (text/html), `'xml'` (application/xml), `'text'` (text/plain). Full MIME strings are also accepted.
+Short names: `'json'` (application/json), `'html'` (text/html), `'xml'` (application/xml), `'text'` (text/plain) — typed as `KnownAcceptType`. Full MIME strings are also accepted.
 
 The `accept` property returns the raw `Accept` header value.
 
@@ -176,7 +213,11 @@ Request body reading is protected by configurable limits:
 | `maxCompressed` | 1 MB | Max compressed body size in bytes |
 | `maxInflated` | 10 MB | Max decompressed body size in bytes |
 | `maxRatio` | 100 | Max compression ratio (zip-bomb protection) |
-| `readTimeoutMs` | 10 000 ms | Body read timeout |
+| `readTimeoutMs` | 10 000 ms | Body read timeout (`0` disables the timeout) |
+
+The default values are exported as `DEFAULT_LIMITS` from `@wooksjs/event-http`.
+
+`rawBody()` transparently decompresses `gzip`, `deflate`, and `br` request bodies (including stacked encodings) and always resolves to the decompressed `Buffer`, cached across calls — that is why the `maxInflated` and `maxRatio` limits exist.
 
 ### App-level configuration
 
@@ -218,7 +259,19 @@ app.post('/upload', async () => {
 })
 ```
 
-Per-request setters use copy-on-write — they do not mutate the app-level configuration.
+Per-request setters use copy-on-write — they do not mutate the app-level configuration. Each setter has a matching getter (`getMaxCompressed()`, `getMaxInflated()`, `getMaxRatio()`, `getReadTimeoutMs()`) returning the currently effective value.
+
+### What happens on violation
+
+When a limit is violated, `rawBody()` throws an `HttpError` that the framework renders automatically as an error response:
+
+| Condition | Error |
+|-----------|-------|
+| Body exceeds `maxCompressed` (or `maxInflated` when uncompressed) | `413` Payload Too Large |
+| Decompressed body exceeds `maxInflated` | `413` Inflated body too large |
+| Compression ratio exceeds `maxRatio` | `413` Compression ratio too high |
+| Unsupported `Content-Encoding` | `415` Unsupported Content-Encoding |
+| No data received for `readTimeoutMs` (the timer resets on every received chunk) | `408` Request body timeout |
 
 ## Body Parser
 

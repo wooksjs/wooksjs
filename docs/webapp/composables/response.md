@@ -3,7 +3,7 @@
 Wooks HTTP implements a response renderer that interprets handler return values and automatically manages `Content-Type` and `Content-Length` headers.
 You can control all aspects of the response through the `useResponse()` composable, which returns an `HttpResponse` instance with chainable methods.
 
-# Content
+## Content
 
 [[toc]]
 
@@ -39,8 +39,11 @@ app.get('json_response', () => {
 1. `string` (text/plain)
 2. `object/array` (application/json)
 3. `boolean` / `number` (text/plain)
-4. `Readable` stream (you must specify `Content-Type` yourself)
-5. `fetch` `Response` (streams body to client response)
+4. `Uint8Array` / `Buffer` (sent as-is; set `Content-Type` yourself — none is set by default)
+5. `Readable` stream (you must specify `Content-Type` yourself)
+6. `fetch` `Response` (streams body to client response)
+
+Instead of returning a value, you can also set the body explicitly on the response instance — `useResponse().setBody(data)` (chainable) or the `body` property.
 
 ## Raw Response
 
@@ -261,6 +264,43 @@ httpStatusCodes[404]; // 'Not Found'
 
 Both are plain values — use them anywhere a status code is needed (e.g. `useResponse().setStatus(...)` or `new HttpError(...)`). The same `EHttpStatusCode` enum drives the auto-status table above.
 
+## Error Responses
+
+Throw an `HttpError` from a handler to produce an error response:
+
+```js
+import { HttpError } from '@wooksjs/event-http';
+
+app.get('admin', () => {
+    throw new HttpError(403, 'Access denied');
+});
+```
+
+The constructor takes a status code (default `500`) and a message string or a structured body object. The rendered body always has the shape `{ statusCode, message, error }`; extra fields of a structured body are merged in:
+
+```js
+throw new HttpError(400, { statusCode: 400, message: 'Validation failed', fields: ['name'] });
+// { statusCode: 400, message: 'Validation failed', error: 'Bad Request', fields: ['name'] }
+```
+
+The structured body type requires `statusCode`, but the rendered value always comes from the constructor's status-code argument.
+
+Any other thrown error is converted to `HttpError(500)` with the error's message.
+
+### Content negotiation
+
+The default response class (`WooksHttpResponse`) renders errors based on the request's `Accept` header:
+
+- `application/json` — JSON body (also the fallback when nothing matches)
+- `text/html` — a branded HTML error page
+- `text/plain` — plain text
+
+To change the branding of the HTML error page (name, version, link, logo), call `WooksHttpResponse.registerFramework({ version, poweredBy, link, image })`. To replace error rendering entirely, subclass `WooksHttpResponse` (override `renderError`) and pass it to the app: `createHttpApp({ responseClass: MyResponse })`.
+
+### Multiple handlers on one route
+
+When several handlers are registered for the same route, a thrown error advances processing to the next handler — silently for `HttpError`, with a logged error otherwise. Only the last handler's error is rendered as the response.
+
 ## Cache-Control
 
 ::: tip
@@ -299,6 +339,20 @@ app.get('static/*', () => {
 | `setAge(value)` | Sets the `Age` header (accepts `number` or time string like `'2h 15m'`) |
 | `setExpires(value)` | Sets the `Expires` header (accepts `Date`, `string`, or `number`) |
 | `setPragmaNoCache(value?)` | Sets `Pragma: no-cache` |
+
+The standalone `renderCacheControl(data)` utility (exported from `@wooksjs/event-http`) renders the same directive object into a `Cache-Control` header value string.
+
+## Advanced Members
+
+A few more `HttpResponse` members are useful when integrating with other tooling:
+
+| Member | Description |
+|--------|-------------|
+| `responded` | `true` once the response has been sent |
+| `sendError(error, ctx)` | Renders and sends an `HttpError` (called automatically when a handler throws) |
+| `toWebResponse()` | Builds a Web Standard `Response` from the accumulated state (used by [programmatic fetch](../fetch.md)) |
+
+The `recordToWebHeaders(record)` utility (exported from `@wooksjs/event-http`) converts a Node-style headers record (`Record<string, string | string[]>`) into Web Standard `Headers`.
 
 ## Proxy
 

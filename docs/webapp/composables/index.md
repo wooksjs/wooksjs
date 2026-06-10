@@ -8,5 +8,8 @@ Wooks HTTP provides various useful composable functions that can be categorized 
 
 - [Request Composables](./request.md): Functions related to the request, such as headers, cookies, and the request body.
 - [Response Composables](./response.md): Functions for setting the response, including headers, cookies, status, and cache control.
+- [Body Parser](../body.md): Parsing the request body (JSON, form data, urlencoded, and more) via `@wooksjs/http-body`.
+- [Proxy Requests](../proxy.md): Proxying requests to other servers via `@wooksjs/http-proxy`.
+- [Serve Static](../static.md): Serving static files via `@wooksjs/http-static`.
 
 You can also create your own composables to encapsulate additional logic, such as retrieving user data based on cookies or authentication headers.

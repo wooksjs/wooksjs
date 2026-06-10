@@ -16,7 +16,7 @@ Zero runtime dependencies. Uses native `WebSocket` in browsers.
 npm install @wooksjs/ws-client
 ```
 
-For Node.js, also install the `ws` package:
+Node.js 22+ and browsers need nothing extra. For Node.js < 22, also install the `ws` package:
 
 ```bash
 npm install @wooksjs/ws-client ws
@@ -37,12 +37,15 @@ const client = createWsClient('ws://localhost:3000/ws', {
 
 ### Node.js
 
+Node.js 22+ has a native global `WebSocket` — the browser example above works as-is. On Node.js < 22, expose the `ws` package as a global polyfill before creating the client:
+
 ```ts
 import WebSocket from 'ws'
 import { createWsClient } from '@wooksjs/ws-client'
 
+globalThis.WebSocket ??= WebSocket as any
+
 const client = createWsClient('ws://localhost:3000/ws', {
-  _WebSocket: WebSocket as any,
   rpcTimeout: 5000,
 })
 ```
@@ -56,7 +59,6 @@ interface WsClientOptions {
   rpcTimeout?: number                          // Timeout for call() in ms (default: 10000)
   messageParser?: (raw: string) => any         // Custom deserializer (default: JSON.parse)
   messageSerializer?: (msg: any) => string     // Custom serializer (default: JSON.stringify)
-  _WebSocket?: typeof WebSocket               // WebSocket constructor override (Node.js)
 }
 ```
 

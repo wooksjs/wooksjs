@@ -6,8 +6,9 @@ For workflow core (steps, flows, schema), see [event-wf.md](event-wf.md). For ou
 
 - [Parent Context Sharing](#parent-context-sharing) — inherit HTTP context into workflow steps
 - [Spies](#spies) — `attachSpy`/`detachSpy`, per-execution spy
-- [Error Handling](#error-handling) — `onError`, `StepRetriableError`
+- [Error Handling](#error-handling) — step errors, `StepRetriableError`
 - [Testing](#testing) — unit tests, resume tests, outlet tests
+- [Low-level Context API](#low-level-context-api) — `wfKind`, `resumeKey`, `createWfContext`/`resumeWfContext`, `wfShortcuts`
 
 ## Parent Context Sharing
 
@@ -77,8 +78,8 @@ const spy = (event, data) => {
   console.log(`[${event}]`, data)
 }
 
-app.attachSpy(spy)
-app.detachSpy(spy) // remove later
+const detach = app.attachSpy(spy) // returns a detach function
+detach()                          // or: app.detachSpy(spy)
 ```
 
 ### Per-execution spy
@@ -95,17 +96,14 @@ const output = await app.start('my-flow', { result: 0 }, {
 
 ### Spy function signature
 
-```ts
-type TWorkflowSpy<T, I, IR> = (
-  event: string,
-  eventOutput: string | undefined | {
-    fn: string | TWorkflowStepConditionFn<T>
-    result: boolean
-  },
-  flowOutput: TFlowSpyData<T, IR>,
-  ms?: number,
-) => void
-```
+`spy(event, eventOutput, flowOutput, ms)` — `event` is one of:
+
+- `'step'` — a step executed; `eventOutput` is the step id, `ms` is duration.
+- `'error'` — a non-retriable error; `eventOutput` is the message.
+- A condition event — `'eval-condition-fn' | 'eval-while-cond' | 'eval-break-fn' | 'eval-continue-fn'`; `eventOutput` is `{ fn, result }`.
+- `'<phase>-start'` / `'<phase>-interrupt'` / `'<phase>-end'` where phase is `workflow | resume | subflow`.
+
+`flowOutput` carries the current flow state. Spy exceptions are caught and logged, never break the run.
 
 Use spies for logging and metrics instead of adding instrumentation inside every step.
 
@@ -113,21 +111,9 @@ Use spies for logging and metrics instead of adding instrumentation inside every
 
 ## Error Handling
 
-### Default behavior
-
-Errors call `console.error` and `process.exit(1)`. Always provide `onError`:
-
-```ts
-const app = createWfApp({
-  onError: (error) => {
-    console.error(`Workflow error: ${error.message}`)
-  },
-})
-```
-
 ### Step handler errors
 
-Errors thrown in step handlers propagate from `app.start()` / `app.resume()`:
+Step-handler errors (other than `StepRetriableError`) propagate from `app.start()` / `app.resume()` — wrap calls in `try/catch`:
 
 ```ts
 try {
@@ -137,9 +123,11 @@ try {
 }
 ```
 
+The `onError` option is only consumed by the protected `onError()` hook for subclasses; `WooksWf` itself never invokes it.
+
 ### StepRetriableError
 
-Signals a recoverable failure. The workflow can be resumed:
+Signals a recoverable failure. The engine catches it and returns a **failed output** (it does NOT propagate as an exception): `output.finished === false` with `output.error` set to the original error. Recover via the output, not `try/catch`:
 
 ```ts
 import { StepRetriableError } from '@wooksjs/event-wf'
@@ -149,33 +137,22 @@ app.step('fetch-data', {
     try {
       ctx.data = await fetchFromApi()
     } catch (e) {
-      throw new StepRetriableError('API temporarily unavailable')
+      throw new StepRetriableError(new Error('API temporarily unavailable'))
     }
   },
 })
 
-try {
-  await app.start('my-flow', {})
-} catch (error) {
-  if (error instanceof StepRetriableError) {
-    await sleep(5000)
-    await app.resume(error.state, { input: retryInput })
-  }
+const output = await app.start('my-flow', {})
+if (!output.finished && output.error) {
+  await sleep(5000)
+  await app.resume(output.state, { input: retryInput })
 }
 ```
 
-Constructor signature:
+Constructor: `originalError: Error` first, then optional `errorList`, `inputRequired`, `expires`.
 
-```ts
-class StepRetriableError<IR> extends Error {
-  constructor(
-    originalError: Error,
-    errorList?: unknown,
-    inputRequired?: IR,
-    expires?: number,
-  )
-}
-```
+- `output.retry(input?)` exists on the failed output, but it invokes the raw engine resume outside a WF event context (only `resume` on paused outputs is rewrapped by the adapter), so handlers using composables throw — prefer `app.resume(output.state, ...)`.
+- String handlers signal retriable failure by RETURNING the error as a value: `return new StepRetriableError(new Error(...))` — the class is available in the sandbox scope (see [event-wf.md](event-wf.md#string-handlers)). Function handlers may throw it or return it.
 
 ---
 
@@ -225,11 +202,14 @@ Use `prepareTestHttpContext` from `@wooksjs/event-http` to simulate HTTP request
 
 ```ts
 import { prepareTestHttpContext } from '@wooksjs/event-http'
-import { HandleStateStrategy, WfStateStoreMemory } from '@wooksjs/event-wf'
+import {
+  createHttpOutlet, createOutletHandler, HandleStateStrategy, WfStateStoreMemory,
+} from '@wooksjs/event-wf'
 
 const store = new WfStateStoreMemory()
 const strategy = new HandleStateStrategy({ store })
 const config = { state: strategy, outlets: [createHttpOutlet()] }
+const handle = createOutletHandler(wfApp) // wfApp = createWfApp(...) with steps/flows registered
 
 // Start
 const runCtx1 = prepareTestHttpContext({
@@ -238,7 +218,7 @@ const runCtx1 = prepareTestHttpContext({
   headers: { 'content-type': 'application/json' },
   rawBody: JSON.stringify({ wfid: 'my-flow' }),
 })
-const result = await runCtx1(() => handleWfOutletRequest(config, deps))
+const result = await runCtx1(() => handle(config))
 
 // Resume with token
 const runCtx2 = prepareTestHttpContext({
@@ -247,6 +227,17 @@ const runCtx2 = prepareTestHttpContext({
   headers: { 'content-type': 'application/json' },
   rawBody: JSON.stringify({ wfs: result.wfs, input: { email: 'a@b.com' } }),
 })
-const resumed = await runCtx2(() => handleWfOutletRequest(config, deps))
+const resumed = await runCtx2(() => handle(config))
 expect(resumed).toEqual({ finished: true })
 ```
+
+---
+
+## Low-level Context API
+
+All imported from `@wooksjs/event-wf`. Normal step code uses `useWfState()` — use these only to seed/inspect WF contexts manually (custom drivers, tests):
+
+- `wfKind` — the `'WF'` event kind; slots `schemaId`, `stepId`, `inputContext`, `indexes`, `input` read via `current().get(wfKind.keys.<slot>)`.
+- `resumeKey` — boolean slot: `false` on start, `true` on resume; surfaced as `useWfState().resume`.
+- `createWfContext(options, seeds, fn)` / `resumeWfContext(options, seeds, fn)` — run `fn` inside a fresh WF event context; `seeds` follows `TWFEventInput` (`{ schemaId, stepId, inputContext, indexes?, input? }`).
+- `wfShortcuts` — `{ flow: 'WF_FLOW', step: 'WF_STEP' }`, the router pseudo-methods under which flows and steps are registered and looked up.

@@ -71,6 +71,8 @@ curl http://localhost:3000/hello/Wooks
 # Hello Wooks!
 ```
 
+When you create the server yourself, call `app.attachServer(server)` so that `app.close()` can stop it. `app.getServer()` returns the attached (or `listen()`-created) `http.Server`, and `await app.close()` shuts it down gracefully.
+
 ## AI Agent Skills
 
 Wooks provides a unified skill for AI coding agents (Claude Code, Cursor, Windsurf, Codex, etc.) that covers all packages with progressive-disclosure reference docs.
@@ -81,8 +83,20 @@ npx skills add wooksjs/wooksjs
 
 Learn more about AI agent skills at [skills.sh](https://skills.sh).
 
-## Next Steps
+## What Each Page Covers
 
-- **Working with Request:** Check out [Request Composables](/webapp/composables/request) to learn how to manipulate request data, read headers or cookies and more.
-- **Add Logging & Error Handling:** Integrate event loggers or custom error-handling composables to make debugging easier.
-- **Advance to Other Flavors:** Once comfortable with HTTP, consider exploring CLI or Workflow flavors for broader event-driven architectures.
+- [Introduction](/webapp/introduction) — What `@wooksjs/event-http` gives you at a glance.
+- [Comparison](/webapp/comparison) — Concrete differences vs Express, Fastify, and h3.
+- [Routing](/webapp/routing) — Route registration, parametric routes, wildcards, path builders.
+- [Request Composables](/webapp/composables/request) — Headers, query params, cookies, authorization, client IP, body limits.
+- [Response Composables](/webapp/composables/response) — Status, headers, cookies, cache control, error responses.
+- [Body Parser](/webapp/body) — Parsing JSON, form data, and more with `@wooksjs/http-body`.
+- [Proxy Requests](/webapp/proxy) — Reverse proxying with `@wooksjs/http-proxy`.
+- [Serve Static](/webapp/static) — Static file serving with `@wooksjs/http-static`.
+- [Programmatic Fetch](/webapp/fetch) — Call your routes in-process with `app.fetch()` / `app.request()`.
+- [Testing](/webapp/testing) — Integration tests via `app.request()` and unit tests via `prepareTestHttpContext()`.
+- [Context and Hooks](/webapp/more-hooks) — Build your own composables with `defineWook`.
+- [Framework Integrations](/webapp/integrations/) — Run Wooks inside Express, Fastify, or h3.
+- [Logging](/webapp/logging) — Event loggers and logger configuration.
+
+Once comfortable with HTTP, consider exploring the CLI or Workflow flavors for broader event-driven architectures.

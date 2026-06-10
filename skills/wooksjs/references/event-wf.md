@@ -67,23 +67,11 @@ const app2 = createWfApp({}, wooks)
 
 ### TWooksWfOptions
 
-```ts
-interface TWooksWfOptions {
-  onError?: (e: Error) => void
-  onNotFound?: TWooksHandler
-  onUnknownFlow?: (schemaId: string, raiseError: () => void) => unknown
-  logger?: TConsoleBase
-  eventOptions?: EventContextOptions // event context options (logger, parent)
-  router?: {
-    ignoreTrailingSlash?: boolean
-    ignoreCase?: boolean
-    cacheLimit?: number
-  }
-  strictStepIds?: boolean // throw on duplicate WF_STEP id instead of warn (default false)
-}
-```
-
-Default error behavior: `console.error` + `process.exit(1)`. Always provide `onError` in production.
+- `onNotFound` — handler invoked when `start()`/`resume()` finds no flow for the id.
+- `logger` — `TConsoleBase` for adapter logging (duplicate-step warnings, etc.).
+- `router` — `{ ignoreTrailingSlash?, ignoreCase?, cacheLimit? }` for the underlying router.
+- `strictStepIds` — throw on duplicate `WF_STEP` id instead of warn (default `false`).
+- `onError` — consumed only by the protected `onError()` hook for subclasses; `WooksWf` itself never invokes it. Step errors propagate from `start()`/`resume()` — see [wf-advanced.md](wf-advanced.md#error-handling).
 
 Duplicate step ids are not fatal by default — the **first** registration wins, later ones are ignored with a `logger.warn`. Set `strictStepIds: true` to throw instead (see [Rules & Gotchas](#rules--gotchas)).
 
@@ -126,46 +114,14 @@ const resumed = await app.resume(output.state, { input: userInput })
 
 ### `TFlowOutput<T, I, IR>`
 
-Return type of both `start()` and `resume()`. Discriminated union:
+Return type of both `start()` and `resume()` — discriminated by `output.finished`:
 
-```ts
-// Finished
-interface TFlowFinished<T, IR> {
-  finished: true
-  state: TFlowState<T>
-  stepId: string
-}
+- **Finished** — `finished: true`; final context at `output.state.context`.
+- **Paused** (waiting for input) — `finished: false` with `inputRequired` (the step's input descriptor or outlet signal), `resume(input)`, optional `expires` / `errorList`.
+- **Failed (retriable)** — `finished: false` with `error` (the original `Error`) and `retry(input?)`; produced when a step throws/returns `StepRetriableError` — see [wf-advanced.md](wf-advanced.md#error-handling).
+- All variants carry `state` (`{ schemaId, context, indexes, meta? }` — plain JSON, see [State Serialization](#state-serialization)) and `stepId`.
 
-// Paused (waiting for input)
-interface TFlowPaused<T, I, IR> {
-  finished: false
-  state: TFlowState<T>
-  stepId: string
-  inputRequired: IR
-  resume: (input: I) => Promise<TFlowOutput<T, unknown, IR>>
-  expires?: number
-  errorList?: unknown
-}
-
-// Failed (retriable)
-interface TFlowFailed<T, I, IR> {
-  finished: false
-  state: TFlowState<T>
-  stepId: string
-  error: Error
-  retry: (input?: I) => Promise<TFlowOutput<T, unknown, IR>>
-  inputRequired?: IR
-  expires?: number
-  errorList?: unknown
-}
-
-interface TFlowState<T> {
-  schemaId: string
-  context: T
-  indexes: number[]
-  meta?: Record<string, unknown>
-}
-```
+Distinguish paused from failed by checking `output.error`.
 
 ### Checking completion
 
@@ -189,6 +145,8 @@ if (!output.finished && output.resume) {
 }
 ```
 
+`output.resume()` re-passes only `spy`/`cleanup` — it does NOT carry forward `eventContext` or `strategy`. If you used those, call `app.resume(output.state, { input, eventContext, strategy })` instead.
+
 ---
 
 ## Defining Steps
@@ -210,7 +168,7 @@ app.step('add', {
 
 Parameters:
 - `id` -- step identifier. Supports router syntax: `'add/:n'`, `'process/*'`.
-- `opts.handler` -- function `(ctx: T, input?: I) => void | IR` or a JavaScript string.
+- `opts.handler` -- `(ctx: T, input?: I) => void | { inputRequired: IR; expires?: number; errorList?: unknown }` (or return a `StepRetriableError`) -- returning `{ inputRequired }` pauses the workflow; `void` continues. Or a JavaScript string.
 - `opts.input` -- optional input type description (string). When present and no input is provided
   at runtime, the workflow pauses to request input.
 
@@ -249,8 +207,9 @@ app.step('multiply', { handler: 'ctx.result *= 2' })
 Useful when workflow definitions are stored in a database -- serializable and loadable dynamically.
 
 **Sandbox restrictions:** No access to `require`, `import`, `process`, `fs`, `console`, or any
-Node.js globals. Only `ctx` and `input` are available. Use function handlers for anything needing
-Node.js APIs, imports, async operations, or composables.
+Node.js globals. Scope contains only `ctx`, `input`, and `StepRetriableError` -- return
+`new StepRetriableError(new Error(...))` to fail retriably (see [wf-advanced.md](wf-advanced.md#error-handling)).
+Use function handlers for anything needing Node.js APIs, imports, async operations, or composables.
 
 ---
 
@@ -324,16 +283,18 @@ Parameters:
 - `id` -- flow identifier. Supports router syntax (e.g. `'process/:type'`).
 - `schema` -- array of step references, conditions, and loops (see Schema Syntax).
 - `prefix` -- optional prefix prepended to step IDs during resolution.
-- `init` -- optional async function called before the first step executes.
+- `init` -- optional async function; runs before EVERY start AND resume of the flow.
 
 ### Flow init function
 
-Runs in the workflow context before any step executes:
+Runs in the workflow context before EVERY start and resume -- use it for lazy setup, not
+unconditional context initialization (on resume it re-runs against the restored context).
+Guard context writes with `useWfState().resume`:
 
 ```ts
 app.flow('my-flow', ['step1', 'step2'], '', () => {
-  const { ctx } = useWfState()
-  ctx<{ result: number }>().result = 0
+  const { ctx, resume } = useWfState()
+  if (!resume) ctx<{ result: number }>().result = 0 // don't clobber restored context on resume
 })
 ```
 
@@ -343,37 +304,17 @@ app.flow('my-flow', ['step1', 'step2'], '', () => {
 
 Flow schemas are arrays of step references and control structures.
 
-### TWorkflowSchema types
+### Schema item forms
 
-```ts
-type TWorkflowSchema<T> = TWorkflowItem<T>[]
+A schema (`TWorkflowSchema<T>`) is an array; each item is one of:
 
-type TWorkflowItem<T> =
-  | string                          // step ID shorthand
-  | TWorkflowStepSchemaObj<T, any>  // step with options
-  | TSubWorkflowSchemaObj<T>        // subflow / loop
-  | TWorkflowControl<T>            // break / continue
+- `'step-id'` -- string shorthand for a step reference.
+- `{ id, input?, condition? }` -- step reference with static input and/or condition.
+- `{ steps, condition?, while? }` -- subflow: nested schema, optionally conditional or looped.
+- `{ break: cond }` / `{ continue: cond }` -- loop controls (mutually exclusive).
 
-interface TWorkflowStepSchemaObj<T, I> {
-  id: string
-  input?: I
-  condition?: string | TWorkflowStepConditionFn<T>
-  steps?: never
-}
-
-interface TSubWorkflowSchemaObj<T> {
-  condition?: string | TWorkflowStepConditionFn<T>
-  while?: string | TWorkflowStepConditionFn<T>
-  steps: TWorkflowSchema<T>
-  id?: never
-}
-
-type TWorkflowControl<T> =
-  | { continue: string | TWorkflowStepConditionFn<T>; break?: never }
-  | { break: string | TWorkflowStepConditionFn<T>; continue?: never }
-
-type TWorkflowStepConditionFn<T> = (ctx: T) => boolean | Promise<boolean>
-```
+Conditions are either string expressions (evaluated against the context, see below) or
+`(ctx: T) => boolean | Promise<boolean>` functions.
 
 ### Step references -- three forms
 
@@ -478,7 +419,7 @@ app.step('my-step', {
     ctx<MyContext>()    // mutable workflow context (type T)
     input<MyInput>()   // current step's input (or undefined)
     schemaId           // flow ID being executed
-    stepId()           // current step ID
+    stepId()           // normalized '/<id>' of the current step ('/add/5'), null before the first step
     indexes()          // position in schema (for resume tracking)
     resume             // boolean: true if this is a resumed execution
   },
@@ -537,7 +478,7 @@ app.flow('onboarding', [
 
 const output = await app.start('onboarding', {})
 // output.finished === false
-// output.inputRequired.type === 'string'
+// output.inputRequired === 'string'  (the step's input descriptor)
 
 const final = await app.resume(output.state, { input: 'user@example.com' })
 // final.finished === true
@@ -640,16 +581,20 @@ output = await app.resume(output.state, { input: 'pro' })
 
 ## Rules & Gotchas
 
-- Provide `<T>` to `createWfApp<T>()` and `ctx<T>()` for type safety.
-- `start()` / `resume()` return Promises — `await` them.
-- Composables must be called inside a step handler (or flow `init`, which runs in context).
-- String handlers are sandboxed: only `ctx` and `input` available. No `require`/`import`/`process`/`console`/Node globals. Use function handlers for anything non-trivial.
-- Step IDs are router paths: `'process/items'` is two segments. Use `'process-items'` for flat IDs.
-- Step IDs must be unique: re-registering an id is **first-win** (later handler ignored) + a `logger.warn`. Set `strictStepIds: true` to throw instead. Flow ids already throw on duplicate.
-- The router is a process-global singleton unless you pass an explicit `Wooks`/adapter to `createWfApp`, so step ids collide **across apps too**. In tests, `beforeEach(() => clearGlobalWooks())` (from `wooks`) to reset it — see [wf-advanced.md](wf-advanced.md#testing).
-- Conditions access context properties directly: `'result > 10'` checks `context.result` (no `ctx.` prefix).
-- Input is cleared after first step — subsequent steps get input only via `resume()`.
-- Prefer parametric steps over duplication (`add/:n` vs `add-5`/`add-10`).
-- Keep branching in schema conditions, not handler code.
-- Do not modify `output.state` — `indexes` tracks exact position.
-- Default `onError` is `console.error` + `process.exit(1)` — always provide `onError` in production.
+| #   | Invariant |
+| --- | --------- |
+| 1   | Provide `<T>` to `createWfApp<T>()` and `ctx<T>()` for type safety. |
+| 2   | `start()` / `resume()` return Promises — `await` them. |
+| 3   | Composables must be called inside a step handler (or flow `init`, which runs in context). |
+| 4   | String handlers are sandboxed: scope is only `ctx`, `input`, and `StepRetriableError`. No `require`/`import`/`process`/`console`/Node globals. Use function handlers for anything non-trivial. |
+| 5   | Step IDs are router paths: `'process/items'` is two segments. Use `'process-items'` for flat IDs. |
+| 6   | Step IDs must be unique: re-registering an id is **first-win** (later handler ignored) + a `logger.warn`. Set `strictStepIds: true` to throw instead. |
+| 7   | Flow ids throw on duplicate within the same app instance; across apps sharing a router they are first-win like step ids. |
+| 8   | Register steps before the flows that reference them — `flow()` validates step ids against the router at registration and throws `Step "/<id>" not found.` otherwise. |
+| 9   | The router is a process-global singleton unless you pass an explicit `Wooks`/adapter to `createWfApp`, so step ids collide **across apps too**. In tests, `beforeEach(() => clearGlobalWooks())` (from `wooks`) to reset it — see [wf-advanced.md](wf-advanced.md#testing). |
+| 10  | Conditions access context properties directly: `'result > 10'` checks `context.result` (no `ctx.` prefix). |
+| 11  | Input is cleared after first step — subsequent steps get input only via `resume()`. |
+| 12  | Flow `init` runs before EVERY start and resume — guard context initialization with `useWfState().resume`. |
+| 13  | Prefer parametric steps over duplication (`add/:n` vs `add-5`/`add-10`); keep branching in schema conditions, not handler code. |
+| 14  | Do not modify `output.state` — `indexes` tracks exact position. |
+| 15  | Step errors propagate from `start()`/`resume()` — see [wf-advanced.md](wf-advanced.md#error-handling). |

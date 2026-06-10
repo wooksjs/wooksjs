@@ -38,21 +38,14 @@ const wf = createWfApp<{ email?: string; verified?: boolean }>()
 // 2. Define steps
 wf.step('ask-email', {
   handler: () => {
-    const { input } = useWfState()
-    if (input()) return                    // already provided on resume
-    return outletHttp({ fields: ['email'] }) // pause and ask client
-  },
-})
-
-wf.step('save', {
-  handler: () => {
     const { ctx, input } = useWfState()
     const data = input<{ email: string }>()
-    if (data) ctx<{ email?: string }>().email = data.email
+    if (!data) return outletHttp({ fields: ['email'] }) // pause and ask client
+    ctx<{ email?: string }>().email = data.email        // consume on resume
   },
 })
 
-wf.flow('signup', ['ask-email', 'save'])
+wf.flow('signup', ['ask-email'])
 
 // 3. Wire outlet handler to HTTP
 const http = createHttpApp()
@@ -77,6 +70,10 @@ POST /signup  { wfid: "signup" }
 POST /signup  { wfs: "abc123", input: { email: "user@example.com" } }
 ← { finished: true }
 ```
+
+::: warning Input reaches only the paused step
+The run input is visible only to the **first** step executed in a run (start or resume) — the paused step itself. Subsequent steps in the same run see `input()` as `undefined`, so the pausing step must consume and persist its own input (as `ask-email` does above).
+:::
 
 ## Step Helpers
 
@@ -260,9 +257,12 @@ resolve names:
 }
 ```
 
-Unknown names throw at the call site (config bug). Tokens whose prefix names
-an unknown strategy return HTTP 410 (same as any invalid token — the trigger
-does not leak which strategies are registered).
+`swapStrategy()` validates only the name **format** (`/^[A-Za-z0-9_-]+$/` —
+format violations throw at the call site). A well-formed name missing from the
+registry errors loudly at the next pause instead: the trigger throws
+`Workflow paused with unknown strategy '<name>' …` — a config bug, surfaced as
+a 500. Tokens whose prefix names an unknown strategy return HTTP 410 (same as
+any invalid token — the trigger does not leak which strategies are registered).
 
 When you drive `start()` / `resume()` directly (instead of through the outlet
 trigger), set the initial strategy with the `strategy` run option and read the
@@ -452,6 +452,7 @@ import {
 
 interface SignupContext {
   email?: string
+  verificationSent?: boolean
   verified?: boolean
 }
 
@@ -459,21 +460,20 @@ const wf = createWfApp<SignupContext>()
 
 wf.step('collect-email', {
   handler: () => {
-    const { input } = useWfState()
-    if (input()) return
-    return outletHttp({ fields: ['email'], title: 'Enter your email' })
+    const { ctx, input } = useWfState()
+    const data = input<{ email: string }>()
+    if (!data) return outletHttp({ fields: ['email'], title: 'Enter your email' })
+    ctx<SignupContext>().email = data.email  // consume the input here — later steps won't see it
   },
 })
 
 wf.step('send-verification', {
   handler: () => {
-    const { ctx, input } = useWfState()
-    const data = input<{ email: string }>()
-    if (data) {
-      ctx<SignupContext>().email = data.email
-      return  // resume after email link clicked
-    }
-    return outletEmail(ctx<SignupContext>().email!, 'verify-email')
+    const { ctx } = useWfState()
+    const context = ctx<SignupContext>()
+    if (context.verificationSent) return  // link clicked — continue to 'complete'
+    context.verificationSent = true       // persisted with the paused state
+    return outletEmail(context.email!, 'verify-email')
   },
 })
 
@@ -517,5 +517,7 @@ http.listen(3000)
 **Flow:**
 
 1. `POST /signup { wfid: "signup" }` → returns form fields
-2. `POST /signup { wfs: "token1", input: { email: "user@test.com" } }` → sends verification email
-3. User clicks `GET /signup?wfs=token2` → workflow completes, redirect to `/welcome`
+2. `POST /signup { wfs: "token", input: { email: "user@test.com" } }` → `collect-email` saves the email, `send-verification` sets the flag and sends the email
+3. User clicks `GET /signup?wfs=token` → `send-verification` re-runs, sees the flag, and continues — workflow completes, redirect to `/welcome`
+
+The link click is a `GET` with no body, so no input reaches the workflow — that's why `send-verification` uses a context flag (persisted with the paused state) rather than input to detect the resume.

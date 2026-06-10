@@ -63,3 +63,12 @@ my-cli app build my-target
 ```
 
 Both commands will be handled by `app build :target?` pattern. In the first scenario parameter `target` will be undefined. In the second scenario parameter `target` will get `my-target` value.
+
+## Gotchas
+
+-   Commands are matched as router paths: each positional argument becomes a path segment. A `/` inside an argument value does not break the match — `run()` encodes it as `%2F`, so the value still binds to a single `:param` and the handler receives the original value.
+
+## Next Steps
+
+-   [Command Options](/cliapp/options) — declare and read `--options`
+-   [Command Usage (Help)](/cliapp/cli-help) — add descriptions, args, aliases, and examples to commands

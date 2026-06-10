@@ -64,13 +64,15 @@ const app = express()
 
 // Express middleware works as usual
 app.use(cors())
-app.use(express.json())
 
 // Wooks handles these routes
 const wooks = new WooksExpress(app)
 wooks.get('/api/users', () => {
     return [{ id: 1, name: 'Alice' }]
 })
+
+// Body parsing for Express routes — register after WooksExpress
+app.use(express.json())
 
 // Express handles this route
 app.get('/legacy', (req, res) => {
@@ -79,6 +81,10 @@ app.get('/legacy', (req, res) => {
 
 app.listen(3000)
 ```
+
+::: warning Register WooksExpress before body parsers
+Body-parsing middleware (`express.json()`, `body-parser`) consumes the request stream — if it runs before Wooks, `rawBody()` / `useBody()` receive an empty body on Wooks routes. Instantiate `WooksExpress` before registering body parsers. Wooks parses bodies on demand, so global body parsers are unnecessary for Wooks routes.
+:::
 
 ## API
 
@@ -94,7 +100,7 @@ Creates a new adapter instance and registers Wooks middleware on the Express app
 | `router`         | `object`                   | —       | Router options (`ignoreTrailingSlash`, `ignoreCase`, `cacheLimit`)               |
 | `requestLimits`  | `object`                   | —       | Default request body size limits                                                 |
 | `defaultHeaders` | `Record<string, string>`   | —       | Headers added to every response                                                  |
-| `responseClass`  | `typeof WooksHttpResponse` | —       | Custom response class                                                            |
+| `responseClass`  | `typeof WooksHttpResponse` | —       | Custom response class, see [Error Responses](/webapp/composables/response#error-responses)      |
 
 ### Route Methods
 
@@ -133,7 +139,7 @@ await wooks.listen(3000)
 
 ### `wooks.close()`
 
-Stops the server.
+Stops the server. Only stops servers started via `wooks.listen()` — if you start the server with `app.listen()` yourself, keep the returned `Server` and close it directly (or pass it to `wooks.attachServer(server)` first).
 
 ```ts
 await wooks.close()
@@ -141,18 +147,4 @@ await wooks.close()
 
 ## Available Composables
 
-These come from `@wooksjs/event-http` and work inside any Wooks handler:
-
-| Composable           | Purpose                                     |
-| -------------------- | ------------------------------------------- |
-| `useRequest()`       | Request method, URL, headers, body, IP      |
-| `useRouteParams()`   | Route parameters (`:id`, etc.)              |
-| `useHeaders()`       | Request headers                             |
-| `useResponse()`      | Set status, headers, cookies, cache control |
-| `useCookies()`       | Read request cookies                        |
-| `useUrlParams()`     | URL query parameters                        |
-| `useAuthorization()` | Parse Authorization header                  |
-| `useAccept()`        | Check Accept header                         |
-| `useLogger()`        | Event-scoped logger                         |
-
-See the [Composables](/webapp/composables/) section for full reference.
+All `@wooksjs/event-http` composables work inside Wooks handlers — see the [Composables reference](/webapp/composables/).

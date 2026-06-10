@@ -35,6 +35,8 @@ const { method, url, headers, rawBody, getIp, reqId } = useRequest()
 | `getIpList()`    | `() => { remoteIp: string; forwarded: string[] }` | All IPs (remote + X-Forwarded-For)               |
 | `isCompressed()` | `() => boolean`                                   | Whether the request body is compressed           |
 
+For parsed bodies (JSON / form-data / urlencoded) use `useBody()` from `@wooksjs/http-body` — see [http-body.md](http-body.md).
+
 **Per-request limit overrides:**
 
 ```ts
@@ -48,6 +50,8 @@ Default limits: `maxCompressed: 1MB`, `maxInflated: 10MB`, `maxRatio: 100`, `rea
 Matching getters read the current (possibly overridden) values: `getMaxCompressed()`, `getMaxInflated()`, `getMaxRatio()`, `getReadTimeoutMs()`.
 
 Limit setters use copy-on-write; they do not affect other requests.
+
+Exceeding limits throws `HttpError` automatically rendered to the client: `413` (compressed/inflated size or compression ratio), `415` (unknown Content-Encoding — supported: gzip/deflate/br, plus identity), `408` (read timeout). `setReadTimeoutMs(0)` disables the timeout.
 
 ---
 

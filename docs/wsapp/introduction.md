@@ -51,7 +51,7 @@ Plus `WsError` for structured error responses, heartbeat keep-alive, and a plugg
 | `subscribe(path, data?)` | Subscribe with auto-resubscribe on reconnect |
 | `on(event, pathPattern, handler)` | Listen for server push messages (exact or wildcard paths) |
 
-Zero runtime dependencies. Works in browsers (native `WebSocket`) and Node.js (with `ws` package).
+Zero runtime dependencies. Works in browsers and Node.js 22+ out of the box (native `WebSocket`); on Node.js < 22, expose the `ws` package as a global polyfill.
 
 ## How It Fits Together
 

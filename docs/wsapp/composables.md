@@ -4,7 +4,7 @@
 This package is in an experimental phase. The API may change without following semver until it reaches a stable release.
 :::
 
-Composables for working with WebSocket connections, messages, rooms, and server state. All composables follow the Wooks `defineWook` pattern — results are cached per context and resolved lazily.
+Composables for working with WebSocket connections, messages, rooms, and server state. Most composables follow the Wooks `defineWook` pattern — results are cached per context and resolved lazily; `useWsServer()` is a plain function.
 
 [[toc]]
 
@@ -118,7 +118,7 @@ See [Rooms & Broadcasting](/wsapp/rooms) for a detailed guide.
 
 ## useWsServer
 
-Server-wide state: all connections, global broadcast, room queries. Available in **any** context — connection handlers, message handlers, or even outside of them if you have a reference to the adapter.
+Server-wide state: all connections, global broadcast, room queries. Available anywhere — including outside event contexts — once a `WooksWs` adapter has been constructed; it throws `[event-ws] No active WooksWs adapter` otherwise. With multiple `WooksWs` instances in one process, it reads the most recently constructed one.
 
 ```ts
 import { useWsServer } from '@wooksjs/event-ws'
@@ -177,7 +177,11 @@ This is re-exported from `@wooksjs/event-core` for convenience.
 
 ## HTTP Composables in WebSocket
 
-Because WebSocket connections start as HTTP upgrade requests, the original request data is accessible through the parent context chain. HTTP composables resolve transparently:
+When a connection starts as an HTTP upgrade request, the original request data is accessible through the parent context chain. HTTP composables resolve transparently:
+
+::: warning Integrated mode only
+HTTP composables are available only when the connection went through an UPGRADE route that calls `ws.upgrade()` (integrated mode with `@wooksjs/event-http`). In standalone mode (`ws.listen()`), there is no HTTP upgrade context and these composables throw.
+:::
 
 ```ts
 import { useHeaders, useCookies, useAuthorization } from '@wooksjs/event-http'
@@ -200,7 +204,7 @@ ws.onMessage('query', '/me', () => {
 })
 ```
 
-| HTTP Composable | Works in WS? | Notes |
+| HTTP Composable | Works in WS (integrated mode)? | Notes |
 |----------------|-------------|-------|
 | `useRequest()` | Yes | Returns the upgrade `IncomingMessage` |
 | `useHeaders()` | Yes | Upgrade request headers |
@@ -233,7 +237,7 @@ ws.onMessage('join', '/chat/:room', () => {
 | Context | Behavior |
 |---------|---------|
 | `onMessage` with `id` | Sends `{ id, error: { code, message } }` |
-| `onMessage` without `id` | Error is logged, nothing sent |
+| `onMessage` without `id` | Nothing sent; `WsError` is silently swallowed (only non-`WsError` exceptions are logged) |
 | `onConnect` | Rejects the connection (close code 1008 for 401/403, 1011 for others) |
 
 ## Connection Lifecycle
@@ -273,13 +277,31 @@ ws.onDisconnect(() => {
 
 ### Heartbeat
 
-The server sends periodic `ping` frames to detect dead connections. Connections that don't respond with `pong` are terminated.
+In standalone mode, the server sends periodic `ping` frames to detect dead connections. A connection that has not answered the previous ping with a `pong` by the next tick is closed with WS code `1001` (Heartbeat timeout) — the pong window equals `heartbeatInterval`.
 
 ```ts
-const ws = createWsApp(http, {
+const ws = createWsApp({
   heartbeatInterval: 30000, // ms between pings (default: 30000)
-  heartbeatTimeout: 5000,   // ms to wait for pong before closing (default: 5000)
 })
+await ws.listen(3000)
 ```
 
 Set `heartbeatInterval: 0` to disable heartbeat.
+
+::: warning
+Heartbeat runs only in standalone mode (`ws.listen()`). When `@wooksjs/event-ws` is integrated with an HTTP server via `createWsApp(http)` + `ws.upgrade()`, no heartbeat pings are sent — implement your own liveness checks if you need dead-connection reaping in integrated mode.
+:::
+
+## Server Options
+
+All options accepted by `createWsApp()` — pass them as the only argument in standalone mode, or as the second argument after the HTTP app in integrated mode:
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `heartbeatInterval` | `30000` | Ms between heartbeat pings (standalone mode only). `0` disables. |
+| `messageParser` | `JSON.parse` | Custom deserializer for incoming messages. See [Custom Serialization](/wsapp/protocol#custom-serialization). |
+| `messageSerializer` | `JSON.stringify` | Custom serializer for outgoing messages. See [Custom Serialization](/wsapp/protocol#custom-serialization). |
+| `maxMessageSize` | 1 MB | Incoming messages exceeding this size are silently dropped. |
+| `wsServerAdapter` | wraps `ws` | Plug-in point for alternative WS engines (e.g. uWebSockets.js, Bun). An object implementing `WsServerAdapter` (`create(): WsServerInstance`); the default wraps the `ws` package in `noServer` mode. |
+| `broadcastTransport` | local only | Cross-instance broadcast transport. See [Multi-Instance Broadcasting](/wsapp/rooms#multi-instance-broadcasting). |
+| `logger` | built-in | Logger instance. See [Logging](/wsapp/logging). |

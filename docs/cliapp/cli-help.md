@@ -122,7 +122,6 @@ app.cli('root/:arg', {
   options: [
     { keys: ['project', 'p'], description: 'Project name', value: 'test' },
   ],
-  aliases: ['root'],
   handler: () => {
     if (useAutoHelp()) {  // [!code ++]
       process.exit(0); // Stop the command if help is displayed // [!code ++]
@@ -133,9 +132,9 @@ app.cli('root/:arg', {
 });
 ```
 
-When running this command with option `--help` you'll see the usage instructions:
+When running this command with option `--help` (the required `arg` must be present so the route matches) you'll see the usage instructions:
 ```bash
-node your-script.js root --help
+node your-script.js root someArg --help
 ```
 
 `useAutoHelp` only runs inside a matched handler. If the command is unrecognized (e.g., missing required args), the handler never runs. Use `onUnknownCommand` to cover that case:
@@ -146,9 +145,15 @@ import { createCliApp, useAutoHelp, useCommandLookupHelp } from '@wooksjs/event-
 const app = createCliApp({
     // This callback is triggered when the CLI command is not recognized by the router
     onUnknownCommand: (path, raiseError) => {
-        // Whenever cli command was not recognized by router
-        // this callback will be called        
-        if (!useAutoHelp()) {
+        let printed = false
+        try {
+            // prints help when --help is provided; throws when --help
+            // is set but the entered command has no matching help entry
+            printed = !!useAutoHelp()
+        } catch {
+            // no help entry for this input
+        }
+        if (!printed) {
             // Display command lookup help if command help was not found
             useCommandLookupHelp()
             // Raise a standard error when the command is not recognized
@@ -157,4 +162,35 @@ const app = createCliApp({
     },
 });
 ```
-If `--help` isn't present, `useCommandLookupHelp()` suggests similar commands. If nothing matches, `raiseError()` throws the standard "unknown command" error.
+Inside `onUnknownCommand`, `useAutoHelp()` throws when `--help` was passed but the entered command has no matching help entry (e.g., a completely unknown command) — hence the `try/catch`. Without `--help` it returns `undefined` and never throws.
+
+If `--help` isn't present, `useCommandLookupHelp()` suggests similar commands. If nothing matches, `raiseError()` prints the standard "Unknown command: ..." error and exits the process with code 1.
+
+## Rendering Help Manually
+
+Use the `useCliHelp()` composable to render or print help programmatically, outside of the `--help` auto path:
+
+```js
+import { useCliHelp } from '@wooksjs/event-cli'
+
+app.cli('my-command', {
+  description: 'Description of the command',
+  handler: () => {
+    const { render, print } = useCliHelp()
+    print(true) // print help to the console (with colors)
+    const lines = render(80, false) // help as an array of strings (width 80, no colors)
+    // ...
+  },
+});
+```
+
+`useCliHelp()` returns:
+
+-   `getCliHelp()` — the underlying [@prostojs/cli-help](https://github.com/prostojs/cli-help) renderer instance
+-   `getEntry()` — the help entry matched for the current command
+-   `render(width?, withColors?)` — renders the help for the current command as an array of strings
+-   `print(withColors?)` — prints the help for the current command to the console
+
+::: warning
+`getEntry()`, `render()`, and `print()` throw when no help entry matches the current command (e.g., inside `onUnknownCommand` for a completely unknown command).
+:::

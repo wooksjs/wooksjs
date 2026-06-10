@@ -68,7 +68,7 @@ ws.onMessage('message', '/chat/:room', () => {
 })
 ```
 
-The broadcast uses the current message path as the room name by default. The server automatically extracts route params from the room path and includes them in the push message:
+The broadcast uses the current message path as the room name by default. The push message's `path` is the room name, and the route params of the currently matched message route (`useRouteParams()`) are attached when non-empty:
 
 ```ts
 // Path pattern: /chat/:room
@@ -84,6 +84,8 @@ broadcast('message', data, {
   excludeSelf: false,      // include the sender in the broadcast (default: true)
 })
 ```
+
+When you override the room via `options.room`, the attached params still come from the current message's route match, not from the room string.
 
 ### To all connections (server-wide)
 
@@ -111,6 +113,19 @@ const { getConnection } = useWsServer()
 const conn = getConnection(targetId)
 conn?.send('notification', '/private', { text: 'Hello' })
 ```
+
+`getConnection()` returns a `WsConnection`:
+
+| Member | Description |
+|--------|-------------|
+| `id` | Unique connection ID |
+| `rooms` | `Set<string>` of joined room names |
+| `send(event, path, data?, params?)` | Push a message to this connection |
+| `reply(id, data?)` | Send an RPC reply with the given correlation ID |
+| `replyError(id, code, message)` | Send an RPC error reply |
+| `close(code?, reason?)` | Close the underlying WebSocket |
+
+All sends silently no-op when the socket is not OPEN.
 
 Or from within a handler, use `useWsConnection().send()` to push back to the current connection:
 
@@ -181,6 +196,12 @@ interface WsBroadcastTransport {
 ```
 
 When a transport is provided:
-- `join()` subscribes to the channel `ws:room:<room-path>`
-- `broadcast()` publishes to the channel; all instances receive and forward to their local connections
+- `join()` subscribes to the channel `ws:room:<room-path>` when the first local connection joins the room
+- `broadcast()` publishes to the channel; other instances receive and forward to their local connections
 - `leave()` / disconnect unsubscribes when the last local connection leaves a room
+
+::: warning Transport must not redeliver own messages
+Local members are served directly before the publish. Your transport must **not** redeliver messages published by the same instance — plain Redis pub/sub redelivers to the publishing process, causing every local member to receive each broadcast twice. Wrap payloads with an instance ID and skip inbound messages whose instance ID matches your own.
+:::
+
+The room registry itself is the exported `WsRoomManager` class (`join`, `leave`, `leaveAll`, `connections`, `broadcast`) — useful for custom setups and tests. It manages the room → connections mapping and the transport channel subscriptions described above.

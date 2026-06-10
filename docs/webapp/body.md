@@ -47,6 +47,14 @@ app.post('test', async () => {
 });
 ```
 
+## Gotchas
+
+-   **Malformed JSON and prototype-pollution keys throw `HttpError(400)`.** JSON bodies containing `__proto__`, `constructor`, or `prototype` keys are rejected; the same keys are rejected as urlencoded and form-data field names.
+-   **Parsed form-data/urlencoded objects have a null prototype** — no `hasOwnProperty` or other `Object.prototype` methods.
+-   **The built-in `multipart/form-data` parser handles text fields only.** Values are parsed line-by-line and trimmed, so binary file uploads are not preserved byte-for-byte — use `rawBody()` with a dedicated multipart library for file uploads. Limits (not configurable): 255 fields, 100-character field names, 100 KB per field value — exceeding them throws `HttpError(413)`.
+-   **Unrecognized or missing `Content-Type` returns the body as a plain string** — no error is thrown.
+-   **Body size and read-time limits apply** to `rawBody()`/`parseBody()` — see [Body Size Limits](/webapp/composables/request#body-size-limits).
+
 ## Custom Body Parser
 
 Use `rawBody` to access the raw body buffer for custom parsing:

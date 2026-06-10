@@ -8,10 +8,7 @@ The name comes from **w**(eb) (h)**ooks** — but the concept goes far beyond HT
 
 When you handle an HTTP request, you need context — route params, body, cookies, auth, user info, IP address. As your app grows, so does the pile of context you need per event.
 
-Traditional frameworks don't have a great answer for this:
-
-- **Express / Fastify**: everything goes on `req`. No type safety, no structure. Every middleware mutates a shared object — `req.user`, `req.body`, `req.parsedQuery` — and you cross your fingers it's all there by the time your handler runs.
-- **h3**: a cleaner `event` object — better. But extending it type-safely? Building lazy, cached properties on it? No built-in tools for that. You're back to ad-hoc code.
+Traditional frameworks bolt context onto a mutable `req` or `event` object — untyped, eagerly computed, middleware-order dependent. See [Why Wooks?](/wooks/why) for the full comparison.
 
 Wooks was built to solve this.
 
@@ -82,6 +79,7 @@ This is the same regardless of event type — HTTP, CLI, workflow, or anything c
 Wooks ships with adapters for the most common event types:
 
 - **[HTTP](/webapp/)** (`@wooksjs/event-http`) — Web servers and REST APIs with request/response wooks, body parsing, static files, and reverse proxy.
+- **[WebSocket](/wsapp/)** (`@wooksjs/event-ws` + `@wooksjs/ws-client`) — Real-time servers with routed message handlers, rooms, and a zero-dependency client with RPC and reconnection.
 - **[CLI](/cliapp/)** (`@wooksjs/event-cli`) — Command-line tools with option/argument wooks, auto-generated help, and the same routing engine as HTTP.
 - **[Workflows](/wf/)** (`@wooksjs/event-wf`) — Multi-step pipelines with step/flow wooks, input handling, and pause/resume.
 
@@ -94,6 +92,8 @@ You can also [build your own adapter](/wooks/advanced/wooks-adapter) for any eve
 | @wooksjs/event-core | Context primitives: `key`, `cached`, `defineWook`, `defineEventKind` |
 | [@prostojs/router](https://github.com/prostojs/router) | Standalone high-performance router ([benchmarks](/benchmarks/router)) |
 | @wooksjs/event-http | HTTP adapter, request/response wooks ([benchmarks](/benchmarks/wooks-http)) |
+| @wooksjs/event-ws | WebSocket adapter, connection/message/rooms wooks |
+| @wooksjs/ws-client | WebSocket client (browser + Node) |
 | @wooksjs/event-cli | CLI adapter, option/argument wooks |
 | @wooksjs/event-wf | Workflow adapter, step/flow wooks |
 | @wooksjs/http-body | Body parser wook |

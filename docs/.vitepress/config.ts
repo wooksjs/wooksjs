@@ -222,7 +222,7 @@ export default defineConfig({
                             collapsed: true,
                             items: [
                                 {
-                                    text: 'Context and Hooks',
+                                    text: 'Custom Composables',
                                     link: '/webapp/more-hooks',
                                 },
                             ],
@@ -349,28 +349,46 @@ export default defineConfig({
                             link: '/wf/',
                         },
                         {
-                            text: 'Steps',
-                            link: '/wf/steps',
+                            text: 'Building Workflows',
+                            collapsed: false,
+                            items: [
+                                {
+                                    text: 'Steps',
+                                    link: '/wf/steps',
+                                },
+                                {
+                                    text: 'Flows',
+                                    link: '/wf/flows',
+                                },
+                            ],
                         },
                         {
-                            text: 'Flows',
-                            link: '/wf/flows',
+                            text: 'Execution',
+                            collapsed: false,
+                            items: [
+                                {
+                                    text: 'Input & Resume',
+                                    link: '/wf/input-and-resume',
+                                },
+                                {
+                                    text: 'Composables',
+                                    link: '/wf/composables',
+                                },
+                            ],
                         },
                         {
-                            text: 'Input & Resume',
-                            link: '/wf/input-and-resume',
-                        },
-                        {
-                            text: 'Composables',
-                            link: '/wf/composables',
-                        },
-                        {
-                            text: 'HTTP Integration',
-                            link: '/wf/http-integration',
-                        },
-                        {
-                            text: 'Outlets',
-                            link: '/wf/outlets',
+                            text: 'Integration',
+                            collapsed: false,
+                            items: [
+                                {
+                                    text: 'HTTP Integration',
+                                    link: '/wf/http-integration',
+                                },
+                                {
+                                    text: 'Outlets',
+                                    link: '/wf/outlets',
+                                },
+                            ],
                         },
                     ]
                 }],

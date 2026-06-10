@@ -90,6 +90,10 @@ import { createWfApp, useWfState } from '@wooksjs/event-wf'
 
 const app = createWfApp<{ approved: boolean }>()
 
+app.step('validate', { handler: () => { /* ... */ } })
+app.step('notify-success', { handler: () => { /* ... */ } })
+app.step('notify-rejection', { handler: () => { /* ... */ } })
+
 app.step('review', {
   input: 'approval',
   handler: () => {
@@ -98,6 +102,7 @@ app.step('review', {
   },
 })
 
+// Steps must be registered before the flows that reference them
 app.flow('approval-process', [
   'validate',
   'review',
@@ -115,3 +120,14 @@ Workflows are **interruptible** — when a step needs input, the workflow pauses
 You can build your own adapter for any event-driven scenario — job queues, message brokers, custom protocols. All adapters share the same `EventContext`, the same `defineWook`, the same primitives.
 
 [Create a custom adapter &rarr;](/wooks/advanced/wooks-adapter)
+
+## In This Section
+
+- [What is Wooks?](/wooks/what) — the core idea: wooks, typed event context, and the package map
+- [Why Wooks?](/wooks/why) — motivation, design decisions, and framework comparison
+- [Generic Wooks](/wooks/generic-wooks) — `useEventId()`, `useLogger()`, `useRouteParams()`: wooks that work in every flavor
+- [Type Safety](/wooks/type-safety) — how compile-time typing flows through every primitive
+- [Event Context](/wooks/advanced/wooks-context) — the `EventContext` API and `event-core` primitives in depth
+- [Custom Event Context](/wooks/advanced/custom-context) — step-by-step example of a custom event kind
+- [Custom Adapter](/wooks/advanced/wooks-adapter) — build your own adapter on `WooksAdapterBase`
+- [Logging](/wooks/advanced/logging) — configure the logger and use `useLogger()`
