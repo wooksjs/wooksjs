@@ -1,3 +1,12 @@
+## [0.7.20](https://github.com/wooksjs/wooksjs/compare/v0.7.19...v0.7.20) (2026-07-11)
+
+
+### Features
+
+* **event-http:** withHttpContext SSR context, getSetCookieStrings, DEFAULT_FORWARD_HEADERS export ([477a936](https://github.com/wooksjs/wooksjs/commit/477a936165f0865ae49e5dfda4302146fd3d04f8))
+
+
+
 ## [0.7.19](https://github.com/wooksjs/wooksjs/compare/v0.7.18...v0.7.19) (2026-06-10)
 
 
