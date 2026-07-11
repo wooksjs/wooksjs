@@ -93,7 +93,7 @@ Learn more about AI agent skills at [skills.sh](https://skills.sh).
 - [Body Parser](/webapp/body) — Parsing JSON, form data, and more with `@wooksjs/http-body`.
 - [Proxy Requests](/webapp/proxy) — Reverse proxying with `@wooksjs/http-proxy`.
 - [Serve Static](/webapp/static) — Static file serving with `@wooksjs/http-static`.
-- [Programmatic Fetch](/webapp/fetch) — Call your routes in-process with `app.fetch()` / `app.request()`.
+- [Programmatic Fetch](/webapp/fetch) — Call your routes in-process with `app.fetch()` / `app.request()`; wrap SSR renders in a request context with `withHttpContext()`.
 - [Testing](/webapp/testing) — Integration tests via `app.request()` and unit tests via `prepareTestHttpContext()`.
 - [Context and Hooks](/webapp/more-hooks) — Build your own composables with `defineWook`.
 - [Framework Integrations](/webapp/integrations/) — Run Wooks inside Express, Fastify, or h3.

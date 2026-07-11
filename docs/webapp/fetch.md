@@ -98,9 +98,16 @@ By default, the following headers are forwarded:
 Configure globally via `createHttpApp` options:
 
 ```ts
-// Forward only specific headers
+import { createHttpApp, DEFAULT_FORWARD_HEADERS } from '@wooksjs/event-http'
+
+// Add headers on top of the defaults
 const app = createHttpApp({
-  forwardHeaders: ['authorization', 'cookie', 'x-custom-auth'],
+  forwardHeaders: [...DEFAULT_FORWARD_HEADERS, 'x-custom-auth'],
+})
+
+// Forward ONLY these headers (replaces the default list)
+const app = createHttpApp({
+  forwardHeaders: ['authorization', 'cookie'],
 })
 
 // Disable forwarding entirely
@@ -108,6 +115,10 @@ const app = createHttpApp({
   forwardHeaders: false,
 })
 ```
+
+::: warning `forwardHeaders` replaces the defaults
+The list you pass **replaces** the default list — it does not extend it. `forwardHeaders: ['x-custom-auth']` silently stops `authorization` and `cookie` from being forwarded. To add headers while keeping the defaults, spread the exported `DEFAULT_FORWARD_HEADERS` constant as shown above.
+:::
 
 ### Header Precedence
 
@@ -263,6 +274,56 @@ When you create the server yourself, call `app.attachServer(server)` so `app.clo
 When `onNoMatch` is provided, it takes priority over the `onNotFound` option. This means you can use both — `onNotFound` handles 404s for standalone server mode, while `onNoMatch` bypasses it for middleware integration.
 
 Without the callback, unmatched routes fall through to `onNotFound` (if set), or return a 404 response — the standard behavior for standalone servers.
+
+## SSR Without Dispatch: `withHttpContext()`
+
+Sometimes the SSR render doesn't go through Wooks route dispatch at all — a Vite middleware owns the `(req, res)` pair and calls your `render()` function directly. Without an HTTP context, `fetch()` calls made during the render have no caller to inherit identity from: no forwarded `authorization` or `cookie`, and rate limiting sees the server's own IP instead of the viewer's.
+
+`withHttpContext(req, res, fn)` runs `fn` inside an HTTP event context seeded from the real request — without dispatching any route:
+
+```ts
+const { result: html, response } = await app.withHttpContext(req, res, () => render(req.url!))
+
+// Apply cookies collected during the render (e.g. a session refresh)
+for (const cookie of response.getSetCookieStrings()) {
+  res.appendHeader('Set-Cookie', cookie)
+}
+res.setHeader('content-type', 'text/html')
+res.end(html)
+```
+
+Inside `fn`:
+
+- **Request composables work** — `useRequest()`, `useHeaders()`, `useCookies()`, `useAuthorization()` read the real request. Route-scoped state (`useRouteParams()`) is empty, since no route was matched.
+- **Nested `fetch()` calls see this context as their caller**, so [header forwarding](#ssr-header-forwarding) and [cookie propagation](#cookie-propagation) apply exactly as they do inside route handlers.
+
+The method awaits `fn` before returning and **never writes to `res`** — the caller owns the wire. The returned response wrapper is created in capture mode, so even a stray `response.send()` inside `fn` cannot touch the socket.
+
+Combined with [`getServerCb(onNoMatch)`](#middleware-integration), this wraps SSR page renders in a Vite-style middleware setup:
+
+```ts
+const server = createServer(
+  app.getServerCb(async (req, res) => {
+    // No Wooks route matched — SSR render with the viewer's identity
+    const { result: html, response } = await app.withHttpContext(req, res, () =>
+      render(req.url!)
+    )
+    for (const cookie of response.getSetCookieStrings()) {
+      res.appendHeader('Set-Cookie', cookie)
+    }
+    res.setHeader('content-type', 'text/html')
+    res.end(html)
+  })
+)
+```
+
+### Draining Cookies: `getSetCookieStrings()`
+
+Cookies set during `fn` — directly via `useResponse().setCookie()`, or propagated from nested `fetch()` calls — are buffered on the returned wrapper. Since the wrapper never responds, drain them with `response.getSetCookieStrings()`: it renders all buffered cookies as `Set-Cookie` header strings without sending anything. Apply them to your own response **before** writing the page body.
+
+::: info Non-destructive
+`getSetCookieStrings()` leaves the cookie buffers intact — repeated calls return the same list. It does not include `set-cookie` values placed directly into headers via `setHeader()`.
+:::
 
 ## Limitations
 

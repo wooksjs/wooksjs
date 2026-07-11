@@ -181,6 +181,26 @@ export class HttpResponse {
     return this
   }
 
+  /**
+   * Renders all buffered cookies (named via `setCookie()`, then raw via `setCookieRaw()`)
+   * as `Set-Cookie` header strings, without responding.
+   *
+   * Non-destructive: the buffers stay intact, so a later `send()` still emits the same
+   * cookies — callers that drain cookies onto the wire themselves should not also send
+   * through this wrapper. Cookies placed directly into headers (via `setHeader('set-cookie', …)`
+   * or default headers) are not included.
+   */
+  getSetCookieStrings(): string[] {
+    const rendered: string[] = []
+    for (const [name, data] of Object.entries(this._cookies)) {
+      if (data) {
+        rendered.push(renderCookie(name, data))
+      }
+    }
+    rendered.push(...this._rawCookies)
+    return rendered
+  }
+
   // --- Cache control ---
 
   /** Sets the `Cache-Control` header from a directive object (chainable). */
@@ -397,16 +417,7 @@ export class HttpResponse {
     if (!this._hasCookies) {
       return
     }
-    const entries = Object.entries(this._cookies)
-    const rendered: string[] = []
-    for (const [name, data] of entries) {
-      if (data) {
-        rendered.push(renderCookie(name, data))
-      }
-    }
-    if (this._rawCookies.length > 0) {
-      rendered.push(...this._rawCookies)
-    }
+    const rendered = this.getSetCookieStrings()
     if (rendered.length > 0) {
       const existing = this._headers['set-cookie']
       if (existing) {

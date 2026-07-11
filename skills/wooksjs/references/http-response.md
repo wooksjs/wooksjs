@@ -79,7 +79,10 @@ response.getCookie('session')        // { value, attrs } or undefined
 response.removeCookie('session')
 response.clearCookies()
 response.setCookieRaw('name=value; Path=/; HttpOnly')
+response.getSetCookieStrings()       // render buffered cookies as Set-Cookie strings WITHOUT sending
 ```
+
+`getSetCookieStrings()` — for callers that own the wire themselves (SSR render sites via [withHttpContext](event-http.md#withhttpcontextreq-res-fn--request-context-without-dispatch)): renders named + raw buffered cookies in order, non-destructive (repeat calls return the same list). Does NOT include `set-cookie` values placed via `setHeader()`. If you drain and apply cookies yourself, do not also `send()` through the wrapper — they'd be emitted again.
 
 **`TCookieAttributes`:**
 

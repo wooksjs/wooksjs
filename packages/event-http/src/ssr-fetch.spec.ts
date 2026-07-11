@@ -3,13 +3,14 @@ import { IncomingMessage, ServerResponse } from 'http'
 import { Socket } from 'net'
 import { Wooks } from 'wooks'
 
-import { createHttpApp, type TWooksHttpOptions } from './http-adapter'
+import { createHttpApp, DEFAULT_FORWARD_HEADERS, type TWooksHttpOptions } from './http-adapter'
 import { HttpError } from './errors'
 import { HttpResponse } from './response/http-response'
 import { useRequest } from './composables/request'
 import { useResponse } from './composables/response'
 import { useAuthorization } from './composables/header-authorization'
 import { useCookies } from './composables/cookies'
+import { useHeaders } from './composables/headers'
 import { useRouteParams } from '@wooksjs/event-core'
 
 /** Creates an app with its own isolated router (not the global singleton). */
@@ -721,5 +722,224 @@ describe('Moost compatibility', () => {
     const body = await res.json()
     expect(body.statusCode).toBe(403)
     expect(body.message).toBe('Access denied')
+  })
+})
+
+// --- Group 7: DEFAULT_FORWARD_HEADERS export ---
+
+describe('DEFAULT_FORWARD_HEADERS', () => {
+  it('is frozen and contains the identity headers', () => {
+    expect(Object.isFrozen(DEFAULT_FORWARD_HEADERS)).toBe(true)
+    expect(DEFAULT_FORWARD_HEADERS).toEqual([
+      'authorization',
+      'cookie',
+      'accept-language',
+      'x-forwarded-for',
+      'x-request-id',
+    ])
+  })
+
+  it('spreading it into forwardHeaders extends the defaults', async () => {
+    const app = createApp({ forwardHeaders: [...DEFAULT_FORWARD_HEADERS, 'x-extra'] })
+    app.get('/page', async () => {
+      const res = ok(await app.request('/api/check'))
+      return res.json()
+    })
+    app.get('/api/check', () => {
+      const headers = useHeaders()
+      return {
+        auth: headers.authorization || null,
+        extra: headers['x-extra'] || null,
+      }
+    })
+
+    const res = ok(await app.request('/page', {
+      headers: { authorization: 'Bearer tok', 'x-extra': 'extra-val' },
+    }))
+    expect(await res.json()).toEqual({ auth: 'Bearer tok', extra: 'extra-val' })
+  })
+})
+
+// --- Group 8: withHttpContext() ---
+
+describe('WooksHttp.withHttpContext()', () => {
+  function createReqRes(headers: Record<string, string> = {}, url = '/ssr-page') {
+    const req = new IncomingMessage(new Socket({}))
+    req.method = 'GET'
+    req.url = url
+    req.headers = headers
+    const res = new ServerResponse(req)
+    return { req, res }
+  }
+
+  it('composables read the seeded request', async () => {
+    const app = createApp()
+    const { req, res } = createReqRes(
+      { authorization: 'Bearer viewer', cookie: 'session=abc' },
+      '/page?x=1',
+    )
+
+    const { result } = await app.withHttpContext(req, res, () => {
+      const { url, method } = useRequest()
+      const headers = useHeaders()
+      const { getCookie } = useCookies()
+      return { url, method, auth: headers.authorization, session: getCookie('session') }
+    })
+
+    expect(result).toEqual({
+      url: '/page?x=1',
+      method: 'GET',
+      auth: 'Bearer viewer',
+      session: 'abc',
+    })
+  })
+
+  it('nested fetch() inside fn receives forwarded identity headers', async () => {
+    const app = createApp()
+    app.get('/api/auth', () => {
+      const { authorization } = useAuthorization()
+      return { auth: authorization }
+    })
+    const { req, res } = createReqRes({ authorization: 'Bearer viewer-token' })
+
+    const { result } = await app.withHttpContext(req, res, async () => {
+      const inner = ok(await app.request('/api/auth'))
+      return inner.json()
+    })
+
+    expect(result).toEqual({ auth: 'Bearer viewer-token' })
+  })
+
+  it('inner Set-Cookie from nested fetch appears in getSetCookieStrings()', async () => {
+    const app = createApp()
+    app.get('/api/login', () => {
+      useResponse().setCookie('session', 'fresh-token', { httpOnly: true })
+      return { ok: true }
+    })
+    const { req, res } = createReqRes()
+
+    const { response } = await app.withHttpContext(req, res, async () => {
+      await app.request('/api/login')
+      return 'page html'
+    })
+
+    const cookies = response.getSetCookieStrings()
+    expect(cookies.length).toBe(1)
+    expect(cookies[0]).toContain('session=fresh-token')
+    expect(cookies[0]).toContain('HttpOnly')
+  })
+
+  it('writes nothing to res, even if fn calls response.send()', async () => {
+    const app = createApp()
+    const { req, res } = createReqRes()
+
+    const { response } = await app.withHttpContext(req, res, () => {
+      const r = useResponse()
+      r.setCookie('touched', 'yes')
+      r.body = 'should not hit the wire'
+      r.send()
+      return 'done'
+    })
+
+    expect(res.headersSent).toBe(false)
+    expect(res.writableEnded).toBe(false)
+    expect(response.getSetCookieStrings()[0]).toContain('touched=yes')
+  })
+
+  it('awaits async fn before returning', async () => {
+    const app = createApp()
+    const { req, res } = createReqRes()
+
+    const { result } = await app.withHttpContext(req, res, async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10))
+      return 'rendered'
+    })
+    expect(result).toBe('rendered')
+  })
+
+  it('propagates errors thrown by fn', async () => {
+    const app = createApp()
+    const { req, res } = createReqRes()
+
+    await expect(
+      app.withHttpContext(req, res, () => {
+        throw new Error('render failed')
+      }),
+    ).rejects.toThrow('render failed')
+    expect(res.headersSent).toBe(false)
+  })
+
+  it('uses the configured responseClass', async () => {
+    class CustomResponse extends HttpResponse {}
+    const app = createApp({ responseClass: CustomResponse as any })
+    const { req, res } = createReqRes()
+
+    const { response } = await app.withHttpContext(req, res, () => 'x')
+    expect(response).toBeInstanceOf(CustomResponse)
+  })
+})
+
+// --- Group 9: getSetCookieStrings() ---
+
+describe('HttpResponse.getSetCookieStrings()', () => {
+  function createCaptureResponse() {
+    const req = new IncomingMessage(new Socket({}))
+    req.method = 'GET'
+    req.url = '/'
+    const res = new ServerResponse(req)
+    return new HttpResponse(res, req, logger as any, undefined, true)
+  }
+
+  it('renders named cookies then raw cookies, matching finalized output', () => {
+    const response = createCaptureResponse()
+    response.setCookie('a', '1')
+    response.setCookie('b', '2', { httpOnly: true, path: '/' })
+    response.setCookieRaw('raw=x; Path=/api')
+
+    const drained = response.getSetCookieStrings()
+    expect(drained.length).toBe(3)
+    expect(drained[0]).toContain('a=1')
+    expect(drained[1]).toContain('b=2')
+    expect(drained[2]).toBe('raw=x; Path=/api')
+
+    // send() (capture mode) finalizes cookies into headers — must match the drained list
+    response.send()
+    expect(response.headers()['set-cookie']).toEqual(drained)
+  })
+
+  it('is non-destructive: repeated drains return the same list', () => {
+    const response = createCaptureResponse()
+    response.setCookie('session', 'tok')
+    response.setCookieRaw('raw=1')
+
+    const first = response.getSetCookieStrings()
+    const second = response.getSetCookieStrings()
+    expect(second).toEqual(first)
+    expect(first.length).toBe(2)
+  })
+
+  it('drain followed by send() emits each cookie exactly once on headers', () => {
+    const response = createCaptureResponse()
+    response.setCookie('once', 'val')
+
+    const drained = response.getSetCookieStrings()
+    expect(drained.length).toBe(1)
+    response.send()
+    expect(response.headers()['set-cookie']).toEqual(drained)
+  })
+
+  it('returns empty array when no cookies are buffered', () => {
+    const response = createCaptureResponse()
+    expect(response.getSetCookieStrings()).toEqual([])
+  })
+
+  it('does not include cookies set directly via setHeader()', () => {
+    const response = createCaptureResponse()
+    response.setHeader('set-cookie', 'direct=header')
+    response.setCookie('buffered', 'val')
+
+    const drained = response.getSetCookieStrings()
+    expect(drained.length).toBe(1)
+    expect(drained[0]).toContain('buffered=val')
   })
 })

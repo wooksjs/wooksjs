@@ -7,7 +7,7 @@ For request composables, see [http-request.md](http-request.md). For response AP
 - [App Setup](#app-setup) — `createHttpApp`, `TWooksHttpOptions`
 - [Route Registration](#route-registration) — HTTP verbs, `on`, `all`, `upgrade`, `ws`
 - [Server Lifecycle](#server-lifecycle) — `listen`, `close`, `attachServer`, `getServerCb`
-- [Programmatic Invocation](#programmatic-invocation-fetch--request) — `fetch`, `request`, SSR header forwarding
+- [Programmatic Invocation](#programmatic-invocation-fetch--request) — `fetch`, `request`, SSR header forwarding, `withHttpContext`
 - [Routing](#routing) — pattern syntax pointer
 - [Auto-Status Inference](#auto-status-inference) — method × body → status
 - [Handler Chains](#handler-chains)
@@ -39,7 +39,7 @@ app.listen(3000)
 | `requestLimits`  | `Omit<TRequestLimits, 'perRequest'>` | Default body size/timeout limits for all requests                |
 | `responseClass`  | `typeof WooksHttpResponse`           | Custom response subclass (default: `WooksHttpResponse`)          |
 | `defaultHeaders` | `Record<string, string \| string[]>` | Default headers applied to every response (e.g. securityHeaders) |
-| `forwardHeaders` | `string[] \| false`                  | Request headers to propagate to outgoing fetch calls; `false` disables |
+| `forwardHeaders` | `string[] \| false`                  | Request headers to propagate to outgoing fetch calls; `false` disables. REPLACES the defaults — spread `DEFAULT_FORWARD_HEADERS` to extend |
 
 ---
 
@@ -101,6 +101,26 @@ if (res === null) { /* no route matched — fall through */ }
 - `fetch(request: Request): Promise<Response | null>`
 - `request(input: string | URL | Request, init?: RequestInit): Promise<Response | null>` — sugar that builds the `Request` then calls `fetch`.
 - Headers in `forwardHeaders` (default: `authorization`, `cookie`, `accept-language`, `x-forwarded-for`, `x-request-id`) propagate from the calling HTTP context; `Set-Cookie` from the inner response propagates back out.
+- The `forwardHeaders` option REPLACES the default list. To extend: `forwardHeaders: [...DEFAULT_FORWARD_HEADERS, 'x-extra']` (`DEFAULT_FORWARD_HEADERS` is a frozen exported constant).
+
+### `withHttpContext(req, res, fn)` — request context without dispatch
+
+Runs `fn` inside an HTTP event context seeded from a real `(req, res)` pair, without route dispatch. For SSR render sites (e.g. Vite middleware) where the render doesn't go through Wooks routing but nested `fetch()` calls must inherit the viewer's identity.
+
+```ts
+const { result: html, response } = await app.withHttpContext(req, res, () => render(url))
+for (const cookie of response.getSetCookieStrings()) {
+  res.appendHeader('Set-Cookie', cookie) // before writing the body
+}
+```
+
+| # | Invariant |
+| - | --------- |
+| 1 | Request composables (`useRequest`, `useHeaders`, `useCookies`, `useAuthorization`) read the seeded request; `useRouteParams()` is empty — no route matched |
+| 2 | Nested `fetch()`/`request()` inside `fn` see this context as caller → `forwardHeaders` + parent `Set-Cookie` propagation apply |
+| 3 | Never writes to `res` — wrapper is capture-mode, a stray `response.send()` inside `fn` can't touch the socket; caller owns the wire |
+| 4 | Awaits `fn` before returning — cookies from nested fetches are complete on the returned wrapper |
+| 5 | Drain buffered cookies via `response.getSetCookieStrings()` ([http-response.md](http-response.md#cookies-outgoing)) and apply them to `res` yourself |
 
 ---
 
@@ -217,3 +237,5 @@ app.get('/hot-path', () => {
 - `getServerCb()` does not attach the server. Call `attachServer(server)` separately if you want `close()` to work.
 - `getServerCb()` does not wire WebSocket upgrades — attach `getUpgradeCb()` to the server's `upgrade` event yourself (`listen()` does this only for the internally created server).
 - Pass `ctx` explicitly when calling multiple composables — saves ALS lookups.
+- `forwardHeaders: ['x-my-header']` REPLACES the default forward list — `authorization`/`cookie` stop forwarding. Spread `DEFAULT_FORWARD_HEADERS` to extend it.
+- `withHttpContext()` never sends the response — drain cookies via `getSetCookieStrings()` and write to `res` yourself, before the body.

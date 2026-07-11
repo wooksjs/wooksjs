@@ -18,13 +18,22 @@ import { recordToWebHeaders } from './response/http-response'
 import { WooksHttpResponse } from './response/wooks-http-response'
 import type { TRequestLimits } from './types'
 
-const DEFAULT_FORWARD_HEADERS = [
+/**
+ * Identity headers forwarded from the calling HTTP context during programmatic `fetch()`
+ * when no `forwardHeaders` option is configured.
+ *
+ * The `forwardHeaders` option REPLACES this list. To extend it instead, spread the constant:
+ * ```ts
+ * createHttpApp({ forwardHeaders: [...DEFAULT_FORWARD_HEADERS, 'cloudfront-viewer-address'] })
+ * ```
+ */
+export const DEFAULT_FORWARD_HEADERS: readonly string[] = Object.freeze([
   'authorization',
   'cookie',
   'accept-language',
   'x-forwarded-for',
   'x-request-id',
-]
+])
 
 /** Configuration options for the WooksHttp adapter. */
 export interface TWooksHttpOptions {
@@ -39,8 +48,10 @@ export interface TWooksHttpOptions {
   defaultHeaders?: Record<string, string | string[]>
   /**
    * Headers forwarded from the calling HTTP context during programmatic `fetch()`.
+   * REPLACES the default list entirely — to add headers while keeping the defaults,
+   * spread the exported constant: `[...DEFAULT_FORWARD_HEADERS, 'my-header']`.
    * Set to `false` to disable forwarding entirely.
-   * @default ['authorization', 'cookie', 'accept-language', 'x-forwarded-for', 'x-request-id']
+   * @default DEFAULT_FORWARD_HEADERS — ['authorization', 'cookie', 'accept-language', 'x-forwarded-for', 'x-request-id']
    */
   forwardHeaders?: string[] | false
 }
@@ -636,6 +647,42 @@ export class WooksHttp extends WooksAdapterBase {
     }
     const req = input instanceof Request ? input : new Request(input, init)
     return this.fetch(req)
+  }
+
+  /**
+   * Runs `fn` inside an HTTP event context seeded from a real `(req, res)` pair,
+   * WITHOUT route dispatch. Composables that read request state (`useRequest`,
+   * `useHeaders`, `useCookies`, `useAuthorization`) work; route-scoped state is empty.
+   * Nested `fetch()` calls made during `fn` see this context as their caller,
+   * so `forwardHeaders` and parent `Set-Cookie` propagation apply.
+   *
+   * Never writes to `res` — the caller owns the wire. The response wrapper is
+   * created in capture mode, so even a stray `response.send()` inside `fn` only
+   * finalizes state without touching the socket. Buffered response state
+   * (e.g. `Set-Cookie` collected from nested fetches) can be applied by the
+   * caller via the returned wrapper:
+   * ```ts
+   * const { result: html, response } = await http.withHttpContext(req, res, () => render(url))
+   * for (const cookie of response.getSetCookieStrings()) {
+   *   res.appendHeader('Set-Cookie', cookie)
+   * }
+   * ```
+   */
+  async withHttpContext<T>(
+    req: IncomingMessage,
+    res: ServerResponse,
+    fn: () => T,
+  ): Promise<{ result: Awaited<T>; response: HttpResponse }> {
+    const ctxOptions = this.eventContextOptions
+    const response = new this.ResponseClass(
+      res, req, ctxOptions.logger, this.opts?.defaultHeaders, true,
+    )
+    const result = await createHttpContext(
+      ctxOptions,
+      { req, response, requestLimits: this.opts?.requestLimits },
+      fn,
+    )
+    return { result, response }
   }
 }
 

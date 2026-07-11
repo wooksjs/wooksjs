@@ -1,21 +1,21 @@
 ---
 name: wooksjs
 description: >-
-  Use when working with the wooksjs monorepo or any @wooksjs package. Covers
+  Use for the wooksjs monorepo or any @wooksjs package:
   @wooksjs/event-core (EventContext, key/cached/cachedBy slots, defineWook,
-  defineEventKind, AsyncLocalStorage, useRouteParams, useEventId, useLogger),
+  defineEventKind, AsyncLocalStorage, useRouteParams, useLogger),
   @wooksjs/event-http (createHttpApp, HTTP routing, useRequest, useHeaders,
   useCookies, useUrlParams, useAuthorization, useAccept, useResponse,
-  HttpError, prepareTestHttpContext), @wooksjs/http-body (useBody, parseBody,
-  body parsing), @wooksjs/http-static (serveFile, static files),
-  @wooksjs/http-proxy (useProxy), @wooksjs/event-cli (createCliApp, command
-  routing, useCliOptions, useCliOption, useCliHelp, useAutoHelp),
-  @wooksjs/event-ws (WooksWs, onMessage, onConnect, onDisconnect,
-  useWsConnection, useWsMessage, useWsRooms, useWsServer, WsError),
-  @wooksjs/event-wf (createWfApp, steps/flows, useWfState, pause/resume,
-  StepRetriableError, outlets, swapStrategy), @wooksjs/ws-client
-  (createWsClient, reconnection, RPC, push listeners, WsClientError). Not for
-  moostjs or generic Node http servers.
+  HttpError, prepareTestHttpContext, programmatic fetch/request, SSR,
+  withHttpContext, forwardHeaders), @wooksjs/http-body (useBody, parseBody),
+  @wooksjs/http-static (serveFile), @wooksjs/http-proxy (useProxy),
+  @wooksjs/event-cli (createCliApp, command routing, useCliOptions,
+  useCliOption, useCliHelp, useAutoHelp), @wooksjs/event-ws (WooksWs,
+  onMessage, onConnect, onDisconnect, useWsConnection, useWsMessage,
+  useWsRooms, useWsServer, WsError), @wooksjs/event-wf (createWfApp,
+  steps/flows, useWfState, pause/resume, StepRetriableError, outlets,
+  swapStrategy), @wooksjs/ws-client (createWsClient, reconnection, RPC,
+  WsClientError). Not for moostjs or generic Node http servers.
 ---
 
 # wooksjs
@@ -74,8 +74,8 @@ import { key, cached, cachedBy, slot, defineEventKind, defineWook,
 
 // event-http — HTTP server + request/response composables
 import { createHttpApp, useRequest, useResponse, useHeaders, useCookies,
-  useUrlParams, useAuthorization, useAccept,
-  HttpError, prepareTestHttpContext } from '@wooksjs/event-http'
+  useUrlParams, useAuthorization, useAccept, HttpError,
+  prepareTestHttpContext, DEFAULT_FORWARD_HEADERS } from '@wooksjs/event-http'
 
 // http-body — parsed request bodies (JSON, form-data, urlencoded)
 import { useBody } from '@wooksjs/http-body'
