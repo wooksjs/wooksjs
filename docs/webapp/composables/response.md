@@ -41,9 +41,31 @@ app.get('json_response', () => {
 3. `boolean` / `number` (text/plain)
 4. `Uint8Array` / `Buffer` (sent as-is; set `Content-Type` yourself — none is set by default)
 5. `Readable` stream (you must specify `Content-Type` yourself)
-6. `fetch` `Response` (streams body to client response)
+6. `fetch` `Response` (status, headers, and body forwarded — see below)
 
 Instead of returning a value, you can also set the body explicitly on the response instance — `useResponse().setBody(data)` (chainable) or the `body` property.
+
+### Returning a fetch `Response`
+
+When a handler returns a `fetch` `Response`, its status, headers, and body are forwarded to the client:
+
+- The `Response` status is used unless a status was already set via `useResponse()`.
+- All headers from the `Response` are forwarded. Headers already set via `useResponse()` take precedence.
+- Multiple `Set-Cookie` headers are preserved; cookies set via `setCookie()` are sent first.
+- The body is streamed.
+
+```js
+app.get('sitemap.xml', () => {
+    return new Response(xml, {
+        headers: {
+            'content-type': 'application/xml',
+            'cache-control': 'public, max-age=3600',
+        },
+    });
+});
+```
+
+The same rules apply on both delivery paths — real socket responses and programmatic [`app.fetch()`](../fetch.md) calls.
 
 ## Raw Response
 

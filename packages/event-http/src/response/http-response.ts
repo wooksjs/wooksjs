@@ -274,11 +274,7 @@ export class HttpResponse {
     // Fetch Response passthrough
     if (hasFetchResponse && body instanceof globalThis.Response) {
       this._status = this._status || (body.status as EHttpStatusCode)
-      body.headers.forEach((v, k) => {
-        if (!this._headers[k]) {
-          this._headers[k] = v
-        }
-      })
+      this.mergeFetchResponseHeaders(body)
       return new globalThis.Response(
         method === 'HEAD' ? null : body.body,
         { status: this._status, headers: this._buildWebHeaders() },
@@ -323,6 +319,28 @@ export class HttpResponse {
 
   private _buildWebHeaders(): Headers {
     return recordToWebHeaders(this._headers)
+  }
+
+  /**
+   * Merges headers from a handler-returned fetch `Response` into the buffered headers.
+   * Explicitly buffered headers win. `set-cookie` is appended in array form so multiple
+   * cookies survive (`Headers` iteration would otherwise keep only the first).
+   */
+  protected mergeFetchResponseHeaders(fetchResponse: Response): void {
+    fetchResponse.headers.forEach((value, key) => {
+      if (key !== 'set-cookie' && !this._headers[key]) {
+        this._headers[key] = value
+      }
+    })
+    const setCookies = typeof fetchResponse.headers.getSetCookie === 'function'
+      ? fetchResponse.headers.getSetCookie()
+      : []
+    if (setCookies.length > 0) {
+      const existing = this._headers['set-cookie']
+      this._headers['set-cookie'] = existing
+        ? [...(Array.isArray(existing) ? existing : [existing]), ...setCookies]
+        : setCookies
+    }
   }
 
   // --- Rendering (overridable) ---
@@ -476,14 +494,7 @@ export class HttpResponse {
     // Use fetch status as fallback
     this._status = this._status || (fetchResponse.status as EHttpStatusCode)
 
-    const fetchContentLength = fetchResponse.headers.get('content-length')
-    if (fetchContentLength) {
-      this._headers['content-length'] = fetchContentLength
-    }
-    const fetchContentType = fetchResponse.headers.get('content-type')
-    if (fetchContentType) {
-      this._headers['content-type'] = fetchContentType
-    }
+    this.mergeFetchResponseHeaders(fetchResponse)
 
     this._res.writeHead(this._status, this._headers)
 

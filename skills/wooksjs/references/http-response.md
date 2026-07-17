@@ -127,8 +127,15 @@ response.setPragmaNoCache()                   // Pragma: no-cache
 | `object` / `array`               | `application/json`    | Auto           |
 | `Buffer` / `Uint8Array`          | (none -- set manually) | Auto          |
 | `Readable` stream                | (none -- set manually) | Auto          |
-| `Response` (fetch)               | From fetch response   | Auto           |
+| `Response` (fetch)               | From fetch response   | From fetch response |
 | `undefined` / `null` / no return | --                    | 204 No Content |
+
+Returning a fetch `Response` forwards its status, headers, and body:
+
+1. Status from the `Response` is used unless already set via `useResponse()`.
+2. ALL `Response` headers are forwarded; headers buffered via `useResponse()` win.
+3. Multiple `set-cookie` values are preserved; cookies from `setCookie()` come first.
+4. Identical merge policy on the socket path and programmatic `app.fetch()` — see [event-http.md](event-http.md#programmatic-invocation-fetch--request).
 
 ---
 
