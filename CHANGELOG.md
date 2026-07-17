@@ -1,3 +1,12 @@
+## [0.7.21](https://github.com/wooksjs/wooksjs/compare/v0.7.20...v0.7.21) (2026-07-17)
+
+
+### Bug Fixes
+
+* **event-http:** forward all fetch Response headers on the socket path, preserve multiple set-cookie ([0564a7b](https://github.com/wooksjs/wooksjs/commit/0564a7b861504f69378fe8e0e592f9a3e8d1dd85))
+
+
+
 ## [0.7.20](https://github.com/wooksjs/wooksjs/compare/v0.7.19...v0.7.20) (2026-07-11)
 
 
