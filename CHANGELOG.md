@@ -1,3 +1,9 @@
+## [0.7.22](https://github.com/wooksjs/wooksjs/compare/v0.7.21...v0.7.22) (2026-07-29)
+
+
+### Bug Fixes
+
+* **event-ws:** require ws >=8.21.0 and refresh deps for security alerts ([7ba655c](https://github.com/wooksjs/wooksjs/commit/7ba655c00bc4df719120f859efc5117995c8e6b9))
 ## [0.7.21](https://github.com/wooksjs/wooksjs/compare/v0.7.20...v0.7.21) (2026-07-17)
 
 
