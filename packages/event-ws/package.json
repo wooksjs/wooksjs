@@ -45,7 +45,7 @@
     "@types/ws": "^8.18.1",
     "@wooksjs/event-core": "workspace:^",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.4",
+    "vitest": "^3.2.7",
     "wooks": "workspace:^"
   },
   "peerDependencies": {
@@ -53,6 +53,6 @@
     "@prostojs/router": "^0.3.4",
     "@wooksjs/event-core": "workspace:^",
     "wooks": "workspace:^",
-    "ws": "^8.0.0"
+    "ws": "^8.21.0"
   }
 }

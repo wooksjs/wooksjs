@@ -45,7 +45,7 @@
   "devDependencies": {
     "@wooksjs/event-http": "workspace:^",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.7"
   },
   "peerDependencies": {
     "@wooksjs/event-http": "workspace:^"
