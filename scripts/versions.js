@@ -9,6 +9,7 @@ let i = 1
 const info = dye('blue').attachConsole()
 const step = dye('cyan').prefix(() => `\n${i++}. `).attachConsole()
 const done = dye('green').prefix(() => ` ✅ `).attachConsole()
+const noPush = process.argv.includes('--no-push')
 
 // Function to sync workspace package versions to the new version
 function syncVersions(newVersion) {
@@ -47,19 +48,27 @@ async function main() {
         }
 
         // Step 3: Prompt the user to select a version bump
+        // Non-interactive via a `--patch` | `--minor` | `--major` flag (lets the
+        // release cascade run without a prompt); interactive prompt otherwise.
         step('Selecting version bump type...')
-        const { bump } = await inquirer.prompt([
-            {
-                type: 'list',
-                name: 'bump',
-                message: `Current version: ${currentVersion}. Select version bump:`,
-                choices: [
-                    { name: `Patch (${currentVersion} → ${versions.patch})`, value: 'patch' },
-                    { name: `Minor (${currentVersion} → ${versions.minor})`, value: 'minor' },
-                    { name: `Major (${currentVersion} → ${versions.major})`, value: 'major' }
-                ]
-            }
-        ])
+        const flagBump = ['patch', 'minor', 'major'].find((b) => process.argv.includes(`--${b}`))
+        let bump
+        if (flagBump) {
+            bump = flagBump
+        } else {
+            ;({ bump } = await inquirer.prompt([
+                {
+                    type: 'list',
+                    name: 'bump',
+                    message: `Current version: ${currentVersion}. Select version bump:`,
+                    choices: [
+                        { name: `Patch (${currentVersion} → ${versions.patch})`, value: 'patch' },
+                        { name: `Minor (${currentVersion} → ${versions.minor})`, value: 'minor' },
+                        { name: `Major (${currentVersion} → ${versions.major})`, value: 'major' }
+                    ]
+                }
+            ]))
+        }
 
         step(`🚀 Bumping version: ${bump} (${currentVersion} → ${versions[bump]})\n`)
 
@@ -94,9 +103,14 @@ async function main() {
         done('Git tag created.')
 
         // Step 10: Push commits and tags to the remote repository
-        step('Pushing to remote repository...')
-        await $`git push --follow-tags`
-        done('Pushed to git successfully!')
+        if (noPush) {
+            step('Skipping push (--no-push)...')
+            done('Remember to `git push --follow-tags` after publishing.')
+        } else {
+            step('Pushing to remote repository...')
+            await $`git push --follow-tags`
+            done('Pushed to git successfully!')
+        }
     } catch (error) {
         info('\n❌ Failed version update:', error)
         process.exit(1)
