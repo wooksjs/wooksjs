@@ -474,6 +474,14 @@ Uses global `Symbol.for('wooks.core.asyncStorage')` for singleton ALS. Throws at
 [wooks] Incompatible versions of @wooksjs/event-core detected: existing v0.6.6, loading v0.7.0
 ```
 
+**Duplicate copy of the same version** (since 0.7.23) — warns at import instead of throwing:
+
+```
+[wooks] A second copy of @wooksjs/event-core v0.7.23 was loaded (first: …, now: …).
+```
+
+Both copies then share one ALS (slot ids come from a global counter under `Symbol.for('wooks.core.keyCounter')`, so ids never collide), but everything built on top — `@wooksjs/event-http`, `wooks`, `moost` — is duplicated too, and a slot seeded by one copy is invisible to composables from the other. Typical symptoms: `Cannot read properties of undefined (reading 'headers')`, `Key "http.req" is not set`. Usual cause is a build that inlines part of the runtime and resolves the rest from `node_modules` (SSR bundles). Rule: the whole wooks/moost runtime must resolve once — bundle it entirely or keep it entirely external, with every package that depends on it on the same side.
+
 ---
 
 ## Custom adapters (advanced)
@@ -641,6 +649,7 @@ eventTypeKey    // Key for event type name (set by ctx.seed())
 | 12 | Prefer parent-linked child contexts over seeding multiple kinds into one context. Traversal is O(depth) — keep chains shallow.                                     |
 | 13 | `AsyncLocalStorage` propagates through `await`, timers, Promise chains — but `EventContext` is single-event, single-async-chain, not thread-safe.                  |
 | 14 | Global singleton ALS via `Symbol.for('wooks.core.asyncStorage')` — incompatible versions throw at import.                                                          |
+| 15 | A second copy of the **same** version warns at import (`A second copy of @wooksjs/event-core`, since 0.7.23) — slots do not cross copies. Resolve the whole runtime once: all bundled or all external. |
 
 ---
 

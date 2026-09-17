@@ -1,7 +1,27 @@
 import type { EventContext } from './context'
 import type { Key, Cached } from './types'
 
-let nextId = 0
+const COUNTER_KEY = Symbol.for('wooks.core.keyCounter')
+
+interface SlotIdCounter {
+  next: number
+}
+
+/**
+ * Slot ids are handed out from a counter living on `globalThis`.
+ *
+ * Two copies of `@wooksjs/event-core` loaded side by side share a single
+ * `AsyncLocalStorage` (see `./storage`), and `EventContext.slots` is keyed by
+ * the numeric `_id`. A module-scoped counter would restart at `0` in the
+ * second copy, so its slots would collide with unrelated slots of the first
+ * one and silently read/overwrite each other's values. A global counter keeps
+ * ids unique across every loaded copy.
+ */
+const _g = globalThis as Record<symbol, unknown>
+if (!_g[COUNTER_KEY]) {
+  _g[COUNTER_KEY] = { next: 0 } as SlotIdCounter
+}
+const counter = _g[COUNTER_KEY] as SlotIdCounter
 
 /**
  * Creates a typed, writable context slot. Use `ctx.set(k, value)` to store
@@ -17,7 +37,7 @@ let nextId = 0
  * ```
  */
 export function key<T>(name: string): Key<T> {
-  return { _id: nextId++, _name: name } as Key<T>
+  return { _id: counter.next++, _name: name } as Key<T>
 }
 
 /**
@@ -35,7 +55,8 @@ export function key<T>(name: string): Key<T> {
  * ```
  */
 export function cached<T>(fn: (ctx: EventContext) => T): Cached<T> {
-  return { _id: nextId++, _name: `cached:${nextId}`, _fn: fn } as Cached<T>
+  const id = counter.next++
+  return { _id: id, _name: `cached:${id}`, _fn: fn } as Cached<T>
 }
 
 /** @internal Returns true if the accessor is a `Cached` slot (has a factory function). */

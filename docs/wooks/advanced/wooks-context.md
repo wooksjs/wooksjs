@@ -76,6 +76,26 @@ function tryGetCurrent(): EventContext | undefined  // returns undefined if none
 
 `current()` returns the active `EventContext`. All wooks use it internally.
 
+## One Runtime Copy
+
+The `AsyncLocalStorage` behind `current()` is a process-wide singleton, registered on `globalThis` under `Symbol.for('wooks.core.asyncStorage')` by the first copy of `@wooksjs/event-core` that loads. Loading a **different** version afterwards throws at import:
+
+```
+[wooks] Incompatible versions of @wooksjs/event-core detected: existing v0.6.6, loading v0.7.0
+```
+
+Loading a **second copy of the same version** is survivable — both copies share the storage — but it is almost never intentional, so since `0.7.23` it warns:
+
+```
+[wooks] A second copy of @wooksjs/event-core v0.7.23 was loaded (first: …, now: …).
+```
+
+::: warning Resolve the whole runtime once
+The duplicated copies share the event context, but the packages layered on top (`wooks`, `@wooksjs/event-http`, `moost`, …) are duplicated along with them — and a slot seeded by one copy is invisible to wooks from the other. The failure looks unrelated to bundling: `Cannot read properties of undefined (reading 'headers')`, or `Key "http.req" is not set`.
+
+The usual cause is a build (typically SSR) that inlines part of the runtime into the bundle and resolves the rest from `node_modules`. Fix it in the bundler: either bundle the whole wooks/moost runtime, or keep all of it external — and keep every package that depends on it on the same side.
+:::
+
 ## Working with the EventContext
 
 ### Reading and Writing Slots

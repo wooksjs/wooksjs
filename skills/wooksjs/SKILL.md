@@ -15,7 +15,9 @@ description: >-
   useWsRooms, useWsServer, WsError), @wooksjs/event-wf (createWfApp,
   steps/flows, useWfState, pause/resume, StepRetriableError, outlets,
   swapStrategy), @wooksjs/ws-client (createWsClient, reconnection, RPC,
-  WsClientError). Not for moostjs or generic Node http servers.
+  WsClientError). Also for runtime-duplication warnings
+  ("A second copy of @wooksjs/event-core", "Incompatible versions of
+  @wooksjs/event-core"). Not for moostjs or generic Node http servers.
 ---
 
 # wooksjs

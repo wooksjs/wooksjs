@@ -6,23 +6,70 @@ import type { EventKind, EventKindSeeds, Logger } from './types'
 
 const STORAGE_KEY = Symbol.for('wooks.core.asyncStorage')
 const VERSION_KEY = Symbol.for('wooks.core.asyncStorage.version')
+const PATH_KEY = Symbol.for('wooks.core.asyncStorage.path')
 const CURRENT_VERSION = __VERSION__
 
-const _g = globalThis as Record<symbol, unknown>
-if (_g[STORAGE_KEY]) {
-  if (_g[VERSION_KEY] !== CURRENT_VERSION) {
+/** @internal Identity of one loaded copy of `@wooksjs/event-core`. */
+export interface CoreCopyIdentity {
+  version: string
+  path?: string
+}
+
+function describePath(path: unknown): string {
+  return typeof path === 'string' && path ? path : 'unknown path'
+}
+
+/**
+ * Registers this copy of `@wooksjs/event-core` on the global object and
+ * returns the shared `AsyncLocalStorage`.
+ *
+ * A different version throws — the context layout is not compatible. The same
+ * version is survivable (both copies then share one storage), but it still
+ * means the bundler resolved the runtime twice, so we warn: the packages built
+ * on top of event-core are duplicated too, and their slots do not cross over.
+ *
+ * @internal Exported for tests; invoked once at module scope.
+ */
+export function registerCoreCopy(
+  identity: CoreCopyIdentity,
+  globalObject: object = globalThis,
+): AsyncLocalStorage<EventContext> {
+  const holder = globalObject as Record<symbol, unknown>
+  const existing = holder[STORAGE_KEY] as AsyncLocalStorage<EventContext> | undefined
+  if (!existing) {
+    const storage = new AsyncLocalStorage<EventContext>()
+    holder[STORAGE_KEY] = storage
+    holder[VERSION_KEY] = identity.version
+    holder[PATH_KEY] = identity.path
+    return storage
+  }
+  if (holder[VERSION_KEY] !== identity.version) {
     throw new Error(
       `[wooks] Incompatible versions of @wooksjs/event-core detected: ` +
-        `existing v${_g[VERSION_KEY] as string}, loading v${CURRENT_VERSION}. ` +
+        `existing v${holder[VERSION_KEY] as string}, loading v${identity.version}. ` +
         `All packages must use the same @wooksjs/event-core version.`,
     )
   }
-} else {
-  _g[STORAGE_KEY] = new AsyncLocalStorage<EventContext>()
-  _g[VERSION_KEY] = CURRENT_VERSION
+  // oxlint-disable-next-line no-console -- fires at module load, before any logger exists
+  console.warn(
+    `[wooks] A second copy of @wooksjs/event-core v${identity.version} was loaded ` +
+      `(first: ${describePath(holder[PATH_KEY])}, now: ${describePath(identity.path)}). ` +
+      'The copies share the event-context storage, but packages built on them ' +
+      '(@wooksjs/event-http, moost, …) are most likely duplicated too, and a slot seeded ' +
+      'by one copy is invisible to composables from the other — typical symptom: ' +
+      '"Cannot read properties of undefined (reading \'headers\')". Make your bundler ' +
+      'resolve the whole wooks/moost runtime once: either bundle it entirely or keep it ' +
+      'entirely external, together with every package that depends on it.',
+  )
+  return existing
 }
 
-const storage = _g[STORAGE_KEY] as AsyncLocalStorage<EventContext>
+const storage = registerCoreCopy({
+  version: CURRENT_VERSION,
+  // `typeof` is safe on the undeclared `__filename` in ESM; in the CJS
+  // bundle it is defined and wins (rolldown shims `import.meta.url` there)
+  path: typeof __filename === 'string' ? __filename : import.meta.url,
+})
 
 /**
  * Runs a callback with the given `EventContext` as the active context.
