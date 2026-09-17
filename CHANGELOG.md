@@ -1,3 +1,9 @@
+## [0.7.23](https://github.com/wooksjs/wooksjs/compare/v0.7.22...v0.7.23) (2026-09-17)
+
+
+### Features
+
+* **event-core:** warn on a same-version duplicate copy; share the slot-id counter across copies ([bd07a80](https://github.com/wooksjs/wooksjs/commit/bd07a809cc9d8f94aca5b474ccac5bb61a8f85b5))
 ## [0.7.22](https://github.com/wooksjs/wooksjs/compare/v0.7.21...v0.7.22) (2026-07-29)
 
 
