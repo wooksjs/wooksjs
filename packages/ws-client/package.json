@@ -1,6 +1,6 @@
 {
   "name": "@wooksjs/ws-client",
-  "version": "0.7.22",
+  "version": "0.7.23",
   "description": "WebSocket client for Wooks with RPC, subscriptions, reconnection, and push listeners",
   "keywords": [
     "client",
