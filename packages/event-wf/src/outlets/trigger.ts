@@ -240,7 +240,9 @@ export async function handleWfOutletRequest(
       sameStrategy && incomingRaw !== undefined ? { handle: incomingRaw } : undefined
     const newRaw = await finalStrategy.persist(
       stateWithMeta,
-      output.expires ? { ttl: output.expires - Date.now() } : undefined,
+      // Clamp: an expiry already past by save time must persist as "expired
+      // now" — a zero/negative ttl reads as "no expiry" to the state strategies.
+      output.expires ? { ttl: Math.max(1, output.expires - Date.now()) } : undefined,
       reuseHandle,
     )
     const newToken = wrapToken(finalName, newRaw)

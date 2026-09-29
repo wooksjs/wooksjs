@@ -122,6 +122,16 @@ function createTestWfApp() {
   app.flow('throw-flow', ['throws-on-input'])
   app.flow('two-pause-form', ['first-pause', 'second-pause'])
 
+  // A pause whose expiry is already in the past by the time it is persisted.
+  app.step('already-expired-pause', {
+    handler: () => {
+      const { input } = useWfState()
+      if (input()) { return }
+      return { ...outletHttp({ fields: ['email'] }), expires: Date.now() - 1000 }
+    },
+  })
+  app.flow('already-expired-flow', ['already-expired-pause', 'use-input'])
+
   return app
 }
 
@@ -331,6 +341,24 @@ describe('handleWfOutletRequest', () => {
     expect(result.body.error).toBeDefined()
     expect(result.body.status).toBeUndefined()
     expect(result.status).toBe(410)
+  })
+
+  it('persists an already-past pause expiry as expired, never as "no expiry" (410 on resume)', async () => {
+    const app = createTestWfApp()
+    const deps = makeDeps(app)
+    const config = makeConfig({ state: new HandleStateStrategy({ store: createTestStore() }) })
+
+    const started = (await postWf({ wfid: 'already-expired-flow' })(() =>
+      handleWfOutletRequest(config, deps),
+    )) as any
+    expect(typeof started.wfs).toBe('string')
+    await new Promise((resolve) => setTimeout(resolve, 5))
+
+    const resumed = (await postWf({ wfs: started.wfs, input: { email: 'a@b.com' } })(async () => {
+      const r = await handleWfOutletRequest(config, deps)
+      return { body: r as any, status: useResponse().status }
+    })) as any
+    expect(resumed.status).toBe(410)
   })
 
   it('returns 403 for disallowed wfid', async () => {
