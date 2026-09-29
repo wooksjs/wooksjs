@@ -1,3 +1,9 @@
+## [0.7.24](https://github.com/wooksjs/wooksjs/compare/v0.7.23...v0.7.24) (2026-09-29)
+
+
+### Bug Fixes
+
+* **event-wf:** persist an already-past pause expiry as expired, never as no expiry ([1ee65be](https://github.com/wooksjs/wooksjs/commit/1ee65be1bce679cf3cb5e03a3a192d26f8678c6c))
 ## [0.7.23](https://github.com/wooksjs/wooksjs/compare/v0.7.22...v0.7.23) (2026-09-17)
 
 
