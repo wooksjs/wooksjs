@@ -1,6 +1,7 @@
 import type { EventContext, Logger } from '@wooksjs/event-core'
 import type { IncomingMessage, ServerResponse } from 'http'
-import { Readable } from 'stream'
+import { pipeline, Readable } from 'stream'
+import type { ReadableStream as NodeReadableStream } from 'stream/web'
 
 import type { HttpError, TWooksErrorBodyExt } from '../errors/http-error'
 import type { TCookieAttributes, TSetCookieData } from '../types'
@@ -461,29 +462,33 @@ export class HttpResponse {
     this._status = defaultStatus[this._req.method as 'GET'] || EHttpStatusCode.OK
   }
 
-  private sendStream(stream: Readable, method: string | undefined): Promise<void> {
+  private sendStream(source: Readable, method: string | undefined): Promise<void> {
     this.autoStatus(true)
     this._res.writeHead(this._status, this._headers)
-    this._req.once('close', () => {
-      stream.destroy()
-    })
     if (method === 'HEAD') {
-      stream.destroy()
+      source.destroy()
       this._res.end()
       return Promise.resolve()
     }
-    return new Promise((resolve, reject) => {
-      stream.on('error', (e) => {
-        this._logger.error('Stream error', e)
-        stream.destroy()
-        this._res.end()
-        reject(e)
-      })
-      stream.on('close', () => {
-        stream.destroy()
+    return this.pipeToResponse(source, 'Stream error')
+  }
+
+  /**
+   * Pipes `source` into the response. `pipeline` destroys the source when the RESPONSE
+   * closes first (the client disconnected — the request's own 'close' fires as soon as its
+   * body is read, so it can't signal that) and destroys the response when the source fails,
+   * so a truncated body never looks complete. A source error is logged, never rethrown:
+   * headers are already sent, and a sync handler's send() is not awaited (an unhandled
+   * rejection would take the process down).
+   */
+  private pipeToResponse(source: Readable, errorLabel: string): Promise<void> {
+    return new Promise((resolve) => {
+      pipeline(source, this._res, (error) => {
+        if (error && (error as NodeJS.ErrnoException).code !== 'ERR_STREAM_PREMATURE_CLOSE') {
+          this._logger.error(errorLabel, error)
+        }
         resolve()
       })
-      stream.pipe(this._res)
     })
   }
 
@@ -498,24 +503,14 @@ export class HttpResponse {
 
     this._res.writeHead(this._status, this._headers)
 
-    if (method === 'HEAD') {
+    if (method === 'HEAD' || !fetchResponse.body) {
       this._res.end()
       return
     }
-
-    const fetchBody = fetchResponse.body
-    if (fetchBody) {
-      try {
-        for await (const chunk of fetchBody as unknown as AsyncIterable<Uint8Array>) {
-          this._res.write(chunk)
-        }
-      } catch (error) {
-        this._logger.error('Error streaming fetch response body', error)
-      }
-    }
-    if (!this._res.writableEnded) {
-      this._res.end()
-    }
+    return this.pipeToResponse(
+      Readable.fromWeb(fetchResponse.body as unknown as NodeReadableStream<Uint8Array>),
+      'Error streaming fetch response body',
+    )
   }
 
   private sendRegular(method: string | undefined): void {

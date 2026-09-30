@@ -206,6 +206,15 @@ app.get('/file', () => {
 })
 ```
 
+Returned `Readable`s and fetch `Response` bodies are piped with backpressure (`stream.pipeline`):
+
+| Event | Effect |
+|---|---|
+| client disconnects | source destroyed / fetch body cancelled — release producer resources (cursors, timers) in the stream's `destroy`/`close` |
+| source errors mid-body | connection aborted, error logged — the client sees a failed read, never a truncated body that looks complete |
+
+Before 0.7.25: a stream returned after the request body was read (`rawBody()`/`useBody()`) was never destroyed on disconnect and kept producing; a fetch body kept being drained; a source error ended the response normally.
+
 ### Server-Sent Events
 
 ```ts

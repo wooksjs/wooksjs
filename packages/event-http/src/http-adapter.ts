@@ -590,9 +590,9 @@ export class WooksHttp extends WooksAdapterBase {
             return null
           }
         } finally {
-          // Emit 'end' then 'close' on the fake request — critical for Moost's
-          // manualUnscope pattern where handlers bind raw.on('end', unscope).
-          // Order matches real Node.js HTTP: 'end' when data consumed, 'close' after socket.
+          // Emit 'end' then 'close' on the fake request and close the fake response,
+          // matching real Node.js HTTP — listeners tied to request/response completion
+          // (e.g. Moost's event-scope release on the response 'close') still fire.
           fakeReq.emit('end')
           fakeReq.emit('close')
           fakeReq.destroy()

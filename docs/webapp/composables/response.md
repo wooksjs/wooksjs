@@ -40,7 +40,7 @@ app.get('json_response', () => {
 2. `object/array` (application/json)
 3. `boolean` / `number` (text/plain)
 4. `Uint8Array` / `Buffer` (sent as-is; set `Content-Type` yourself — none is set by default)
-5. `Readable` stream (you must specify `Content-Type` yourself)
+5. `Readable` stream (you must specify `Content-Type` yourself). It is piped with backpressure: destroyed if the client disconnects, and a stream error mid-body aborts the connection so a truncated body never looks complete.
 6. `fetch` `Response` (status, headers, and body forwarded — see below)
 
 Instead of returning a value, you can also set the body explicitly on the response instance — `useResponse().setBody(data)` (chainable) or the `body` property.
@@ -52,7 +52,7 @@ When a handler returns a `fetch` `Response`, its status, headers, and body are f
 - The `Response` status is used unless a status was already set via `useResponse()`.
 - All headers from the `Response` are forwarded. Headers already set via `useResponse()` take precedence.
 - Multiple `Set-Cookie` headers are preserved; cookies set via `setCookie()` are sent first.
-- The body is streamed.
+- The body is streamed with backpressure; if the client disconnects, the upstream body is cancelled.
 
 ```js
 app.get('sitemap.xml', () => {

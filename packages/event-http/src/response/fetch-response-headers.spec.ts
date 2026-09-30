@@ -21,7 +21,11 @@ function createSocketResponse(method = 'GET') {
   const res = new ServerResponse(req)
   const writeHead = vi.spyOn(res, 'writeHead').mockReturnValue(res)
   vi.spyOn(res, 'write').mockReturnValue(true)
-  vi.spyOn(res, 'end').mockReturnValue(res)
+  // a detached ServerResponse never finishes on its own; the body pipeline waits for it
+  vi.spyOn(res, 'end').mockImplementation(() => {
+    res.emit('finish')
+    return res
+  })
   return { req, res, writeHead, response: new HttpResponse(res, req, logger as any) }
 }
 
