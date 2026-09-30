@@ -1,3 +1,9 @@
+## [0.7.25](https://github.com/wooksjs/wooksjs/compare/v0.7.24...v0.7.25) (2026-09-30)
+
+
+### Bug Fixes
+
+* **event-http:** pipe streamed bodies — destroy source on client abort, abort on source error ([3bc19a0](https://github.com/wooksjs/wooksjs/commit/3bc19a013db285e4b20f333ad3b459c702c2fbe4))
 ## [0.7.24](https://github.com/wooksjs/wooksjs/compare/v0.7.23...v0.7.24) (2026-09-29)
 
 
