@@ -1,12 +1,14 @@
-import { cached, cachedBy, defineWook } from '@wooksjs/event-core'
+import { cached, defineWook } from '@wooksjs/event-core'
 import type { EventContext } from '@wooksjs/event-core'
 import {
   EHttpStatusCode,
   HttpError,
+  seedRawBody,
   useHeaders,
   useRequest,
   WooksURLSearchParams,
 } from '@wooksjs/event-http'
+import { Buffer } from 'buffer'
 
 import { safeJsonParse } from './utils/safe-json'
 
@@ -30,15 +32,12 @@ const CONTENT_TYPE_MAP: Record<string, string> = {
   urlencoded: 'application/x-www-form-urlencoded',
 }
 
-const contentIsSlot = cachedBy((type: string, ctx: EventContext) => {
-  const contentType = useHeaders(ctx)['content-type'] || ''
-  const mime = CONTENT_TYPE_MAP[type] || type
-  return contentType.includes(mime)
-})
+/** The body's content type: the request's `content-type` header, or what {@link seedBody} set. */
+const contentTypeSlot = cached((ctx: EventContext) => useHeaders(ctx)['content-type'] || '')
 
 const parsedBodySlot = cached(async (ctx: EventContext) => {
   const { rawBody } = useRequest(ctx)
-  const contentType = useHeaders(ctx)['content-type'] || ''
+  const contentType = ctx.get(contentTypeSlot)
   const contentIs = (type: string) => contentType.includes(type)
 
   const body = await rawBody()
@@ -171,12 +170,94 @@ function urlEncodedParser(v: string): Record<string, unknown> {
  *
  * @returns Object with `is(type)` checker, `parseBody` function, and `rawBody` accessor.
  */
-export const useBody = defineWook((ctx: EventContext) => {
+export const useBody = defineWook((ctx: EventContext) => bodyApi(ctx, false))
+
+/** `ownParse`: parse in `ctx` itself, never reading a parent's parsed body through. */
+function bodyApi(ctx: EventContext, ownParse: boolean) {
   const { rawBody } = useRequest(ctx)
 
   return {
-    is: (type: KnownContentType | (string & {})) => contentIsSlot(type, ctx),
-    parseBody: <T>() => ctx.get(parsedBodySlot) as Promise<T>,
+    is: (type: KnownContentType | (string & {})) =>
+      ctx.get(contentTypeSlot).includes(CONTENT_TYPE_MAP[type] || type),
+    parseBody: <T>() =>
+      (ownParse ? ctx.getOwn(parsedBodySlot) : ctx.get(parsedBodySlot)) as Promise<T>,
     rawBody,
   }
-})
+}
+
+/** Options for {@link seedBody}. */
+export interface TSeedBodyOptions {
+  /**
+   * The raw bytes `rawBody()` returns. Default: `body` itself when it is a string or a
+   * `Buffer`, otherwise `JSON.stringify(body)`. With `body` `undefined`, `parseBody()` parses
+   * these bytes by the content type (as for a real request).
+   */
+  raw?: Buffer | string
+  /**
+   * The content type `useBody().is()` checks against (and `parseBody()` parses `raw` by).
+   * Default: `'text/plain'` for a string, `'application/octet-stream'` for a `Buffer`,
+   * `'application/json'` for other values; with `body` `undefined`, the request's
+   * `Content-Type`. Request headers (`useHeaders()`) are not changed.
+   */
+  contentType?: string
+}
+
+/**
+ * Seeds the request body of `ctx` with an already parsed value: `useBody(ctx).parseBody()`
+ * resolves to `body`, `useBody(ctx).rawBody()` / `useRequest(ctx).rawBody()` to its raw bytes,
+ * and `useBody(ctx).is()` checks the seeded content type — the incoming request stream is never
+ * read.
+ *
+ * Use it for a child event context (`new EventContext({ logger, parent })`) that runs a handler
+ * with its own payload: everything else (request, headers, auth) is still read through the
+ * parent, the body never is. Call it before anything in the child reads the body.
+ *
+ * @param ctx - The context to seed — usually a child of the current HTTP event
+ * @param body - The parsed body value
+ * @param opts - Raw bytes and content type (see {@link TSeedBodyOptions})
+ *
+ * @example
+ * ```ts
+ * const child = new EventContext({ logger: parent.logger, parent })
+ * seedBody(child, { ids: [1, 2] })
+ * await run(child, async () => {
+ *   await useBody().parseBody() // { ids: [1, 2] }
+ *   useBody().is('json') // true
+ * })
+ * ```
+ */
+export function seedBody(ctx: EventContext, body: unknown, opts?: TSeedBodyOptions): void {
+  const defaults = seedDefaults(body, opts?.raw)
+  seedRawBody(ctx, defaults.raw)
+  const contentType = opts?.contentType ?? defaults.contentType
+  if (contentType !== undefined) {
+    ctx.setOwn(contentTypeSlot, contentType)
+  }
+  // `undefined` + `raw`: parseBody() parses the seeded bytes by content type
+  const parseRaw = body === undefined && opts?.raw !== undefined
+  if (!parseRaw) {
+    ctx.setOwn(parsedBodySlot, Promise.resolve(body))
+  }
+  if (parseRaw || ctx.parent) {
+    // A `useBody()` the parent already built is bound to the parent's body —
+    // give the child its own instance.
+    ctx.setOwn(useBody._slot, bodyApi(ctx, true))
+  }
+}
+
+/** The raw bytes (`raw`, else derived from `body`) and default content type of a seeded body. */
+function seedDefaults(
+  body: unknown,
+  raw: Buffer | string | undefined,
+): { raw: Buffer | string; contentType?: string } {
+  if (body === undefined) {
+    return { raw: raw ?? '' }
+  }
+  if (typeof body === 'string') {
+    return { raw: raw ?? body, contentType: CONTENT_TYPE_MAP.text }
+  }
+  if (Buffer.isBuffer(body)) {
+    return { raw: raw ?? body, contentType: CONTENT_TYPE_MAP.binary }
+  }
+  return { raw: raw ?? JSON.stringify(body) ?? '', contentType: CONTENT_TYPE_MAP.json }
+}

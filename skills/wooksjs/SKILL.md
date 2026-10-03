@@ -7,7 +7,7 @@ description: >-
   @wooksjs/event-http (createHttpApp, HTTP routing, useRequest, useHeaders,
   useCookies, useUrlParams, useAuthorization, useAccept, useResponse,
   HttpError, prepareTestHttpContext, programmatic fetch/request, SSR,
-  withHttpContext, forwardHeaders), @wooksjs/http-body (useBody, parseBody),
+  withHttpContext, forwardHeaders), @wooksjs/http-body (useBody, parseBody, seedBody),
   @wooksjs/http-static (serveFile), @wooksjs/http-proxy (useProxy),
   @wooksjs/event-cli (createCliApp, command routing, useCliOptions,
   useCliOption, useCliHelp, useAutoHelp), @wooksjs/event-ws (WooksWs,
@@ -80,7 +80,7 @@ import { createHttpApp, useRequest, useResponse, useHeaders, useCookies,
   prepareTestHttpContext, DEFAULT_FORWARD_HEADERS } from '@wooksjs/event-http'
 
 // http-body — parsed request bodies (JSON, form-data, urlencoded)
-import { useBody } from '@wooksjs/http-body'
+import { useBody, seedBody } from '@wooksjs/http-body'
 
 // http-static — file serving
 import { serveFile } from '@wooksjs/http-static'
@@ -114,7 +114,7 @@ Read the reference file that matches the task. Do not load all files — only wh
 | HTTP core/routing | [event-http.md](references/event-http.md)         | Creating HTTP apps, routing, server lifecycle, security headers      |
 | HTTP request      | [http-request.md](references/http-request.md)     | Reading headers, cookies, query params, raw body, authorization      |
 | HTTP response     | [http-response.md](references/http-response.md)   | Status, headers, cookies, cache, errors, streaming, testing          |
-| Body parsing      | [http-body.md](references/http-body.md)           | Parsing request bodies (useBody): JSON, form-data, urlencoded types  |
+| Body parsing      | [http-body.md](references/http-body.md)           | Parsing request bodies (useBody): JSON, form-data, urlencoded types; seeding a child context's body (seedBody) |
 | Static files      | [http-static.md](references/http-static.md)       | Serving files/directories (serveFile), ranges, cache headers         |
 | HTTP proxy        | [http-proxy.md](references/http-proxy.md)         | Proxying/forwarding requests, header/cookie filtering, allowedHosts  |
 | CLI apps          | [event-cli.md](references/event-cli.md)           | Building CLI tools, command routing, options, help system            |

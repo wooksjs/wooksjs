@@ -277,3 +277,5 @@ When a limit is violated, `rawBody()` throws an `HttpError` that the framework r
 
 The implementation of the body parser is isolated into a separate package
 called `@wooksjs/http-body`. For more details on using the body parser, refer to the [Body Parser section](../body.md).
+
+To give a child event context its own body instead of reading the parent request's, see [Seeding a Body in a Child Context](../body.md#seeding-a-body-in-a-child-context) (`seedRawBody()` / `seedBody()`).

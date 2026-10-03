@@ -135,5 +135,6 @@ if (has('image/png')) { /* ... */ }
 
 - `rawBody()` returns `Promise<Buffer>` — `await` it. Consumed+cached: second call returns same buffer.
 - `rawBody()` decompresses gzip/deflate/brotli automatically; limits enforced.
+- A child `EventContext` reads the PARENT's body through `rawBody()` unless seeded: `seedRawBody(childCtx, bytes)` (`@wooksjs/event-http`), or `seedBody()` from `@wooksjs/http-body` for a parsed value ([http-body.md](http-body.md)).
 - `getCookie(name)` returns `null` (not `undefined`) for missing. Use it instead of parsing all cookies when you need a few.
 - `useRequest()` limit setters are copy-on-write — do not affect other requests.

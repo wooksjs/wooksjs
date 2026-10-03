@@ -41,10 +41,28 @@ app.post('/api/data', async () => {
 7. Body reading goes through `useRequest().rawBody()` — size/timeout limits apply first (`413`/`415`/`408`); see [http-request.md](http-request.md).
 8. Urlencoded inherits `toJson()` rules: array keys need the `[]` suffix (kept in the key), repeated non-`[]` keys → `HttpError 400`, proto keys → `400`, null-prototype result.
 
+## Seeding a child context's body — `seedBody(ctx, body, { raw?, contentType? })`
+
+For running handler logic in a child `EventContext` (`new EventContext({ logger, parent })`) with its own payload:
+
+```ts
+const child = new EventContext({ logger: parent.logger, parent })
+seedBody(child, { ids: [1, 2] })             // parseBody() → value, rawBody() → JSON bytes, is('json') → true
+await run(child, () => handler())
+```
+
+| # | Rule |
+| - | ---- |
+| 1 | Seed BEFORE anything in the child reads the body; the parent's body / cached composables are never touched. |
+| 2 | Without `seedBody` a child's `useBody()` / `useRequest().rawBody()` read the PARENT's body (read-through) — always seed when the child needs a different payload. `seedRawBody(ctx, raw)` (`@wooksjs/event-http`) seeds ONLY `rawBody()` — a parent's parsed `useBody()` is still read through. |
+| 3 | Defaults: `raw` = string/Buffer as-is else `JSON.stringify`; `contentType` = `text/plain` / `application/octet-stream` / `application/json` (request's when `body` is `undefined`). |
+| 4 | Bytes to be parsed like a request: `seedBody(ctx, undefined, { raw, contentType? })`. |
+| 5 | Headers (`content-type`, `content-length`), `url` stay the parent's — only body readers change. |
+
 ## Key imports
 
 ```ts
-import { useBody } from '@wooksjs/http-body'
+import { seedBody, useBody } from '@wooksjs/http-body'
 import type { KnownContentType } from '@wooksjs/http-body'
 ```
 

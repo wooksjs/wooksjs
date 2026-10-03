@@ -40,7 +40,7 @@ const isCompressedSlot = cached((ctx: EventContext) => {
   return false
 })
 
-/** @internal Exported for test pre-seeding via `ctx.set(rawBodySlot, ...)`. */
+/** @internal Exported for test pre-seeding — use {@link seedRawBody} instead. */
 export const rawBodySlot = cached(async (ctx: EventContext): Promise<Buffer> => {
   const req = ctx.get(httpKind.keys.req)
   const encs = ctx.get(contentEncodingsSlot)
@@ -230,3 +230,31 @@ export const useRequest = defineWook((ctx: EventContext) => {
     setMaxRatio,
   }
 })
+
+/**
+ * Seeds the raw request body of `ctx`: `useRequest(ctx).rawBody()` resolves to `raw` instead of
+ * reading the incoming request stream. To seed what `useBody()` (`@wooksjs/http-body`) parses,
+ * use its `seedBody()` — a parent's already parsed body is otherwise read through.
+ *
+ * Use it for a child event context (`new EventContext({ logger, parent })`) that runs a handler
+ * with its own payload: the child still reads everything else (request, headers, auth) through
+ * its parent, but never the parent's body. Call it before anything in the child reads the body.
+ *
+ * @param ctx - The context to seed — usually a child of the current HTTP event
+ * @param raw - The body bytes (a string is encoded as UTF-8)
+ *
+ * @example
+ * ```ts
+ * const child = new EventContext({ logger: parent.logger, parent })
+ * seedRawBody(child, JSON.stringify({ ids: [1, 2] }))
+ * await run(child, () => useRequest().rawBody()) // Buffer of '{"ids":[1,2]}'
+ * ```
+ */
+export function seedRawBody(ctx: EventContext, raw: Buffer | string): void {
+  ctx.setOwn(rawBodySlot, Promise.resolve(Buffer.isBuffer(raw) ? raw : Buffer.from(raw)))
+  if (ctx.parent) {
+    // A `useRequest()` the parent already built is bound to the parent's body —
+    // give the child its own instance so `rawBody()` resolves the seeded one.
+    ctx.getOwn(useRequest._slot)
+  }
+}

@@ -9,7 +9,7 @@ import { Duplex } from 'stream'
 import type { TWooksHandler, TWooksOptions, Wooks, WooksUpgradeHandler } from 'wooks'
 import { WooksAdapterBase } from 'wooks'
 
-import { rawBodySlot } from './composables/request'
+import { seedRawBody } from './composables/request'
 import { HttpError } from './errors'
 import { createHttpContext } from './event-http'
 import { httpKind } from './http-kind'
@@ -565,9 +565,8 @@ export class WooksHttp extends WooksAdapterBase {
       async () => {
         const ctx = current()
 
-        // Seed body (same pattern as prepareTestHttpContext)
         if (bodyBuffer) {
-          ctx.set(rawBodySlot, Promise.resolve(bodyBuffer))
+          seedRawBody(ctx, bodyBuffer)
         }
 
         try {

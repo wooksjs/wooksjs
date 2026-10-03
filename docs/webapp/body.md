@@ -55,6 +55,36 @@ app.post('test', async () => {
 -   **Unrecognized or missing `Content-Type` returns the body as a plain string** — no error is thrown.
 -   **Body size and read-time limits apply** to `rawBody()`/`parseBody()` — see [Body Size Limits](/webapp/composables/request#body-size-limits).
 
+## Seeding a Body in a Child Context
+
+When one handler runs another handler's logic in-process with a *different* payload (a nested route invocation, a batch fanned out over child contexts), create a child `EventContext` ([parent contexts](/wooks/advanced/wooks-context#parent-contexts)) and seed its body with `seedBody()`. Inside the child, `useBody().parseBody()`, `useBody().rawBody()`, `useRequest().rawBody()` and `useBody().is()` answer from the seeded value; everything else (request, headers, auth, route params set on the child) still reads through the parent.
+
+```ts
+import { EventContext, current, run } from '@wooksjs/event-core'
+import { seedBody, useBody } from '@wooksjs/http-body'
+
+app.post('/batch', async () => {
+    const parent = current()
+    const child = new EventContext({ logger: parent.logger, parent })
+    seedBody(child, { ids: [1, 2] })
+    return run(child, async () => useBody().parseBody()) // { ids: [1, 2] }
+})
+```
+
+Options (`seedBody(ctx, body, { raw?, contentType? })`):
+
+| Option | Default | Effect |
+| --- | --- | --- |
+| `raw` | `body` for a string / `Buffer`, else `JSON.stringify(body)` | The bytes `rawBody()` returns |
+| `contentType` | `text/plain` (string), `application/octet-stream` (`Buffer`), `application/json` (other values); the request's `Content-Type` when `body` is `undefined` | What `useBody().is()` checks against |
+
+To seed bytes and let `parseBody()` parse them like a real request, pass `undefined` as the body: `seedBody(child, undefined, { raw: 'a=1', contentType: 'application/x-www-form-urlencoded' })`.
+
+`seedRawBody(ctx, raw)` from `@wooksjs/event-http` seeds only `useRequest().rawBody()` — use it when the child never uses `@wooksjs/http-body`; otherwise use `seedBody()`, or a parent's already parsed body is read through.
+
+-   **Seed before anything in the child reads the body.** The parent's own body (and its cached `useBody()` / `useRequest()`) is never touched, even if it was already parsed.
+-   **Headers are not rewritten.** `useHeaders()['content-type']` / `content-length` and `useRequest().url` still describe the parent request — only the body readers change.
+
 ## Custom Body Parser
 
 Use `rawBody` to access the raw body buffer for custom parsing:

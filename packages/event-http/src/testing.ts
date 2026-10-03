@@ -1,9 +1,9 @@
 import { EventContext, routeParamsKey, run } from '@wooksjs/event-core'
-import { Buffer } from 'buffer'
+import type { Buffer } from 'buffer'
 import { IncomingMessage, ServerResponse } from 'http'
 import { Socket } from 'net'
 
-import { rawBodySlot } from './composables/request'
+import { seedRawBody } from './composables/request'
 import { httpKind } from './http-kind'
 import { HttpResponse } from './response/http-response'
 import type { TRequestLimits } from './types'
@@ -57,8 +57,7 @@ export function prepareTestHttpContext(options: TTestHttpContext) {
   }
 
   if (options.rawBody !== undefined) {
-    const buf = Buffer.isBuffer(options.rawBody) ? options.rawBody : Buffer.from(options.rawBody)
-    ctx.set(rawBodySlot, Promise.resolve(buf))
+    seedRawBody(ctx, options.rawBody)
   }
 
   return <T>(cb: (...a: any[]) => T) => run(ctx, cb)
