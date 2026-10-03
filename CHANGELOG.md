@@ -1,3 +1,9 @@
+## [0.7.26](https://github.com/wooksjs/wooksjs/compare/v0.7.25...v0.7.26) (2026-10-03)
+
+
+### Features
+
+* **event-http,http-body:** seedBody and seedRawBody for child event contexts ([644aca8](https://github.com/wooksjs/wooksjs/commit/644aca860604fbb045c9eb31138d105f4d5fb2d2))
 ## [0.7.25](https://github.com/wooksjs/wooksjs/compare/v0.7.24...v0.7.25) (2026-09-30)
 
 
