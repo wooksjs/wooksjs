@@ -10,9 +10,17 @@ export interface TPrerenderJsonOptions {
   etag?: boolean
 }
 
-interface TPrerendered {
+/** @internal Registry entry for a prerendered object. */
+export interface TPrerendered {
   json: string
   etag?: string
+  /** UTF-8 byte length of `json`, computed on the first response that sends it. */
+  size?: number
+  /**
+   * Compressed `json` per coding + level (see response compression), filled lazily on the first
+   * compressed response: a pending Promise while compressing, then the bytes.
+   */
+  compressed?: Record<string, Buffer | Promise<Buffer>>
 }
 
 const registry = new WeakMap<object, TPrerendered>()
@@ -70,7 +78,7 @@ export function prerenderJson<T extends object>(obj: T, options?: TPrerenderJson
 }
 
 /** @internal Returns the pre-serialized JSON (and weak ETag) registered for `obj`, if any. */
-export function getPrerenderedJson(obj: object): Readonly<TPrerendered> | undefined {
+export function getPrerenderedJson(obj: object): TPrerendered | undefined {
   return registry.get(obj)
 }
 

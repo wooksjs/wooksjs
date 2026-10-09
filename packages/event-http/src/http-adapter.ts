@@ -13,6 +13,8 @@ import { seedRawBody } from './composables/request'
 import { HttpError } from './errors'
 import { createHttpContext } from './event-http'
 import { httpKind } from './http-kind'
+import type { THttpCompressionOptions, TResolvedHttpCompression } from './response/compression'
+import { resolveCompression } from './response/compression'
 import type { HttpResponse } from './response/http-response'
 import { recordToWebHeaders } from './response/http-response'
 import { WooksHttpResponse } from './response/wooks-http-response'
@@ -54,6 +56,18 @@ export interface TWooksHttpOptions {
    * @default DEFAULT_FORWARD_HEADERS — ['authorization', 'cookie', 'accept-language', 'x-forwarded-for', 'x-request-id']
    */
   forwardHeaders?: string[] | false
+  /**
+   * Compresses regular response bodies (JSON, text, HTML, …) with brotli or gzip, negotiated
+   * from the request's `Accept-Encoding`. Off by default. `true` uses the defaults
+   * (`threshold: 1024`, `encodings: ['br', 'gzip']`, `brotliQuality: 4`, `gzipLevel: 6`);
+   * an object overrides them. Streams, fetch `Response` bodies and programmatic `fetch()`
+   * responses are never compressed. Opt a single response out with
+   * `useResponse().setCompression(false)`.
+   *
+   * Do not enable it for responses that mix secrets with attacker-controlled input (BREACH).
+   * @default false
+   */
+  compression?: boolean | THttpCompressionOptions
 }
 
 /** HTTP adapter for Wooks that provides route registration, server lifecycle, and request handling. */
@@ -61,6 +75,7 @@ export class WooksHttp extends WooksAdapterBase {
   protected logger: TConsoleBase
   protected ResponseClass: typeof WooksHttpResponse
   protected eventContextOptions: EventContextOptions
+  protected compression: TResolvedHttpCompression | undefined
 
   constructor(
     protected opts?: TWooksHttpOptions,
@@ -70,6 +85,7 @@ export class WooksHttp extends WooksAdapterBase {
     this.logger = opts?.logger || this.getLogger(`${__DYE_CYAN_BRIGHT__}[wooks-http]`)
     this.ResponseClass = opts?.responseClass ?? WooksHttpResponse
     this.eventContextOptions = this.getEventContextOptions()
+    this.compression = resolveCompression(opts?.compression)
   }
 
   /** Registers a handler for all HTTP methods on the given path. */
@@ -271,9 +287,17 @@ export class WooksHttp extends WooksAdapterBase {
     const RequestLimits = this.opts?.requestLimits
     const notFoundHandler = this.opts?.onNotFound
     const defaultHeaders = this.opts?.defaultHeaders
+    const compression = this.compression
 
     return (req: IncomingMessage, res: ServerResponse) => {
-      const response = new this.ResponseClass(res, req, ctxOptions.logger, defaultHeaders)
+      const response = new this.ResponseClass(
+        res,
+        req,
+        ctxOptions.logger,
+        defaultHeaders,
+        false,
+        compression,
+      )
       const method = req.method || ''
       const url = req.url || ''
 
@@ -436,7 +460,7 @@ export class WooksHttp extends WooksAdapterBase {
     for (let i = startIndex; i < handlers.length; i++) {
       try {
         const result = await (i === startIndex ? promise : (handlers[i]() as Promise<unknown>))
-        // respond() returns a promise only for streamed bodies — skip the extra tick otherwise
+        // respond() returns a promise only for streamed or compressed bodies — skip the extra tick otherwise
         const sent = this.respond(result, response, ctx)
         if (sent) {
           await sent

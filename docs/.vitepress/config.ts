@@ -196,6 +196,10 @@ export default defineConfig({
                                     link: '/webapp/composables/response',
                                 },
                                 {
+                                    text: 'Compression',
+                                    link: '/webapp/compression',
+                                },
+                                {
                                     text: 'Body Parser',
                                     link: '/webapp/body',
                                 },

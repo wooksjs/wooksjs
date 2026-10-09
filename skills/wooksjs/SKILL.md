@@ -6,13 +6,14 @@ description: >-
   defineEventKind, useRouteParams, useLogger),
   @wooksjs/event-http (createHttpApp, routing, useRequest, useHeaders,
   useCookies, useUrlParams, useAuthorization, useAccept, useResponse,
-  HttpError, prerenderJson/ETag/304, prepareTestHttpContext, app.fetch, SSR,
-  withHttpContext, forwardHeaders), @wooksjs/http-body (useBody, seedBody),
+  HttpError, prerenderJson/ETag/304, compression,
+  prepareTestHttpContext, app.fetch, SSR, withHttpContext, forwardHeaders),
+  @wooksjs/http-body (useBody, seedBody),
   @wooksjs/http-static (serveFile), @wooksjs/http-proxy (useProxy),
   @wooksjs/event-cli (createCliApp, useCliOptions, useCliHelp, useAutoHelp),
   @wooksjs/event-ws (WooksWs, onMessage, onConnect, useWsConnection,
   useWsMessage, useWsRooms, useWsServer, WsError), @wooksjs/event-wf
-  (createWfApp, steps/flows, useWfState, pause/resume, StepRetriableError,
+  (createWfApp, useWfState, pause/resume, StepRetriableError,
   outlets, swapStrategy), @wooksjs/ws-client (createWsClient, reconnection,
   RPC, WsClientError), "A second copy of @wooksjs/event-core" /
   "Incompatible versions" warnings. Not for moostjs or generic Node servers.
@@ -111,7 +112,7 @@ Read the reference file that matches the task. Do not load all files — only wh
 | Context engine    | [event-core.md](references/event-core.md)         | Working with slots, composables, EventContext, custom adapters       |
 | HTTP core/routing | [event-http.md](references/event-http.md)         | Creating HTTP apps, routing, server lifecycle, security headers      |
 | HTTP request      | [http-request.md](references/http-request.md)     | Reading headers, cookies, query params, raw body, authorization      |
-| HTTP response     | [http-response.md](references/http-response.md)   | Status, headers, cookies, cache, prerenderJson/ETag/304, errors, streaming, testing |
+| HTTP response     | [http-response.md](references/http-response.md)   | Status, headers, cookies, cache, prerenderJson/ETag/304, response compression, errors, streaming, testing |
 | Body parsing      | [http-body.md](references/http-body.md)           | Parsing request bodies (useBody): JSON, form-data, urlencoded types; seeding a child context's body (seedBody) |
 | Static files      | [http-static.md](references/http-static.md)       | Serving files/directories (serveFile), ranges, cache headers         |
 | HTTP proxy        | [http-proxy.md](references/http-proxy.md)         | Proxying/forwarding requests, header/cookie filtering, allowedHosts  |

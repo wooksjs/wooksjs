@@ -40,6 +40,7 @@ app.listen(3000)
 | `responseClass`  | `typeof WooksHttpResponse`           | Custom response subclass (default: `WooksHttpResponse`)          |
 | `defaultHeaders` | `Record<string, string \| string[]>` | Default headers applied to every response (e.g. securityHeaders) |
 | `forwardHeaders` | `string[] \| false`                  | Request headers to propagate to outgoing fetch calls; `false` disables. REPLACES the defaults — spread `DEFAULT_FORWARD_HEADERS` to extend |
+| `compression`    | `boolean \| THttpCompressionOptions` | Opt-in brotli/gzip response compression (default off) — see [http-response.md](http-response.md#response-compression) |
 
 ---
 

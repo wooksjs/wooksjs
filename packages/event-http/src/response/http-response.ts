@@ -8,7 +8,20 @@ import type { TCookieAttributes, TSetCookieData } from '../types'
 import type { TCacheControl } from '../utils/cache-control'
 import { renderCacheControl } from '../utils/cache-control'
 import { renderCookie } from '../utils/set-cookie'
+import type {
+  THttpCompressionEncoding,
+  THttpCompressionOptions,
+  TResolvedHttpCompression,
+} from './compression'
+import {
+  compressionCacheKey,
+  compressResponseBody,
+  mergeVary,
+  negotiateEncoding,
+  resolveCompression,
+} from './compression'
 import { getPrerenderedJson, ifNoneMatchHas } from './prerender'
+import type { TPrerendered } from './prerender'
 import { EHttpStatusCode } from '../utils/status-codes'
 import type { TTimeMultiString } from '../utils/time'
 import { convertTime } from '../utils/time'
@@ -42,6 +55,8 @@ export class HttpResponse {
    * @param _req - The underlying Node.js `IncomingMessage`.
    * @param _logger - Logger instance for error reporting.
    * @param defaultHeaders - Optional headers to pre-populate on this response (e.g. from `securityHeaders()`).
+   * @param _captureMode - Finalize state on `send()` without writing to `_res` (programmatic fetch).
+   * @param compression - App-level response compression settings (`undefined` = off).
    */
   constructor(
     protected readonly _res: ServerResponse,
@@ -49,7 +64,9 @@ export class HttpResponse {
     protected readonly _logger: Logger,
     defaultHeaders?: Record<string, string | string[]>,
     protected readonly _captureMode = false,
+    compression?: TResolvedHttpCompression,
   ) {
+    this._compression = compression
     if (defaultHeaders) {
       for (const key in defaultHeaders) {
         this._headers[key] = defaultHeaders[key]
@@ -66,8 +83,10 @@ export class HttpResponse {
   protected _rawCookies?: string[]
   protected _hasCookies = false
   protected _responded = false
-  /** Weak ETag of the prerendered body picked by the last `renderBody()` (see `prerenderJson`). */
-  private _prerenderedEtag?: string
+  /** Registry entry of the prerendered body picked by the last `renderBody()` (see `prerenderJson`). */
+  private _prerendered?: TPrerendered
+  /** Effective compression settings for this response (`undefined` = off). */
+  protected _compression: TResolvedHttpCompression | undefined
 
   // --- Status ---
 
@@ -242,6 +261,31 @@ export class HttpResponse {
     return this
   }
 
+  // --- Compression ---
+
+  /**
+   * Overrides response compression for this response (chainable).
+   *
+   * - `false` — never compress this response (e.g. a body that mixes secrets with reflected input).
+   * - `true` — compress with the app settings, or the defaults when the app has compression off.
+   * - an options object — compress with these settings over the app settings (or the defaults).
+   *
+   * Only regular bodies (strings, numbers, booleans, objects, `Uint8Array`) are compressed; streams
+   * and fetch `Response` bodies are sent as is.
+   */
+  setCompression(value: boolean | THttpCompressionOptions): this {
+    this._compression =
+      value === true
+        ? (this._compression ?? resolveCompression(true))
+        : resolveCompression(value, this._compression)
+    return this
+  }
+
+  /** Effective compression settings for this response, or `false` when compression is off. */
+  get compression(): Readonly<TResolvedHttpCompression> | false {
+    return this._compression ?? false
+  }
+
   // --- Raw access & state ---
 
   /**
@@ -293,19 +337,19 @@ export class HttpResponse {
       )
     }
 
-    // Regular body — renderBody() may set content-type on this._headers
+    // Regular body — renderBody() may set content-type on this._headers.
+    // Never compressed: the consumer is in-process (programmatic fetch / SSR).
     const rendered = this.renderBody()
+    const prerendered = this.takePrerendered()
     this.autoStatus(!!rendered)
-    if (this.applyPrerenderedEtag()) {
+    if (prerendered?.etag && this.applyPrerenderedEtag(prerendered.etag)) {
       return new globalThis.Response(null, {
         status: this._status,
         headers: this._buildWebHeaders(),
       })
     }
     if (rendered) {
-      const contentLength =
-        typeof rendered === 'string' ? Buffer.byteLength(rendered) : rendered.byteLength
-      this._headers['content-length'] = contentLength.toString()
+      this._headers['content-length'] = renderedSize(rendered, prerendered).toString()
     }
 
     const webBody = method === 'HEAD' ? null
@@ -389,7 +433,7 @@ export class HttpResponse {
       }
       const prerendered = getPrerenderedJson(body)
       if (prerendered) {
-        this._prerenderedEtag = prerendered.etag
+        this._prerendered = prerendered
         return prerendered.json
       }
       return JSON.stringify(body)
@@ -417,6 +461,7 @@ export class HttpResponse {
    *
    * Flushes all accumulated headers (including cookies) in a single `writeHead()` call,
    * then writes the body. Supports `Readable` streams, `fetch` `Response` objects, and regular values.
+   * Returns a Promise (which never rejects) for streamed bodies and compressed regular bodies.
    *
    * @throws Error if the response was already sent.
    */
@@ -450,8 +495,8 @@ export class HttpResponse {
       return this.sendFetchResponse(body, method)
     }
 
-    // Branch C: Regular body (synchronous — no Promise allocated)
-    this.sendRegular(method)
+    // Branch C: Regular body (synchronous — no Promise allocated unless compressing)
+    return this.sendRegular(method)
   }
 
   private finalizeCookies(): void {
@@ -479,18 +524,13 @@ export class HttpResponse {
    * matches into a bodiless `304`. Returns `true` when the response became `304`.
    * Other methods get no ETag (a validator on e.g. a PUT response would describe the stored resource).
    */
-  private applyPrerenderedEtag(): boolean {
-    const etag = this._prerenderedEtag
-    if (!etag) {
-      return false
-    }
-    this._prerenderedEtag = undefined
+  private applyPrerenderedEtag(etag: string): boolean {
     const method = this._req.method
     if (
       (method !== 'GET' && method !== 'HEAD') ||
       this._status < 200 ||
       this._status > 299 ||
-      this.hasHeaderIgnoreCase('etag')
+      this.headerKeyIgnoreCase('etag') !== undefined
     ) {
       return false
     }
@@ -511,13 +551,24 @@ export class HttpResponse {
     return true
   }
 
-  private hasHeaderIgnoreCase(name: string): boolean {
+  /** Returns the stored key of header `name` (lower-case) in whatever casing it was set with. */
+  private headerKeyIgnoreCase(name: string): string | undefined {
+    if (name in this._headers) {
+      return name
+    }
     for (const key in this._headers) {
       if (key.toLowerCase() === name) {
-        return true
+        return key
       }
     }
-    return false
+    return undefined
+  }
+
+  /** Returns and clears the prerender entry picked by the last `renderBody()`. */
+  private takePrerendered(): TPrerendered | undefined {
+    const prerendered = this._prerendered
+    this._prerendered = undefined
+    return prerendered
   }
 
   private autoStatus(hasBody: boolean): void {
@@ -582,19 +633,168 @@ export class HttpResponse {
     )
   }
 
-  private sendRegular(method: string | undefined): void {
-    const renderedBody = this.renderBody()
-    this.autoStatus(!!renderedBody)
-    if (this.applyPrerenderedEtag()) {
+  private sendRegular(method: string | undefined): void | Promise<void> {
+    const body = this.renderBody()
+    const prerendered = this.takePrerendered()
+    const size = renderedSize(body, prerendered)
+    this.autoStatus(!!body)
+    // Eligibility does not depend on the client: every eligible response varies on Accept-Encoding
+    const compression =
+      this._compression && this.isCompressible(size, this._compression)
+        ? this._compression
+        : undefined
+    if (compression) {
+      this.appendVary('Accept-Encoding')
+    }
+    if (prerendered?.etag && this.applyPrerenderedEtag(prerendered.etag)) {
       this._res.writeHead(this._status, this._headers).end()
       return
     }
-    const contentLength =
-      typeof renderedBody === 'string' ? Buffer.byteLength(renderedBody) : renderedBody.byteLength
-    this._headers['content-length'] = contentLength.toString()
+    if (compression && method !== 'HEAD') {
+      const encoding = negotiateEncoding(
+        this._req.headers['accept-encoding'],
+        compression.encodings,
+      )
+      if (encoding) {
+        return this.sendCompressed(body, size, encoding, compression, prerendered)
+      }
+    }
+    this._headers['content-length'] = size.toString()
 
-    this._res.writeHead(this._status, this._headers).end(method === 'HEAD' ? '' : renderedBody)
+    this._res.writeHead(this._status, this._headers).end(method === 'HEAD' ? '' : body)
   }
+
+  /**
+   * Whether a rendered regular body of `size` bytes may be compressed — independent of the
+   * request's `Accept-Encoding` (and of HEAD, which is answered uncompressed).
+   */
+  private isCompressible(size: number, opts: TResolvedHttpCompression): boolean {
+    const status = this._status
+    if (
+      !size ||
+      size < opts.threshold ||
+      status < 200 ||
+      status === 204 ||
+      status === 206 ||
+      status === 304
+    ) {
+      return false
+    }
+    // One pass over the headers (keys keep the caller's casing)
+    let contentType: string | string[] | undefined
+    for (const key in this._headers) {
+      const lower = key.toLowerCase()
+      if (lower === 'content-type') {
+        contentType = this._headers[key]
+      } else if (lower === 'content-encoding') {
+        return false
+      } else if (lower === 'cache-control' && /no-transform/i.test(String(this._headers[key]))) {
+        return false
+      }
+    }
+    return typeof contentType === 'string' && opts.filter(contentType, this)
+  }
+
+  /** Adds `token` to the `Vary` header (case-insensitive merge, keeps existing entries). */
+  private appendVary(token: string): void {
+    const key = this.headerKeyIgnoreCase('vary') ?? 'vary'
+    const merged = mergeVary(this._headers[key], token)
+    if (merged !== undefined) {
+      this._headers[key] = merged
+    }
+  }
+
+  /**
+   * Sends the body compressed with `encoding`. Prerendered bodies are compressed once per coding
+   * and level and the bytes reused (sent synchronously once ready). A compressor failure is
+   * logged and the body is sent uncompressed — headers are not written yet, so that is safe.
+   * Never rejects: a sync handler's `send()` is not awaited.
+   */
+  private sendCompressed(
+    body: string | Uint8Array,
+    size: number,
+    encoding: THttpCompressionEncoding,
+    opts: TResolvedHttpCompression,
+    prerendered: TPrerendered | undefined,
+  ): void | Promise<void> {
+    let pending: Buffer | Promise<Buffer>
+    // An overridden renderBody() may send something other than the registered JSON — don't cache it
+    if (prerendered?.json === body) {
+      const cache = (prerendered.compressed ??= {})
+      const cacheKey = compressionCacheKey(encoding, opts)
+      let entry = cache[cacheKey]
+      if (!entry) {
+        const promise = compressResponseBody(body, size, encoding, opts)
+        // Swap the settled bytes in so later responses write synchronously; drop a failure
+        promise.then(
+          (bytes) => (cache[cacheKey] = bytes),
+          () => delete cache[cacheKey],
+        )
+        entry = cache[cacheKey] = promise
+      }
+      pending = entry
+    } else {
+      pending = compressResponseBody(body, size, encoding, opts)
+    }
+    if (Buffer.isBuffer(pending)) {
+      this.writeDeferred(pending, pending.byteLength, encoding)
+      return
+    }
+    return pending
+      .then(
+        (bytes) => this.writeDeferred(bytes, bytes.byteLength, encoding),
+        (error: unknown) => {
+          this._logger.error('Response compression failed, sending uncompressed body', error)
+          this.writeDeferred(body, size)
+        },
+      )
+      .catch((error: unknown) => {
+        this._logger.error('Failed to send compressed response', error)
+      })
+  }
+
+  /**
+   * Writes the body picked by `sendCompressed()` — the `encoding`-compressed bytes, or the identity
+   * body after a compressor failure — unless the client went away meanwhile.
+   */
+  private writeDeferred(
+    body: string | Uint8Array,
+    length: number,
+    encoding?: THttpCompressionEncoding,
+  ): void {
+    if (this._res.destroyed) {
+      return
+    }
+    if (encoding) {
+      this._headers['content-encoding'] = encoding
+      for (const key in this._headers) {
+        const lower = key.toLowerCase()
+        if (lower === 'content-length' && key !== lower) {
+          // An explicit identity length in another casing would go out as a second, wrong header
+          delete this._headers[key]
+        } else if (lower === 'etag') {
+          // A strong validator promises byte-identical bodies; the encoded body is not, so weaken it
+          const etag = this._headers[key]
+          if (typeof etag === 'string' && etag && !etag.startsWith('W/')) {
+            this._headers[key] = `W/${etag}`
+          }
+        }
+      }
+    }
+    this._headers['content-length'] = length.toString()
+    this._res.writeHead(this._status, this._headers).end(body)
+  }
+}
+
+/** UTF-8 size of a rendered body — computed once per registration for a prerendered body. */
+function renderedSize(body: string | Uint8Array, prerendered: TPrerendered | undefined): number {
+  if (typeof body !== 'string') {
+    return body.byteLength
+  }
+  // An overridden renderBody() may send something other than the registered JSON
+  return prerendered?.json === body
+    ? (prerendered.size ??= Buffer.byteLength(body))
+    : Buffer.byteLength(body)
 }
 
 /** Converts a Record of headers to a Web Standard `Headers` object. */

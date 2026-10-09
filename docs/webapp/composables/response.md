@@ -400,6 +400,12 @@ The `304` has no body and no `Content-Type`/`Content-Length`; every other header
 
 Registrations are held weakly: when the object is garbage-collected, its stored JSON goes with it. Calling `prerenderJson` again for the same object is a no-op (it adds the ETag if it was not requested the first time).
 
+With [response compression](../compression.md) enabled, a registered body is compressed once per coding and the compressed bytes are reused; the weak `ETag` is shared by all codings.
+
+## Compression
+
+Responses can be compressed with brotli or gzip — opt in with `createHttpApp({ compression: true })` and opt a single response out with `useResponse().setCompression(false)`. See [Response Compression](../compression.md) for the rules, options and the BREACH caveat.
+
 ## Advanced Members
 
 A few more `HttpResponse` members are useful when integrating with other tooling:
@@ -409,6 +415,7 @@ A few more `HttpResponse` members are useful when integrating with other tooling
 | `responded` | `true` once the response has been sent |
 | `sendError(error, ctx)` | Renders and sends an `HttpError` (called automatically when a handler throws) |
 | `toWebResponse()` | Builds a Web Standard `Response` from the accumulated state (used by [programmatic fetch](../fetch.md)) |
+| `setCompression(value)` / `compression` | Per-response compression override and the effective settings — see [Response Compression](../compression.md#per-response-control) |
 
 The `recordToWebHeaders(record)` utility (exported from `@wooksjs/event-http`) converts a Node-style headers record (`Record<string, string | string[]>`) into Web Standard `Headers`.
 

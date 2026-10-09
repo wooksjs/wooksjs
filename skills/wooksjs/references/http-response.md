@@ -7,6 +7,7 @@ See [event-http.md](event-http.md) for app setup/routing, [http-request.md](http
 - [`useResponse` / `HttpResponse`](#useresponsectx-httpresponse)
 - [Status](#status), [Headers](#headers), [Cookies (outgoing)](#cookies-outgoing), [Cache Control](#cache-control)
 - [Pre-serialized JSON & ETag](#pre-serialized-json--etag) — `prerenderJson`, 304 on `If-None-Match`
+- [Response Compression](#response-compression) — `compression` option, `setCompression`, `negotiateEncoding`
 - [Body Content-Type Inference](#body-content-type-inference)
 - [Raw Response Access](#raw-response-access) — `getRawRes()`, `responded`
 - [HttpError and Error Rendering](#httperror-and-error-rendering) — content-negotiated error body
@@ -143,6 +144,40 @@ app.get('/meta', () => {
 | 6 | An `ETag` header set explicitly on the response wins — no prerender ETag, no `304`. |
 | 7 | Same behaviour on the socket path and `app.fetch()`. Calling `prerenderJson` again is a no-op (adds the ETag if newly requested); entries are weak (die with the object). |
 | 8 | Per-viewer bodies: the ETag is computed from the final bytes, so different bodies never share an ETag — still send `Vary`/`Cache-Control: private` for shared caches. |
+
+---
+
+## Response Compression
+
+Opt-in brotli/gzip for regular bodies, negotiated from `Accept-Encoding`. Off unless enabled.
+
+```ts
+import { createHttpApp, useResponse, isCompressibleType, negotiateEncoding } from '@wooksjs/event-http'
+
+const app = createHttpApp({ compression: true })
+// or: { threshold: 1024, encodings: ['br', 'gzip'], brotliQuality: 4, gzipLevel: 6, filter: (type, response) => isCompressibleType(type) }
+// moost: new MoostHttp({ compression: true })
+
+app.get('/me', () => {
+  useResponse().setCompression(false) // per-response opt-out
+  return { csrf, echo }
+})
+```
+
+| # | Rule |
+|---|---|
+| 1 | Off by default. `compression: true` → defaults above; object overrides individual fields. |
+| 2 | `useResponse().setCompression(false \| true \| opts)`: `false` disables for this response; `true`/`opts` enables even when the app has it off (opts layer over app settings). `response.compression` = effective settings or `false`. |
+| 3 | Compressed only when ALL hold: regular body (string/number/boolean/object/`Uint8Array`) ≥ `threshold` UTF-8 bytes; status not 1xx/204/206/304; no `Content-Encoding` set; no `Cache-Control: no-transform`; `filter(contentType)` true (default: text/* except event-stream, json/+json, xml/+xml, js, svg, ndjson, wasm, urlencoded); method ≠ HEAD; client accepts `br`/`gzip`. |
+| 4 | Never compressed: `Readable` streams, SSE, fetch `Response` bodies, `app.fetch()`/`request()` (in-process, SSR local fetch), `withHttpContext`. |
+| 5 | Negotiation: highest client q wins, `encodings` order breaks ties; `q=0` excludes; `*` covers unlisted codings; missing header / `identity` only → uncompressed. Exported as `negotiateEncoding(header, supported)`. |
+| 6 | `Vary: Accept-Encoding` is merged into existing `Vary` on every eligible response — also for identity clients, HEAD and prerender `304`s. `Vary: *` left alone. |
+| 7 | `Content-Length` = compressed size. A strong `ETag` you set is weakened (`W/"…"`) on compressed responses. |
+| 8 | `prerenderJson` bodies are compressed once per coding+level (in-flight promise shared by concurrent requests), then served synchronously from memory. Prerender weak ETag shared across codings; `304` unchanged. |
+| 9 | Error responses (`HttpError`, thrown errors) follow the same rules — large JSON/HTML errors are compressed. |
+| 10 | Compression is async on the libuv threadpool (4 threads default, shared with fs/dns/crypto) — raise `UV_THREADPOOL_SIZE` on busy servers. Non-qualifying responses keep the synchronous path. Compressor error → logged, identity body sent. |
+| 11 | BREACH: never compress a body that contains a secret (CSRF/API/session token) together with attacker-reflected input → `setCompression(false)` for those routes; careful with SSR HTML. |
+| 12 | Don't stack with a proxy/`compression()` middleware — choose one layer. Keep `brotliQuality` 4–5 for dynamic bodies (11 is hundreds of times slower). |
 
 ---
 
@@ -384,6 +419,7 @@ it('reads cookies from request', () => {
 - `setContentType()` overwrites any prior content-type.
 - For custom error rendering, subclass `WooksHttpResponse` and override `renderError()`.
 - `prerenderJson` objects must never be mutated after registration — see [Pre-serialized JSON & ETag](#pre-serialized-json--etag).
+- Response compression is opt-in; opt a response out with `setCompression(false)` when it mixes secrets with reflected input — see [Response Compression](#response-compression).
 
 Testing:
 - Always use `prepareTestHttpContext`; do not manually construct `EventContext`.
