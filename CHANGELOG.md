@@ -1,3 +1,9 @@
+## [0.7.28](https://github.com/wooksjs/wooksjs/compare/v0.7.27...v0.7.28) (2026-10-09)
+
+
+### Features
+
+* **event-http:** opt-in response compression with cached prerendered encodings ([3384d78](https://github.com/wooksjs/wooksjs/commit/3384d78c755bde2d1b0e31179dc4761697a65080))
 ## [0.7.27](https://github.com/wooksjs/wooksjs/compare/v0.7.26...v0.7.27) (2026-10-09)
 
 
