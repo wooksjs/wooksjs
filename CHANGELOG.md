@@ -1,3 +1,9 @@
+## [0.7.27](https://github.com/wooksjs/wooksjs/compare/v0.7.26...v0.7.27) (2026-10-09)
+
+
+### Performance Improvements
+
+* faster body reader, ws broadcast and json guard; feat: prerenderJson with ETag/304 ([8900df8](https://github.com/wooksjs/wooksjs/commit/8900df85cb37581b5288babf0e93358a521adfbd))
 ## [0.7.26](https://github.com/wooksjs/wooksjs/compare/v0.7.25...v0.7.26) (2026-10-03)
 
 
