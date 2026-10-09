@@ -8,6 +8,7 @@ import type { TCookieAttributes, TSetCookieData } from '../types'
 import type { TCacheControl } from '../utils/cache-control'
 import { renderCacheControl } from '../utils/cache-control'
 import { renderCookie } from '../utils/set-cookie'
+import { getPrerenderedJson, ifNoneMatchHas } from './prerender'
 import { EHttpStatusCode } from '../utils/status-codes'
 import type { TTimeMultiString } from '../utils/time'
 import { convertTime } from '../utils/time'
@@ -59,10 +60,14 @@ export class HttpResponse {
   protected _status: EHttpStatusCode = 0 as EHttpStatusCode
   protected _body: unknown = undefined
   protected _headers: Record<string, string | string[]> = {}
-  protected _cookies: Record<string, TSetCookieData> = {}
-  protected _rawCookies: string[] = []
+  /** Outgoing named cookies — allocated on the first `setCookie()`. */
+  protected _cookies?: Record<string, TSetCookieData>
+  /** Outgoing raw `Set-Cookie` strings — allocated on the first `setCookieRaw()`. */
+  protected _rawCookies?: string[]
   protected _hasCookies = false
   protected _responded = false
+  /** Weak ETag of the prerendered body picked by the last `renderBody()` (see `prerenderJson`). */
+  private _prerenderedEtag?: string
 
   // --- Status ---
 
@@ -151,33 +156,35 @@ export class HttpResponse {
 
   /** Sets an outgoing `Set-Cookie` header with optional attributes (chainable). */
   setCookie(name: string, value: string, attrs?: Partial<TCookieAttributes>): this {
-    this._cookies[name] = { value, attrs: attrs || {} }
+    ;(this._cookies ??= {})[name] = { value, attrs: attrs || {} }
     this._hasCookies = true
     return this
   }
 
   /** Returns a previously set cookie's data, or `undefined` if not set. */
   getCookie(name: string): TSetCookieData | undefined {
-    return this._cookies[name]
+    return this._cookies?.[name]
   }
 
   /** Removes a cookie from the outgoing set list (chainable). */
   removeCookie(name: string): this {
-    delete this._cookies[name]
+    if (this._cookies) {
+      delete this._cookies[name]
+    }
     return this
   }
 
   /** Removes all outgoing cookies (chainable). */
   clearCookies(): this {
-    this._cookies = {}
-    this._rawCookies = []
+    this._cookies = undefined
+    this._rawCookies = undefined
     this._hasCookies = false
     return this
   }
 
   /** Appends a raw `Set-Cookie` header string (chainable). Use when you need full control over the cookie format. */
   setCookieRaw(rawValue: string): this {
-    this._rawCookies.push(rawValue)
+    ;(this._rawCookies ??= []).push(rawValue)
     this._hasCookies = true
     return this
   }
@@ -193,12 +200,16 @@ export class HttpResponse {
    */
   getSetCookieStrings(): string[] {
     const rendered: string[] = []
-    for (const [name, data] of Object.entries(this._cookies)) {
-      if (data) {
-        rendered.push(renderCookie(name, data))
+    if (this._cookies) {
+      for (const [name, data] of Object.entries(this._cookies)) {
+        if (data) {
+          rendered.push(renderCookie(name, data))
+        }
       }
     }
-    rendered.push(...this._rawCookies)
+    if (this._rawCookies) {
+      rendered.push(...this._rawCookies)
+    }
     return rendered
   }
 
@@ -285,6 +296,12 @@ export class HttpResponse {
     // Regular body — renderBody() may set content-type on this._headers
     const rendered = this.renderBody()
     this.autoStatus(!!rendered)
+    if (this.applyPrerenderedEtag()) {
+      return new globalThis.Response(null, {
+        status: this._status,
+        headers: this._buildWebHeaders(),
+      })
+    }
     if (rendered) {
       const contentLength =
         typeof rendered === 'string' ? Buffer.byteLength(rendered) : rendered.byteLength
@@ -370,6 +387,11 @@ export class HttpResponse {
       if (!this._headers['content-type']) {
         this._headers['content-type'] = 'application/json'
       }
+      const prerendered = getPrerenderedJson(body)
+      if (prerendered) {
+        this._prerenderedEtag = prerendered.etag
+        return prerendered.json
+      }
       return JSON.stringify(body)
     }
     throw new Error(`Unsupported body format "${typeof body}"`)
@@ -451,6 +473,53 @@ export class HttpResponse {
     this._hasCookies = false
   }
 
+  /**
+   * For a body registered with `prerenderJson(obj, { etag: true })`: sets the `ETag` header on a
+   * GET/HEAD 2xx response (unless one was set explicitly) and turns a `200` whose `If-None-Match`
+   * matches into a bodiless `304`. Returns `true` when the response became `304`.
+   * Other methods get no ETag (a validator on e.g. a PUT response would describe the stored resource).
+   */
+  private applyPrerenderedEtag(): boolean {
+    const etag = this._prerenderedEtag
+    if (!etag) {
+      return false
+    }
+    this._prerenderedEtag = undefined
+    const method = this._req.method
+    if (
+      (method !== 'GET' && method !== 'HEAD') ||
+      this._status < 200 ||
+      this._status > 299 ||
+      this.hasHeaderIgnoreCase('etag')
+    ) {
+      return false
+    }
+    this._headers.etag = etag
+    if (
+      this._status !== EHttpStatusCode.OK ||
+      !ifNoneMatchHas(this._req.headers['if-none-match'], etag)
+    ) {
+      return false
+    }
+    this._status = EHttpStatusCode.NotModified
+    for (const key in this._headers) {
+      const lower = key.toLowerCase()
+      if (lower === 'content-type' || lower === 'content-length') {
+        delete this._headers[key]
+      }
+    }
+    return true
+  }
+
+  private hasHeaderIgnoreCase(name: string): boolean {
+    for (const key in this._headers) {
+      if (key.toLowerCase() === name) {
+        return true
+      }
+    }
+    return false
+  }
+
   private autoStatus(hasBody: boolean): void {
     if (this._status) {
       return
@@ -516,6 +585,10 @@ export class HttpResponse {
   private sendRegular(method: string | undefined): void {
     const renderedBody = this.renderBody()
     this.autoStatus(!!renderedBody)
+    if (this.applyPrerenderedEtag()) {
+      this._res.writeHead(this._status, this._headers).end()
+      return
+    }
     const contentLength =
       typeof renderedBody === 'string' ? Buffer.byteLength(renderedBody) : renderedBody.byteLength
     this._headers['content-length'] = contentLength.toString()

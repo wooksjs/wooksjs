@@ -1,6 +1,7 @@
 import { cached, defineWook, useEventId } from '@wooksjs/event-core'
 import type { EventContext } from '@wooksjs/event-core'
 import { Buffer } from 'buffer'
+import type { IncomingMessage } from 'http'
 
 import {
   compressors,
@@ -21,24 +22,96 @@ export const DEFAULT_LIMITS = {
   readTimeoutMs: 10_000, // 10 s
 } as const
 
-const contentEncodingsSlot = cached((ctx: EventContext) => {
-  const req = ctx.get(httpKind.keys.req)
-  const contentEncoding = req.headers['content-encoding']
-  return (contentEncoding || '')
+const NO_ENCODINGS: readonly string[] = Object.freeze([])
+
+const contentEncodingsSlot = cached((ctx: EventContext): readonly string[] => {
+  const contentEncoding = ctx.get(httpKind.keys.req).headers['content-encoding']
+  if (!contentEncoding) {
+    return NO_ENCODINGS
+  }
+  return contentEncoding
     .split(',')
     .map((p) => p.trim())
     .filter((p) => !!p)
 })
 
 const isCompressedSlot = cached((ctx: EventContext) => {
-  const parts = ctx.get(contentEncodingsSlot)
-  for (const p of parts) {
-    if (['deflate', 'gzip', 'br'].includes(p)) {
+  for (const p of ctx.get(contentEncodingsSlot)) {
+    if (p === 'deflate' || p === 'gzip' || p === 'br') {
       return true
     }
   }
   return false
 })
+
+/**
+ * Reads the whole request body with plain stream events (one listener set, one timer).
+ * Raw bytes are checked against `upfrontLimit` first, then against `maxInflated`
+ * (the same order as the streaming path). A stall longer than `timeoutMs` destroys the
+ * request; a premature close or stream error becomes 408. The request is destroyed
+ * once reading settles, as async iteration did.
+ */
+function readRawBody(
+  req: IncomingMessage,
+  upfrontLimit: number,
+  maxInflated: number,
+  timeoutMs: number,
+): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = []
+    let bytes = 0
+    if (req.readableEnded) {
+      req.destroy()
+      resolve(Buffer.alloc(0))
+      return
+    }
+    if (req.destroyed) {
+      reject(new HttpError(408, 'Request body timeout'))
+      return
+    }
+    let done = false
+    const timer = timeoutMs === 0 ? null : setTimeout(() => req.destroy(), timeoutMs)
+    const finish = (error?: HttpError) => {
+      if (done) {
+        return
+      }
+      done = true
+      if (timer) {
+        clearTimeout(timer)
+      }
+      req.off('data', onData)
+      req.off('end', onEnd)
+      req.off('error', onAbort)
+      req.off('close', onAbort)
+      req.destroy()
+      if (error) {
+        reject(error)
+      } else {
+        resolve(chunks.length === 1 ? chunks[0] : Buffer.concat(chunks, bytes))
+      }
+    }
+    const onData = (chunk: Buffer) => {
+      bytes += chunk.length
+      if (bytes > upfrontLimit) {
+        finish(new HttpError(413, 'Payload Too Large'))
+        return
+      }
+      if (bytes > maxInflated) {
+        finish(new HttpError(413, 'Inflated body too large'))
+        return
+      }
+      timer?.refresh()
+      chunks.push(chunk)
+    }
+    const onEnd = () => finish()
+    const onAbort = () => finish(new HttpError(408, 'Request body timeout'))
+    req.on('data', onData)
+    req.on('end', onEnd)
+    req.on('error', onAbort)
+    req.on('close', onAbort)
+    req.resume()
+  })
+}
 
 /** @internal Exported for test pre-seeding — use {@link seedRawBody} instead. */
 export const rawBodySlot = cached(async (ctx: EventContext): Promise<Buffer> => {
@@ -65,6 +138,23 @@ export const rawBodySlot = cached(async (ctx: EventContext): Promise<Buffer> => 
     if (!compressors[enc]) {
       throw new HttpError(415, `Unsupported Content-Encoding "${enc}"`)
     }
+  }
+
+  if (!streamable) {
+    /* plain (or buffer-only compressed) body: event-based read, then decompress if needed */
+    const raw = await readRawBody(req, upfrontLimit, maxInflated, timeoutMs)
+    if (!isZip) {
+      return raw
+    }
+    const body = await uncompressBody(encs, raw)
+    if (body.byteLength > maxInflated) {
+      throw new HttpError(413, 'Inflated body too large')
+    }
+    /* compression ratio check (zip-bomb mitigation) */
+    if (raw.byteLength > 0 && body.byteLength / raw.byteLength > maxRatio) {
+      throw new HttpError(413, 'Compression ratio too high')
+    }
+    return body
   }
 
   /* optional timeout */
@@ -106,11 +196,8 @@ export const rawBodySlot = cached(async (ctx: EventContext): Promise<Buffer> => 
     }
   }
 
-  /* build pipeline (maybe just the generator itself) */
-  let stream: AsyncIterable<Buffer> = limitedCompressed()
-  if (streamable) {
-    stream = await uncompressBodyStream(encs, stream)
-  }
+  /* streaming decompression pipeline */
+  const stream = await uncompressBodyStream(encs, limitedCompressed())
 
   /* collect output while enforcing inflated limits */
   const chunks: Buffer[] = []
@@ -131,23 +218,12 @@ export const rawBodySlot = cached(async (ctx: EventContext): Promise<Buffer> => 
     throw new HttpError(408, 'Request body timeout')
   }
 
-  /* if we could not stream-decompress, do it now (buffer) */
-  let body: Buffer = Buffer.concat(chunks)
-
-  if (!streamable && isZip) {
-    body = await uncompressBody(encs, body)
-    inflatedBytes = body.byteLength
-    if (inflatedBytes > maxInflated) {
-      throw new HttpError(413, 'Inflated body too large')
-    }
-  }
-
   /* compression ratio check (zip-bomb mitigation) */
-  if (isZip && rawBytes > 0 && inflatedBytes / rawBytes > maxRatio) {
+  if (rawBytes > 0 && inflatedBytes / rawBytes > maxRatio) {
     throw new HttpError(413, 'Compression ratio too high')
   }
 
-  return body // always decompressed
+  return Buffer.concat(chunks) // always decompressed
 })
 
 const forwardedIpSlot = cached((ctx: EventContext) => {

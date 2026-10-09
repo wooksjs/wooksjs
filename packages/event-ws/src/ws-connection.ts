@@ -2,6 +2,24 @@ import type { EventContext } from '@wooksjs/event-core'
 
 import type { WsPushMessage, WsReplyMessage, WsSocket } from './types'
 
+type TWsSerializer = (msg: WsReplyMessage | WsPushMessage) => string | Buffer
+
+function pushMessage(
+  event: string,
+  path: string,
+  data?: unknown,
+  params?: Record<string, string>,
+): WsPushMessage {
+  const msg: WsPushMessage = { event, path }
+  if (params) {
+    msg.params = params
+  }
+  if (data !== undefined) {
+    msg.data = data
+  }
+  return msg
+}
+
 /** Internal class representing a connected WebSocket client. */
 export class WsConnection {
   readonly rooms = new Set<string>()
@@ -11,7 +29,7 @@ export class WsConnection {
     readonly id: string,
     readonly ws: WsSocket,
     readonly ctx: EventContext,
-    private readonly serializer: (msg: WsReplyMessage | WsPushMessage) => string | Buffer,
+    private readonly serializer: TWsSerializer,
   ) {}
 
   /** Send a push message to this connection. */
@@ -19,14 +37,18 @@ export class WsConnection {
     if (this.ws.readyState !== 1) {
       return
     } // OPEN = 1
-    const msg: WsPushMessage = { event, path }
-    if (params) {
-      msg.params = params
+    this.ws.send(this.serializer(pushMessage(event, path, data, params)))
+  }
+
+  /**
+   * Send an already serialized frame (e.g. one push message serialized once for many recipients).
+   * Skipped when the socket is not open, like `send()`.
+   */
+  sendSerialized(payload: string | Buffer): void {
+    if (this.ws.readyState !== 1) {
+      return
     }
-    if (data !== undefined) {
-      msg.data = data
-    }
-    this.ws.send(this.serializer(msg))
+    this.ws.send(payload)
   }
 
   /** Send a reply to a client request. */
@@ -48,6 +70,34 @@ export class WsConnection {
     }
     const msg: WsReplyMessage = { id, error: { code, message } }
     this.ws.send(this.serializer(msg))
+  }
+
+  /**
+   * Sends one push message to many connections, serializing it once per distinct serializer
+   * (connections of one adapter share one) and only when an open recipient exists.
+   * @internal
+   */
+  static sendPushToMany(
+    connections: Iterable<WsConnection>,
+    skip: ((conn: WsConnection) => boolean) | undefined,
+    event: string,
+    path: string,
+    data?: unknown,
+    params?: Record<string, string>,
+  ): void {
+    let msg: WsPushMessage | undefined
+    let serializer: TWsSerializer | undefined
+    let payload: string | Buffer = ''
+    for (const conn of connections) {
+      if (conn.ws.readyState !== 1 || (skip && skip(conn))) {
+        continue
+      }
+      if (conn.serializer !== serializer) {
+        serializer = conn.serializer
+        payload = serializer((msg ??= pushMessage(event, path, data, params)))
+      }
+      conn.sendSerialized(payload)
+    }
   }
 
   /** Close the connection. */

@@ -1,7 +1,8 @@
+import { current } from '@wooksjs/event-core'
 import type { EventContext } from '@wooksjs/event-core'
 import type { IncomingHttpHeaders } from 'http'
 
-import { useRequest } from './request'
+import { httpKind } from '../http-kind'
 
 /**
  * Returns the incoming request headers.
@@ -11,5 +12,5 @@ import { useRequest } from './request'
  * ```
  */
 export function useHeaders(ctx?: EventContext): IncomingHttpHeaders {
-  return useRequest(ctx).headers
+  return (ctx ?? current()).get(httpKind.keys.req).headers
 }

@@ -1,23 +1,21 @@
 ---
 name: wooksjs
 description: >-
-  Use for the wooksjs monorepo or any @wooksjs package:
+  Use for the wooksjs monorepo / any @wooksjs package:
   @wooksjs/event-core (EventContext, key/cached/cachedBy slots, defineWook,
-  defineEventKind, AsyncLocalStorage, useRouteParams, useLogger),
-  @wooksjs/event-http (createHttpApp, HTTP routing, useRequest, useHeaders,
+  defineEventKind, useRouteParams, useLogger),
+  @wooksjs/event-http (createHttpApp, routing, useRequest, useHeaders,
   useCookies, useUrlParams, useAuthorization, useAccept, useResponse,
-  HttpError, prepareTestHttpContext, programmatic fetch/request, SSR,
-  withHttpContext, forwardHeaders), @wooksjs/http-body (useBody, parseBody, seedBody),
+  HttpError, prerenderJson/ETag/304, prepareTestHttpContext, app.fetch, SSR,
+  withHttpContext, forwardHeaders), @wooksjs/http-body (useBody, seedBody),
   @wooksjs/http-static (serveFile), @wooksjs/http-proxy (useProxy),
-  @wooksjs/event-cli (createCliApp, command routing, useCliOptions,
-  useCliOption, useCliHelp, useAutoHelp), @wooksjs/event-ws (WooksWs,
-  onMessage, onConnect, onDisconnect, useWsConnection, useWsMessage,
-  useWsRooms, useWsServer, WsError), @wooksjs/event-wf (createWfApp,
-  steps/flows, useWfState, pause/resume, StepRetriableError, outlets,
-  swapStrategy), @wooksjs/ws-client (createWsClient, reconnection, RPC,
-  WsClientError). Also for runtime-duplication warnings
-  ("A second copy of @wooksjs/event-core", "Incompatible versions of
-  @wooksjs/event-core"). Not for moostjs or generic Node http servers.
+  @wooksjs/event-cli (createCliApp, useCliOptions, useCliHelp, useAutoHelp),
+  @wooksjs/event-ws (WooksWs, onMessage, onConnect, useWsConnection,
+  useWsMessage, useWsRooms, useWsServer, WsError), @wooksjs/event-wf
+  (createWfApp, steps/flows, useWfState, pause/resume, StepRetriableError,
+  outlets, swapStrategy), @wooksjs/ws-client (createWsClient, reconnection,
+  RPC, WsClientError), "A second copy of @wooksjs/event-core" /
+  "Incompatible versions" warnings. Not for moostjs or generic Node servers.
 ---
 
 # wooksjs
@@ -76,7 +74,7 @@ import { key, cached, cachedBy, slot, defineEventKind, defineWook,
 
 // event-http — HTTP server + request/response composables
 import { createHttpApp, useRequest, useResponse, useHeaders, useCookies,
-  useUrlParams, useAuthorization, useAccept, HttpError,
+  useUrlParams, useAuthorization, useAccept, HttpError, prerenderJson,
   prepareTestHttpContext, DEFAULT_FORWARD_HEADERS } from '@wooksjs/event-http'
 
 // http-body — parsed request bodies (JSON, form-data, urlencoded)
@@ -113,7 +111,7 @@ Read the reference file that matches the task. Do not load all files — only wh
 | Context engine    | [event-core.md](references/event-core.md)         | Working with slots, composables, EventContext, custom adapters       |
 | HTTP core/routing | [event-http.md](references/event-http.md)         | Creating HTTP apps, routing, server lifecycle, security headers      |
 | HTTP request      | [http-request.md](references/http-request.md)     | Reading headers, cookies, query params, raw body, authorization      |
-| HTTP response     | [http-response.md](references/http-response.md)   | Status, headers, cookies, cache, errors, streaming, testing          |
+| HTTP response     | [http-response.md](references/http-response.md)   | Status, headers, cookies, cache, prerenderJson/ETag/304, errors, streaming, testing |
 | Body parsing      | [http-body.md](references/http-body.md)           | Parsing request bodies (useBody): JSON, form-data, urlencoded types; seeding a child context's body (seedBody) |
 | Static files      | [http-static.md](references/http-static.md)       | Serving files/directories (serveFile), ranges, cache headers         |
 | HTTP proxy        | [http-proxy.md](references/http-proxy.md)         | Proxying/forwarding requests, header/cookie filtering, allowedHosts  |

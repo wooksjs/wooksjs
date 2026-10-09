@@ -6,6 +6,7 @@ See [event-http.md](event-http.md) for app setup/routing, [http-request.md](http
 
 - [`useResponse` / `HttpResponse`](#useresponsectx-httpresponse)
 - [Status](#status), [Headers](#headers), [Cookies (outgoing)](#cookies-outgoing), [Cache Control](#cache-control)
+- [Pre-serialized JSON & ETag](#pre-serialized-json--etag) — `prerenderJson`, 304 on `If-None-Match`
 - [Body Content-Type Inference](#body-content-type-inference)
 - [Raw Response Access](#raw-response-access) — `getRawRes()`, `responded`
 - [HttpError and Error Rendering](#httperror-and-error-rendering) — content-negotiated error body
@@ -115,6 +116,33 @@ response.setExpires(new Date('2025-12-31'))   // Expires header
 response.setExpires('2025-12-31')             // also accepts strings
 response.setPragmaNoCache()                   // Pragma: no-cache
 ```
+
+---
+
+## Pre-serialized JSON & ETag
+
+`prerenderJson(obj, { etag? })` (from `@wooksjs/event-http`) serializes a long-lived response object once and keys the JSON by object identity; returning that same object later skips `JSON.stringify`. Returns `obj`.
+
+```ts
+import { prerenderJson, useResponse } from '@wooksjs/event-http'
+
+const meta = prerenderJson(Object.freeze(buildMeta()), { etag: true })
+app.get('/meta', () => {
+  useResponse().setHeader('cache-control', 'private, no-cache')
+  return meta
+})
+```
+
+| # | Rule |
+|---|---|
+| 1 | **Never mutate a registered object** (or anything it references) — the stored JSON is never refreshed. Build a new object; deep-freeze registered objects in dev/tests to catch violations. |
+| 2 | Hit only on the *same object identity*. A copy/spread (`{ ...meta }`) or an interceptor replacing the body is a plain miss — normal stringify, no ETag. |
+| 3 | `{ etag: true }` → weak `ETag` (`W/"…"`, sha256 of the bytes) set on `GET`/`HEAD` 2xx responses carrying the object (other methods: no ETag). Equal bytes → equal ETag. |
+| 4 | `304` only for `GET`/`HEAD` with final status `200` and a matching `If-None-Match` (weak compare, lists, `*`). Body, `content-type`, `content-length` dropped; all other headers (`ETag`, `Cache-Control`, `Vary`, cookies) kept. |
+| 5 | Errors and non-2xx never get an ETag or `304` (thrown `HttpError`, explicit `setStatus(404)`). |
+| 6 | An `ETag` header set explicitly on the response wins — no prerender ETag, no `304`. |
+| 7 | Same behaviour on the socket path and `app.fetch()`. Calling `prerenderJson` again is a no-op (adds the ETag if newly requested); entries are weak (die with the object). |
+| 8 | Per-viewer bodies: the ETag is computed from the final bytes, so different bodies never share an ETag — still send `Vary`/`Cache-Control: private` for shared caches. |
 
 ---
 
@@ -355,6 +383,7 @@ it('reads cookies from request', () => {
 - Cookie `maxAge` is seconds, not milliseconds.
 - `setContentType()` overwrites any prior content-type.
 - For custom error rendering, subclass `WooksHttpResponse` and override `renderError()`.
+- `prerenderJson` objects must never be mutated after registration — see [Pre-serialized JSON & ETag](#pre-serialized-json--etag).
 
 Testing:
 - Always use `prepareTestHttpContext`; do not manually construct `EventContext`.

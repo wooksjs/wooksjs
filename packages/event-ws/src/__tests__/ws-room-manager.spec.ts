@@ -3,9 +3,14 @@ import { describe, expect, it, vi } from 'vitest'
 import type { WsPushMessage, WsReplyMessage } from '../types'
 import { WsConnection } from '../ws-connection'
 import { WsRoomManager } from '../ws-room-manager'
+import { setAdapterState } from '../composables/state'
+import { useWsServer } from '../composables/server'
 import { EventContext } from '@wooksjs/event-core'
 
-function createMockConnection(id: string): WsConnection {
+function createMockConnection(
+  id: string,
+  serializer: (msg: WsReplyMessage | WsPushMessage) => string | Buffer = JSON.stringify,
+): WsConnection {
   const sent: any[] = []
   const ws = {
     send: (data: string | Buffer) => sent.push(data),
@@ -15,7 +20,7 @@ function createMockConnection(id: string): WsConnection {
     readyState: 1,
   }
   const ctx = new EventContext({ logger: console as any })
-  const conn = new WsConnection(id, ws, ctx, JSON.stringify)
+  const conn = new WsConnection(id, ws, ctx, serializer)
   ;(conn as any)._sent = sent
   return conn
 }
@@ -105,5 +110,109 @@ describe('WsRoomManager', () => {
   it('must return empty set for non-existent room', () => {
     const rm = new WsRoomManager()
     expect(rm.connections('/nonexistent').size).toBe(0)
+  })
+  describe('serialize once per broadcast', () => {
+    function countingSerializer() {
+      const fn = vi.fn((msg: WsReplyMessage | WsPushMessage) => JSON.stringify(msg))
+      return fn
+    }
+
+    it('serializes a room broadcast once for all open recipients, in field order', () => {
+      const ser = countingSerializer()
+      const rm = new WsRoomManager()
+      const conns = ['a', 'b', 'c', 'd'].map((id) => createMockConnection(id, ser))
+      for (const c of conns) {
+        rm.join(c, '/room')
+      }
+      ;(conns[3].ws as any).readyState = 3 // CLOSED
+
+      rm.broadcast('/room', 'update', '/room', { n: 1 }, { id: '7' }, conns[0])
+
+      expect(ser).toHaveBeenCalledTimes(1)
+      expect(getSent(conns[0])).toHaveLength(0)
+      expect(getSent(conns[3])).toHaveLength(0)
+      expect(getSent(conns[1])).toEqual([
+        '{"event":"update","path":"/room","params":{"id":"7"},"data":{"n":1}}',
+      ])
+      expect(getSent(conns[2])[0]).toBe(getSent(conns[1])[0])
+    })
+
+    it('does not serialize when no recipient is open', () => {
+      const ser = countingSerializer()
+      const rm = new WsRoomManager()
+      const c1 = createMockConnection('c1', ser)
+      rm.join(c1, '/room')
+      ;(c1.ws as any).readyState = 2 // CLOSING
+      rm.broadcast('/room', 'update', '/room', { n: 1 })
+      expect(ser).not.toHaveBeenCalled()
+    })
+
+    it('serializes once per distinct serializer', () => {
+      const s1 = countingSerializer()
+      const s2 = vi.fn((msg: WsReplyMessage | WsPushMessage) => `s2:${JSON.stringify(msg)}`)
+      const rm = new WsRoomManager()
+      const conns = [
+        createMockConnection('a', s1),
+        createMockConnection('b', s1),
+        createMockConnection('c', s2),
+      ]
+      for (const c of conns) {
+        rm.join(c, '/room')
+      }
+      rm.broadcast('/room', 'e', '/room')
+      expect(s1).toHaveBeenCalledTimes(1)
+      expect(s2).toHaveBeenCalledTimes(1)
+      expect(getSent(conns[0])).toEqual(['{"event":"e","path":"/room"}'])
+      expect(getSent(conns[2])).toEqual(['s2:{"event":"e","path":"/room"}'])
+    })
+
+    it('serializes transport-delivered broadcasts once and honours excludeId', () => {
+      const handlers = new Map<string, (payload: string) => void>()
+      const transport = {
+        publish: vi.fn(),
+        subscribe: (channel: string, handler: (payload: string) => void) => {
+          handlers.set(channel, handler)
+        },
+        unsubscribe: vi.fn(),
+      }
+      const ser = countingSerializer()
+      const rm = new WsRoomManager(transport)
+      const conns = ['a', 'b', 'c'].map((id) => createMockConnection(id, ser))
+      for (const c of conns) {
+        rm.join(c, '/room')
+      }
+      handlers.get('ws:room:/room')!(
+        JSON.stringify({ event: 'm', path: '/room', data: 1, excludeId: 'b' }),
+      )
+      expect(ser).toHaveBeenCalledTimes(1)
+      expect(getSent(conns[0])).toEqual(['{"event":"m","path":"/room","data":1}'])
+      expect(getSent(conns[1])).toHaveLength(0)
+      expect(getSent(conns[2])).toEqual(['{"event":"m","path":"/room","data":1}'])
+    })
+
+    it('useWsServer().broadcast serializes once for all open connections', () => {
+      const ser = countingSerializer()
+      const conns = ['a', 'b', 'c'].map((id) => createMockConnection(id, ser))
+      ;(conns[1].ws as any).readyState = 3
+      setAdapterState({
+        connections: new Map(conns.map((c) => [c.id, c])),
+        roomManager: new WsRoomManager(),
+        serializer: ser,
+        wooks: {} as any,
+      })
+      useWsServer().broadcast('tick', '/clock', 5)
+      expect(ser).toHaveBeenCalledTimes(1)
+      expect(getSent(conns[0])).toEqual(['{"event":"tick","path":"/clock","data":5}'])
+      expect(getSent(conns[1])).toHaveLength(0)
+      expect(getSent(conns[2])).toEqual(['{"event":"tick","path":"/clock","data":5}'])
+    })
+
+    it('sendSerialized sends the payload as is and skips closed sockets', () => {
+      const c1 = createMockConnection('c1')
+      c1.sendSerialized('raw')
+      ;(c1.ws as any).readyState = 3
+      c1.sendSerialized('dropped')
+      expect(getSent(c1)).toEqual(['raw'])
+    })
   })
 })

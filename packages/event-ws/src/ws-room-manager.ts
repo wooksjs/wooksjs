@@ -1,4 +1,4 @@
-import type { WsConnection } from './ws-connection'
+import { WsConnection } from './ws-connection'
 import type { WsBroadcastTransport } from './types'
 
 /** Manages room → connections mapping with optional distributed broadcast transport. */
@@ -79,11 +79,14 @@ export class WsRoomManager {
     // Send to local connections
     const set = this.rooms.get(room)
     if (set) {
-      for (const conn of set) {
-        if (conn !== exclude) {
-          conn.send(event, path, data, params)
-        }
-      }
+      WsConnection.sendPushToMany(
+        set,
+        exclude && ((conn) => conn === exclude),
+        event,
+        path,
+        data,
+        params,
+      )
     }
 
     // Publish to transport for other instances
@@ -108,11 +111,14 @@ export class WsRoomManager {
         params?: Record<string, string>
         excludeId?: string
       }
-      for (const conn of set) {
-        if (conn.id !== excludeId) {
-          conn.send(event, path, data, params)
-        }
-      }
+      WsConnection.sendPushToMany(
+        set,
+        excludeId === undefined ? undefined : (conn) => conn.id === excludeId,
+        event,
+        path,
+        data,
+        params,
+      )
     } catch {
       // Silently ignore malformed transport messages
     }

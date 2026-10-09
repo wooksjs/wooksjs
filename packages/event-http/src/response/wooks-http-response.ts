@@ -1,11 +1,12 @@
 import type { EventContext } from '@wooksjs/event-core'
 
-import { useAccept } from '../composables/header-accept'
 import svg403 from '../errors/403.tl.svg'
 import svg404 from '../errors/404.tl.svg'
 import svg500 from '../errors/500.tl.svg'
 import errorTemplate from '../errors/error.tl.html'
 import type { TWooksErrorBodyExt } from '../errors/http-error'
+import { httpKind } from '../http-kind'
+import { acceptHeaderHas } from '../utils/accept'
 import { escapeHtml } from '../utils/escape-html'
 import { httpStatusCodes } from '../utils/status-codes'
 import type { EHttpStatusCode } from '../utils/status-codes'
@@ -44,7 +45,8 @@ export class WooksHttpResponse extends HttpResponse {
 
   protected renderError(data: TWooksErrorBodyExt, ctx: EventContext): void {
     this._status = (data.statusCode || 500) as EHttpStatusCode
-    const { has } = useAccept(ctx)
+    const accept = ctx.get(httpKind.keys.req).headers.accept
+    const has = (type: string) => acceptHeaderHas(accept, type)
     if (has('json')) {
       this._headers['content-type'] = 'application/json'
       this._body = JSON.stringify(data)

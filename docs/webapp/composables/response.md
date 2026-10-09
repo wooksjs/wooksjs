@@ -364,6 +364,42 @@ app.get('static/*', () => {
 
 The standalone `renderCacheControl(data)` utility (exported from `@wooksjs/event-http`) renders the same directive object into a `Cache-Control` header value string.
 
+## Pre-serialized JSON & ETag
+
+When many requests return the same large object — a schema, a metadata envelope, a config document built once and cached — `prerenderJson()` serializes it once and remembers the JSON by object identity. Every response that returns that exact object reuses the stored string instead of calling `JSON.stringify` again.
+
+```ts
+import { prerenderJson, useResponse } from '@wooksjs/event-http'
+
+const meta = prerenderJson(Object.freeze(buildMeta()), { etag: true })
+
+app.get('/meta', () => {
+  useResponse()
+    .setHeader('cache-control', 'private, no-cache')
+    .setHeader('vary', 'Authorization, Cookie')
+  return meta // no re-serialization; 304 when the client already has these bytes
+})
+```
+
+**Options:**
+
+| Option | Effect |
+|--------|--------|
+| `etag: true` | Computes a weak `ETag` (`W/"…"`) from the serialized bytes. `GET`/`HEAD` 2xx responses carrying the object get the `ETag` header (other methods get none), and one that would answer `200` replies `304 Not Modified` when `If-None-Match` matches (weak comparison, lists and `*` supported). |
+
+The `304` has no body and no `Content-Type`/`Content-Length`; every other header the handler set (`ETag`, `Cache-Control`, `Vary`, cookies) is kept. Because the ETag is a hash of the final bytes, two different bodies never share an ETag — a client that revalidates with an old ETag after its body changed (for example after logging in with another role) gets a `200` with the new body.
+
+**Do:**
+- Treat a registered object as immutable. The stored JSON is never refreshed, so build a new object (and register it) instead of changing the old one. Deep-freezing registered objects in development turns an accidental mutation into an error.
+- Return the registered object itself. A copy (`{ ...meta }`) is a different object and is serialized normally, without an ETag.
+- Send `Cache-Control: private` (plus `no-cache` to force revalidation) and a `Vary` header for responses that differ per user.
+
+**Don't:**
+- Expect `304` on errors or non-`200` responses — thrown `HttpError`s and responses with another status never become `304` and carry no prerender ETag.
+- Combine it with your own `ETag` header — an explicitly set `ETag` wins and the automatic `304` is skipped for that response.
+
+Registrations are held weakly: when the object is garbage-collected, its stored JSON goes with it. Calling `prerenderJson` again for the same object is a no-op (it adds the ETag if it was not requested the first time).
+
 ## Advanced Members
 
 A few more `HttpResponse` members are useful when integrating with other tooling:

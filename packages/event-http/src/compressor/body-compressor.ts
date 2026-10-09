@@ -23,11 +23,11 @@ export const compressors: Record<string, TBodyCompressor | undefined> = {
   },
 }
 
-export function encodingSupportsStream(encodings: string[]) {
+export function encodingSupportsStream(encodings: readonly string[]) {
   return encodings.every((enc) => compressors[enc]?.stream)
 }
 
-export async function compressBody(encodings: string[], body: Buffer): Promise<Buffer> {
+export async function compressBody(encodings: readonly string[], body: Buffer): Promise<Buffer> {
   let buf = body
   for (const enc of encodings) {
     const c = compressors[enc]
@@ -39,7 +39,10 @@ export async function compressBody(encodings: string[], body: Buffer): Promise<B
   return buf
 }
 
-export async function uncompressBody(encodings: string[], compressed: Buffer): Promise<Buffer> {
+export async function uncompressBody(
+  encodings: readonly string[],
+  compressed: Buffer,
+): Promise<Buffer> {
   let buf = compressed // progressive buffer
 
   // Decompress in reverse order: br, gzip  =>  gunzip, brotlidec
@@ -56,7 +59,7 @@ export async function uncompressBody(encodings: string[], compressed: Buffer): P
 }
 
 export async function compressBodyStream(
-  encodings: string[],
+  encodings: readonly string[],
   src: AsyncIterable<Buffer>,
 ): Promise<AsyncIterable<Buffer>> {
   if (!encodingSupportsStream(encodings)) {
@@ -71,7 +74,7 @@ export async function compressBodyStream(
 }
 
 export async function uncompressBodyStream(
-  encodings: string[],
+  encodings: readonly string[],
   src: AsyncIterable<Buffer>,
 ): Promise<AsyncIterable<Buffer>> {
   if (!encodingSupportsStream(encodings)) {

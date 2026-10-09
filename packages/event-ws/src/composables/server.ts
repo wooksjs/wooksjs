@@ -1,4 +1,4 @@
-import type { WsConnection } from '../ws-connection'
+import { WsConnection } from '../ws-connection'
 import { getAdapterState } from './state'
 
 /**
@@ -16,9 +16,7 @@ export function useWsServer() {
 
     /** Broadcast to ALL connections (not room-scoped). */
     broadcast(event: string, path: string, data?: unknown, params?: Record<string, string>): void {
-      for (const conn of state.connections.values()) {
-        conn.send(event, path, data, params)
-      }
+      WsConnection.sendPushToMany(state.connections.values(), undefined, event, path, data, params)
     },
 
     /** Get a specific connection by ID. */

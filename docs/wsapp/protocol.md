@@ -178,3 +178,5 @@ const client = createWsClient(url, {
 ```
 
 Both sides must use the same serialization format.
+
+A broadcast (`useWsServer().broadcast()`, `useWsRooms().broadcast()`) serializes its message **once** and sends the same frame to every open recipient, so the server serializer must not produce per-recipient output.

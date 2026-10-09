@@ -432,30 +432,15 @@ export class WooksHttp extends WooksAdapterBase {
     ctx: EventContext,
     response: HttpResponse,
   ): Promise<unknown> {
-    try {
-      const result = await promise
-      await this.respond(result, response, ctx)
-      return result
-    } catch (error) {
-      const isLastHandler = startIndex === handlers.length - 1
-      if (!(error instanceof HttpError)) {
-        this.logger.error(
-          `Uncaught route handler exception: ${ctx.get(httpKind.keys.req)?.url || ''}`,
-          error,
-        )
-      }
-      if (isLastHandler) {
-        await this.respond(error, response, ctx)
-        return error
-      }
-    }
-    // Continue with remaining handlers (async path)
-    for (let i = startIndex + 1; i < handlers.length; i++) {
-      const handler = handlers[i]
-      const isLastHandler = i === handlers.length - 1
+    // The handler at `startIndex` already returned `promise`; later handlers are called here.
+    for (let i = startIndex; i < handlers.length; i++) {
       try {
-        const result = await (handler() as Promise<unknown>)
-        await this.respond(result, response, ctx)
+        const result = await (i === startIndex ? promise : (handlers[i]() as Promise<unknown>))
+        // respond() returns a promise only for streamed bodies — skip the extra tick otherwise
+        const sent = this.respond(result, response, ctx)
+        if (sent) {
+          await sent
+        }
         return result
       } catch (error) {
         if (!(error instanceof HttpError)) {
@@ -464,8 +449,11 @@ export class WooksHttp extends WooksAdapterBase {
             error,
           )
         }
-        if (isLastHandler) {
-          await this.respond(error, response, ctx)
+        if (i === handlers.length - 1) {
+          const sent = this.respond(error, response, ctx)
+          if (sent) {
+            await sent
+          }
           return error
         }
       }

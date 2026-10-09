@@ -255,6 +255,8 @@ Server-wide operations. **Not a `defineWook`** -- reads from module-level adapte
 }
 ```
 
+Broadcasts (`useWsServer().broadcast()`, `useWsRooms().broadcast()`, transport-delivered room messages) call `messageSerializer` **once per broadcast** and send the same frame to every open recipient — keep the serializer pure (no per-recipient output).
+
 `broadcast()` reaches connections on the current instance only — it does not use `broadcastTransport`. For cross-instance delivery use room broadcasts via `useWsRooms().broadcast()` (the adapter's room manager applies `broadcastTransport`; it is not directly exposed).
 
 ### `currentConnection(ctx?)`
@@ -298,7 +300,7 @@ Transport payload format (JSON-stringified):
 
 ### WsConnection (internal)
 
-Obtained via `useWsServer().getConnection(id)` / `roomConnections(room)`. Methods: `send(event, path, data?, params?)`, `reply(id, data?)`, `replyError(id, code, message)`, `close(code?, reason?)`. Fields: `id`, `ws`, `ctx`, `rooms`, `alive`. Send methods silently drop if `ws.readyState !== 1` (not OPEN).
+Obtained via `useWsServer().getConnection(id)` / `roomConnections(room)`. Methods: `send(event, path, data?, params?)`, `reply(id, data?)`, `replyError(id, code, message)`, `sendSerialized(payload)`, `close(code?, reason?)`. Fields: `id`, `ws`, `ctx`, `rooms`, `alive`. Send methods silently drop if `ws.readyState !== 1` (not OPEN). `sendSerialized(payload)` sends an already serialized frame as is (no `messageSerializer` call).
 
 ---
 
