@@ -1,3 +1,9 @@
+## [0.7.29](https://github.com/wooksjs/wooksjs/compare/v0.7.28...v0.7.29) (2026-10-10)
+
+
+### Features
+
+* **event-http:** route first — onNoMatch and unmatched fetch() run outside any event ([4b60b19](https://github.com/wooksjs/wooksjs/commit/4b60b19c2806ba4652f9956ddf58d0347e227de5))
 ## [0.7.28](https://github.com/wooksjs/wooksjs/compare/v0.7.27...v0.7.28) (2026-10-09)
 
 
