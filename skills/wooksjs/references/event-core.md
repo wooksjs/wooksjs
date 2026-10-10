@@ -539,7 +539,7 @@ export class WooksMy extends WooksAdapterBase {
 ```
 
 - Pass an existing `Wooks` or adapter to the constructor to share its router; omit it to use the global singleton (`getGlobalWooks` creates on first call, `clearGlobalWooks` resets it — both exported from `wooks`).
-- `lookupHandlers` writes route params into the active context, so `useRouteParams()` works in handlers. See [router.md](router.md#programmatic-api-wooks-package) for the full `Wooks` API.
+- `lookupHandlers` writes route params into the active context, so `useRouteParams()` works in handlers. To route before creating the context (skip events that are not yours), split it: `const match = wooks.matchRoute(method, path)` outside, `wooks.applyRoute(method, match)` inside. See [router.md](router.md#programmatic-api-wooks-package) for the full `Wooks` API.
 
 ---
 
@@ -557,7 +557,7 @@ class ContextInjector<N> {
 }
 ```
 
-Default `with()` is a pass-through (just calls `cb()`). Default `hook()` is a no-op.
+Default `with()` is a pass-through (just calls `cb()`). Default `hook()` is a no-op. `hook()` fires when a route is applied to a context (`lookup`/`lookupHandlers`/`applyRoute`), never from `matchRoute` — so HTTP requests handed to `getServerCb(onNoMatch)` and unmatched `fetch()` calls produce no `Event:start` and no hook.
 
 ### Management Functions
 

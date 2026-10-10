@@ -241,6 +241,8 @@ if (res.status === 404) {
 }
 ```
 
+The route is matched before anything else happens: an unmatched call returns `null` without creating an event context (no `Event:start` span from a [`ContextInjector`](/wooks/advanced/wooks-adapter#observability-contextinjector)) and without reading the `Request` body, so the caller can still pass the same `Request` on to a real `fetch()`.
+
 ::: info `onNotFound` is ignored by `fetch()`
 The `onNotFound` option only applies to the HTTP server callback (`getServerCb()`). Programmatic `fetch()` always returns `null` for unmatched routes — the caller decides what to do.
 :::
@@ -272,6 +274,16 @@ server.listen(3000)
 When you create the server yourself, call `app.attachServer(server)` so `app.close()` can stop it — `app.getServer()` returns the attached server later. If your app registers WebSocket upgrade routes, also wire the upgrade event: `server.on('upgrade', app.getUpgradeCb())`.
 
 When `onNoMatch` is provided, it takes priority over the `onNotFound` option. This means you can use both — `onNotFound` handles 404s for standalone server mode, while `onNoMatch` bypasses it for middleware integration.
+
+::: info `onNoMatch` runs outside any Wooks event
+In middleware mode the request is routed **first**. A request no route matches goes straight to `onNoMatch(req, res)` — before any Wooks event starts:
+
+- no event context exists inside `onNoMatch` — `current()` throws, `tryGetCurrent()` returns `undefined`, and composables (`useRequest()`, `useResponse()`, …) are unavailable
+- no response wrapper is created, and no [`ContextInjector`](/wooks/advanced/wooks-adapter#observability-contextinjector) span or hook fires (an OpenTelemetry integration sees nothing for host-app requests such as static assets)
+- `app.fetch()` called from `onNoMatch` has no caller context, so it forwards no identity headers — wrap the work in [`withHttpContext()`](#ssr-without-dispatch-withhttpcontext) when it needs them
+
+Matched requests get the full pipeline: a response wrapper, an event context with route params, and your handlers.
+:::
 
 Without the callback, unmatched routes fall through to `onNotFound` (if set), or return a 404 response — the standard behavior for standalone servers.
 

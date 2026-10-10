@@ -202,6 +202,29 @@ Both resolve handlers for `(method, path)` against an event context (defaults to
 
 `lookup()` returns `{ handlers, segments, firstStatic, path }` — all fields are `null` on a miss. `lookupHandlers()` is the fast variant: it returns just `TWooksHandler[] | null` without allocating a result object.
 
+### `matchRoute()` and `applyRoute()` — route before the event starts
+
+`lookupHandlers(method, path, ctx)` is exactly `applyRoute(method, matchRoute(method, path), ctx)`. Use the two halves when you need to decide whether an event is yours **before** creating its context — e.g. a middleware that hands unmatched requests to a host app:
+
+- `matchRoute(method, path)` — pure route matching. Needs no event context, writes nothing, fires no hooks. Returns a `TWooksRouteMatch` (the matched route plus parsed params) or `null` when nothing matches.
+- `applyRoute(method, match, ctx?)` — call inside the event context: writes the match's route params to `routeParamsKey`, fires `'Handler:routed'` (or `'Handler:not_found'` for a `null` match) and returns the route's handlers (`null` for a `null` match).
+
+```ts
+/** Trigger a job event, or call `fallback` when no job route matches. */
+async trigger(path: string, payload: unknown, fallback: () => unknown) {
+  const match = this.wooks.matchRoute('JOB', `/${path}`)
+  if (!match) {
+    return fallback() // not a job of ours — no context, no span, no hook
+  }
+  return createJobContext(this.eventContextOptions, { jobId: path, payload }, async () => {
+    const handlers = this.wooks.applyRoute('JOB', match) // seeds route params
+    for (const handler of handlers) {
+      return await handler()
+    }
+  })
+}
+```
+
 `getRouter()` exposes the underlying `ProstoRouter` for direct access.
 
 For HTTP upgrade integration (`httpApp.ws(handler)`), the `WooksUpgradeHandler` type defines the contract a WebSocket-style adapter implements.
@@ -229,7 +252,7 @@ replaceContextInjector(new OtelInjector())
 ```
 
 - `with(name, attributes, cb)` wraps a callback. The framework wraps every kinded event in `'Event:start'` with `{ eventType }` attributes — which is why adapter callbacks should return their results (sync or async) so the span covers the full handler execution.
-- `hook(method, name, route?)` fires on every route lookup: `'Handler:routed'` with the matched route path, or `'Handler:not_found'`.
+- `hook(method, name, route?)` fires whenever a route lookup is applied to an event context (`lookup()`, `lookupHandlers()`, `applyRoute()`): `'Handler:routed'` with the matched route path, or `'Handler:not_found'`. `matchRoute()` alone fires nothing — so requests an HTTP app hands to [`getServerCb(onNoMatch)`](/webapp/fetch#getservercb-onnomatch) produce no span and no hook.
 - `getContextInjector()` returns the installed injector, or `null` until one is installed.
 - `resetContextInjector()` removes the installed injector, restoring the no-op default (useful in tests).
 

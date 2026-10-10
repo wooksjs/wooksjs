@@ -281,6 +281,12 @@ export class WooksHttp extends WooksAdapterBase {
    * const server = http.createServer(app.getServerCb())
    * server.listen(3000)
    * ```
+   *
+   * Pass `onNoMatch` to mount Wooks as a middleware in front of another handler
+   * (e.g. a Vite dev server). The request is routed first; when no route matches,
+   * `onNoMatch(req, res)` is called directly — before and outside any event context:
+   * no response wrapper is created, no event starts (`current()` throws, no
+   * `ContextInjector` hooks fire) and `onNotFound` is skipped.
    */
   getServerCb(onNoMatch?: (req: IncomingMessage, res: ServerResponse) => void) {
     const ctxOptions = this.eventContextOptions
@@ -290,6 +296,14 @@ export class WooksHttp extends WooksAdapterBase {
     const compression = this.compression
 
     return (req: IncomingMessage, res: ServerResponse) => {
+      const method = req.method || ''
+      const url = req.url || ''
+      // Route before creating anything: in middleware mode unmatched requests belong to the host app
+      const match = this.wooks.matchRoute(method, url)
+      if (!match && onNoMatch) {
+        onNoMatch(req, res)
+        return
+      }
       const response = new this.ResponseClass(
         res,
         req,
@@ -298,16 +312,12 @@ export class WooksHttp extends WooksAdapterBase {
         false,
         compression,
       )
-      const method = req.method || ''
-      const url = req.url || ''
 
       createHttpContext(ctxOptions, { req, response, requestLimits: RequestLimits }, () => {
         const ctx = current()
-        const handlers = this.wooks.lookupHandlers(method, url, ctx)
+        const handlers = this.wooks.applyRoute(method, match, ctx)
         if (handlers) {
           return this.processAndCatch(handlers, ctx, response)
-        } else if (onNoMatch) {
-          onNoMatch(req, res)
         } else if (notFoundHandler) {
           return this.processAndCatch([notFoundHandler as TWooksHandler], ctx, response)
         } else {
@@ -486,20 +496,28 @@ export class WooksHttp extends WooksAdapterBase {
 
   /**
    * Programmatic route invocation using the Web Standard fetch API.
-   * Goes through the full dispatch pipeline: context creation, route matching,
-   * handler execution, response finalization.
+   * Goes through the full dispatch pipeline: route matching, context creation,
+   * handler execution, response finalization. An unmatched route returns `null`
+   * before any event context is created (the request body is left unread).
    *
    * When called from within an existing HTTP context (e.g. during SSR),
    * identity headers (authorization, cookie) are automatically forwarded
    * from the calling request unless already present on the given Request.
    *
    * @param request - A Web Standard Request object.
-   * @returns A Web Standard Response, or `null` if no route matched (and no `onNotFound` handler is set).
+   * @returns A Web Standard Response, or `null` if no route matched (`onNotFound` is not used here).
    */
   async fetch(request: Request): Promise<Response | null> {
     const url = new URL(request.url)
     const method = request.method
     const pathname = url.pathname + url.search
+
+    // Route first: an unmatched request returns null without creating a request, response or
+    // event context (and without consuming the request body)
+    const match = this.wooks.matchRoute(method, pathname)
+    if (!match) {
+      return null
+    }
 
     // Detect calling context for header forwarding
     const callerCtx = tryGetCurrent()
@@ -582,23 +600,16 @@ export class WooksHttp extends WooksAdapterBase {
         }
 
         try {
-          // Route lookup (seeds routeParams into ctx via wooks.lookupHandlers)
-          const handlers = this.wooks.lookupHandlers(method, pathname, ctx)
-
-          if (handlers) {
-            const result = this.processHandlers(handlers, ctx, response)
-            // Wait for async handlers to complete
-            if (result !== null && result !== undefined && typeof (result as Promise<unknown>).then === 'function') {
-              await result.catch((error: unknown) => {
-                if (!response.responded) {
-                  this.respond(error, response, ctx)
-                }
-              })
-            }
-          } else {
-            // No route matched — return null so callers
-            // (e.g. Vite SSR middleware) can pass through to the next handler
-            return null
+          // Seeds routeParams into ctx and fires the routed hook
+          const handlers = this.wooks.applyRoute(method, match, ctx)
+          const result = this.processHandlers(handlers, ctx, response)
+          // Wait for async handlers to complete
+          if (result !== null && result !== undefined && typeof (result as Promise<unknown>).then === 'function') {
+            await result.catch((error: unknown) => {
+              if (!response.responded) {
+                this.respond(error, response, ctx)
+              }
+            })
           }
         } finally {
           // Emit 'end' then 'close' on the fake request and close the fake response,

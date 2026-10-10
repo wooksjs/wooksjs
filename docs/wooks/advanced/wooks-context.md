@@ -228,7 +228,7 @@ This is typically done inside `createEventContext()` or inside an adapter's requ
 
 `@wooksjs/event-core` exports two predefined keys available across all event types:
 
-- `routeParamsKey` — route parameters, written by `Wooks.lookup()`/`lookupHandlers()` during routing and read by `useRouteParams()`.
+- `routeParamsKey` — route parameters, written by `Wooks.lookup()`/`lookupHandlers()`/`applyRoute()` during routing and read by `useRouteParams()`.
 - `eventTypeKey` — the event kind name (`'http'`, `'CLI'`, `'WF'`, `'ws:connection'`, `'ws:message'`), set by `ctx.seed()`. Useful for detecting the current event type.
 
 ```ts

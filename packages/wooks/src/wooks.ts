@@ -1,6 +1,11 @@
 import type { TConsoleBase, TProstoLoggerOptions } from '@prostojs/logger'
 import { coloredConsole, createConsoleTransort, ProstoLogger } from '@prostojs/logger'
-import type { THttpMethod, TParsedSegment, TProstoRouterPathHandle } from '@prostojs/router'
+import type {
+  THttpMethod,
+  TParsedSegment,
+  TProstoLookupResult,
+  TProstoRouterPathHandle,
+} from '@prostojs/router'
 import { ProstoRouter } from '@prostojs/router'
 import { current, getContextInjector, routeParamsKey } from '@wooksjs/event-core'
 import type { EventContext, EventContextOptions, Logger } from '@wooksjs/event-core'
@@ -21,6 +26,9 @@ export interface TWooksOptions {
     cacheLimit?: number
   }
 }
+
+/** A matched route (from `Wooks.matchRoute()`): the route with its handlers plus the parsed route params. */
+export type TWooksRouteMatch = TProstoLookupResult<TWooksHandler>
 
 function getDefaultLogger(topic: string) {
   return new ProstoLogger(
@@ -84,6 +92,51 @@ export class Wooks {
   }
 
   /**
+   * Matches a route by method and path without touching any event context:
+   * no route params are seeded and no `ContextInjector` hooks fire.
+   *
+   * Use it to decide whether a request is handled here before creating an event
+   * context, then call `applyRoute()` inside the context with the returned match.
+   * @param method - HTTP method (e.g., "GET", "POST").
+   * @param path - URL path to match against registered routes.
+   * @returns The route match, or `null` when no route with handlers matches.
+   */
+  public matchRoute(method: string, path: string): TWooksRouteMatch | null {
+    const found = this.getRouter().lookup(method as THttpMethod, path || '')
+    return found && found.route.handlers.length ? found : null
+  }
+
+  /**
+   * Applies a route match (from `matchRoute()`) to an event context: seeds route params
+   * (`useRouteParams()`) and fires the `Handler:routed` / `Handler:not_found` hook.
+   * @param method - HTTP method the match was made for.
+   * @param match - Result of `matchRoute()` (`null` = not found).
+   * @param ctx - Event context to seed (defaults to the current one).
+   * @returns The matched route's handlers, or `null` when `match` is `null`.
+   */
+  public applyRoute(method: string, match: TWooksRouteMatch, ctx?: EventContext): TWooksHandler[]
+  public applyRoute(
+    method: string,
+    match: TWooksRouteMatch | null,
+    ctx?: EventContext,
+  ): TWooksHandler[] | null
+  public applyRoute(
+    method: string,
+    match: TWooksRouteMatch | null,
+    ctx: EventContext = current(),
+  ): TWooksHandler[] | null {
+    const ci = getContextInjector()
+    if (match) {
+      ctx.set(routeParamsKey, match.ctx.params || {})
+      ci?.hook(method, 'Handler:routed', match.route.path)
+      return match.route.handlers
+    }
+    ctx.set(routeParamsKey, {})
+    ci?.hook(method, 'Handler:not_found')
+    return null
+  }
+
+  /**
    * Looks up a route by method and path, setting route params in the current event context.
    * @param method - HTTP method (e.g., "GET", "POST").
    * @param path - URL path to match against registered routes.
@@ -98,40 +151,26 @@ export class Wooks {
     firstStatic: string | null
     path: string | null
   } {
-    const found = this.getRouter().lookup(method as THttpMethod, path || '')
-    ctx.set(routeParamsKey, found?.ctx?.params || {})
-    const ci = getContextInjector()
-    if (found?.route?.handlers.length) {
-      ci?.hook(method, 'Handler:routed', found.route.path)
-    } else {
-      ci?.hook(method, 'Handler:not_found')
-    }
+    const match = this.matchRoute(method, path)
     return {
-      handlers: found?.route?.handlers || null,
-      segments: found?.route?.segments || null,
-      firstStatic: found?.route?.firstStatic || null,
-      path: found?.route?.path || null,
+      handlers: this.applyRoute(method, match, ctx),
+      segments: match?.route.segments || null,
+      firstStatic: match?.route.firstStatic || null,
+      path: match?.route.path || null,
     }
   }
 
   /**
    * Fast lookup that returns only the handlers array (or null).
    * Avoids allocating a result object on each request.
+   * Equivalent to `applyRoute(method, matchRoute(method, path), ctx)`.
    */
   public lookupHandlers(
     method: string,
     path: string,
     ctx: EventContext = current(),
   ): TWooksHandler[] | null {
-    const found = this.getRouter().lookup(method as THttpMethod, path || '')
-    ctx.set(routeParamsKey, found?.ctx?.params || {})
-    const ci = getContextInjector()
-    if (found?.route?.handlers.length) {
-      ci?.hook(method, 'Handler:routed', found.route.path)
-      return found.route.handlers
-    }
-    ci?.hook(method, 'Handler:not_found')
-    return null
+    return this.applyRoute(method, this.matchRoute(method, path), ctx)
   }
 
   /**

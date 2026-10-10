@@ -312,6 +312,7 @@ import { Wooks, WooksAdapterBase, getGlobalWooks, clearGlobalWooks } from 'wooks
 
 - Adapters created without a `wooks` argument share the global singleton. `getGlobalWooks(logger?, routerOpts?)` creates it on first call — arguments are ignored on every later call. `clearGlobalWooks()` resets it (tests/dev).
 - `wooks.lookupHandlers(method, path, ctx?)` — resolve a route: writes route params into the context (`routeParamsKey`) and returns `TWooksHandler[] | null`. `wooks.lookup(method, path, ctx?)` additionally returns `segments`/`firstStatic`/`path`. Both default `ctx` to `current()` — call inside an event context. This is how custom adapters dispatch (see [event-core.md](event-core.md#custom-adapters-advanced)).
+- `wooks.matchRoute(method, path)` / `wooks.applyRoute(method, match, ctx?)` — the two halves of `lookupHandlers` (which is exactly `applyRoute(method, matchRoute(method, path), ctx)`). `matchRoute` needs no context, writes nothing, fires no hooks; returns `TWooksRouteMatch` (`{ route, ctx: { params } }`) or `null`. `applyRoute` (inside the context) seeds `routeParamsKey`, fires `Handler:routed`/`Handler:not_found`, returns the handlers (`null` for a `null` match). Use them to decide an event is yours before creating its context — e.g. HTTP `getServerCb(onNoMatch)` and `fetch()` route first so unmatched requests never start an event.
 - `wooks.getRouter()` — underlying `ProstoRouter` instance; `wooks.getLogger(topic)` / `wooks.getLoggerOptions()` — logger access.
 - `adapter.getWooks()` — the shared `Wooks` instance behind any adapter.
 

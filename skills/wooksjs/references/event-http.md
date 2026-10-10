@@ -86,11 +86,13 @@ await app.close()
 
 `getServerCb(onNoMatch?)` returns a `(req, res) => void` callback usable with any Node.js HTTP/HTTPS/HTTP2 server. Pass `onNoMatch(req, res)` to delegate unmatched routes (mount Wooks as middleware ahead of another handler) instead of emitting the default 404.
 
+`onNoMatch` contract: the request is routed **first**; an unmatched request goes to `onNoMatch(req, res)` before and outside any event context — no response wrapper, `current()` throws / `tryGetCurrent()` is `undefined`, no composables, no `ContextInjector` span or hook, `onNotFound` skipped. `app.fetch()` from inside `onNoMatch` forwards no identity headers (no caller context) — use `withHttpContext(req, res, fn)` for that. Matched requests get the full pipeline (context, route params, handlers).
+
 ---
 
 ## Programmatic Invocation (fetch / request)
 
-Call the app in-process without a socket — for SSR, tests, or composing apps. Returns a Web `Response`, or `null` when no route matches (so a caller can fall through).
+Call the app in-process without a socket — for SSR, tests, or composing apps. Returns a Web `Response`, or `null` when no route matches (so a caller can fall through). The route is matched first: on a miss no event context is created and the `Request` body is left unread.
 
 ```ts
 const res = await app.fetch(new Request('http://local/api/users', { method: 'POST', body }))
