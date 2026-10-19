@@ -14,7 +14,7 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip)
 const props = withDefaults(
   defineProps<{
     title?: string
-    /** Simple key-value: { 'Fastify': 115880, 'Wooks': 107749, ... } */
+    /** Simple key-value: { 'Fastify': 116447, 'Wooks': 113670, ... } */
     data: Record<string, number>
     unit?: string
     height?: number

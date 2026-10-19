@@ -50,11 +50,11 @@ In a [pure router benchmark](https://github.com/prostojs/router-benchmark) at 22
 
 | Route type | @prostojs/router | rou3 (compiled) | rou3 | Hono RegExpRouter | find-my-way | Express |
 |---|---:|---:|---:|---:|---:|---:|
-| Short routes | 43,488 | **135,452** | 56,277 | 56,638 | 34,096 | 2,438 |
-| Long routes | 9,604 | **39,335** | 6,537 | 8,906 | 11,090 | 1,144 |
-| Mixed routes | 29,171 | **56,940** | 30,704 | 53,412 | 28,068 | 2,177 |
+| Short routes | 41,838 | **142,365** | 56,232 | 50,887 | 34,643 | 2,295 |
+| Long routes | 9,446 | **38,823** | 6,555 | 9,157 | 11,262 | 1,107 |
+| Mixed routes | 29,905 | **56,319** | 30,250 | 53,178 | 27,079 | 2,243 |
 
-rou3's compiled mode (`compileRouter()`) is the fastest on every route shape. `@prostojs/router` is mid-pack: ahead of find-my-way on short routes, behind it on long (deep, parametric) routes, and level with rou3 and find-my-way on mixed routes. As route tables grow to 200 routes, find-my-way and compiled rou3 lose the least throughput, and Hono's router loses the most — see the [scaling results](/benchmarks/router#scaling).
+rou3's compiled mode (`compileRouter()`) is the fastest on every route shape. `@prostojs/router` is mid-pack: ahead of find-my-way on short routes, behind it on long (deep, parametric) routes, level with rou3 and ahead of find-my-way on mixed routes. As route tables grow to 200 routes, find-my-way and compiled rou3 lose the least throughput, and Hono's router loses the most — see the [scaling results](/benchmarks/router#scaling).
 
 ### HTTP Framework Throughput
 
@@ -62,13 +62,13 @@ In a [full HTTP lifecycle benchmark](https://github.com/prostojs/router-benchmar
 
 | Framework | Traffic-mix req/s | Relative |
 |---|---:|---|
-| **Fastify** | **115,880** | **fastest** |
-| Wooks | 107,749 | 1.08x slower |
-| Hono | 98,364 | 1.18x slower |
-| h3 | 86,165 | 1.34x slower |
-| Express | 63,060 | 1.84x slower |
+| **Fastify** | **116,447** | **fastest** |
+| Wooks | 113,670 | 1.02x slower |
+| Hono | 95,579 | 1.22x slower |
+| h3 | 84,600 | 1.38x slower |
+| Express | 59,065 | 1.97x slower |
 
-Wooks has the highest throughput on cookie-authenticated GET routes (the largest share of browser traffic), 9–14% ahead of Fastify, helped by lazy cookie parsing. Fastify is ahead on most other tests. Wooks is the slowest of the five on a large (~25 KB) JSON body, and behind Fastify on auth failures, 404s and login. Every framework in the benchmark checks auth before parsing the body, so none of them parses the body of an unauthorized request.
+Wooks has the highest throughput on cookie-authenticated GET routes (the largest share of browser traffic), 6–12% ahead of Fastify, helped by lazy cookie parsing. Fastify is ahead on most other tests; overall the two are 2% apart, within the noise of a single-round run. Wooks is behind Fastify on auth failures, 404s and login; on a large (~25 KB) JSON body all five frameworks are within 13% of each other. Every framework in the benchmark checks auth before parsing the body, so none of them parses the body of an unauthorized request.
 
 See the full benchmark analysis with charts: [Router benchmarks](/benchmarks/router) and [HTTP framework benchmarks](/benchmarks/wooks-http).
 

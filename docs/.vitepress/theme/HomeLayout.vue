@@ -198,8 +198,8 @@ watch(() => route.path, setupScrollAnimations)
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
                     </div>
                     <div class="perf-content">
-                        <div class="perf-number">107,749 <span class="perf-unit">req/s</span></div>
-                        <div class="perf-text">Traffic-mix throughput on a 22-route SaaS benchmark — 1.08x behind Fastify, ahead of Hono, h3 and Express; highest on cookie-authenticated reads.</div>
+                        <div class="perf-number">113,670 <span class="perf-unit">req/s</span></div>
+                        <div class="perf-text">Traffic-mix throughput on a 22-route SaaS benchmark — 1.02x behind Fastify, ahead of Hono, h3 and Express; highest on cookie-authenticated reads.</div>
                     </div>
                     <a href="/benchmarks/wooks-http" class="perf-link">See benchmarks &rarr;</a>
                 </div>

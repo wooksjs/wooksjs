@@ -48,9 +48,9 @@ HTTP, CLI, and workflows share the same `EventContext`, the same `defineWook`, t
 
 ## Performance
 
-In a [production-realistic benchmark](/benchmarks/wooks-http) simulating a SaaS API with auth, cookies, and body parsing, Wooks is second on traffic-mix throughput, 1.08x behind Fastify and ahead of Hono, h3, and Express.
+In a [production-realistic benchmark](/benchmarks/wooks-http) simulating a SaaS API with auth, cookies, and body parsing, Wooks is second on traffic-mix throughput, 1.02x behind Fastify (within the noise of the run) and ahead of Hono, h3, and Express.
 
-The lazy architecture shows most in cookie-heavy browser traffic (the most common SaaS pattern): Wooks has the highest throughput of the frameworks tested on cookie-authenticated GET routes. Wooks is slower than Fastify on large JSON bodies, auth failures and 404s.
+The lazy architecture shows most in cookie-heavy browser traffic (the most common SaaS pattern): Wooks has the highest throughput of the frameworks tested on cookie-authenticated GET routes. Wooks is slower than Fastify on small JSON bodies, auth failures and 404s.
 
 The underlying [`@prostojs/router`](https://github.com/prostojs/router) trades some raw lookup speed for a rich feature set — regex constraints, multiple wildcards, optional parameters. It sits mid-pack in the [router benchmark](/benchmarks/router), and routing is a small part of the per-request cost in a full HTTP server.
 
