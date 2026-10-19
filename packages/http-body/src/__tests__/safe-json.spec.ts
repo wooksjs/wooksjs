@@ -76,6 +76,15 @@ describe('safeJsonParse', () => {
     expect(() => safeJsonParse('{"pr\\u006ftotype":1}')).toThrow('Illegal key name "prototype"')
   })
 
+  it('should allow keys that merely contain an illegal name', () => {
+    const input = '{"my_constructor":1,"__proto__x":2,"prototypes":[{"constructorName":"A"}]}'
+    expect(safeJsonParse(input)).toEqual({
+      my_constructor: 1,
+      __proto__x: 2,
+      prototypes: [{ constructorName: 'A' }],
+    })
+  })
+
   it('should allow illegal names and \\u escapes inside values', () => {
     const input = '{"note":"constructor __proto__ prototype","esc":"caf\\u00e9"}'
     expect(safeJsonParse(input)).toEqual({

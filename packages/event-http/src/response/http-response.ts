@@ -219,8 +219,10 @@ export class HttpResponse {
    */
   getSetCookieStrings(): string[] {
     const rendered: string[] = []
-    if (this._cookies) {
-      for (const [name, data] of Object.entries(this._cookies)) {
+    const cookies = this._cookies
+    if (cookies) {
+      for (const name of Object.keys(cookies)) {
+        const data = cookies[name]
         if (data) {
           rendered.push(renderCookie(name, data))
         }

@@ -3,6 +3,9 @@ import { convertTime } from './time'
 
 const COOKIE_NAME_RE = /^[\w!#$%&'*+\-.^`|~]+$/
 
+/** Characters `encodeURIComponent()` leaves as they are. */
+const URI_SAFE_RE = /^[\w\-.!~*'()]*$/
+
 function sanitizeCookieAttrValue(v: string): string {
   return v.replace(/[;\r\n]/g, '')
 }
@@ -12,18 +15,23 @@ export function renderCookie(key: string, data: TSetCookieData) {
     throw new TypeError(`Invalid cookie name "${key}"`)
   }
   let attrs = ''
-  for (const [a, v] of Object.entries(data.attrs)) {
+  const dataAttrs = data.attrs
+  for (const a of Object.keys(dataAttrs)) {
     const func: (v: unknown) => string = cookieAttrFunc[a as keyof typeof cookieAttrFunc] as (
       v: unknown,
     ) => string
     if (typeof func === 'function') {
-      const val = func(v)
-      attrs += val ? `; ${val}` : ''
+      const val = func(dataAttrs[a as keyof typeof dataAttrs])
+      if (val) {
+        attrs += `; ${val}`
+      }
     } else {
       throw new TypeError(`Unknown Set-Cookie attribute ${a}`)
     }
   }
-  return `${key}=${encodeURIComponent(data.value)}${attrs}`
+  // Most cookie values need no escaping — skip the encoder for those
+  const encoded = URI_SAFE_RE.test(data.value) ? data.value : encodeURIComponent(data.value)
+  return `${key}=${encoded}${attrs}`
 }
 
 const cookieAttrFunc = {

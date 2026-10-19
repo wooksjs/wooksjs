@@ -89,4 +89,69 @@ describe('set-cookie', () => {
   it('still emits Max-Age=0 for cookie deletion', () => {
     expect(renderCookie('k', { value: '', attrs: { maxAge: 0 } })).toEqual('k=; Max-Age=0')
   })
+  it('URI-encodes values exactly like encodeURIComponent()', () => {
+    for (const value of [
+      "A-Za-z0-9_.!~*'()",
+      'with space',
+      'a;b=c,d',
+      'ünïcode',
+      '%41',
+      'eyJhbGciOiJIUzI1NiJ9.e30.sig+/=',
+    ]) {
+      expect(renderCookie('k', { value, attrs: {} })).toEqual(`k=${encodeURIComponent(value)}`)
+    }
+  })
+  it('renders non-string values like encodeURIComponent()', () => {
+    expect(renderCookie('k', { value: 42 as unknown as string, attrs: {} })).toEqual('k=42')
+    expect(renderCookie('k', { value: undefined as unknown as string, attrs: {} })).toEqual(
+      'k=undefined',
+    )
+    for (const v of [0, -1, 1.5, Number.NaN, true, false, null, 10n, {}, [1, 2], '', ' ']) {
+      expect(renderCookie('k', { value: v as unknown as string, attrs: {} })).toEqual(
+        `k=${encodeURIComponent(v as string)}`,
+      )
+    }
+  })
+  it('strips ";" and line breaks from path and domain', () => {
+    expect(
+      renderCookie('k', {
+        value: 'v',
+        attrs: { path: '/a;\r\nInjected=1', domain: 'x.com;\nSecure' },
+      }),
+    ).toEqual('k=v; Path=/aInjected=1; Domain=x.comSecure')
+  })
+  it('renders attributes in the order they were given', () => {
+    expect(
+      renderCookie('k', { value: 'v', attrs: { secure: true, path: '/', httpOnly: true } }),
+    ).toEqual('k=v; Secure; Path=/; HttpOnly')
+  })
+  it('throws for an unknown attribute', () => {
+    expect(() =>
+      renderCookie('k', { value: 'v', attrs: { path: '/', bogus: 1 } as never }),
+    ).toThrow('Unknown Set-Cookie attribute bogus')
+  })
+})
+
+function outcome(fn: () => string): string {
+  try {
+    return `ok:${fn()}`
+  } catch (error) {
+    return `throw:${(error as Error).name}`
+  }
+}
+
+describe('set-cookie differential', () => {
+  it('encodes values and sanitizes attributes like the reference for every code point', () => {
+    const inputs: string[] = ['😀', '\uD800', 'a\uDFFFb']
+    for (let cp = 0; cp <= 0xffff; cp++) {
+      inputs.push(String.fromCodePoint(cp))
+    }
+    for (const ch of inputs) {
+      const a = outcome(() => renderCookie('k', { value: ch, attrs: { path: ch } }))
+      const b = outcome(() => `k=${encodeURIComponent(ch)}; Path=${ch.replace(/[;\r\n]/g, '')}`)
+      if (a !== b) {
+        expect(a).toBe(b)
+      }
+    }
+  })
 })

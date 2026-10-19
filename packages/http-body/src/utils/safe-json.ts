@@ -2,6 +2,9 @@ import { HttpError } from '@wooksjs/event-http'
 
 const ILLEGAL_KEYS = ['__proto__', 'constructor', 'prototype'] as const
 
+// One pass for all illegal names; `\u` stays a separate includes() — folding it in is ~3x slower
+const ILLEGAL_KEY_RE = new RegExp(ILLEGAL_KEYS.join('|'))
+
 /**
  * `JSON.parse` that rejects `__proto__` / `constructor` / `prototype` keys (400).
  *
@@ -10,12 +13,7 @@ const ILLEGAL_KEYS = ['__proto__', 'constructor', 'prototype'] as const
  */
 export function safeJsonParse<T>(src: string): T {
   const parsed = JSON.parse(src) as T
-  if (
-    src.includes('__proto__') ||
-    src.includes('constructor') ||
-    src.includes('prototype') ||
-    src.includes('\\u')
-  ) {
+  if (src.includes('\\u') || ILLEGAL_KEY_RE.test(src)) {
     assertNoProtoKeys(parsed)
   }
   return parsed

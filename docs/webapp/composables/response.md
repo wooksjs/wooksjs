@@ -309,6 +309,17 @@ The structured body type requires `statusCode`, but the rendered value always co
 
 Any other thrown error is converted to `HttpError(500)` with the error's message.
 
+A handler can also **return** an `HttpError` (or any `Error`) instead of throwing it — it is rendered the same way:
+
+```js
+app.get('admin', () => {
+    if (!isAdmin()) return new HttpError(403, 'Access denied');
+    return loadDashboard();
+});
+```
+
+Returning skips the engine's throw/catch unwinding, so it is slightly cheaper on hot rejecting paths (an auth guard answering `401`, for example). Prefer `throw` from nested helpers and composables, or when the error should fall through to the next handler (see below) — a returned error is the response and never advances.
+
 ### Content negotiation
 
 The default response class (`WooksHttpResponse`) renders errors based on the request's `Accept` header:

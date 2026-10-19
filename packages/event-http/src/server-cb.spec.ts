@@ -5,41 +5,13 @@ import {
   tryGetCurrent,
   useRouteParams,
 } from '@wooksjs/event-core'
-import { IncomingMessage, ServerResponse } from 'http'
-import { Duplex } from 'stream'
+import type { IncomingMessage, ServerResponse } from 'http'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Wooks } from 'wooks'
 
+import { dispatch } from './__tests__/dispatch'
 import { createHttpApp } from './http-adapter'
 import { WooksHttpResponse } from './response/wooks-http-response'
-
-class NoopSocket extends Duplex {
-  _read(): void {}
-  _write(_chunk: unknown, _enc: string, cb: () => void): void {
-    cb()
-  }
-}
-
-/** Calls a server callback with an in-memory request; resolves when the response ends. */
-function dispatch(
-  cb: (req: IncomingMessage, res: ServerResponse) => void,
-  method: string,
-  url: string,
-): Promise<{ status: number; body: string }> {
-  const req = new IncomingMessage(new NoopSocket() as never)
-  req.method = method
-  req.url = url
-  req.headers = {}
-  const res = new ServerResponse(req)
-  return new Promise((resolve) => {
-    const end = res.end.bind(res)
-    res.end = ((chunk?: unknown, ...rest: unknown[]) => {
-      resolve({ status: res.statusCode, body: chunk ? String(chunk) : '' })
-      return end(chunk as never, ...(rest as []))
-    }) as typeof res.end
-    cb(req, res)
-  })
-}
 
 function setup() {
   const created = vi.fn()
@@ -75,9 +47,9 @@ describe('getServerCb(onNoMatch) — middleware mode', () => {
       res.end('host app')
     })
 
-    const result = await dispatch(app.getServerCb(onNoMatch), 'GET', '/assets/app.js')
+    const result = await dispatch(app.getServerCb(onNoMatch), { url: '/assets/app.js' }).ended
 
-    expect(result).toEqual({ status: 418, body: 'host app' })
+    expect(result).toMatchObject({ status: 418, text: 'host app' })
     expect(onNoMatch).toHaveBeenCalledOnce()
     expect(ctxInside).toBeUndefined()
     expect(created).not.toHaveBeenCalled()
@@ -90,9 +62,9 @@ describe('getServerCb(onNoMatch) — middleware mode', () => {
     const { app, created, withSpy, hookSpy } = setup()
     const onNoMatch = vi.fn()
 
-    const result = await dispatch(app.getServerCb(onNoMatch), 'GET', '/users/42')
+    const result = await dispatch(app.getServerCb(onNoMatch), { url: '/users/42' }).ended
 
-    expect(result).toMatchObject({ status: 200, body: 'user 42' })
+    expect(result).toMatchObject({ status: 200, text: 'user 42' })
     expect(onNoMatch).not.toHaveBeenCalled()
     expect(created).toHaveBeenCalledOnce()
     expect(withSpy).toHaveBeenCalledOnce()
@@ -106,11 +78,11 @@ describe('getServerCb(onNoMatch) — middleware mode', () => {
     const onNoMatch = vi.fn((_req: IncomingMessage, res: ServerResponse) => res.end('host app'))
     const cb = app.getServerCb(onNoMatch)
 
-    expect(await dispatch(cb, 'GET', '/users/%E0%A4%A')).toMatchObject({
+    expect(await dispatch(cb, { url: '/users/%E0%A4%A' }).ended).toMatchObject({
       status: 200,
-      body: 'user %E0%A4%A',
+      text: 'user %E0%A4%A',
     })
-    expect(await dispatch(cb, 'GET', '/%zz')).toMatchObject({ body: 'host app' })
+    expect(await dispatch(cb, { url: '/%zz' }).ended).toMatchObject({ text: 'host app' })
   })
 })
 
@@ -118,9 +90,9 @@ describe('getServerCb() — standalone server', () => {
   it('runs matched handlers with route params', async () => {
     const { app, created, hookSpy } = setup()
 
-    const result = await dispatch(app.getServerCb(), 'GET', '/users/7')
+    const result = await dispatch(app.getServerCb(), { url: '/users/7' }).ended
 
-    expect(result).toMatchObject({ status: 200, body: 'user 7' })
+    expect(result).toMatchObject({ status: 200, text: 'user 7' })
     expect(created).toHaveBeenCalledOnce()
     expect(hookSpy).toHaveBeenCalledWith('GET', 'Handler:routed', '/users/:id')
   })
@@ -128,9 +100,9 @@ describe('getServerCb() — standalone server', () => {
   it('serves an unmatched request with onNotFound inside an event context', async () => {
     const { app, created, onNotFound, withSpy, hookSpy } = setup()
 
-    const result = await dispatch(app.getServerCb(), 'GET', '/missing')
+    const result = await dispatch(app.getServerCb(), { url: '/missing' }).ended
 
-    expect(result).toMatchObject({ body: 'custom not found' })
+    expect(result).toMatchObject({ text: 'custom not found' })
     expect(onNotFound).toHaveBeenCalledOnce()
     expect(created).toHaveBeenCalledOnce()
     expect(withSpy).toHaveBeenCalledOnce()
@@ -143,7 +115,7 @@ describe('getServerCb() — standalone server', () => {
     const hookSpy = vi.spyOn(injector, 'hook')
     replaceContextInjector(injector)
 
-    const result = await dispatch(app.getServerCb(), 'GET', '/missing')
+    const result = await dispatch(app.getServerCb(), { url: '/missing' }).ended
 
     expect(result.status).toBe(404)
     expect(hookSpy).toHaveBeenCalledWith('GET', 'Handler:not_found')
