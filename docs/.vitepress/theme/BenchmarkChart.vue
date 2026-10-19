@@ -44,6 +44,7 @@ const frameworkColors: Record<string, string> = {
   ProstoRouter: '#3d90be',
   FindMyWay: '#444444',
   Rou3: '#00b860',
+  'Rou3 (compiled)': '#0e7490',
   'Hono (RegExpRouter)': '#e36002',
   'Hono (TrieRouter)': '#c44e00',
 }
@@ -57,6 +58,7 @@ const frameworkColorsDark: Record<string, string> = {
   ProstoRouter: '#5bb8e8',
   FindMyWay: '#aaaaaa',
   Rou3: '#34d68a',
+  'Rou3 (compiled)': '#22d3ee',
   'Hono (RegExpRouter)': '#ff8533',
   'Hono (TrieRouter)': '#cc6622',
 }

@@ -90,7 +90,7 @@ You can also [build your own adapter](/wooks/advanced/wooks-adapter) for any eve
 | Package | Role |
 |---------|------|
 | @wooksjs/event-core | Context primitives: `key`, `cached`, `defineWook`, `defineEventKind` |
-| [@prostojs/router](https://github.com/prostojs/router) | Standalone high-performance router ([benchmarks](/benchmarks/router)) |
+| [@prostojs/router](https://github.com/prostojs/router) | Standalone router ([benchmarks](/benchmarks/router)) |
 | @wooksjs/event-http | HTTP adapter, request/response wooks ([benchmarks](/benchmarks/wooks-http)) |
 | @wooksjs/event-ws | WebSocket adapter, connection/message/rooms wooks |
 | @wooksjs/ws-client | WebSocket client (browser + Node) |

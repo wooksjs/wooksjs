@@ -32,7 +32,7 @@ Turns out they can — thanks to `AsyncLocalStorage`. It gives you per-event con
 
 ### Lazy by default
 
-Traditional frameworks parse and compute everything in middleware before your handler even runs. Reject the request early? Too bad — you already paid for all that work. Wooks does nothing until you ask. Data is parsed on demand, computed lazily, and cached for the event lifetime. It's not just faster — it makes the code honest about what it actually does.
+Traditional frameworks parse and compute everything in middleware before your handler even runs. Reject the request early? Too bad — you already paid for all that work. Wooks does nothing until you ask. Data is parsed on demand, computed lazily, and cached for the event lifetime. It skips work the handler never needs, and it makes the code honest about what it actually does.
 
 ### No middleware pipeline
 
@@ -46,13 +46,13 @@ HTTP, CLI, and workflows share the same `EventContext`, the same `defineWook`, t
 
 `key<string>('userId')` gives you a `Key<string>`. `defineWook((ctx) => ({ ... }))` infers the return type. No indirection, no string casts, no manual interface extensions. Every primitive is generic — type safety comes for free.
 
-## Fast Where It Matters
+## Performance
 
-Wooks isn't just well-designed — it's fast. In a [production-realistic benchmark](/benchmarks/wooks-http) simulating a real SaaS API with auth, cookies, and body parsing, Wooks leads all tested frameworks — ahead of Fastify, h3, Hono, and Express.
+In a [production-realistic benchmark](/benchmarks/wooks-http) simulating a SaaS API with auth, cookies, and body parsing, Wooks is second on traffic-mix throughput, 1.08x behind Fastify and ahead of Hono, h3, and Express.
 
-The lazy architecture pays off most where it matters: cookie-heavy browser traffic (the most common SaaS pattern) and early rejection of bad requests. When auth fails, Wooks skips body parsing entirely — dramatically faster than frameworks that parse eagerly.
+The lazy architecture shows most in cookie-heavy browser traffic (the most common SaaS pattern): Wooks has the highest throughput of the frameworks tested on cookie-authenticated GET routes. Wooks is slower than Fastify on large JSON bodies, auth failures and 404s.
 
-The underlying [`@prostojs/router`](https://github.com/prostojs/router) is the fastest router on deeply-nested parametric routes while offering the richest feature set — regex constraints, multiple wildcards, optional parameters — that trie-based alternatives can't match. See the [full benchmark analysis](/benchmarks/wooks-http) for details.
+The underlying [`@prostojs/router`](https://github.com/prostojs/router) trades some raw lookup speed for a rich feature set — regex constraints, multiple wildcards, optional parameters. It sits mid-pack in the [router benchmark](/benchmarks/router), and routing is a small part of the per-request cost in a full HTTP server.
 
 ## When to Use Wooks
 

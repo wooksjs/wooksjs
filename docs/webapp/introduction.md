@@ -37,7 +37,7 @@ Plus `@wooksjs/http-static` for file serving and `@wooksjs/http-proxy` for rever
 
 ## Routing
 
-Built on [`@prostojs/router`](https://github.com/prostojs/router) — parametric routes, wildcards, regex constraints, and multiple wildcards in a single path. [Fastest on real-world route patterns](/benchmarks/router). See [Routing](/webapp/routing) for details.
+Built on [`@prostojs/router`](https://github.com/prostojs/router) — parametric routes, wildcards, regex constraints, and multiple wildcards in a single path. See [Routing](/webapp/routing) for details and the [router benchmarks](/benchmarks/router) for lookup speed.
 
 ## Build Your Own Composables
 

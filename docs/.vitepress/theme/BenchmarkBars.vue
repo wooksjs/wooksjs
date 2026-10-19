@@ -14,7 +14,7 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip)
 const props = withDefaults(
   defineProps<{
     title?: string
-    /** Simple key-value: { 'Wooks': 70332, 'Fastify': 68273, ... } */
+    /** Simple key-value: { 'Fastify': 115880, 'Wooks': 107749, ... } */
     data: Record<string, number>
     unit?: string
     height?: number
@@ -34,6 +34,7 @@ const frameworkColors: Record<string, string> = {
   ProstoRouter: '#6366f1',
   FindMyWay: '#f59e0b',
   Rou3: '#10b981',
+  'Rou3 (compiled)': '#0e7490',
   'Hono (RegExpRouter)': '#ef4444',
   'Hono (TrieRouter)': '#ec4899',
 }
@@ -47,6 +48,7 @@ const frameworkColorsDark: Record<string, string> = {
   ProstoRouter: '#818cf8',
   FindMyWay: '#fbbf24',
   Rou3: '#34d399',
+  'Rou3 (compiled)': '#22d3ee',
   'Hono (RegExpRouter)': '#f87171',
   'Hono (TrieRouter)': '#f472b6',
 }

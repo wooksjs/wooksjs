@@ -62,7 +62,7 @@ const features = [
     {
         icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>`,
         title: 'Lazy by default',
-        details: 'Body parsing, cookie reading, auth extraction — nothing runs until you call it. Auth fails with a 100KB body? Wooks rejects 3.5× faster.',
+        details: 'Body parsing, cookie reading, auth extraction — nothing runs until you call it. If a handler rejects early, it never pays for data it didn’t read.',
         link: '/wooks/why',
     },
     {
@@ -74,7 +74,7 @@ const features = [
     {
         icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>`,
         title: 'Advanced Router',
-        details: 'Regex constraints, multi-wildcards, optional params. Fastest on enterprise-grade route patterns — ahead of Hono, Fastify, and h3.',
+        details: 'Regex constraints, multi-wildcards, optional params, case-insensitive matching and trailing-slash normalization.',
         link: '/benchmarks/router',
     },
     {
@@ -198,8 +198,8 @@ watch(() => route.path, setupScrollAnimations)
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
                     </div>
                     <div class="perf-content">
-                        <div class="perf-number">70,332 <span class="perf-unit">req/s</span></div>
-                        <div class="perf-text">21-route SaaS benchmark — fastest overall, 10–15% ahead on cookie-heavy traffic.</div>
+                        <div class="perf-number">107,749 <span class="perf-unit">req/s</span></div>
+                        <div class="perf-text">Traffic-mix throughput on a 22-route SaaS benchmark — 1.08x behind Fastify, ahead of Hono, h3 and Express; highest on cookie-authenticated reads.</div>
                     </div>
                     <a href="/benchmarks/wooks-http" class="perf-link">See benchmarks &rarr;</a>
                 </div>

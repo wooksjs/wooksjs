@@ -1,148 +1,171 @@
 <script setup>
-// Source data URLs (for future updates):
+// Source data (generated 2026-10-19; values = per-test median, op/ms, rounded):
 //   https://raw.githubusercontent.com/prostojs/router-benchmark/refs/heads/main/packages/router-benchmark/results/results.json
+//     variants.<short|long|mixed>.summary[router]           → summary consts
+//     variants.long.perTest[test][router].median             → longDetailed
 //   https://raw.githubusercontent.com/prostojs/router-benchmark/refs/heads/main/packages/router-benchmark/results/results-scale.json
+//     variants.<shape>.<routerKey>.points[routeCount].median → scaling consts
 
 // ── Router summary (by route type) ────────────────────────────────
 
 const routerByType = {
   'Short routes': {
-    'ProstoRouter': 36385,
-    'Hono (RegExpRouter)': 37863,
-    'Rou3': 32242,
-    'FindMyWay': 22374,
-    'Express': 2348,
+    'ProstoRouter': 43488,
+    'Rou3 (compiled)': 135452,
+    'Hono (RegExpRouter)': 56638,
+    'Rou3': 56277,
+    'FindMyWay': 34096,
+    'Express': 2438,
   },
   'Long routes': {
-    'ProstoRouter': 9020,
-    'Hono (RegExpRouter)': 8250,
-    'Rou3': 7157,
-    'FindMyWay': 6283,
-    'Express': 1141,
+    'ProstoRouter': 9604,
+    'Rou3 (compiled)': 39335,
+    'Hono (RegExpRouter)': 8906,
+    'Rou3': 6537,
+    'FindMyWay': 11090,
+    'Express': 1144,
   },
   'Mixed routes': {
-    'ProstoRouter': 21432,
-    'Hono (RegExpRouter)': 37617,
-    'Rou3': 20828,
-    'FindMyWay': 16786,
-    'Express': 2201,
+    'ProstoRouter': 29171,
+    'Rou3 (compiled)': 56940,
+    'Hono (RegExpRouter)': 53412,
+    'Rou3': 30704,
+    'FindMyWay': 28068,
+    'Express': 2177,
   },
 }
 
 // ── Individual summary bars ────────────────────────────────────────
 
 const summaryShort = {
-  'Hono (RegExpRouter)': 37863,
-  'ProstoRouter': 36385,
-  'Rou3': 32242,
-  'FindMyWay': 22374,
-  'Express': 2348,
+  'Rou3 (compiled)': 135452,
+  'Hono (RegExpRouter)': 56638,
+  'Rou3': 56277,
+  'ProstoRouter': 43488,
+  'FindMyWay': 34096,
+  'Express': 2438,
 }
 
 const summaryLong = {
-  'ProstoRouter': 9020,
-  'Hono (RegExpRouter)': 8250,
-  'Rou3': 7157,
-  'FindMyWay': 6283,
-  'Express': 1141,
+  'Rou3 (compiled)': 39335,
+  'FindMyWay': 11090,
+  'ProstoRouter': 9604,
+  'Hono (RegExpRouter)': 8906,
+  'Rou3': 6537,
+  'Express': 1144,
 }
 
 const summaryMixed = {
-  'Hono (RegExpRouter)': 37617,
-  'ProstoRouter': 21432,
-  'Rou3': 20828,
-  'FindMyWay': 16786,
-  'Express': 2201,
+  'Rou3 (compiled)': 56940,
+  'Hono (RegExpRouter)': 53412,
+  'Rou3': 30704,
+  'ProstoRouter': 29171,
+  'FindMyWay': 28068,
+  'Express': 2177,
 }
 
 // ── Long route breakdown ───────────────────────────────────────────
 
 const longDetailed = {
   'Short static': {
-    'ProstoRouter': 35449,
-    'Hono (RegExpRouter)': 41855,
-    'Rou3': 61430,
-    'FindMyWay': 21374,
-    'Express': 3960,
+    'ProstoRouter': 62571,
+    'Rou3 (compiled)': 154698,
+    'Hono (RegExpRouter)': 57277,
+    'Rou3': 250381,
+    'FindMyWay': 41997,
+    'Express': 4177,
   },
   'Long static': {
-    'ProstoRouter': 39124,
-    'Hono (RegExpRouter)': 42788,
-    'Rou3': 63406,
-    'FindMyWay': 7471,
-    'Express': 2110,
+    'ProstoRouter': 47629,
+    'Rou3 (compiled)': 151102,
+    'Hono (RegExpRouter)': 57891,
+    'Rou3': 96881,
+    'FindMyWay': 14233,
+    'Express': 2030,
   },
   'Single param': {
-    'ProstoRouter': 9864,
-    'Hono (RegExpRouter)': 7913,
-    'Rou3': 9098,
-    'FindMyWay': 8531,
-    'Express': 1853,
+    'ProstoRouter': 10891,
+    'Rou3 (compiled)': 36555,
+    'Hono (RegExpRouter)': 8572,
+    'Rou3': 9540,
+    'FindMyWay': 14875,
+    'Express': 1920,
   },
   'Two params': {
-    'ProstoRouter': 8632,
-    'Hono (RegExpRouter)': 6594,
-    'Rou3': 7078,
-    'FindMyWay': 5413,
-    'Express': 1192,
+    'ProstoRouter': 8644,
+    'Rou3 (compiled)': 32998,
+    'Hono (RegExpRouter)': 7012,
+    'Rou3': 7736,
+    'FindMyWay': 9259,
+    'Express': 1124,
   },
   'Four params': {
-    'ProstoRouter': 6247,
-    'Hono (RegExpRouter)': 5147,
-    'Rou3': 4534,
-    'FindMyWay': 3725,
-    'Express': 800,
+    'ProstoRouter': 5929,
+    'Rou3 (compiled)': 29279,
+    'Hono (RegExpRouter)': 5209,
+    'Rou3': 4462,
+    'FindMyWay': 6924,
+    'Express': 793,
   },
   'Wildcard': {
-    'ProstoRouter': 8977,
-    'Hono (RegExpRouter)': 11914,
-    'Rou3': 8323,
-    'FindMyWay': 10971,
-    'Express': 1380,
+    'ProstoRouter': 10561,
+    'Rou3 (compiled)': 31133,
+    'Hono (RegExpRouter)': 13169,
+    'Rou3': 6223,
+    'FindMyWay': 22003,
+    'Express': 1338,
   },
   'POST with params': {
-    'ProstoRouter': 7606,
-    'Hono (RegExpRouter)': 7651,
-    'Rou3': 5790,
-    'FindMyWay': 5058,
-    'Express': 761,
+    'ProstoRouter': 7961,
+    'Rou3 (compiled)': 32382,
+    'Hono (RegExpRouter)': 8354,
+    'Rou3': 5595,
+    'FindMyWay': 8941,
+    'Express': 750,
   },
   '404 not found': {
-    'ProstoRouter': 11066,
-    'Hono (RegExpRouter)': 30858,
-    'Rou3': 10244,
-    'FindMyWay': 13305,
-    'Express': 1863,
+    'ProstoRouter': 12864,
+    'Rou3 (compiled)': 45141,
+    'Hono (RegExpRouter)': 42297,
+    'Rou3': 10155,
+    'FindMyWay': 29273,
+    'Express': 1780,
   },
 }
 
 // ── Scaling data ───────────────────────────────────────────────────
+// results-scale.json keeps Hono as one series and labels the active backend
+// per point (`points[n].backend`); it is split into two series here.
 
 const scalingShort = {
-  'ProstoRouter': { '22': 44665, '50': 14411, '100': 10855, '200': 9400 },
-  'Hono (RegExpRouter)': { '22': 42409, '50': 12525, '100': 10162, '200': 6627 },
-  'Rou3': { '22': 38861, '50': 17533, '100': 12495, '200': 10481 },
-  'FindMyWay': { '22': 29182, '50': 13038, '100': 13571, '200': 10804 },
-  'Express': { '22': 2393, '50': 994, '100': 654, '200': 295 },
+  'ProstoRouter': { '22': 43846, '50': 13815, '100': 14018, '200': 12457 },
+  'Rou3 (compiled)': { '22': 136846, '50': 39929, '100': 39308, '200': 38184 },
+  'Hono (RegExpRouter)': { '22': 56849, '50': 13751, '100': 11226, '200': 6990 },
+  'Rou3': { '22': 54610, '50': 19960, '100': 18345, '200': 14981 },
+  'FindMyWay': { '22': 35058, '50': 19641, '100': 19711, '200': 14889 },
+  'Express': { '22': 2384, '50': 970, '100': 637, '200': 297 },
 }
 
 const scalingLong = {
-  'ProstoRouter': { '22': 8600, '50': 7562, '100': 6136, '200': 4158 },
-  'Hono (RegExpRouter)': { '22': 8250, '50': 7180 },
-  'Hono (TrieRouter)': { '100': 3624, '200': 3640 },
-  'Rou3': { '22': 6838, '50': 6735, '100': 6834, '200': 6744 },
-  'FindMyWay': { '22': 6193, '50': 6177, '100': 5889, '200': 6022 },
-  'Express': { '22': 1122, '50': 1038, '100': 922, '200': 737 },
+  'ProstoRouter': { '22': 8794, '50': 7739, '100': 6421, '200': 5167 },
+  'Rou3 (compiled)': { '22': 37150, '50': 29886, '100': 30720, '200': 30924 },
+  'Hono (RegExpRouter)': { '22': 8894, '50': 7505 },
+  'Hono (TrieRouter)': { '100': 4505, '200': 4521 },
+  'Rou3': { '22': 4877, '50': 6733, '100': 4868, '200': 6738 },
+  'FindMyWay': { '22': 10816, '50': 10639, '100': 10479, '200': 10540 },
+  'Express': { '22': 1131, '50': 1059, '100': 937, '200': 697 },
 }
 
 const scalingMixed = {
-  'ProstoRouter': { '20': 21767, '48': 10680, '98': 8332, '198': 7895 },
-  'Hono (RegExpRouter)': { '20': 35978, '48': 13647, '98': 7257 },
-  'Hono (TrieRouter)': { '198': 3462 },
-  'Rou3': { '20': 19802, '48': 12028, '98': 5873, '198': 6567 },
-  'FindMyWay': { '20': 18218, '48': 9924, '98': 9350, '198': 9194 },
-  'Express': { '20': 2246, '48': 1026, '98': 591, '198': 347 },
+  'ProstoRouter': { '20': 29220, '48': 11505, '98': 9366, '198': 9004 },
+  'Rou3 (compiled)': { '20': 57038, '48': 41001, '98': 36674, '198': 36419 },
+  'Hono (RegExpRouter)': { '20': 52955, '48': 15128, '98': 7801 },
+  'Hono (TrieRouter)': { '198': 4072 },
+  'Rou3': { '20': 30839, '48': 15834, '98': 11981, '198': 10736 },
+  'FindMyWay': { '20': 28315, '48': 15967, '98': 14542, '198': 14230 },
+  'Express': { '20': 2206, '48': 949, '98': 601, '198': 286 },
 }
+
 </script>
 
 # Router Benchmark
@@ -155,19 +178,24 @@ Full source code: [prostojs/router-benchmark](https://github.com/prostojs/router
 
 | Router | Used by | Type |
 |---|---|---|
-| **[@prostojs/router](https://github.com/prostojs/router)** | Wooks | Regex-based, indexed |
+| **[@prostojs/router](https://github.com/prostojs/router)** (ProstoRouter) | Wooks | Regex-based, indexed |
 | **find-my-way** | Fastify | Radix trie |
-| **rou3** | h3 / Nitro | Radix trie |
-| **Hono RegExpRouter** | Hono | Compiled RegExp (falls back to TrieRouter on complex sets) |
+| **rou3** | h3 / Nitro | Radix trie (`findRoute()`) |
+| **rou3 (compiled)** | — | rou3's JIT compiler (`compileRouter()` from `rou3/compiler`) |
+| **Hono SmartRouter** | Hono | RegExpRouter, falls back to TrieRouter when the route set cannot be compiled |
 | **Express** | Express | Linear scan (baseline) |
 
 ## Methodology
 
-Each router registers the same set of routes and resolves the same request mix. Importantly, every benchmark forces **full parameter extraction** — not just matching — so routers that defer param processing don't get an unfair advantage.
+Each router registers the same set of routes and resolves the same request mix. Every lookup performs **full parameter extraction** — not just matching — so routers that defer param processing get no advantage. Before measuring, all routers must return identical matches and params; each router runs in a fresh Node.js process.
 
 The tests cover three route shapes: **short** paths (2–5 segments), **long** paths (5–10 segments), and a **mixed** 50/50 combination. The workload includes statics, parametric routes with up to 4 params, wildcards, multiple HTTP methods, and 404 misses.
 
 Results are in **operations per millisecond** — higher is better.
+
+::: info Indicative estimate
+Single round on a laptop: Apple M4 MacBook Air (fanless), Node.js 24.22, 1 round × 5 samples per test. Treat differences of a few percent as noise.
+:::
 
 ## Overview by Route Type
 
@@ -176,7 +204,7 @@ Results are in **operations per millisecond** — higher is better.
 </ClientOnly>
 
 ::: tip Key takeaway
-**ProstoRouter** leads on long, enterprise-style routes while staying competitive on short ones. **Hono's RegExpRouter** is fastest on short and mixed patterns — but as the [scaling section](#scaling) reveals, its compiled regex approach breaks down on larger route sets.
+**Compiled rou3** is the fastest router on every route shape. **ProstoRouter** is mid-pack: 4th on short routes, 3rd on long routes (behind find-my-way) and 4th on mixed routes, well ahead of Express everywhere.
 :::
 
 ### Short Routes (22 routes)
@@ -187,17 +215,17 @@ Typical REST APIs with 2–5 segment paths.
   <BenchmarkBars :data="summaryShort" unit="ops/ms" title="Short routes — all tests combined" />
 </ClientOnly>
 
-Hono's RegExpRouter and ProstoRouter are neck-and-neck here — both far ahead of the trie-based routers. The compiled regex approach excels on compact route sets.
+Compiled rou3 is 2.4x ahead of the next router. Hono's RegExpRouter and plain rou3 are level in second place; ProstoRouter is 3.1x behind the leader, ahead of find-my-way.
 
 ### Long Routes (22 routes)
 
-The kind of deep, nested paths you'd see in a real SaaS API — 5–10 segments with shared prefixes and multiple parameters. Think `/api/v1/orgs/:orgId/teams/:teamId/projects/:projectId/tasks/:taskId`.
+Deep, nested paths with shared prefixes and multiple parameters, such as `/api/v1/orgs/:orgId/teams/:teamId/projects/:projectId/tasks/:taskId`.
 
 <ClientOnly>
   <BenchmarkBars :data="summaryLong" unit="ops/ms" title="Long routes — all tests combined" />
 </ClientOnly>
 
-**ProstoRouter leads here** — comfortably ahead of every other router. These are the route patterns that real SaaS APIs actually use, and ProstoRouter handles them best.
+Compiled rou3 leads by 3.5x. find-my-way is second, 15% ahead of ProstoRouter; Hono and plain rou3 follow.
 
 ### Mixed Routes (20 routes)
 
@@ -207,27 +235,27 @@ The kind of deep, nested paths you'd see in a real SaaS API — 5–10 segments 
   <BenchmarkBars :data="summaryMixed" unit="ops/ms" title="Mixed routes — all tests combined" />
 </ClientOnly>
 
-Hono's RegExpRouter leads here thanks to its strong short-route performance. ProstoRouter and Rou3 are close behind.
+Compiled rou3 and Hono's RegExpRouter are close at the top. ProstoRouter, plain rou3 and find-my-way are level, about 2x behind.
 
 ## Long Route Breakdown
 
-A closer look at individual long-route test patterns — this is where router architectures reveal their strengths and weaknesses:
+A closer look at individual long-route test patterns:
 
 <ClientOnly>
   <BenchmarkChart :data="longDetailed" mode="stacked" unit="ops/ms" title="Long routes — per-test breakdown (ops/ms)" />
 </ClientOnly>
 
-**Static lookups:** Rou3 dominates pure static resolution thanks to its radix trie optimized for exact matches. Hono comes second. ProstoRouter's regex-based approach trades some static-lookup speed for richer pattern support — still very fast.
+**Static lookups:** plain rou3 is the fastest on the short static path, compiled rou3 on the long one. ProstoRouter's static lookups (48–63k ops/ms) are several times faster than its parametric ones.
 
-**Parametric routes:** ProstoRouter leads across all parameter counts. The more params a route has, the bigger the gap — ProstoRouter's advantage grows with complexity.
+**Parametric routes:** compiled rou3 leads every row by a wide margin, and find-my-way is ahead of ProstoRouter at every parameter count. ProstoRouter is ahead of Hono and plain rou3 on most of these rows.
 
-**POST/PUT/DELETE with params:** ProstoRouter and Hono are essentially tied, both ahead of Rou3 and find-my-way.
+**Wildcards:** compiled rou3, find-my-way and Hono are ahead of ProstoRouter.
 
-**404 handling:** Hono's RegExpRouter excels at rejecting non-matching URIs — its compiled regex rejects in one step. The other routers handle 404s reasonably well, with find-my-way slightly ahead of ProstoRouter and Rou3.
+**404 handling:** compiled rou3 and Hono's RegExpRouter reject non-matching URIs fastest; find-my-way follows. ProstoRouter and plain rou3 are well behind them.
 
 ## Scaling: 22 → 200 Routes {#scaling}
 
-Small benchmarks can be deceiving. A router that tops the chart with a handful of routes may not hold up when your application grows. This scaling benchmark reveals what happens as route tables reach real-world sizes.
+How throughput changes as the route table grows.
 
 ### Short Routes
 
@@ -247,26 +275,24 @@ Small benchmarks can be deceiving. A router that tops the chart with a handful o
   <ScalingChart :data="scalingMixed" title="Mixed routes — scaling by route count" :labels="['20', '48', '98', '198']" />
 </ClientOnly>
 
-::: warning Hono's RegExpRouter hits a wall
-Hono's RegExpRouter — the fastest router on small benchmarks — **fails to compile** its regular expression when route sets grow complex. On long routes beyond 100, and mixed routes beyond 198, Hono silently falls back to its much slower TrieRouter — becoming the slowest non-Express router in the field.
+::: warning Hono switches routers as the route set grows
+Hono's SmartRouter uses RegExpRouter while it can compile the route set, and TrieRouter otherwise. In this run it switched to TrieRouter from 100 long routes and at 198 mixed routes. Hono loses the most throughput as routes are added: 8x on short and 13x on mixed routes from the smallest to the largest set.
 :::
 
-This is the most revealing part of the benchmark. The routers that look fastest in small tests tell a different story at scale:
-
-| Router | Scaling behavior |
+| Router | Scaling behavior (smallest → largest route set) |
 |---|---|
-| **ProstoRouter** | Gradual, predictable slowdown (~2x from 22→200 routes) |
-| **Hono** | Hits a cliff — falls back to TrieRouter and drops sharply |
-| **Rou3** | Nearly flat — trie structure handles growth well |
-| **find-my-way** | Nearly flat — same trie advantage |
+| **rou3 (compiled)** | Fastest at every size; drops 3.6x on short routes, 1.2x on long, 1.6x on mixed |
+| **find-my-way** | Flat on long routes; drops 2–2.4x on short and mixed |
+| **rou3** | Long routes noisy but flat (4.9–6.7k); drops about 3x on short and mixed |
+| **ProstoRouter** | Drops 3.5x on short (mostly between 22 and 50 routes), 1.7x on long, 3.2x on mixed |
+| **Hono** | Drops the most: 8x on short, 2x on long, 13x on mixed |
+| **Express** | Far behind at every size |
 
-**ProstoRouter stays fastest through 50 routes** across all three route shapes, and remains competitive at 100–200. The trie-based routers (Rou3, find-my-way) degrade less because their structure inherently shares prefix storage — but they start from a lower baseline on parametric routes.
-
-At larger scales, the order reshuffles — find-my-way's stable trie pulls ahead on mixed routes, while ProstoRouter still beats Rou3 and Hono's fallback TrieRouter. A router's architecture matters more than its microbenchmark peak.
+At 200 routes ProstoRouter is behind find-my-way and both rou3 variants on all three shapes, and ahead of Hono and Express.
 
 ## Feature Comparison
 
-Raw speed is only part of the picture. `@prostojs/router` supports features that trie-based routers can't:
+Raw lookup speed is only part of the picture. `@prostojs/router` supports matching features that not every router offers:
 
 | Feature | @prostojs/router | find-my-way | Rou3 | Hono |
 |---|:---:|:---:|:---:|:---:|
@@ -280,8 +306,8 @@ Raw speed is only part of the picture. `@prostojs/router` supports features that
 | URL decoding | ✅ | ✅ | ❌ | ❌ |
 | Same-name param arrays | ✅ | ❌ | ❌ | ❌ |
 
-`@prostojs/router` delivers the richest feature set while being the fastest on the route patterns that matter most in production — deeply-nested, parametric paths with multiple parameters.
+In a full HTTP server, routing is a small part of the per-request cost — see the [HTTP framework benchmark](/benchmarks/wooks-http).
 
 ---
 
-*Benchmark source: [prostojs/router-benchmark](https://github.com/prostojs/router-benchmark). Results generated Feb 2026.*
+*Benchmark source: [prostojs/router-benchmark](https://github.com/prostojs/router-benchmark). Results generated October 2026 (indicative estimate, single round on a laptop).*

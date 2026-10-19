@@ -42,7 +42,7 @@ themeConfig:
 #       details: Fully typed context slots, route params, and composable return values. Zero runtime overhead — type safety through compile-time branding.
 #     - icon: 🛤️
 #       title: Advanced Router
-#       details: Regex constraints on params, multi-segment wildcards, indexed lookups. Benchmarks faster than Express and Fastify on dynamic routes.
+#       details: Regex constraints on params, multi-segment wildcards, indexed lookups.
 #       link: /webapp/routing
 #     - icon: 🧩
 #       title: Build your own composables
