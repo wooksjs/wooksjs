@@ -1,3 +1,9 @@
+## [0.7.31](https://github.com/wooksjs/wooksjs/compare/v0.7.30...v0.7.31) (2026-10-19)
+
+
+### Performance Improvements
+
+* faster JSON body pre-filter and set-cookie rendering ([d2142bd](https://github.com/wooksjs/wooksjs/commit/d2142bd3b250bc4313b0e15a85f42d32455114db))
 ## [0.7.30](https://github.com/wooksjs/wooksjs/compare/v0.7.29...v0.7.30) (2026-10-10)
 ## [0.7.29](https://github.com/wooksjs/wooksjs/compare/v0.7.28...v0.7.29) (2026-10-10)
 
