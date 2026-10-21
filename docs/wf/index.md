@@ -29,7 +29,7 @@ const app = createWfApp<OrderContext>()
 
 `createWfApp(options?)` accepts:
 
-- `onNotFound` — fallback flow resolver called when `start()` receives an unknown flow id; it returns `{ id, init? }` pointing to a registered flow. Without it, `start()` throws `Unknown schemaId: <id>`.
+- `onNotFound` — fallback flow resolver called when `start()` receives an unknown flow id; it returns `{ id, init? }` pointing to a registered flow. Keep it pure (no side effects, no composables) and put side effects in `init`: `app.resolveSchemaId()` — which the outlet trigger uses for `allow`/`block` — calls it too. Without it, `start()` throws `Unknown schemaId: <id>`.
 - `logger` — custom logger instance.
 - `router` — router options for the underlying Wooks instance.
 - `strictStepIds` — throw (instead of warn) on duplicate step ids. See [Steps](/wf/steps#fail-loudly-with-strictstepids).

@@ -6,6 +6,8 @@ import type { WfOutletTriggerConfig, WfOutletTriggerDeps } from './types'
  * Eliminates the need to manually construct `WfOutletTriggerDeps`.
  *
  * Accepts any object with `start` and `resume` methods (WooksWf, MoostWf, etc.).
+ * When the object also has `resolveSchemaId` (WooksWf does), it is wired into
+ * the deps so `allow`/`block` judge the flow a request actually runs.
  *
  * @example
  * ```ts
@@ -16,10 +18,12 @@ import type { WfOutletTriggerConfig, WfOutletTriggerDeps } from './types'
 export function createOutletHandler(wfApp: {
   start: WfOutletTriggerDeps['start']
   resume: WfOutletTriggerDeps['resume']
+  resolveSchemaId?: WfOutletTriggerDeps['resolveSchemaId']
 }) {
-  return (config: WfOutletTriggerConfig) =>
-    handleWfOutletRequest(config, {
-      start: (schemaId, context, opts) => wfApp.start(schemaId, context, opts),
-      resume: (state, opts) => wfApp.resume(state, opts),
-    })
+  const deps: WfOutletTriggerDeps = {
+    start: wfApp.start.bind(wfApp),
+    resume: wfApp.resume.bind(wfApp),
+    resolveSchemaId: wfApp.resolveSchemaId?.bind(wfApp),
+  }
+  return (config: WfOutletTriggerConfig) => handleWfOutletRequest(config, deps)
 }

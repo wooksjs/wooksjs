@@ -10,7 +10,7 @@ These are available out of the box in workflow step handlers:
 
 | Composable | Import | What it provides |
 |------------|--------|-----------------|
-| `useWfState()` | `@wooksjs/event-wf` | Workflow context, input, schema/step ids, resume flag |
+| `useWfState()` | `@wooksjs/event-wf` | Workflow context, input, schema/step ids, flow route params (`flowParams()`), resume flag |
 | `useWfFinished()` | `@wooksjs/event-wf` | Set the HTTP response for workflow completion (used with [outlets](/wf/outlets)) |
 | `useWfStrategy()` | `@wooksjs/event-wf` | Read / swap the active state strategy name for the next outlet pause (see [Swapping strategies](/wf/outlets#swapping-strategies)) |
 | `useWfOutlet()` | `@wooksjs/event-wf` | Access the outlet registry — `getOutlets()`, `getOutlet(name)` (advanced) |

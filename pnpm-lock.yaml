@@ -174,9 +174,12 @@ importers:
       '@prostojs/logger':
         specifier: ^0.4.3
         version: 0.4.3
+      '@prostojs/router':
+        specifier: ^0.3.6
+        version: 0.3.6
       '@prostojs/wf':
-        specifier: ^0.2.1
-        version: 0.2.1
+        specifier: ^0.3.0
+        version: 0.3.0
     devDependencies:
       '@wooksjs/event-core':
         specifier: workspace:^
@@ -1112,8 +1115,8 @@ packages:
   '@prostojs/tree@0.3.0':
     resolution: {integrity: sha512-9Ki9sg7UJvAy3IRXZuTBoVaepiYD+Ok3ucozNiMVWyjKmXjkgmqYUZGzDYAjTygS0s6Ze19X9ECM/0uQVfvHsw==}
 
-  '@prostojs/wf@0.2.1':
-    resolution: {integrity: sha512-Zy/b+rFrY15pichqn9p3Q/zTdPQwiZcvAEY7PAa5M5AaH8+08b7+KHVISI68lWGlwIKviSJ3PhsS7fV0iVDBCg==}
+  '@prostojs/wf@0.3.0':
+    resolution: {integrity: sha512-NoH2I9KvQLYbLklBn6dHLRiH5yuU8/9WU5/B4kZCoNZrfLK6wNxn7ADkwIodEpwLm4Kl4+b/blV+6b1MfyffQw==}
 
   '@rolldown/binding-android-arm64@1.0.0-rc.5':
     resolution: {integrity: sha512-zCEmUrt1bggwgBgeKLxNj217J1OrChrp3jJt24VK9jAharSTeVaHODNL+LpcQVhRz+FktYWfT9cjo5oZ99ZLpg==}
@@ -3347,7 +3350,7 @@ snapshots:
 
   '@prostojs/tree@0.3.0': {}
 
-  '@prostojs/wf@0.2.1':
+  '@prostojs/wf@0.3.0':
     dependencies:
       '@prostojs/ftring': 0.0.4
 

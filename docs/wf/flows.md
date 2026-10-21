@@ -192,6 +192,26 @@ await app.start('process/json', { data: '...' })
 await app.start('process/csv', { data: '...' })
 ```
 
+The flow's route params are available to the flow's `init` and to every step through `useWfState().flowParams()`, and they survive pause/resume:
+
+```ts
+import { useWfState } from '@wooksjs/event-wf'
+
+app.step('validate', {
+  handler: () => {
+    const { type } = useWfState().flowParams<{ type: string }>() // 'json' / 'csv'
+  },
+})
+```
+
+Inside a step, `useRouteParams()` keeps returning the **step's** own route params (those of a parametric step id such as `'greet/:who'`), not the flow's. In the flow's `init`, `useRouteParams()` returns the flow's params. A paused state stores the params next to the schema id (`state.flowParams`), and `resume()` restores them — a resumed run sees `type: 'csv'`, not the pattern.
+
+A paused run stores the **registered** id (`'process/:type'`) as `state.schemaId`, not the id it was started with. `app.resolveSchemaId(id)` returns the registered id a given id would start — using the same rule as `start()`, including `onNotFound` — or `undefined` when nothing matches. It runs no step and no `init`:
+
+```ts
+await app.resolveSchemaId('process/json') // → 'process/:type'
+```
+
 ## Flow Output
 
 Both `app.start()` and `app.resume()` return a `TFlowOutput` object:

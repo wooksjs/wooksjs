@@ -6,7 +6,9 @@ import { useBody } from '@wooksjs/http-body'
 import type { WfPauseRequest } from '../pause-request'
 import { STRATEGY_NAME_RE } from '../strategy-context'
 
+import { createWfAccess, hasAccessLists } from './access'
 import { outletsRegistryKey, wfFinishedKey } from './outlet-context'
+import { consumeWithExpiry, restoreConsumedState, restoreCount, snapshotState } from './restore'
 import type { WfOutletTriggerConfig, WfOutletTriggerDeps } from './types'
 
 function wrapToken(name: string, raw: string): string {
@@ -15,34 +17,47 @@ function wrapToken(name: string, raw: string): string {
 
 function unwrapToken(token: string): { name: string; raw: string } | null {
   const i = token.indexOf('.')
-  if (i <= 0 || i === token.length - 1) { return null }
+  if (i <= 0 || i === token.length - 1) {
+    return null
+  }
   return { name: token.slice(0, i), raw: token.slice(i + 1) }
 }
 
 function normalizeStateConfig(state: WfOutletTriggerConfig['state']): {
   registry: Record<string, WfStateStrategy>
-  resolveDefaultName: (wfid: string) => string
+  resolveDefaultName: (wfid: string, flowId: string) => string
+  /** whether the default-strategy picker reads the flow id */
+  defaultUsesFlowId: boolean
 } {
   if (typeof state === 'object' && state !== null && 'strategies' in state) {
     const registry = state.strategies
     for (const name of Object.keys(registry)) {
       if (!STRATEGY_NAME_RE.test(name)) {
-        throw new Error(
-          `Invalid strategy name '${name}': must match /^[A-Za-z0-9_-]+$/`,
-        )
+        throw new Error(`Invalid strategy name '${name}': must match /^[A-Za-z0-9_-]+$/`)
       }
     }
     const def = state.default
-    const resolveDefaultName =
-      typeof def === 'function' ? def : (_wfid: string) => def
-    return { registry, resolveDefaultName }
+    if (typeof def === 'function') {
+      return { registry, resolveDefaultName: def, defaultUsesFlowId: true }
+    }
+    return { registry, resolveDefaultName: () => def, defaultUsesFlowId: false }
   }
   // Single-strategy shortcut → auto-promote to { default: state }
   return {
     registry: { default: state },
     resolveDefaultName: () => 'default',
+    defaultUsesFlowId: false,
   }
 }
+
+/** A refused request: HTTP status + body. */
+interface Refusal {
+  status: number
+  error: string
+}
+
+const EXPIRED: Refusal = { status: 410, error: 'Invalid or expired workflow state' }
+const INVALID_TOKEN: Refusal = { status: 410, error: 'Invalid workflow state token' }
 
 /**
  * Handle an HTTP request that starts or resumes a workflow.
@@ -72,13 +87,15 @@ export async function handleWfOutletRequest(
   const wfidName = config.wfidName ?? 'wfid'
 
   const ctx = current()
-  const registry = new Map(config.outlets.map(o => [o.name, o]))
+  const registry = new Map(config.outlets.map((o) => [o.name, o]))
   ctx.set(outletsRegistryKey, registry)
   ctx.set(wfFinishedKey, undefined)
 
-  const { registry: strategyRegistry, resolveDefaultName } = normalizeStateConfig(
-    config.state,
-  )
+  const {
+    registry: strategyRegistry,
+    resolveDefaultName,
+    defaultUsesFlowId,
+  } = normalizeStateConfig(config.state)
 
   const { parseBody } = useBody()
   const { params } = useUrlParams()
@@ -87,69 +104,112 @@ export async function handleWfOutletRequest(
   const body = await parseBody<Record<string, unknown>>().catch(() => undefined)
 
   const queryParams = params()
+  const refuse = (refusal: Refusal) => {
+    response.setStatus(refusal.status)
+    return { error: refusal.error }
+  }
 
-  let token: string | undefined
+  // Body values are untrusted JSON — they may be arrays/objects, not strings.
+  let token: unknown
   for (const source of tokenRead) {
     if (source === 'body') {
-      token = body?.[tokenName] as string | undefined
+      token = body?.[tokenName]
     } else if (source === 'query') {
       token = queryParams.get(tokenName) ?? undefined
     } else if (source === 'cookie') {
       token = getCookie(tokenName) ?? undefined
     }
-    if (token) { break }
+    if (token) {
+      break
+    }
   }
 
-  const wfid =
-    (body?.[wfidName] as string | undefined) ?? queryParams.get(wfidName) ?? undefined
+  const wfid: unknown = body?.[wfidName] ?? queryParams.get(wfidName) ?? undefined
   const input = body?.input
+  const listsSet = hasAccessLists(config)
 
   let output
   let incomingName: string | undefined
   let incomingRaw: string | undefined
+  /** restoreOnError: restores already spent on the incoming handle (carried while it is re-used). */
+  let incomingRestores = 0
 
   if (token) {
     // --- RESUME ---
-    const unwrapped = unwrapToken(token)
-    if (!unwrapped) {
-      response.setStatus(410)
-      return { error: 'Invalid workflow state token' }
-    }
+    const unwrapped = typeof token === 'string' ? unwrapToken(token) : null
     // hasOwn guard prevents prototype keys (e.g. 'constructor') from
     // resolving to inherited values and bypassing the 410.
-    const strategy = Object.prototype.hasOwnProperty.call(strategyRegistry, unwrapped.name)
-      ? strategyRegistry[unwrapped.name]
-      : undefined
-    if (!strategy) {
+    const strategy =
+      unwrapped && Object.prototype.hasOwnProperty.call(strategyRegistry, unwrapped.name)
+        ? strategyRegistry[unwrapped.name]
+        : undefined
+    if (!unwrapped || !strategy) {
       // Do not leak which strategies are configured.
-      response.setStatus(410)
-      return { error: 'Invalid workflow state token' }
+      return refuse(INVALID_TOKEN)
     }
     incomingName = unwrapped.name
     incomingRaw = unwrapped.raw
 
-    const state = await strategy.consume(unwrapped.raw)
-    if (!state) {
-      response.setStatus(410)
-      return { error: 'Invalid or expired workflow state' }
-    }
+    // Gate a state on allow/block (when lists are set).
+    const access = listsSet ? await createWfAccess(config, deps, ctx) : undefined
+    const gate = (candidate: WfState | null): Refusal | undefined =>
+      !candidate || typeof candidate.schemaId !== 'string'
+        ? EXPIRED
+        : access?.resume(candidate.schemaId)
 
-    output = await deps.resume(state, {
-      input,
-      eventContext: ctx,
-      strategy: { name: incomingName },
-    })
-  } else if (wfid) {
+    // Gate BEFORE consuming: a token refused by this trigger (e.g. minted by
+    // a public flow, replayed on a protected trigger) must stay usable on the
+    // trigger it belongs to.
+    if (access) {
+      const peekRefusal = gate(await strategy.retrieve(unwrapped.raw))
+      if (peekRefusal) {
+        return refuse(peekRefusal)
+      }
+    }
+    const consumed = await consumeWithExpiry(strategy, unwrapped.raw)
+    // Re-check what was actually consumed — the handle may have been
+    // re-persisted between retrieve() and consume().
+    const refusal = gate(consumed.state)
+    if (refusal) {
+      return refuse(refusal)
+    }
+    const state = consumed.state as WfState
+
+    // restoreOnError: snapshot the state as consumed, before the step can
+    // mutate its context in place.
+    incomingRestores = restoreCount(state)
+    const snapshot = config.restoreOnError ? snapshotState(state) : undefined
+    try {
+      output = await deps.resume(state, {
+        input,
+        eventContext: ctx,
+        strategy: { name: incomingName },
+      })
+    } catch (error) {
+      if (snapshot) {
+        await restoreConsumedState(config, strategy, unwrapped.raw, snapshot, consumed, error)
+      }
+      throw error
+    }
+  } else if (wfid !== undefined && wfid !== '') {
     // --- START ---
-    if (config.allow?.length && !config.allow.includes(wfid)) {
-      response.setStatus(403)
-      return { error: `Workflow '${wfid}' is not allowed` }
+    if (typeof wfid !== 'string') {
+      return refuse({ status: 400, error: 'Invalid workflow ID' })
     }
-    if (config.block?.includes(wfid)) {
-      response.setStatus(403)
-      return { error: `Workflow '${wfid}' is blocked` }
+    // Judge the flow the router will actually run (flowOf), not the caller's
+    // spelling — the same identity a resume is judged on. See access.ts.
+    // Resolution is needed only for the lists or for callbacks that read it.
+    let flowId = wfid
+    let resolvedId: string | undefined
+    if (listsSet || defaultUsesFlowId || config.initialContext) {
+      const judged = await (await createWfAccess(config, deps, ctx)).start(wfid)
+      if (judged.refusal) {
+        return refuse(judged.refusal)
+      }
+      flowId = judged.flowId
+      resolvedId = judged.resolvedId
     }
-    const defaultName = resolveDefaultName(wfid)
+    const defaultName = resolveDefaultName(wfid, flowId)
     // hasOwn guard mirrors the resume/pause-time lookups — a custom
     // resolveDefaultName that returns 'constructor' / '__proto__' must
     // surface as 'not found in registry', not as a confusing TypeError
@@ -162,15 +222,18 @@ export async function handleWfOutletRequest(
         `Default strategy '${defaultName}' not found in registry. Known: ${Object.keys(strategyRegistry).join(', ')}`,
       )
     }
-    const initialContext = config.initialContext ? config.initialContext(body, wfid) : {}
+    const initialContext = config.initialContext ? config.initialContext(body, wfid, flowId) : {}
     output = await deps.start(wfid, initialContext, {
       input,
       eventContext: ctx,
       strategy: { name: defaultName },
+      // With lists set, run only the flow that was judged. Without lists the
+      // resolution only fed the callbacks, so a non-deterministic onNotFound
+      // (e.g. A/B routing) keeps choosing freely.
+      expectSchemaId: listsSet ? resolvedId : undefined,
     })
   } else {
-    response.setStatus(400)
-    return { error: 'Missing wfs (state token) or wfid (workflow ID)' }
+    return refuse({ status: 400, error: 'Missing wfs (state token) or wfid (workflow ID)' })
   }
 
   if (output.finished) {
@@ -215,7 +278,7 @@ export async function handleWfOutletRequest(
     const finalName = outletReq.stateStrategy
     if (finalName === undefined) {
       throw new Error(
-        "Workflow paused without `stateStrategy` on inputRequired — the WF adapter must augment the output with the active strategy name.",
+        'Workflow paused without `stateStrategy` on inputRequired — the WF adapter must augment the output with the active strategy name.',
       )
     }
     const finalStrategy = Object.prototype.hasOwnProperty.call(strategyRegistry, finalName)
@@ -227,10 +290,6 @@ export async function handleWfOutletRequest(
       )
     }
 
-    const stateWithMeta: WfState = {
-      ...(output.state as WfState),
-      meta: { outlet: outletReq.outlet },
-    }
     // Reuse the incoming handle so the URL token stays valid across the
     // whole workflow (refresh / bookmark / lost-connection-then-resume).
     // Mint fresh on start (no incoming token) or after a strategy swap —
@@ -238,11 +297,18 @@ export async function handleWfOutletRequest(
     const sameStrategy = incomingName !== undefined && incomingName === finalName
     const reuseHandle =
       sameStrategy && incomingRaw !== undefined ? { handle: incomingRaw } : undefined
+    // Clamp: an expiry already past by save time must persist as "expired
+    // now" — a zero/negative ttl reads as "no expiry" to the state strategies.
+    const ttl = output.expires ? Math.max(1, output.expires - Date.now()) : undefined
+    // restoreOnError: the restore count stays with the handle while it is re-used.
+    const restores = config.restoreOnError && reuseHandle ? incomingRestores : 0
+    const stateWithMeta: WfState = {
+      ...(output.state as WfState),
+      meta: restores > 0 ? { outlet: outletReq.outlet, restores } : { outlet: outletReq.outlet },
+    }
     const newRaw = await finalStrategy.persist(
       stateWithMeta,
-      // Clamp: an expiry already past by save time must persist as "expired
-      // now" — a zero/negative ttl reads as "no expiry" to the state strategies.
-      output.expires ? { ttl: Math.max(1, output.expires - Date.now()) } : undefined,
+      ttl === undefined ? undefined : { ttl },
       reuseHandle,
     )
     const newToken = wrapToken(finalName, newRaw)

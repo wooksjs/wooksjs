@@ -67,7 +67,7 @@ const app2 = createWfApp({}, wooks)
 
 ### TWooksWfOptions
 
-- `onNotFound` — handler invoked when `start()`/`resume()` finds no flow for the id.
+- `onNotFound` — handler invoked when `start()` finds no flow for the id (never on `resume()`). Must return `{ id, init? }` and be pure — `resolveSchemaId()` also calls it (see [wf-outlets.md](wf-outlets.md#access-control-allow--block) rule 5).
 - `logger` — `TConsoleBase` for adapter logging (duplicate-step warnings, etc.).
 - `router` — `{ ignoreTrailingSlash?, ignoreCase?, cacheLimit? }` for the underlying router.
 - `strictStepIds` — throw on duplicate `WF_STEP` id instead of warn (default `false`).
@@ -110,7 +110,13 @@ Resume a previously paused workflow from saved state.
 const resumed = await app.resume(output.state, { input: userInput })
 ```
 
-`opts` accepts the same `TWfRunOptions` as `start()`.
+`opts` accepts the same `TWfRunOptions` as `start()`. `start()` also takes `expectSchemaId`: the registered flow id the caller judged — if `schemaId` resolves to another flow, `start()` throws before `init` or any step.
+
+`resume()` dispatches ONLY to the flow registered under exactly `state.schemaId` (a `flow()` registration on the same router — first registration wins, like the router — or a custom WF_FLOW handler whose own id equals it), else to the `flow()` registration equal up to leading slashes (`'x'` ↔ `'/x'`). Never via routing look-alikes (`'ADMIN'` under `ignoreCase`, `'/admin'`, an instance id) and never via `onNotFound` — otherwise it throws `Unknown schemaId: <id>`. Flow route params come from `state.flowParams` (persisted at start), not from the stored pattern.
+
+### `app.resolveSchemaId(id)`
+
+`await app.resolveSchemaId('process/json', { eventContext? })` → `'process/:type'`: the registered flow id (as passed to `flow()`) that `start(id)` would run — same rule as `start()`: first matching route handler (router decoding, `ignoreCase`, params, wildcards), else `onNotFound`; `undefined` if neither. Runs no step and no `init`; a `flow()` handler is not called, a custom `WF_FLOW` handler / `onNotFound` IS called (keep them pure) — in a throwaway WF context with the requested `schemaId` and route params, parented to `eventContext` (pass the parent you pass to `start()`). A paused run stores this registered id as `state.schemaId`, not the id it was started with. The outlet trigger uses it to check `allow`/`block` — see [wf-outlets.md](wf-outlets.md#access-control-allow--block).
 
 ### `TFlowOutput<T, I, IR>`
 
@@ -263,6 +269,16 @@ await app.start('process/csv', { data: rawData })
 await app.start('process/json', { data: rawData })
 ```
 
+Reading the flow's params (`type` = `'csv'`):
+
+| Where | How |
+| --- | --- |
+| flow `init`, any step | `useWfState().flowParams<{ type: string }>().type` |
+| flow `init` only | `useRouteParams().get('type')` |
+
+- Inside a step, `useRouteParams()` returns the STEP's own route params (parametric step ids like `'greet/:who'`), never the flow's — use `flowParams()`.
+- The paused state stores `schemaId: 'process/:type'` plus `flowParams: { type: 'csv' }`; resume restores them (any strategy — they travel inside the persisted state).
+
 ---
 
 ## Defining Flows
@@ -414,11 +430,12 @@ import { useWfState } from '@wooksjs/event-wf'
 
 app.step('my-step', {
   handler: () => {
-    const { ctx, input, schemaId, stepId, indexes, resume } = useWfState()
+    const { ctx, input, schemaId, stepId, indexes, resume, flowParams } = useWfState()
 
     ctx<MyContext>()    // mutable workflow context (type T)
     input<MyInput>()   // current step's input (or undefined)
-    schemaId           // flow ID being executed
+    schemaId           // flow ID being executed (registered id, e.g. 'user/:id')
+    flowParams<{ id: string }>() // flow route params ('user/:id' started as 'user/42' → { id: '42' }) — see Parametric flow IDs
     stepId()           // normalized '/<id>' of the current step ('/add/5'), null before the first step
     indexes()          // position in schema (for resume tracking)
     resume             // boolean: true if this is a resumed execution
