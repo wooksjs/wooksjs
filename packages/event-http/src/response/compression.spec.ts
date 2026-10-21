@@ -390,11 +390,11 @@ describe('response compression (enabled)', () => {
     expect(res.body.toString()).toBe(bigJson)
   })
 
-  it('HEAD: identity Content-Length, no body, Vary kept', async () => {
+  it('HEAD: the encoding GET would use, no identity Content-Length, no body, nothing compressed', async () => {
     const res = await ctx.get('/big', { 'accept-encoding': 'br' }, 'HEAD')
     expect(res.status).toBe(200)
-    expect(res.headers['content-encoding']).toBeUndefined()
-    expect(res.headers['content-length']).toBe(String(Buffer.byteLength(bigJson)))
+    expect(res.headers['content-encoding']).toBe('br')
+    expect(res.headers['content-length']).toBeUndefined()
     expect(res.headers.vary).toBe('Accept-Encoding')
     expect(res.body.byteLength).toBe(0)
     expect(zlibCalls.br).toBe(0)

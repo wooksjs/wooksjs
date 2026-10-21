@@ -1,6 +1,6 @@
 import type { TConsoleBase } from '@prostojs/logger'
-import { current, tryGetCurrent } from '@wooksjs/event-core'
-import type { EventContext, EventContextOptions } from '@wooksjs/event-core'
+import { current, run, setLocaleResolver, tryGetCurrent, useLocale } from '@wooksjs/event-core'
+import type { EventContext, EventContextOptions, EventKindSeeds } from '@wooksjs/event-core'
 import { Buffer } from 'buffer'
 import http, { IncomingMessage, ServerResponse } from 'http'
 import type { Server } from 'http'
@@ -9,16 +9,21 @@ import { Duplex } from 'stream'
 import type { TWooksHandler, TWooksOptions, Wooks, WooksUpgradeHandler } from 'wooks'
 import { WooksAdapterBase } from 'wooks'
 
-import { seedRawBody } from './composables/request'
+import { forwardedSlot, seedRawBody } from './composables/request'
 import { HttpError } from './errors'
 import { createHttpContext } from './event-http'
+import { httpAppConfigKey } from './http-config'
+import type { THttpAppConfig, TTransformErrorBody } from './http-config'
 import { httpKind } from './http-kind'
+import { lowerCaseHeaders } from './response/header-keys'
 import type { THttpCompressionOptions, TResolvedHttpCompression } from './response/compression'
 import { resolveCompression } from './response/compression'
 import type { HttpResponse } from './response/http-response'
 import { recordToWebHeaders } from './response/http-response'
 import { WooksHttpResponse } from './response/wooks-http-response'
 import type { TRequestLimits } from './types'
+import { compileTrustProxy } from './utils/proxy'
+import type { TForwardedInfo, TProxyHeaders, TTrustProxy } from './utils/proxy'
 
 /**
  * Identity headers forwarded from the calling HTTP context during programmatic `fetch()`
@@ -46,7 +51,10 @@ export interface TWooksHttpOptions {
   requestLimits?: Omit<TRequestLimits, 'perRequest'>
   /** Custom HttpResponse subclass. Defaults to WooksHttpResponse (HTML/JSON/text error rendering). */
   responseClass?: typeof WooksHttpResponse
-  /** Default headers applied to every response. Use `securityHeaders()` for recommended security headers. */
+  /**
+   * Default headers applied to every response. Use `securityHeaders()` for recommended security
+   * headers. Read once, when the app is created (later changes to the object are not seen).
+   */
   defaultHeaders?: Record<string, string | string[]>
   /**
    * Headers forwarded from the calling HTTP context during programmatic `fetch()`.
@@ -68,6 +76,56 @@ export interface TWooksHttpOptions {
    * @default false
    */
   compression?: boolean | THttpCompressionOptions
+  /**
+   * Which reverse proxies to trust for the client's IP, protocol and host
+   * (`useRequest().getIp()` / `protocol()` / `host()`). Off by default: forwarding headers
+   * are ignored and the client is the socket peer.
+   *
+   * - a number — trust that many hops (`1` = one reverse proxy: nginx, Caddy, a load balancer);
+   * - a list — trust hops whose address matches (`['10.0.0.0/8', 'loopback']`);
+   * - `(addr, hopIndex) => boolean` — custom (`hopIndex` 0 is the socket peer).
+   *
+   * The client is the right-most hop that is not trusted. Only enable it when every request
+   * reaches the app through those proxies — otherwise a client can forge its address.
+   * @default false
+   */
+  trustProxy?: TTrustProxy
+  /**
+   * The forwarding headers your trusted proxies write: `'x-forwarded'` (`X-Forwarded-For` /
+   * `-Proto` / `-Host`) or `'forwarded'` (RFC 7239). Only that family is read.
+   * @default 'x-forwarded'
+   */
+  proxyHeaders?: TProxyHeaders
+  /**
+   * Transforms every error body before it is rendered (JSON, HTML or text): thrown or returned
+   * `HttpError`s, other errors (rendered as 500) and the router's 404. Use it to translate
+   * `message` from `code` + `params`, or to strip fields. Must be synchronous; if it throws,
+   * the error is logged and the original body is sent.
+   *
+   * @example
+   * ```ts
+   * createHttpApp({
+   *   transformErrorBody: (body) =>
+   *     body.code ? { ...body, message: t(useLocale().get(), body.code, body.params) } : body,
+   * })
+   * ```
+   */
+  transformErrorBody?: TTransformErrorBody
+  /**
+   * Your locale policy, as a function: it runs lazily, on the first `useLocale().get()` of a
+   * request (and its child events, e.g. a workflow it starts), at most once per request.
+   * Typically a `?lang` query or a cookie first, then `useAcceptLanguage().negotiate(...)`
+   * (which also adds `Vary: Accept-Language`). Wooks never translates — it only carries the locale.
+   *
+   * @example
+   * ```ts
+   * createHttpApp({
+   *   resolveLocale: () =>
+   *     useCookies().getCookie('lang') ?? useAcceptLanguage().negotiate(['en', 'de'], 'en'),
+   * })
+   * ```
+   */
+  resolveLocale?: () => string | undefined
 }
 
 /** HTTP adapter for Wooks that provides route registration, server lifecycle, and request handling. */
@@ -76,6 +134,12 @@ export class WooksHttp extends WooksAdapterBase {
   protected ResponseClass: typeof WooksHttpResponse
   protected eventContextOptions: EventContextOptions
   protected compression: TResolvedHttpCompression | undefined
+  /** App settings composables read per request; `undefined` when every one is at its default. */
+  protected appConfig: THttpAppConfig | undefined
+  /** `opts.defaultHeaders` keyed by lower-case name — snapshotted at creation. */
+  protected defaultHeaders: Record<string, string | string[]> | undefined
+  /** `opts.resolveLocale`, read once. */
+  protected resolveLocale: (() => string | undefined) | undefined
 
   constructor(
     protected opts?: TWooksHttpOptions,
@@ -86,6 +150,44 @@ export class WooksHttp extends WooksAdapterBase {
     this.ResponseClass = opts?.responseClass ?? WooksHttpResponse
     this.eventContextOptions = this.getEventContextOptions()
     this.compression = resolveCompression(opts?.compression)
+    this.defaultHeaders = opts?.defaultHeaders && lowerCaseHeaders(opts.defaultHeaders)
+    this.resolveLocale = opts?.resolveLocale
+    const trustProxy = compileTrustProxy(opts?.trustProxy)
+    const proxyHeaders = opts?.proxyHeaders ?? 'x-forwarded'
+    if (proxyHeaders !== 'x-forwarded' && proxyHeaders !== 'forwarded') {
+      throw new TypeError(
+        `proxyHeaders: expected 'x-forwarded' or 'forwarded', got '${String(proxyHeaders)}'`,
+      )
+    }
+    if (trustProxy || proxyHeaders !== 'x-forwarded' || opts?.transformErrorBody) {
+      this.appConfig = Object.freeze({
+        trustProxy,
+        proxyHeaders,
+        transformErrorBody: opts?.transformErrorBody,
+      })
+    }
+  }
+
+  /** Seeds the app settings (and the locale resolver) into a new HTTP event context. */
+  protected applyAppConfig(ctx: EventContext): void {
+    if (this.appConfig) {
+      ctx.set(httpAppConfigKey, this.appConfig)
+    }
+    if (this.resolveLocale) {
+      setLocaleResolver(ctx, this.resolveLocale)
+    }
+  }
+
+  /** Runs `fn` in a new HTTP event context seeded with `seeds` and the app settings. */
+  private createContext<R>(
+    seeds: EventKindSeeds<typeof httpKind>,
+    fn: (ctx: EventContext) => R,
+  ): R {
+    return createHttpContext(this.eventContextOptions, seeds, () => {
+      const ctx = current()
+      this.applyAppConfig(ctx)
+      return fn(ctx)
+    })
   }
 
   /** Registers a handler for all HTTP methods on the given path. */
@@ -289,10 +391,10 @@ export class WooksHttp extends WooksAdapterBase {
    * `ContextInjector` hooks fire) and `onNotFound` is skipped.
    */
   getServerCb(onNoMatch?: (req: IncomingMessage, res: ServerResponse) => void) {
-    const ctxOptions = this.eventContextOptions
+    const logger = this.eventContextOptions.logger
     const RequestLimits = this.opts?.requestLimits
     const notFoundHandler = this.opts?.onNotFound
-    const defaultHeaders = this.opts?.defaultHeaders
+    const defaultHeaders = this.defaultHeaders
     const compression = this.compression
 
     return (req: IncomingMessage, res: ServerResponse) => {
@@ -304,17 +406,9 @@ export class WooksHttp extends WooksAdapterBase {
         onNoMatch(req, res)
         return
       }
-      const response = new this.ResponseClass(
-        res,
-        req,
-        ctxOptions.logger,
-        defaultHeaders,
-        false,
-        compression,
-      )
+      const response = new this.ResponseClass(res, req, logger, defaultHeaders, false, compression)
 
-      createHttpContext(ctxOptions, { req, response, requestLimits: RequestLimits }, () => {
-        const ctx = current()
+      this.createContext({ req, response, requestLimits: RequestLimits }, (ctx) => {
         const handlers = this.wooks.applyRoute(method, match, ctx)
         if (handlers) {
           return this.processAndCatch(handlers, ctx, response)
@@ -335,7 +429,6 @@ export class WooksHttp extends WooksAdapterBase {
    * Creates an HTTP context, seeds it with upgrade data, and routes as method 'UPGRADE'.
    */
   getUpgradeCb() {
-    const ctxOptions = this.eventContextOptions
     const requestLimits = this.opts?.requestLimits
     const wsHandler = this.wsHandler
 
@@ -347,9 +440,7 @@ export class WooksHttp extends WooksAdapterBase {
 
       const url = req.url || ''
 
-      createHttpContext(ctxOptions, { req, response: undefined, requestLimits }, () => {
-        const ctx = current()
-
+      this.createContext({ req, response: undefined, requestLimits }, (ctx) => {
         // Set WS-owned keys on the context
         ctx.set(wsHandler.reqKey, req)
         ctx.set(wsHandler.socketKey, socket)
@@ -500,14 +591,21 @@ export class WooksHttp extends WooksAdapterBase {
    * handler execution, response finalization. An unmatched route returns `null`
    * before any event context is created (the request body is left unread).
    *
-   * When called from within an existing HTTP context (e.g. during SSR),
-   * identity headers (authorization, cookie) are automatically forwarded
-   * from the calling request unless already present on the given Request.
+   * When called from within an existing event context (e.g. during SSR), identity headers
+   * (authorization, cookie) are forwarded from the calling request unless already present on
+   * the given Request, and the inner request inherits the caller's resolved client
+   * (`getIp()` / `protocol()` / `host()`) and locale (`useLocale()`).
+   *
+   * With no caller (a fetch runtime: Bun, Deno, edge), the peer is UNKNOWN unless passed in
+   * `peer`: list and predicate `trustProxy` then trust nothing (a hop count still trusts
+   * whatever sits in front), and `protocol()` / `host()` come from the Request URL.
    *
    * @param request - A Web Standard Request object.
+   * @param peer - The connection's peer, when the runtime knows it: `remoteAddress` (the
+   *   client's or the front proxy's address) and `encrypted` (TLS; default: the URL scheme).
    * @returns A Web Standard Response, or `null` if no route matched (`onNotFound` is not used here).
    */
-  async fetch(request: Request): Promise<Response | null> {
+  async fetch(request: Request, peer?: TFetchPeer): Promise<Response | null> {
     const url = new URL(request.url)
     const method = request.method
     const pathname = url.pathname + url.search
@@ -522,20 +620,26 @@ export class WooksHttp extends WooksAdapterBase {
     // Detect calling context for header forwarding
     const callerCtx = tryGetCurrent()
     let callerReq: IncomingMessage | undefined
+    let callerForwarded: TForwardedInfo | undefined
     if (callerCtx) {
       try {
         callerReq = callerCtx.get(httpKind.keys.req)
       } catch {
         // Not in an HTTP context — skip forwarding
       }
+      if (callerReq) {
+        callerForwarded = callerCtx.get(forwardedSlot)
+      }
     }
 
     // Build synthetic Node.js request
     const fakeReq = createFakeIncomingMessage(
       request,
+      url,
       pathname,
       callerReq,
       this.opts?.forwardHeaders,
+      peer,
     )
     const fakeRes = new ServerResponse(fakeReq)
 
@@ -577,7 +681,7 @@ export class WooksHttp extends WooksAdapterBase {
     }) as typeof fakeRes.end
 
     const response = new this.ResponseClass(
-      fakeRes, fakeReq, this.logger, this.opts?.defaultHeaders, true,
+      fakeRes, fakeReq, this.logger, this.defaultHeaders, true,
     )
 
     // Pre-read body if present
@@ -586,14 +690,21 @@ export class WooksHttp extends WooksAdapterBase {
       bodyBuffer = Buffer.from(await request.bytes())
     }
 
-    const ctxOptions = this.eventContextOptions
     const requestLimits = this.opts?.requestLimits
 
-    return createHttpContext(
-      ctxOptions,
+    return this.createContext(
       { req: fakeReq, response, requestLimits },
-      async () => {
-        const ctx = current()
+      async (ctx) => {
+        if (callerForwarded) {
+          // An in-process request made on behalf of the caller's client (SSR self-fetch):
+          // it gets the caller's resolved client, not the in-memory socket's.
+          ctx.setOwn(forwardedSlot, callerForwarded)
+        }
+        if (callerCtx) {
+          // ...and the caller's locale, when it has one (else this app's own policy)
+          const own = this.resolveLocale
+          setLocaleResolver(ctx, () => run(callerCtx, () => useLocale(callerCtx).get()) ?? own?.())
+        }
 
         if (bodyBuffer) {
           seedRawBody(ctx, bodyBuffer)
@@ -695,35 +806,62 @@ export class WooksHttp extends WooksAdapterBase {
     res: ServerResponse,
     fn: () => T,
   ): Promise<{ result: Awaited<T>; response: HttpResponse }> {
-    const ctxOptions = this.eventContextOptions
     const response = new this.ResponseClass(
-      res, req, ctxOptions.logger, this.opts?.defaultHeaders, true,
+      res, req, this.eventContextOptions.logger, this.defaultHeaders, true,
     )
-    const result = await createHttpContext(
-      ctxOptions,
+    const result = await this.createContext(
       { req, response, requestLimits: this.opts?.requestLimits },
-      fn,
+      () => fn(),
     )
     return { result, response }
   }
 }
 
-// Minimal socket stand-in for programmatic fetch — avoids per-request Socket allocation.
+/** The connection peer of a programmatic `fetch()`, when the runtime knows it. */
+export interface TFetchPeer {
+  /** Address of the connection's peer (the client, or the proxy in front). */
+  remoteAddress?: string
+  /** Whether the connection is TLS (default: the Request URL is `https:`). */
+  encrypted?: boolean
+}
+
+// Minimal socket stand-in for programmatic fetch. The peer is unknown unless the caller passes
+// one: an invented address would be trusted by an address-based `trustProxy`.
 // Must extend Duplex so IncomingMessage._destroy's eos() call accepts it as a Stream.
 class NoopSocket extends Duplex {
-  readonly remoteAddress = '127.0.0.1'
-  _read(): void { /* noop */ }
-  _write(_chunk: unknown, _enc: string, cb: () => void): void { cb() }
+  constructor(
+    readonly remoteAddress: string | undefined,
+    readonly encrypted: boolean,
+  ) {
+    super()
+  }
+  _read(): void {
+    /* noop */
+  }
+  _write(_chunk: unknown, _enc: string, cb: () => void): void {
+    cb()
+  }
 }
-const NOOP_SOCKET = new NoopSocket() as unknown as ConstructorParameters<typeof IncomingMessage>[0]
+type TSocketArg = ConstructorParameters<typeof IncomingMessage>[0]
+// Shared stand-ins for the common case (no peer given) — avoids per-request allocation.
+const NOOP_SOCKET = new NoopSocket(undefined, false) as unknown as TSocketArg
+const NOOP_TLS_SOCKET = new NoopSocket(undefined, true) as unknown as TSocketArg
 
 function createFakeIncomingMessage(
   request: Request,
+  url: URL,
   pathname: string,
   forwardFrom?: IncomingMessage,
   forwardHeaders?: string[] | false,
+  peer?: TFetchPeer,
 ): IncomingMessage {
-  const req = new IncomingMessage(NOOP_SOCKET)
+  const encrypted = peer?.encrypted ?? url.protocol === 'https:'
+  const socket = peer?.remoteAddress
+    ? (new NoopSocket(peer.remoteAddress, encrypted) as unknown as TSocketArg)
+    : encrypted
+      ? NOOP_TLS_SOCKET
+      : NOOP_SOCKET
+  const req = new IncomingMessage(socket)
   req.method = request.method
   req.url = pathname
 
@@ -744,6 +882,10 @@ function createFakeIncomingMessage(
   // Programmatic Request headers take precedence
   for (const [key, value] of request.headers) {
     headers[key] = value
+  }
+  // Like a real request: the Host the URL names
+  if (!headers.host && url.host) {
+    headers.host = url.host
   }
 
   req.headers = headers

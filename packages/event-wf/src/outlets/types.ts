@@ -1,5 +1,5 @@
 import type { TFlowOutput } from '@prostojs/wf'
-import type { WfOutlet, WfStateStrategy } from '@prostojs/wf/outlets'
+import type { WfOutlet, WfState, WfStateStrategy } from '@prostojs/wf/outlets'
 
 import type { WfPauseRequest } from '../pause-request'
 
@@ -58,12 +58,13 @@ export interface WfOutletTriggerConfig {
         default: string | ((wfid: string, flowId: string) => string)
       }
   /**
-   * Opt-in (default `false`): when a resumed step throws (`true`), or throws an
-   * error the predicate accepts, re-persist the pre-step state under the same
-   * token so it can be retried — at most `maxRestores` times, never extending
-   * its lifetime. **Rolls back everything the step wrote to the workflow
-   * context, including attempt counters.** Full semantics: Outlets guide →
-   * "Retrying a failed resume".
+   * Opt-in (default `false`): when a resume fails after the token was consumed — the step,
+   * `beforePersist`, an unknown strategy/outlet, persist, delivery, `renderEnvelope`,
+   * `onFinished` — (`true`), or fails with an error the predicate accepts, re-persist the
+   * pre-step state under the same token so it can be retried — at most `maxRestores` times,
+   * never extending its lifetime. (A state already re-persisted under the same handle needs no
+   * restore.) **Rolls back everything the step wrote to the workflow context, including attempt
+   * counters.** Full semantics: Outlets guide → "Retrying a failed resume".
    */
   restoreOnError?: boolean | ((error: unknown) => boolean)
   /** Hard cap on `restoreOnError` restores per handle (default `3`). */
@@ -97,11 +98,54 @@ export interface WfOutletTriggerConfig {
    * If not provided, falls back to `useWfFinished()` or `{ finished: true }`.
    */
   onFinished?: (ctx: { context: unknown; schemaId: string }) => unknown
+  /**
+   * Wraps everything the request does to state and the outside world — the `allow`/`block`
+   * checks, consume/start/resume, `beforePersist`, persist and outlet delivery — so it can run
+   * in ONE transaction: put the state store and the steps' writes in the same database and
+   * `around: (run) => db.transaction(run)`. Return (or throw) what `run()` returns/throws. It may
+   * call `run()` again after a failure — a retrying transaction is supported: each run starts
+   * over from the request (nothing from a previous run carries over). Reading the request body
+   * happens before it. A rolled-back
+   * transaction also rolls back a `restoreOnError` restore and its counter, so `maxRestores`
+   * does not bound retries of a request that keeps failing. Keep the state store INSIDE the
+   * transaction: if the commit fails after `run()` succeeded and the store is outside it, the
+   * token is already consumed and the new state persisted while the steps' writes roll back —
+   * the flow is stranded.
+   *
+   * @example
+   * ```ts
+   * handle({ ...config, around: (run) => db.transaction(() => run()) })
+   * ```
+   */
+  around?: (run: () => Promise<unknown>) => Promise<unknown>
+  /**
+   * Called with a paused state (its `meta` included) and the pause request right before the
+   * state is persisted, inside `around`. Throw to abort: nothing is persisted and the outlet is
+   * not called (e.g. reject a context that grew too large). Not called when the flow finishes.
+   */
+  beforePersist?: (state: WfState, pause: WfPauseRequest) => void | Promise<void>
+  /**
+   * Maps every body the trigger answers with — the outlet's envelope on pause (before the state
+   * token is added) and the finished value (`useWfFinished()` data, `onFinished()`'s result or
+   * `{ finished: true }`) — per request. The hook for translating workflow forms and messages:
+   * read the locale with `useLocale()`. Not applied to redirects or errors (those go through the
+   * HTTP app's `transformErrorBody`).
+   */
+  renderEnvelope?: (envelope: unknown, info: WfEnvelopeInfo) => unknown | Promise<unknown>
 }
 
-export interface WfOutletTriggerDeps {
+/** What `renderEnvelope` is rendering. */
+export type WfEnvelopeInfo =
+  | { phase: 'paused'; outlet: string; schemaId: string; context: unknown }
+  | { phase: 'finished'; schemaId: string; context: unknown }
+
+/**
+ * What starts workflows — `WooksWf` / `MoostWf` fit as they are (also typed apps, `createWfApp<T>()`:
+ * the members are methods, so their parameters are checked bivariantly).
+ */
+export interface WfStartRunner {
   /** Start a workflow. Provided by WooksWf or MoostWf. */
-  start: (
+  start(
     schemaId: string,
     context: unknown,
     opts?: {
@@ -111,9 +155,24 @@ export interface WfOutletTriggerDeps {
       /** the registered flow id the request was judged on — run nothing else */
       expectSchemaId?: string
     },
-  ) => Promise<TFlowOutput<unknown, unknown, WfPauseRequest>>
+  ): Promise<TFlowOutput<unknown, unknown, WfPauseRequest>>
+  /**
+   * Resolve a caller-supplied workflow ID to the registered flow `start()`
+   * would run, or `undefined` (`WooksWf.resolveSchemaId`). The trigger passes
+   * the same `eventContext` it passes to `start()`. Strongly recommended:
+   * without it `allow`/`block` fall back to a conservative check (Outlets
+   * guide → "Access Control").
+   */
+  resolveSchemaId?(
+    wfid: string,
+    opts?: { eventContext?: unknown },
+  ): string | undefined | Promise<string | undefined>
+}
+
+/** What the outlet trigger needs from the workflow app: start, resume and (recommended) resolution. */
+export interface WfOutletTriggerDeps extends WfStartRunner {
   /** Resume a workflow. Provided by WooksWf or MoostWf. */
-  resume: (
+  resume(
     state: {
       schemaId: string
       indexes: number[]
@@ -125,16 +184,5 @@ export interface WfOutletTriggerDeps {
       eventContext?: unknown
       strategy?: { name: string }
     },
-  ) => Promise<TFlowOutput<unknown, unknown, WfPauseRequest>>
-  /**
-   * Resolve a caller-supplied workflow ID to the registered flow `start()`
-   * would run, or `undefined` (`WooksWf.resolveSchemaId`). The trigger passes
-   * the same `eventContext` it passes to `start()`. Strongly recommended:
-   * without it `allow`/`block` fall back to a conservative check (Outlets
-   * guide → "Access Control").
-   */
-  resolveSchemaId?: (
-    wfid: string,
-    opts?: { eventContext?: unknown },
-  ) => string | undefined | Promise<string | undefined>
+  ): Promise<TFlowOutput<unknown, unknown, WfPauseRequest>>
 }

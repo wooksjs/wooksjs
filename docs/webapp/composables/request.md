@@ -105,28 +105,31 @@ app.get('/test', () => {
 })
 ```
 
-## Client IP
+## Client IP, protocol and host
 
-`useRequest()` provides two helpers for resolving the client's IP address:
+`useRequest()` resolves who the client is, through the app's [proxy trust](../proxy-trust.md) setting:
 
 ```js
 import { useRequest } from '@wooksjs/event-http'
 
 app.get('/test', () => {
-    const { getIp, getIpList } = useRequest()
+    const { getIp, protocol, host, getIpList } = useRequest()
 
-    getIp() // Socket remote address
-    getIp({ trustProxy: true }) // First `x-forwarded-for` entry, falling back to the socket address
+    getIp()    // client address — the socket peer unless trustProxy is configured
+    protocol() // 'https' | 'http' as the client used it
+    host()     // the host (with port) the client asked for
 
     getIpList()
-    // {
-    //     remoteIp: '...',    // socket remote address
-    //     forwarded: ['...'], // all `x-forwarded-for` entries
-    // }
+    // raw, unvalidated (client-forgeable):
+    // { remoteIp: '…', forwarded: ['…'] } — socket peer and every X-Forwarded-For entry
 })
 ```
 
-By default `getIp()` returns the socket's remote address and ignores `x-forwarded-for`, which any client can spoof. Pass `{ trustProxy: true }` only when your app runs behind a trusted reverse proxy that sets that header.
+By default no proxy is trusted: forwarding headers are ignored, so `getIp()` is the socket's address and `protocol()`/`host()` come from the socket and the `Host` header. Behind a reverse proxy, set `trustProxy` on the app — see [Behind a Proxy](../proxy-trust.md).
+
+::: warning Deprecated
+`getIp({ trustProxy: true })` still works for one minor version and now trusts exactly **one** proxy hop of a known socket peer (the right-most `X-Forwarded-For` entry), not the left-most one, which any client can forge. With no known peer (a programmatic `fetch()` without one) it returns `''`. Configure `createHttpApp({ trustProxy: 1 })` and call `getIp()` instead.
+:::
 
 ## Cookies
 

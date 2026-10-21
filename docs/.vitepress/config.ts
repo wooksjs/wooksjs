@@ -192,6 +192,14 @@ export default defineConfig({
                                     link: '/webapp/composables/request',
                                 },
                                 {
+                                    text: 'Behind a Proxy',
+                                    link: '/webapp/proxy-trust',
+                                },
+                                {
+                                    text: 'Locale',
+                                    link: '/webapp/locale',
+                                },
+                                {
                                     text: 'Response',
                                     link: '/webapp/composables/response',
                                 },

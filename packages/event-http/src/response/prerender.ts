@@ -3,11 +3,17 @@ import { createHash } from 'crypto'
 /** Options for {@link prerenderJson}. */
 export interface TPrerenderJsonOptions {
   /**
-   * Also compute a weak `ETag` from the serialized bytes. Responses that send the object then
-   * carry the `ETag` header and answer a matching `If-None-Match` (GET/HEAD, status 200) with
-   * `304 Not Modified`.
+   * An `ETag` for responses that send the object (GET/HEAD 2xx, unless the response sets its own):
+   * - `true` — a weak tag computed from the serialized bytes;
+   * - a string — your own entity tag, quoted: `'"rev-7"'` or `'W/"rev-7"'` (e.g. a version or
+   *   content hash you already have, so nothing is hashed).
+   *
+   * A matching `If-None-Match` is then answered with `304 Not Modified` (that applies to any
+   * response with an `ETag` — see the response docs). The computed tag is WEAK, and `If-Match`
+   * never matches a weak tag (requests carrying it get `412`): pass a strong tag of your own for
+   * optimistic concurrency.
    */
-  etag?: boolean
+  etag?: boolean | string
 }
 
 /** @internal Registry entry for a prerendered object. */
@@ -25,6 +31,9 @@ export interface TPrerendered {
 
 const registry = new WeakMap<object, TPrerendered>()
 
+/** RFC 9110 §8.8.3 entity-tag: optional `W/`, then a quoted opaque tag without `"`. */
+const ENTITY_TAG_RE = /^(?:W\/)?"[\u0021\u0023-\u007E\u0080-\uFFFF]*"$/u
+
 function weakEtag(json: string): string {
   return `W/"${createHash('sha256').update(json).digest('base64url').slice(0, 22)}"`
 }
@@ -35,21 +44,22 @@ function weakEtag(json: string): string {
  * of calling `JSON.stringify` again. Use it for large, long-lived response objects that many
  * requests return as is — e.g. a schema or metadata envelope built once and cached.
  *
- * With `{ etag: true }` a weak `ETag` is derived from the serialized bytes; a `GET`/`HEAD`
- * that responds `200` with the object sets the `ETag` header and answers a matching
- * `If-None-Match` with `304 Not Modified` (no body; other headers such as `Cache-Control`
- * and `Vary` are kept). Error responses never become `304`. An `ETag` header set explicitly
- * on the response wins and disables the `304` handling for that response.
+ * With `{ etag: true }` a weak `ETag` is derived from the serialized bytes; `{ etag: '"rev-7"' }`
+ * uses your own tag. A `GET`/`HEAD` that responds `200` with the object sets the `ETag` header
+ * and answers a matching `If-None-Match` with `304 Not Modified` (no body; other headers such as
+ * `Cache-Control` and `Vary` are kept). Error responses never become `304`. An `ETag` header set
+ * explicitly on the response wins: it is sent instead, and `If-None-Match` is judged against it.
  *
  * **Contract: never mutate a registered object (or anything it references).** The stored JSON
  * is not refreshed, so a mutation would keep serving the old bytes. Build a new object instead —
  * freezing registered objects (`Object.freeze`, deeply) in development makes violations throw.
  *
- * Calling it again for the same object is a no-op (it adds the `ETag` if it was not requested
- * the first time). Entries are held weakly and disappear with the object.
+ * Calling it again for the same object reuses the stored JSON (it adds a computed `ETag` if none
+ * was requested before; a string `etag` replaces the stored one). Entries are held weakly and
+ * disappear with the object.
  *
  * @param obj - A JSON-serializable object or array
- * @param options - `{ etag: true }` to also compute a weak ETag
+ * @param options - `{ etag: true }` to compute a weak ETag, `{ etag: '"tag"' }` to set your own
  * @returns The same `obj`, so it can wrap a return value
  *
  * @example
@@ -71,7 +81,15 @@ export function prerenderJson<T extends object>(obj: T, options?: TPrerenderJson
     entry = { json }
     registry.set(obj, entry)
   }
-  if (options?.etag && !entry.etag) {
+  const etag = options?.etag
+  if (typeof etag === 'string') {
+    if (!ENTITY_TAG_RE.test(etag)) {
+      throw new TypeError(
+        `prerenderJson: etag must be a quoted entity tag like '"v1"' or 'W/"v1"', got '${etag}'`,
+      )
+    }
+    entry.etag = etag
+  } else if (etag && !entry.etag) {
     entry.etag = weakEtag(entry.json)
   }
   return obj
@@ -80,19 +98,4 @@ export function prerenderJson<T extends object>(obj: T, options?: TPrerenderJson
 /** @internal Returns the pre-serialized JSON (and weak ETag) registered for `obj`, if any. */
 export function getPrerenderedJson(obj: object): TPrerendered | undefined {
   return registry.get(obj)
-}
-
-/** @internal Weak comparison of `etag` against an `If-None-Match` header value. */
-export function ifNoneMatchHas(header: string | undefined, etag: string): boolean {
-  if (!header) {
-    return false
-  }
-  const opaque = etag.startsWith('W/') ? etag.slice(2) : etag
-  for (const part of header.split(',')) {
-    const tag = part.trim()
-    if (tag === '*' || (tag.startsWith('W/') ? tag.slice(2) : tag) === opaque) {
-      return true
-    }
-  }
-  return false
 }

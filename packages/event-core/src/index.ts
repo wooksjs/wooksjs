@@ -23,6 +23,8 @@ export { routeParamsKey, eventTypeKey } from './keys'
 
 // composables
 export { useRouteParams, useEventId } from './composables'
+export { useLocale, setLocaleResolver } from './locale'
+export type { TLocaleInput } from './locale'
 
 // async propagation
 export { run, current, tryGetCurrent, useLogger, createEventContext } from './storage'

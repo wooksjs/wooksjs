@@ -12,7 +12,9 @@ For workflow core (steps, flows, schema), see [event-wf.md](event-wf.md). For pa
 - [Trigger Handler](#trigger-handler) — `createOutletHandler`, `handleWfOutletRequest`
 - [WfOutletTriggerConfig](#wfoutlettriggerconfig)
 - [WfOutletTokenConfig](#wfoutlettokenconfig)
-- [Trigger Request Flow](#trigger-request-flow) — allow/block gating, consume semantics, fail-closed behavior
+- [Trigger Request Flow](#trigger-request-flow) — allow/block gating, consume semantics, fail-closed behavior, `WF_*` refusal codes
+- [Transactions and envelopes](#transactions-and-envelopes) — `around`, `beforePersist`, `renderEnvelope`
+- [mintWfToken](#mintwftoken) — headless start → resumable token
 - [useWfFinished](#usewffinished-composable)
 - [useWfOutlet](#usewfoutlet-composable)
 - [Full Round-Trip Example](#full-outlet-round-trip-example)
@@ -239,6 +241,7 @@ The config object passed to the trigger handler. Fields:
 - `initialContext(body, wfid, flowId)` — build the initial context on start. `wfid` = caller's spelling (`'user/42'` for `user/:id`); `flowId` (appended) = resolved registered flow, same as `onFinished`'s `schemaId` (raw `wfid` without a resolver). Prefer `flowId` for decisions.
 - `onFinished({ context, schemaId })` — override the response for finished workflows.
 - `restoreOnError` + `maxRestores` — see invariant 7 under [Trigger Request Flow](#trigger-request-flow).
+- `around`, `beforePersist`, `renderEnvelope` — see [Transactions and envelopes](#transactions-and-envelopes).
 
 ### Swapping strategies inside a step
 
@@ -256,8 +259,8 @@ useWfStrategy().current()      // → currently-active strategy name
 
 - Format-invalid name (fails `/^[A-Za-z0-9_-]+$/`) → `swap()` throws synchronously.
 - Format-valid but unregistered name → no throw at `swap()`; the trigger throws loudly at the next pause (500).
-- Token whose prefix names an unknown strategy → HTTP 410 (no leak of registered names).
-- Token without a `.` prefix → HTTP 410.
+- Token whose prefix names an unknown strategy → 410 `WF_INVALID_TOKEN` (no leak of registered names).
+- Token without a `.` prefix → 410 `WF_INVALID_TOKEN`.
 - After a swap, the next persist mints a fresh handle in the new strategy's keyspace; before any swap, the trigger reuses the incoming raw handle so `wfs` stays stable across the workflow.
 
 ### Access control (`allow` / `block`)
@@ -316,23 +319,23 @@ Fields: `read` — where to look for the token (default `['body', 'query', 'cook
 
 The trigger reads `wfs` (state token) and `wfid` (workflow ID) from body, query params, or cookies per `token.read` config.
 
-- If `wfs` is present: **resume** — the trigger first calls `strategy.retrieve(rawHandle)` and checks the stored `schemaId` against `allow`/`block`; a refused token gets **403** and is NOT consumed (it stays usable on the trigger it belongs to). Then it calls `strategy.consume(rawHandle)` (the token minus its `<name>.` prefix; atomic retrieve + invalidate) BEFORE running the step, then re-persists the advanced state under the **same** raw handle so the URL token stays valid. A request that loses the race against a concurrent resume — or any request after the workflow finished or an unexpected error burned the handle — responds with HTTP **410 Gone** and body `{ error: 'Invalid or expired workflow state' }`. With `EncapsulatedStateStrategy` `consume()` is a stateless no-op and the token remains replayable until TTL.
-- If `wfid` is present (no `wfs`): **start** — resolves `wfid` to its flow (`flowOf`), judges that flow against `allow`/`block`, calls the `default` strategy picker and `initialContext` with `(…, wfid, flowId)`, starts the workflow. A non-string `wfid` (array/object/number from a JSON body) → **400**.
-- If neither: HTTP **400** with body `{ error: '...' }`.
+- If `wfs` is present: **resume** — the trigger first calls `strategy.retrieve(rawHandle)` and checks the stored `schemaId` against `allow`/`block`; a refused token gets **403** and is NOT consumed (it stays usable on the trigger it belongs to). Then it calls `strategy.consume(rawHandle)` (the token minus its `<name>.` prefix; atomic retrieve + invalidate) BEFORE running the step, then re-persists the advanced state under the **same** raw handle so the URL token stays valid. A request that loses the race against a concurrent resume — or any request after the workflow finished or an unexpected error burned the handle — is refused with **410** `WF_EXPIRED`. With `EncapsulatedStateStrategy` `consume()` is a stateless no-op and the token remains replayable until TTL.
+- If `wfid` is present (no `wfs`): **start** — resolves `wfid` to its flow (`flowOf`), judges that flow against `allow`/`block`, calls the `default` strategy picker and `initialContext` with `(…, wfid, flowId)`, starts the workflow. A non-string `wfid` (array/object/number from a JSON body) → **400** `WF_INVALID`.
+- If neither: **400** `WF_MISSING`.
 
-The trigger sets HTTP status via `useResponse().setStatus(...)`; the body never carries a `status` field. Status mapping for error branches:
+Every refusal is THROWN as `HttpError` (reaches moost error interceptors and `transformErrorBody`); body = `{ statusCode, error: <status text>, message, code, params? }`. Codes exported as `WF_TRIGGER_ERRORS` (`code → { status, message }`) and type `WfTriggerErrorCode`:
 
-| Condition                            | Status |
-| ------------------------------------ | ------ |
-| Expired/invalid resume token          | 410    |
-| `wfid` resolves to a flow not in `allow` | 403 |
-| `wfid` resolves to a flow in `block`  | 403    |
-| Resume token for a workflow not in `allow` / in `block` (token NOT consumed) | 403 |
-| Non-string `wfid`                     | 400    |
-| `wfid` resolves to no flow, lists set, with `resolveSchemaId` | 404 |
-| `wfid` with `%`/`?`, lists set, deps without `resolveSchemaId` | 400 |
-| Missing both `wfs` and `wfid`         | 400    |
-| Step returned an unknown outlet name  | 500    |
+| Code | Status | Condition | `params` |
+| --- | --- | --- | --- |
+| `WF_MISSING` | 400 | neither `wfs` nor `wfid` | — |
+| `WF_INVALID` | 400 | non-string `wfid`; or `%`/`?` in `wfid`, lists set, deps without `resolveSchemaId` | — |
+| `WF_INVALID_TOKEN` | 410 | malformed token / unknown strategy prefix | — |
+| `WF_EXPIRED` | 410 | state expired, already used, or never existed | — |
+| `WF_FORBIDDEN` | 403 | `allow`/`block` refuses (start, or resume — token NOT consumed) | `reason: 'not-allowed'\|'blocked'`, `wfid` (start only) |
+| `WF_NOT_FOUND` | 404 | `wfid` resolves to no flow, lists set, with `resolveSchemaId` | `wfid` |
+| `WF_UNKNOWN_OUTLET` | 500 | step paused on an unregistered outlet | `outlet` |
+
+Before 0.7.32 these were RETURNED as `{ error: '<message>' }` with `setStatus()`: the text is now in `message` (`error` = status text). Read `body.message ?? body.error` for both.
 
 ### Trigger invariants
 
@@ -344,8 +347,48 @@ The trigger sets HTTP status via `useResponse().setStatus(...)`; the body never 
 | 4   | The token is merged into the response (body or cookie per `token.write`) only if the outlet declares `tokenDelivery: 'caller'` (the default for HTTP outlets). For `'out-of-band'` outlets (email, SMS, etc.) the response does NOT contain the token — the outlet delivers it through its own channel. |
 | 5   | On finish: `onFinished` callback, then `useWfFinished()`, then `{ finished: true }`. The handle is NOT re-persisted — it remains deleted from the consume call earlier in the request. |
 | 6   | For finished workflows, `useWfFinished().set({ type, value, status })` propagates `status` to the HTTP response: redirects default to 302; data responses leave the status untouched (HTTP method default) unless `status` is set explicitly. |
-| 7   | Fail-closed on unexpected errors (default): an unexpected throw during resume skips the re-persist — the handle is gone. Handle expected validation failures by returning an outlet signal (re-persists under the same handle), not by throwing. Opt-in `restoreOnError: true \| (err) => boolean` + `maxRestores` (default 3, counted in `meta.restores`): re-persists the pre-step state under the same handle via `persistEntry` with the exact expiry `consumeEntry` reported (`0` = never); **rolls back ALL context writes of the failing step — in-context attempt counters/lockouts never fire**; unknown expiry (no `consumeEntry`+`persistEntry` pair, or `expiresAt` undefined) or already expired → not restored. Needs an atomic `consume`/`getAndDelete`. Full table: docs "Retrying a failed resume". |
+| 7a  | NO FORK: a failed request discards any state it persisted under a NEW handle (strategy swap) before restoring — and restores the client's own token (not committed → the new token never reached the client); a failing discard or a no-op `consume` (Encapsulated) is logged and leaves an unreachable state behind. After a successful OUT-OF-BAND delivery the request is committed: no discard, no restore — the delivered token wins; exactly one continuation survives (restored old, or the new one only if it went under the client's SAME handle; none without `restoreOnError`). Token cookies are set only after the whole request succeeded — never on an error response. A failed start leaves nothing. A restore re-runs EVERY step of the failed run (also ones that succeeded before `persist`/deliver/`renderEnvelope`/`onFinished` failed) → idempotent steps. |
+| 7   | Fail-closed on unexpected errors (default): ANY failure after consume (step, `beforePersist`, unknown strategy/outlet, persist, delivery, `renderEnvelope`, `onFinished`) leaves the handle gone — unless the new state was already persisted under the same handle. Handle expected validation failures by returning an outlet signal (re-persists under the same handle), not by throwing. Opt-in `restoreOnError: true \| (err) => boolean` + `maxRestores` (covers every one of those stages) (default 3, counted in `meta.restores`): re-persists the pre-step state under the same handle via `persistEntry` with the exact expiry `consumeEntry` reported (`0` = never); **rolls back ALL context writes of the failing step — in-context attempt counters/lockouts never fire**; unknown expiry (no `consumeEntry`+`persistEntry` pair, or `expiresAt` undefined) or already expired → not restored. Needs an atomic `consume`/`getAndDelete`. Full table: docs "Retrying a failed resume". |
 | 8   | Strategy comes from the token's `<name>.` prefix on resume, never from `wfid` (`wfid` is read only on start: allow/block checks + resolving the `default` name; on resume allow/block are checked against the stored `schemaId`, never the request's `wfid`). The trigger reuses the incoming handle (keeping `wfs` stable) only when the post-swap strategy name equals the incoming prefix — a `swapStrategy()` during the step, or a start with no incoming token, mints a fresh handle in the new strategy's keyspace. See [Swapping strategies inside a step](#swapping-strategies-inside-a-step). |
+
+### Transactions and envelopes
+
+```ts
+handle({
+  ...config,
+  around: (run) => db.transaction(() => run()),                // one tx per request
+  beforePersist: (state, pause) => { if (tooBig(state)) throw new HttpError(413) },
+  renderEnvelope: (envelope, info) => translate(envelope, useLocale().get(), info),
+})
+```
+
+| # | Rule |
+|---|---|
+| 0 | Put the state store INSIDE `around`'s transaction: a commit failure after `run()` succeeded otherwise strands the flow (token consumed, new state persisted/delivered, step writes rolled back). |
+| 1 | `around(run)` wraps allow/block checks, consume/start/resume, `beforePersist`, persist and outlet delivery (body parsing happens before). Return/rethrow what `run()` returns/throws; calling `run()` again after a failure (retrying transaction) is fine — each run starts over from the request. Same-DB state store + step writes → a step error rolls back the consumed token too — and any `restoreOnError` restore + its counter, so `maxRestores` won't bound retries of a request that keeps failing. |
+| 2 | `beforePersist(state, pause)` runs inside `around`, right before persisting a pause; `state.meta.outlet` already set. Throw → nothing persisted, outlet not called. Not called on finish. |
+| 3 | `renderEnvelope(envelope, info)` maps the pause envelope (before the `wfs` token is merged; `info.phase === 'paused'`, `outlet`, `schemaId`, `context`) and the finished value (`useWfFinished` data / `onFinished` result / `{ finished: true }`; `phase: 'finished'`). May be async. Never applied to redirects or refusals (use `transformErrorBody`). |
+| 4 | Store codes, not translated text, in the workflow context — render per request with `useLocale()`. |
+
+---
+
+## mintWfToken
+
+Headless start → token the trigger resumes (invites, approval links). `@wooksjs/event-wf`.
+
+```ts
+const { token, inputRequired, expiresAt } = await mintWfToken(wfApp, {
+  wfid: 'invite', context: { email }, state: triggerConfig.state, ttl: 7 * 24 * 3600_000, meta: { issuedBy },
+})
+```
+
+| # | Rule |
+|---|---|
+| 1 | Pass the SAME `state` config as the resuming trigger: token = `<strategy>.<handle>` from that registry (honours `swapStrategy()` and a `default(wfid, flowId)` picker). |
+| 2 | Persists `meta.outlet` like the trigger and tracks expiry → `restoreOnError` works on the first resume. Your `meta` can't set trigger/strategy-owned keys (`outlet`, `restores`, `__wf*` — dropped); the rest is kept on every later pause. `ttl` is ms; with step `expires`, the earlier wins. |
+| 3 | No outlet is called — deliver the token yourself. No allow/block check at mint (applied on resume). |
+| 4 | Flow finishes without pausing → `token: undefined`. Unknown default strategy → throws before running. |
+| 5 | `wfApp` = anything with `start()` (`WooksWf`, `MoostWf`); typed apps (`createWfApp<T>()`) are accepted, as by `createOutletHandler`. |
 
 ---
 

@@ -15,11 +15,7 @@ import type { WfOutletTriggerConfig, WfOutletTriggerDeps } from './types'
  * httpApp.post('/workflow', () => handle(config))
  * ```
  */
-export function createOutletHandler(wfApp: {
-  start: WfOutletTriggerDeps['start']
-  resume: WfOutletTriggerDeps['resume']
-  resolveSchemaId?: WfOutletTriggerDeps['resolveSchemaId']
-}) {
+export function createOutletHandler(wfApp: WfOutletTriggerDeps) {
   const deps: WfOutletTriggerDeps = {
     start: wfApp.start.bind(wfApp),
     resume: wfApp.resume.bind(wfApp),

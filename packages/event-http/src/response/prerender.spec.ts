@@ -161,22 +161,22 @@ describe('prerenderJson', () => {
       expect(await res.text()).toBe(JSON.stringify(meta))
     })
 
-    it('an explicit ETag header wins and disables 304', async () => {
+    it('an explicit ETag header wins (304 is judged against it, not the prerendered tag)', async () => {
       const etag = (await fetch(`${base}/meta`)).headers.get('etag')!
       const res = await fetch(`${base}/meta-explicit-etag`, { headers: { 'if-none-match': etag } })
       expect(res.status).toBe(200)
       expect(res.headers.get('etag')).toBe('"mine"')
     })
 
-    it('registered without etag: no ETag header, never 304', async () => {
-      const res = await fetch(`${base}/plain`, { headers: { 'if-none-match': '*' } })
+    it('registered without etag: no ETag header, no 304 for a tag it cannot match', async () => {
+      const res = await fetch(`${base}/plain`, { headers: { 'if-none-match': '"x"' } })
       expect(res.status).toBe(200)
       expect(res.headers.get('etag')).toBeNull()
       expect(await res.json()).toEqual(noEtag)
     })
 
     it('unregistered objects are serialized as before, without ETag', async () => {
-      const res = await fetch(`${base}/fresh`, { headers: { 'if-none-match': '*' } })
+      const res = await fetch(`${base}/fresh`, { headers: { 'if-none-match': '"x"' } })
       expect(res.status).toBe(200)
       expect(res.headers.get('etag')).toBeNull()
       expect(await res.text()).toBe(JSON.stringify(meta))

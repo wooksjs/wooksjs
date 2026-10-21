@@ -22,7 +22,7 @@ const { id } = useUser()
 ## Contents
 
 - [Primitives](#primitives) — `key`, `cached`, `cachedBy`, `slot`, `defineEventKind`
-- [Composables](#composables) — `defineWook`, `useRouteParams`, `useEventId`, `useLogger`
+- [Composables](#composables) — `defineWook`, `useRouteParams`, `useEventId`, `useLogger`, `useLocale`
 - [Composable Patterns](#composable-patterns) — lazy props, async cached, class-based, deps, plain functions
 - [EventContext](#eventcontext) — constructor, `get`/`set`/`has`, `getOwn`/`setOwn`/`hasOwn`, `seed`, parent chain
 - [Runtime](#runtime) — `run`, `current`, `tryGetCurrent`, `createEventContext`, version safety
@@ -232,6 +232,23 @@ scoped.warn('token expired')
 
 const explicit = useLogger('db', ctx)
 ```
+
+### `useLocale(ctx?): { get, set }`
+
+Kind-agnostic locale carrier (HTTP, CLI, WS, workflows). Wooks never translates.
+
+```ts
+useLocale().set('de')                         // this event + its child events
+useLocale().set(() => pickLocale())           // lazy: first get() runs it once, value kept
+useLocale().get()                             // nearest value up the parent chain, else undefined
+```
+
+| # | Rule |
+|---|---|
+| 1 | `set()` is local (`setOwn`): children inherit, the parent never sees a child's value. `set(undefined)` clears for this event. |
+| 2 | A lazy resolver runs on the first `get()` that reaches it, once; its value is shared by every child. If it throws, the next `get()` retries. A resolver reading the locale itself gets `undefined`. |
+| 3 | Plain function, not a `defineWook` — safe to call with a child `ctx`. |
+| 4 | HTTP: `createHttpApp({ resolveLocale })` installs the app policy per request (lazy) — see [http-request.md](http-request.md#useacceptlanguagectx). |
 
 ---
 
@@ -600,7 +617,7 @@ type TContextInjectorHooks = 'Event:start'
 import {
   key, cached, cachedBy, slot, defineEventKind, defineWook,
   EventContext, run, current, tryGetCurrent, createEventContext,
-  useRouteParams, useEventId, useLogger,
+  useRouteParams, useEventId, useLogger, useLocale,
   routeParamsKey, eventTypeKey,
   ContextInjector, getContextInjector, replaceContextInjector, resetContextInjector,
 } from '@wooksjs/event-core'

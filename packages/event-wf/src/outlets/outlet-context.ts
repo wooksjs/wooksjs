@@ -13,6 +13,6 @@ export interface WfFinishedResponse {
   value: unknown
   /** HTTP status code (default 200 for data, 302 for redirect) */
   status?: number
-  /** Cookies to set */
+  /** Cookies to set — `options` are `setCookie()` attributes (`maxAge` in **seconds**, `expires` a Date or ms timestamp) */
   cookies?: Record<string, { value: string; options?: Record<string, unknown> }>
 }

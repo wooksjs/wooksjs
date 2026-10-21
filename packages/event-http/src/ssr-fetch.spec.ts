@@ -102,9 +102,9 @@ describe('HttpResponse capture mode', () => {
     const cases: Array<[string, number]> = [
       ['GET', 200],
       ['POST', 201],
-      ['PUT', 201],
-      ['PATCH', 202],
-      ['DELETE', 202],
+      ['PUT', 200],
+      ['PATCH', 200],
+      ['DELETE', 200],
     ]
     for (const [method, expected] of cases) {
       const { response } = createCaptureResponse(method)

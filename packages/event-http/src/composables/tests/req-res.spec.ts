@@ -36,7 +36,8 @@ describe('compasble/req-res', () => {
       })
       expect(method).toBe(method)
       expect(reqId()).toMatch(/^[-0-9a-f]{36}$/u)
-      expect(getIp({ trustProxy: true })).toBe('127.0.0.1')
+      // deprecated per-call alias = trust ONE hop of a KNOWN peer; this test socket has none
+      expect(getIp({ trustProxy: true })).toBe('')
       expect(getIp()).toBe('')
       expect(getIpList()).toEqual({
         remoteIp: '',

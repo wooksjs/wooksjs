@@ -10,7 +10,10 @@ import {
   uncompressBodyStream,
 } from '../compressor'
 import { HttpError } from '../errors'
+import { getHttpAppConfig } from '../http-config'
 import { httpKind } from '../http-kind'
+import { normalizeAddress, resolveForwarded } from '../utils/proxy'
+import type { TForwardedInfo, TForwardedIssue, TTrustProxyFn } from '../utils/proxy'
 
 const xForwardedFor = 'x-forwarded-for'
 
@@ -226,13 +229,41 @@ export const rawBodySlot = cached(async (ctx: EventContext): Promise<Buffer> => 
   return Buffer.concat(chunks) // always decompressed
 })
 
-const forwardedIpSlot = cached((ctx: EventContext) => {
-  const req = ctx.get(httpKind.keys.req)
-  if (typeof req.headers[xForwardedFor] === 'string' && req.headers[xForwardedFor]) {
-    return req.headers[xForwardedFor].split(',').shift()?.trim()!
-  }
-  return ''
+/** @internal The client as resolved through the app's `trustProxy` (see `resolveForwarded`). */
+export const forwardedSlot = cached((ctx: EventContext): TForwardedInfo => {
+  const { trustProxy, proxyHeaders } = getHttpAppConfig(ctx)
+  // issues arise only while walking a trusted chain
+  const onIssue = trustProxy ? (issue: TForwardedIssue) => reportIssue(ctx, issue) : undefined
+  return resolveForwarded(ctx.get(httpKind.keys.req), trustProxy, proxyHeaders, onIssue)
 })
+
+/** Diagnostics (and the deprecation notice) are logged once per kind per process. */
+const warnedIssues = new Set<string>()
+
+function reportIssue(ctx: EventContext, issue: TForwardedIssue): void {
+  if (warnedIssues.has(issue.kind)) {
+    return
+  }
+  warnedIssues.add(issue.kind)
+  if (issue.kind === 'trust-error') {
+    ctx.logger.error('trustProxy predicate threw — no proxy trusted for this request', issue.error)
+  } else {
+    ctx.logger.warn(
+      `The ${issue.header} entry your own proxy (the socket peer) wrote is malformed, so clients ` +
+        `resolve to an unknown address (''): ${JSON.stringify(issue.value.slice(0, 200))}. ` +
+        'Check the proxy configuration (e.g. quote IPv6 in Forwarded: for="[2001:db8::1]").',
+    )
+  }
+}
+
+const trustOneHop: TTrustProxyFn = (_addr, i) => i < 1
+
+/** Deprecated `getIp({ trustProxy: true })`: trust exactly one hop. */
+const oneHopIpSlot = cached(
+  (ctx: EventContext) =>
+    resolveForwarded(ctx.get(httpKind.keys.req), trustOneHop, getHttpAppConfig(ctx).proxyHeaders)
+      .ip,
+)
 
 const remoteIpSlot = cached((ctx: EventContext) => {
   const req = ctx.get(httpKind.keys.req)
@@ -248,10 +279,11 @@ const ipListSlot = cached((ctx: EventContext) => {
 })
 
 /**
- * Provides access to the incoming HTTP request (method, url, headers, body, IP).
+ * Provides access to the incoming HTTP request (method, url, headers, body, client IP,
+ * protocol and host — the last three through the app's `trustProxy` setting).
  * @example
  * ```ts
- * const { method, url, raw, rawBody, getIp } = useRequest()
+ * const { method, url, raw, rawBody, getIp, protocol, host } = useRequest()
  * const body = await rawBody()
  * ```
  */
@@ -277,11 +309,34 @@ export const useRequest = defineWook((ctx: EventContext) => {
   const getReadTimeoutMs = () => limits()?.readTimeoutMs ?? DEFAULT_LIMITS.readTimeoutMs
   const setReadTimeoutMs = (limit: number) => setLimit('readTimeoutMs', limit)
 
+  /**
+   * Client IP. Without arguments it follows the app's `trustProxy` setting: the socket peer when
+   * no proxy is trusted (the default), otherwise the right-most hop that is not a trusted proxy.
+   *
+   * @param options - **Deprecated**: `{ trustProxy: true }` trusts exactly one proxy hop (the
+   *   right-most forwarded address — not the left-most, which any client can forge);
+   *   `{ trustProxy: false }` returns the socket peer. Configure `trustProxy` on the app instead.
+   */
+  /** The socket peer, normalised — the client when no proxy is trusted (computed once). */
+  let peerIp: string | undefined
+
   function getIp(options?: { trustProxy: boolean }): string {
-    if (options?.trustProxy) {
-      return ctx.get(forwardedIpSlot) || ctx.get(remoteIpSlot)
+    if (options) {
+      if (!warnedIssues.has('legacy-get-ip')) {
+        warnedIssues.add('legacy-get-ip')
+        ctx.logger.warn(
+          'useRequest().getIp({ trustProxy }) is deprecated: set `trustProxy` on the HTTP app ' +
+            '(e.g. createHttpApp({ trustProxy: 1 })) and call getIp() without arguments.',
+        )
+      }
+      return options.trustProxy ? ctx.get(oneHopIpSlot) : ctx.get(remoteIpSlot)
     }
-    return ctx.get(remoteIpSlot)
+    // No proxy trusted and no client handed down (an in-process fetch seeds the caller's):
+    // the socket peer, without reading any header
+    if (!getHttpAppConfig(ctx).trustProxy && !ctx.has(forwardedSlot)) {
+      return (peerIp ??= normalizeAddress(req.socket?.remoteAddress ?? ''))
+    }
+    return ctx.get(forwardedSlot).ip
   }
 
   return {
@@ -292,6 +347,17 @@ export const useRequest = defineWook((ctx: EventContext) => {
     rawBody: () => ctx.get(rawBodySlot),
     reqId: useEventId(ctx).getId,
     getIp,
+    /**
+     * `'https'` or `'http'` as the client used it: from the trusted proxy chain
+     * (`X-Forwarded-Proto` / `Forwarded: proto=`) when the app trusts proxies, else the socket's.
+     */
+    protocol: () => ctx.get(forwardedSlot).protocol,
+    /**
+     * The host (with port, if any) the client asked for: from the trusted proxy chain
+     * (`X-Forwarded-Host` / `Forwarded: host=`) when the app trusts proxies, else the `Host` header.
+     */
+    host: () => ctx.get(forwardedSlot).host,
+    /** Raw addresses: socket peer and every `X-Forwarded-For` entry, unvalidated (client-forgeable). */
     getIpList: () => ctx.get(ipListSlot),
     isCompressed: () => ctx.get(isCompressedSlot),
 

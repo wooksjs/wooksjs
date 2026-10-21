@@ -38,9 +38,13 @@ app.listen(3000)
 | `router`         | router options                       | Custom router configuration                                      |
 | `requestLimits`  | `Omit<TRequestLimits, 'perRequest'>` | Default body size/timeout limits for all requests                |
 | `responseClass`  | `typeof WooksHttpResponse`           | Custom response subclass (default: `WooksHttpResponse`)          |
-| `defaultHeaders` | `Record<string, string \| string[]>` | Default headers applied to every response (e.g. securityHeaders) |
+| `defaultHeaders` | `Record<string, string \| string[]>` | Default headers applied to every response (e.g. securityHeaders); read once at app creation |
 | `forwardHeaders` | `string[] \| false`                  | Request headers to propagate to outgoing fetch calls; `false` disables. REPLACES the defaults — spread `DEFAULT_FORWARD_HEADERS` to extend |
 | `compression`    | `boolean \| THttpCompressionOptions` | Opt-in brotli/gzip response compression (default off) — see [http-response.md](http-response.md#response-compression) |
+| `trustProxy`     | `false \| number \| string \| string[] \| (addr, hop) => boolean` (string = comma list) | Proxies to trust for `getIp()`/`protocol()`/`host()` (default `false`) — see [http-request.md](http-request.md#proxy-trust) |
+| `proxyHeaders`   | `'x-forwarded' \| 'forwarded'`       | Forwarding header family the trusted proxies write (default `'x-forwarded'`) |
+| `transformErrorBody` | `(body, error, ctx) => body`      | Maps every rendered error body (translation, field stripping) — see [http-response.md](http-response.md#httperror-and-error-rendering) |
+| `resolveLocale`  | `() => string \| undefined`          | Lazy per-request locale policy behind `useLocale().get()` — see [http-request.md](http-request.md#useacceptlanguagectx) |
 
 ---
 
@@ -138,13 +142,12 @@ wildcards, regex constraints, optional params, path builders, config options).
 
 When no explicit status is set, inferred from HTTP method and response body:
 
-| Method | With body    | Without body   |
-| ------ | ------------ | -------------- |
-| GET    | 200 OK       | 204 No Content |
-| POST   | 201 Created  | 204 No Content |
-| PUT    | 201 Created  | 204 No Content |
-| PATCH  | 202 Accepted | 204 No Content |
-| DELETE | 202 Accepted | 204 No Content |
+| Method              | With body   | Without body   |
+| ------------------- | ----------- | -------------- |
+| POST                | 201 Created | 204 No Content |
+| GET/PUT/PATCH/DELETE/other | 200 OK | 204 No Content |
+
+Exported as `DEFAULT_HTTP_STATUS` (method → status with a body) and `getDefaultHttpStatus(method, hasBody)` — reuse them (e.g. for OpenAPI) instead of copying the table. Set `202` explicitly for queued work.
 
 ---
 

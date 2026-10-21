@@ -1,5 +1,5 @@
 import type { TTimeMultiString } from './time'
-import { convertTime } from './time'
+import { toHeaderSeconds } from './time'
 
 /** Cache-Control directive object (RFC 7234 §5.2.2). All fields are optional. */
 export interface TCacheControl {
@@ -10,9 +10,13 @@ export interface TCacheControl {
   public?: boolean
   private?: boolean | string
   proxyRevalidate?: boolean
-  /** Max age in seconds, or a time string (e.g. `'3h 30m'`). */
+  /**
+   * `max-age`: a number is **seconds** (`86400` = one day); a string carries its units
+   * (`'1d'`, `'3h 30m'`, `'1.5h'`). Rendered as whole seconds, rounded down, clamped to
+   * 0–2147483648 (RFC 9111).
+   */
   maxAge?: number | TTimeMultiString
-  /** Shared cache max age in seconds, or a time string. */
+  /** `s-maxage` (shared caches): same units as `maxAge` — a number is seconds. */
   sMaxage?: number | TTimeMultiString
 }
 
@@ -49,6 +53,6 @@ const cacheControlFunc = {
   private: (v: TCacheControl['private']) =>
     v ? (typeof v === 'string' ? `private="${v}"` : 'private') : '',
   proxyRevalidate: (v: TCacheControl['proxyRevalidate']) => (v ? 'proxy-revalidate' : ''),
-  maxAge: (v: Required<TCacheControl>['maxAge']) => `max-age=${convertTime(v, 's').toString()}`,
-  sMaxage: (v: Required<TCacheControl>['sMaxage']) => `s-maxage=${convertTime(v, 's').toString()}`,
+  maxAge: (v: Required<TCacheControl>['maxAge']) => `max-age=${toHeaderSeconds(v)}`,
+  sMaxage: (v: Required<TCacheControl>['sMaxage']) => `s-maxage=${toHeaderSeconds(v)}`,
 }

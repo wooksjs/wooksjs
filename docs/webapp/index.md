@@ -89,7 +89,9 @@ Learn more about AI agent skills at [skills.sh](https://skills.sh).
 - [Comparison](/webapp/comparison) — Concrete differences vs Express, Fastify, and h3.
 - [Routing](/webapp/routing) — Route registration, parametric routes, wildcards, path builders.
 - [Request Composables](/webapp/composables/request) — Headers, query params, cookies, authorization, client IP, body limits.
-- [Response Composables](/webapp/composables/response) — Status, headers, cookies, cache control, error responses.
+- [Behind a Proxy](/webapp/proxy-trust) — `trustProxy`: client IP, protocol and host behind reverse proxies.
+- [Locale](/webapp/locale) — Per-request locale (`useLocale`), `Accept-Language` negotiation, translating error bodies.
+- [Response Composables](/webapp/composables/response) — Status, headers, cookies, cache control, conditional GET, error responses.
 - [Body Parser](/webapp/body) — Parsing JSON, form data, and more with `@wooksjs/http-body`.
 - [Proxy Requests](/webapp/proxy) — Reverse proxying with `@wooksjs/http-proxy`.
 - [Serve Static](/webapp/static) — Static file serving with `@wooksjs/http-static`.

@@ -1,7 +1,6 @@
 import type { TCookieAttributes, TSetCookieData } from '../types'
-import { convertTime } from './time'
-
-const COOKIE_NAME_RE = /^[\w!#$%&'*+\-.^`|~]+$/
+import { TOKEN_RE } from './helpers'
+import { toHeaderSeconds } from './time'
 
 /** Characters `encodeURIComponent()` leaves as they are. */
 const URI_SAFE_RE = /^[\w\-.!~*'()]*$/
@@ -11,7 +10,7 @@ function sanitizeCookieAttrValue(v: string): string {
 }
 
 export function renderCookie(key: string, data: TSetCookieData) {
-  if (!COOKIE_NAME_RE.test(key)) {
+  if (!TOKEN_RE.test(key)) {
     throw new TypeError(`Invalid cookie name "${key}"`)
   }
   let attrs = ''
@@ -44,7 +43,7 @@ const cookieAttrFunc = {
             : v.toUTCString()
         }`,
   maxAge: (v: TCookieAttributes['maxAge']) =>
-    v === undefined ? '' : `Max-Age=${convertTime(v, 's').toString()}`,
+    v === undefined ? '' : `Max-Age=${toHeaderSeconds(v)}`,
   domain: (v: TCookieAttributes['domain']) =>
     v === undefined ? '' : `Domain=${sanitizeCookieAttrValue(String(v))}`,
   path: (v: TCookieAttributes['path']) =>

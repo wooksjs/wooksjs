@@ -93,6 +93,15 @@ By default, the following headers are forwarded:
 - `x-forwarded-for` — client IP chain
 - `x-request-id` — request tracing
 
+Independently of these headers, an in-process request inherits from the calling event:
+
+- its resolved client — `useRequest().getIp()`, `protocol()` and `host()` return the calling request's values (see [Behind a Proxy](./proxy-trust.md));
+- its locale — `useLocale().get()` returns the caller's locale when it has one, else this app's `resolveLocale` applies (see [Locale](./locale.md)).
+
+### Calling `fetch()` from a fetch runtime
+
+With no calling event (Bun, Deno, edge runtimes), the connection's peer is unknown unless you pass it as the second argument, `app.fetch(request, { remoteAddress, encrypted })`. Without it, `getIp()` is `''`, list and predicate `trustProxy` trust nothing, and `protocol()` / `host()` come from the Request URL. See [Behind a Proxy](./proxy-trust.md#programmatic-fetch).
+
 ### Customizing Header Forwarding
 
 Configure globally via `createHttpApp` options:

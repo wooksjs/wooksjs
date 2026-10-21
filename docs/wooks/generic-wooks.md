@@ -84,6 +84,20 @@ console.log('Route Params:', params)
 console.log('ID Param:', get('id'))
 ```
 
+## `useLocale()`
+
+The locale of the current event, in any flavor. Wooks only carries it and never translates.
+
+```ts
+import { useLocale } from '@wooksjs/event-core' // also re-exported by every adapter
+
+useLocale().set('de')                    // this event and its child events
+useLocale().set(() => pickLocale())      // lazy: runs on the first get(), once
+const locale = useLocale().get()         // nearest value up the parent chain, else undefined
+```
+
+A child event (a workflow step started from a request) reads its parent's locale; a value set on the child never reaches the parent. For HTTP, `createHttpApp({ resolveLocale })` installs your policy on every request — see [Locale](/webapp/locale).
+
 ## `current()`
 
 **Signature:**
@@ -112,4 +126,5 @@ These generic wooks form the foundational layer of Wooks' event-driven approach:
 - **`useEventId()`:** Get a unique event identifier.
 - **`useLogger()`:** Access the event-scoped logger ([More About Logging in Wooks](/wooks/advanced/logging)).
 - **`useRouteParams()`:** Access path or argument parameters for the current event.
+- **`useLocale()`:** Read or set the event's locale, inherited by child events ([Locale](/webapp/locale)).
 - **`current()`:** Directly access the underlying event context for advanced scenarios ([More About Event Context](/wooks/advanced/wooks-context)).

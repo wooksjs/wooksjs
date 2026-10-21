@@ -1,5 +1,6 @@
 export * from './cookies'
 export * from './header-accept'
+export { useAcceptLanguage } from './header-accept-language'
 export * from './header-authorization'
 export * from './headers'
 export * from './request'

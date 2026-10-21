@@ -418,7 +418,7 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
             ? ctx.get(stateStrategyNameKey)
             : undefined
           if (finalName !== undefined) {
-            ;(result.inputRequired as WfPauseRequest).stateStrategy = finalName
+            ;(result.inputRequired as unknown as WfPauseRequest).stateStrategy = finalName
           }
         }
         if (result.resume) {

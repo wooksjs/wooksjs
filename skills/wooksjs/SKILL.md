@@ -2,21 +2,22 @@
 name: wooksjs
 description: >-
   Use for the wooksjs monorepo / any @wooksjs package:
-  @wooksjs/event-core (EventContext, key/cached/cachedBy slots, defineWook,
-  defineEventKind, useRouteParams, useLogger),
-  @wooksjs/event-http (createHttpApp, routing, useRequest, useHeaders,
-  useCookies, useUrlParams, useAuthorization, useAccept, useResponse,
-  HttpError, prerenderJson/ETag/304, compression,
-  prepareTestHttpContext, app.fetch, SSR, withHttpContext, forwardHeaders),
-  @wooksjs/http-body (useBody, seedBody),
+  @wooksjs/event-core (EventContext, key/cached slots, defineWook,
+  defineEventKind, useRouteParams, useLogger, useLocale),
+  @wooksjs/event-http (createHttpApp, useRequest, useHeaders, trustProxy,
+  getIp, useCookies, useUrlParams, useAuthorization, useAccept(Language),
+  useResponse, HttpError code/params, transformErrorBody, ETag/304,
+  maxAge units, compression, prepareTestHttpContext, app.fetch, SSR,
+  withHttpContext), @wooksjs/http-body (useBody, seedBody),
   @wooksjs/http-static (serveFile), @wooksjs/http-proxy (useProxy),
-  @wooksjs/event-cli (createCliApp, useCliOptions, useCliHelp, useAutoHelp),
-  @wooksjs/event-ws (WooksWs, onMessage, onConnect, useWsConnection,
-  useWsMessage, useWsRooms, useWsServer, WsError), @wooksjs/event-wf
-  (createWfApp, useWfState, pause/resume, StepRetriableError,
-  outlets, swapStrategy), @wooksjs/ws-client (createWsClient, reconnection,
-  RPC, WsClientError), "A second copy of @wooksjs/event-core" /
-  "Incompatible versions" warnings. Not for moostjs or generic Node servers.
+  @wooksjs/event-cli (createCliApp, useCliOptions, useAutoHelp),
+  @wooksjs/event-ws (WooksWs, onMessage, useWsConnection, useWsRooms,
+  WsError), @wooksjs/event-wf (createWfApp, useWfState, pause/resume,
+  StepRetriableError,
+  outlets, swapStrategy, WF_ error codes, mintWfToken),
+  @wooksjs/ws-client (createWsClient, RPC), "A second copy of
+  @wooksjs/event-core" / "Incompatible versions" warnings. Not for moostjs
+  or generic Node servers.
 ---
 
 # wooksjs
@@ -111,15 +112,15 @@ Read the reference file that matches the task. Do not load all files — only wh
 | Routing           | [router.md](references/router.md)                 | Route patterns, params, wildcards, regex, path builders, config      |
 | Context engine    | [event-core.md](references/event-core.md)         | Working with slots, composables, EventContext, custom adapters       |
 | HTTP core/routing | [event-http.md](references/event-http.md)         | Creating HTTP apps, routing, server lifecycle, security headers      |
-| HTTP request      | [http-request.md](references/http-request.md)     | Reading headers, cookies, query params, raw body, authorization      |
-| HTTP response     | [http-response.md](references/http-response.md)   | Status, headers, cookies, cache, prerenderJson/ETag/304, response compression, errors, streaming, testing |
+| HTTP request      | [http-request.md](references/http-request.md)     | Reading headers, cookies, query params, raw body, authorization, client IP/protocol/host behind proxies (trustProxy), Accept-Language |
+| HTTP response     | [http-response.md](references/http-response.md)   | Status, headers, cookies, cache + duration units, conditional GET/304/ETag, response compression, HttpError codes + transformErrorBody, streaming, testing |
 | Body parsing      | [http-body.md](references/http-body.md)           | Parsing request bodies (useBody): JSON, form-data, urlencoded types; seeding a child context's body (seedBody) |
 | Static files      | [http-static.md](references/http-static.md)       | Serving files/directories (serveFile), ranges, cache headers         |
 | HTTP proxy        | [http-proxy.md](references/http-proxy.md)         | Proxying/forwarding requests, header/cookie filtering, allowedHosts  |
 | CLI apps          | [event-cli.md](references/event-cli.md)           | Building CLI tools, command routing, options, help system            |
 | WebSocket server  | [event-ws.md](references/event-ws.md)             | WS server, rooms, broadcasting, message routing, wire protocol       |
 | Workflow core     | [event-wf.md](references/event-wf.md)             | Steps, flows, schema syntax, pause/resume, useWfState                |
-| Workflow outlets  | [wf-outlets.md](references/wf-outlets.md)         | HTTP/email delivery, state strategies, tokens, trigger handler       |
+| Workflow outlets  | [wf-outlets.md](references/wf-outlets.md)         | HTTP/email delivery, state strategies, tokens, trigger handler, WF_ refusal codes, around/beforePersist/renderEnvelope, mintWfToken |
 | Workflow advanced | [wf-advanced.md](references/wf-advanced.md)       | Parent context, spies, error handling, testing                       |
 | WS client         | [ws-client.md](references/ws-client.md)           | Browser/Node WS client, RPC, subscriptions, reconnection             |
 

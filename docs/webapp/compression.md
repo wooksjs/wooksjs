@@ -90,7 +90,7 @@ A `Cache-Control: no-transform` header also opts a response out (`setCacheContro
 | `text/event-stream` | No |
 | `Content-Encoding` already set by the handler | No — never re-encoded |
 | `Cache-Control: no-transform` | No |
-| `HEAD` | No — headers describe the uncompressed body (`Content-Length` of the identity body) |
+| `HEAD` | Negotiated like GET — the same `Content-Encoding`, `Vary` and (weakened) `ETag` GET would send; no body is compressed and no `Content-Length` is sent next to an encoding |
 | `204`, `206`, `304`, `1xx` | No |
 | `Readable` stream or fetch `Response` body | No — sent as is |
 | [Programmatic `app.fetch()`](./fetch.md) / SSR local fetch | No — the caller is in-process |

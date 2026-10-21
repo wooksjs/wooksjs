@@ -1,5 +1,5 @@
 import { EventContext, run } from '@wooksjs/event-core'
-import { prepareTestHttpContext, useResponse } from '@wooksjs/event-http'
+import { HttpError, prepareTestHttpContext, useResponse } from '@wooksjs/event-http'
 import { HandleStateStrategy, WfStateStoreMemory, outlet, outletEmail, outletHttp } from '@prostojs/wf/outlets'
 import type { WfOutlet, WfStateStrategy } from '@prostojs/wf/outlets'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -142,6 +142,22 @@ function makeDeps(app: {
   return {
     start: (schemaId, context, opts) => app.start(schemaId, context as any, opts as any),
     resume: (state, opts) => app.resume(state as any, opts as any),
+  }
+}
+
+/**
+ * What the HTTP adapter would send: the handler's value and status, or — for a refused request,
+ * which the trigger throws as an HttpError — the error's body and status.
+ */
+async function sent(fn: () => Promise<unknown>) {
+  try {
+    const body = await fn()
+    return { body, status: useResponse().status }
+  } catch (error) {
+    if (error instanceof HttpError) {
+      return { body: error.body, status: error.body.statusCode }
+    }
+    throw error
   }
 }
 
@@ -334,10 +350,7 @@ describe('handleWfOutletRequest', () => {
 
     const runCtx = postWf({ wfs: 'invalid-token' })
 
-    const result = (await runCtx(async () => {
-      const r = await handleWfOutletRequest(config, deps)
-      return { body: r as any, status: useResponse().status }
-    })) as any
+    const result = (await runCtx(() => sent(() => handleWfOutletRequest(config, deps)))) as any
     expect(result.body.error).toBeDefined()
     expect(result.body.status).toBeUndefined()
     expect(result.status).toBe(410)
@@ -354,10 +367,9 @@ describe('handleWfOutletRequest', () => {
     expect(typeof started.wfs).toBe('string')
     await new Promise((resolve) => setTimeout(resolve, 5))
 
-    const resumed = (await postWf({ wfs: started.wfs, input: { email: 'a@b.com' } })(async () => {
-      const r = await handleWfOutletRequest(config, deps)
-      return { body: r as any, status: useResponse().status }
-    })) as any
+    const resumed = (await postWf({ wfs: started.wfs, input: { email: 'a@b.com' } })(() =>
+      sent(() => handleWfOutletRequest(config, deps)),
+    )) as any
     expect(resumed.status).toBe(410)
   })
 
@@ -368,10 +380,7 @@ describe('handleWfOutletRequest', () => {
 
     const runCtx = postWf({ wfid: 'simple' })
 
-    const result = (await runCtx(async () => {
-      const r = await handleWfOutletRequest(config, deps)
-      return { body: r as any, status: useResponse().status }
-    })) as any
+    const result = (await runCtx(() => sent(() => handleWfOutletRequest(config, deps)))) as any
     expect(result.body.status).toBeUndefined()
     expect(result.status).toBe(403)
   })
@@ -383,10 +392,7 @@ describe('handleWfOutletRequest', () => {
 
     const runCtx = postWf({ wfid: 'simple' })
 
-    const result = (await runCtx(async () => {
-      const r = await handleWfOutletRequest(config, deps)
-      return { body: r as any, status: useResponse().status }
-    })) as any
+    const result = (await runCtx(() => sent(() => handleWfOutletRequest(config, deps)))) as any
     expect(result.body.status).toBeUndefined()
     expect(result.status).toBe(403)
   })
@@ -398,10 +404,7 @@ describe('handleWfOutletRequest', () => {
 
     const runCtx = postWf({})
 
-    const result = (await runCtx(async () => {
-      const r = await handleWfOutletRequest(config, deps)
-      return { body: r as any, status: useResponse().status }
-    })) as any
+    const result = (await runCtx(() => sent(() => handleWfOutletRequest(config, deps)))) as any
     expect(result.body.status).toBeUndefined()
     expect(result.status).toBe(400)
   })
@@ -417,12 +420,10 @@ describe('handleWfOutletRequest', () => {
 
     const runCtx = postWf({ wfid: 'unknown-outlet-flow' })
 
-    const result = (await runCtx(async () => {
-      const r = await handleWfOutletRequest(config, deps)
-      return { body: r as any, status: useResponse().status }
-    })) as any
+    const result = (await runCtx(() => sent(() => handleWfOutletRequest(config, deps)))) as any
     expect(result.body.status).toBeUndefined()
-    expect(result.body.error).toContain('nonexistent')
+    expect(result.body.message).toContain('nonexistent')
+    expect(result.body.code).toBe('WF_UNKNOWN_OUTLET')
     expect(result.status).toBe(500)
   })
 
@@ -642,10 +643,7 @@ describe('handleWfOutletRequest', () => {
     expect(r1).toEqual({ finished: true })
 
     const runCtx3 = postWf({ wfs: token, input: { email: 'again@b.com' } })
-    const r2 = (await runCtx3(async () => {
-      const r = await handleWfOutletRequest(config, deps)
-      return { body: r as any, status: useResponse().status }
-    })) as any
+    const r2 = (await runCtx3(() => sent(() => handleWfOutletRequest(config, deps)))) as any
     expect(r2.status).toBe(410)
     expect(r2.body.error).toBeDefined()
   })
@@ -675,10 +673,7 @@ describe('handleWfOutletRequest', () => {
 
     // Token is gone after finish.
     const run4 = postWf({ wfs: t1 })
-    const r4 = (await run4(async () => {
-      const r = await handleWfOutletRequest(config, deps)
-      return { body: r as any, status: useResponse().status }
-    })) as any
+    const r4 = (await run4(() => sent(() => handleWfOutletRequest(config, deps)))) as any
     expect(r4.status).toBe(410)
   })
 
@@ -745,10 +740,7 @@ describe('handleWfOutletRequest', () => {
     expect(r4).toEqual({ finished: true })
 
     const run5 = postWf({ wfs: t1 })
-    const r5 = (await run5(async () => {
-      const r = await handleWfOutletRequest(config, deps)
-      return { body: r as any, status: useResponse().status }
-    })) as any
+    const r5 = (await run5(() => sent(() => handleWfOutletRequest(config, deps)))) as any
     expect(r5.status).toBe(410)
   })
 
@@ -770,10 +762,7 @@ describe('handleWfOutletRequest', () => {
     ).rejects.toThrow('step exploded')
 
     const run3 = postWf({ wfs: t1 })
-    const r3 = (await run3(async () => {
-      const r = await handleWfOutletRequest(config, deps)
-      return { body: r as any, status: useResponse().status }
-    })) as any
+    const r3 = (await run3(() => sent(() => handleWfOutletRequest(config, deps)))) as any
     expect(r3.status).toBe(410)
 
     expect(await store.get(t1)).toBeNull()
@@ -839,10 +828,7 @@ describe('integration: full round-trip', () => {
     expect(r2).toEqual({ finished: true })
 
     const run3 = postWf({ wfs: token })
-    const r3 = (await run3(async () => {
-      const r = await handleWfOutletRequest(config, deps)
-      return { body: r as any, status: useResponse().status }
-    })) as any
+    const r3 = (await run3(() => sent(() => handleWfOutletRequest(config, deps)))) as any
     expect(r3.status).toBe(410)
     expect(r3.body.error).toBeDefined()
   })
@@ -1079,12 +1065,14 @@ describe('strategy swap', () => {
       outlets: [httpOutlet],
     }
 
-    const r = (await postWf({ wfs: 'evil.somehandle' })(async () => {
-      const body = await handleWfOutletRequest(config, makeDeps(app))
-      return { body: body as any, status: useResponse().status }
-    })) as any
+    const r = (await postWf({ wfs: 'evil.somehandle' })(() =>
+      sent(() => handleWfOutletRequest(config, makeDeps(app))),
+    )) as any
     expect(r.status).toBe(410)
-    expect(r.body.error).toBe('Invalid workflow state token')
+    expect(r.body).toMatchObject({
+      message: 'Invalid workflow state token',
+      code: 'WF_INVALID_TOKEN',
+    })
   })
 
   it('token without strategy prefix returns 410', async () => {
@@ -1097,12 +1085,14 @@ describe('strategy swap', () => {
       outlets: [httpOutlet],
     }
 
-    const r = (await postWf({ wfs: 'rawtokenwithoutdot' })(async () => {
-      const body = await handleWfOutletRequest(config, makeDeps(app))
-      return { body: body as any, status: useResponse().status }
-    })) as any
+    const r = (await postWf({ wfs: 'rawtokenwithoutdot' })(() =>
+      sent(() => handleWfOutletRequest(config, makeDeps(app))),
+    )) as any
     expect(r.status).toBe(410)
-    expect(r.body.error).toBe('Invalid workflow state token')
+    expect(r.body).toMatchObject({
+      message: 'Invalid workflow state token',
+      code: 'WF_INVALID_TOKEN',
+    })
     expect(a.consumeCalls.length).toBe(0)
   })
 

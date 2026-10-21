@@ -226,6 +226,9 @@ interface WfOutletTriggerConfig {
   onFinished?: (ctx: { context, schemaId }) => unknown
   restoreOnError?: boolean | ((error: unknown) => boolean) // default: false — see "Retrying a failed resume"
   maxRestores?: number                         // default: 3
+  around?: (run) => Promise<unknown>           // wrap the request in a transaction — see "Transactions and envelopes"
+  beforePersist?: (state, pause) => void | Promise<void>
+  renderEnvelope?: (envelope, info) => unknown | Promise<unknown>
 }
 ```
 
@@ -263,8 +266,9 @@ resolve names:
 format violations throw at the call site). A well-formed name missing from the
 registry errors loudly at the next pause instead: the trigger throws
 `Workflow paused with unknown strategy '<name>' …` — a config bug, surfaced as
-a 500. Tokens whose prefix names an unknown strategy return HTTP 410 (same as
-any invalid token — the trigger does not leak which strategies are registered).
+a 500. Tokens whose prefix names an unknown strategy are refused with 410
+`WF_INVALID_TOKEN` (same as any malformed token — the trigger does not leak which
+strategies are registered).
 
 When you drive `start()` / `resume()` directly (instead of through the outlet
 trigger), set the initial strategy with the `strategy` run option and read the
@@ -328,23 +332,30 @@ Replay protection on a leaked `HandleStateStrategy` token: the workflow record a
 
 When `allow` / `block` are set, the trigger first reads the state with `strategy.retrieve()` and checks it (see [Access Control](#access-control)); a refused token is **not** consumed. A custom `WfStateStrategy` must therefore implement `retrieve()` as a side-effect-free read that never invalidates the handle. The trigger then consumes the state atomically (`consumeEntry()` when the strategy implements both `consumeEntry()` and `persistEntry()`, else `consume()`) before running the step handler. After the step returns, the engine re-persists under the **same** handle so the URL `wfs` stays live for the duration of the workflow.
 
-A replay that loses the race against a concurrent resume — or a request after the workflow has finished — responds with HTTP **410 Gone** and body `{ error: 'Invalid or expired workflow state' }`. With `EncapsulatedStateStrategy`, `consume()` is a stateless no-op (see the security note above) and the token remains replayable until TTL.
+A replay that loses the race against a concurrent resume — or a request after the workflow has finished — is refused with **410 Gone**, code `WF_EXPIRED`. With `EncapsulatedStateStrategy`, `consume()` is a stateless no-op (see the security note above) and the token remains replayable until TTL.
 
-### Error Status Codes
+### Refusals (error codes)
 
-The trigger sets the HTTP status via `useResponse().setStatus(...)` — the body always carries `{ error: '...' }` only:
+The trigger **throws** every refusal as an `HttpError`, so app error handlers (moost interceptors, `transformErrorBody`) see it like any other error. The rendered body is the standard error body plus a `code` and, where listed, `params`:
 
-| Branch                                | HTTP status |
-| ------------------------------------- | ----------- |
-| Expired / invalid resume token        | 410 Gone    |
-| `wfid` resolves to a flow not in `allow` (or `allow: []`) | 403 |
-| `wfid` resolves to a flow in `block`  | 403         |
-| Resume token for a workflow not in `allow` / in `block` | 403 (token not consumed) |
-| `wfid` is not a string                | 400         |
-| `wfid` contains `%` / `?`, lists set, deps without `resolveSchemaId` | 400 |
-| Missing both `wfs` and `wfid`         | 400         |
-| `wfid` resolves to no flow while `allow`/`block` is set (with `resolveSchemaId`) | 404 |
-| Unknown outlet name returned by step  | 500         |
+```json
+{ "statusCode": 403, "error": "Forbidden", "message": "Workflow 'admin' is not allowed",
+  "code": "WF_FORBIDDEN", "params": { "wfid": "admin", "reason": "not-allowed" } }
+```
+
+| Code | Status | When | `params` |
+| --- | --- | --- | --- |
+| `WF_MISSING` | 400 | neither `wfs` nor `wfid` was sent | — |
+| `WF_INVALID` | 400 | `wfid` is not a string; or it holds `%` / `?` while lists are set and the deps have no `resolveSchemaId` | — |
+| `WF_INVALID_TOKEN` | 410 | the token is malformed or names no configured strategy | — |
+| `WF_EXPIRED` | 410 | the token's state is gone: expired, already used, or never existed | — |
+| `WF_FORBIDDEN` | 403 | `allow` / `block` refuses the flow — on start, or on resume (token not consumed) | `reason: 'not-allowed' \| 'blocked'`; `wfid` on start only (a resume never names the stored flow) |
+| `WF_NOT_FOUND` | 404 | with `allow`/`block` set, `wfid` resolves to no flow | `wfid` |
+| `WF_UNKNOWN_OUTLET` | 500 | a step paused on an outlet the trigger does not have | `outlet` |
+
+The table is exported as `WF_TRIGGER_ERRORS` (`code → { status, message }`) for building translation catalogs. The English `message` is unchanged from earlier versions; it moved from the body's `error` field to `message` (`error` is now the status text, as for every `HttpError`). Clients that read `body.message ?? body.error` work with both.
+
+A flow that fails without asking for input (a non-retriable step error is thrown, not returned) is not a refusal: it propagates as the step's own error.
 
 On pause — including a re-pause at the same step for validation retry, and on advance to the next paused step — the trigger re-persists state under the **same** handle (with `HandleStateStrategy`). The `wfs` returned in the response equals the one in the request, so a step handler that validates input and decides to re-prompt via `outletHttp(form, { error: 'invalid' })` returns the unchanged token, and the caller (or a refresh) keeps using it.
 
@@ -354,7 +365,7 @@ On pause — including a re-pause at the same step for validation retry, and on 
 
 #### Retrying a failed resume (`restoreOnError`)
 
-Set `restoreOnError` on the trigger config to let the user retry the same token after a resumed step throws:
+Set `restoreOnError` on the trigger config to let the user retry the same token when a resume fails after the token was consumed:
 
 ```ts
 class InfraError extends Error {}
@@ -367,7 +378,10 @@ class InfraError extends Error {}
 
 | Question | Behaviour |
 | --- | --- |
-| Which errors | `true`: any error thrown out of the resumed run, including an `HttpError` thrown by a step. A function: only errors it returns `true` for. Re-pauses (an outlet signal, `StepRetriableError`) are not errors and re-persist as usual. Refused resumes (403/410) never consume, so they need no restore. |
+| Which failures | Any failure after the token is consumed: the resumed step, `beforePersist`, an unknown pause strategy or outlet, `persist()`, outlet delivery, `renderEnvelope`, `onFinished`. With `true`, every error counts, including an `HttpError` thrown by a step; a function counts only the errors it returns `true` for. Re-pauses (an outlet signal, `StepRetriableError`) are not errors and re-persist as usual. Refused resumes (403/410) never consume, so they need no restore. |
+| Already persisted | When the new state was persisted under the **same** handle before the failure (delivery or `renderEnvelope` on a pause failed), the token resumes that new state, with or without the option — there is nothing to restore. Without `restoreOnError`, every other failure leaves the token spent (410 `WF_EXPIRED`). |
+| One continuation | A failed request never forks the flow. Unless the request was delivered out of band (below), the new token never reached the client, so the client's own token stays the one continuation: a state the request persisted under a **new** handle (after a `swapStrategy()`) is discarded, and the old one is restored. A discard that fails, or a strategy that cannot invalidate a token (`EncapsulatedStateStrategy`), is logged and leaves that new state behind — unreachable, since nobody holds its token. A token cookie (`token.write: 'cookie'`) is set only when the whole request succeeded, never on an error response. A start that fails after persisting leaves nothing behind. |
+| Delivered out of band | Once an out-of-band outlet (email, SMS) delivered the new token, the request is committed: a later failure (`renderEnvelope`, …) neither discards nor restores, and the delivered link is the one that works. |
 | What is restored | The state exactly as it was consumed — a deep copy taken **before** the step ran — under the **same handle** and strategy. |
 | Lifetime | Never extended. The state is put back with the exact expiry it was consumed with, as reported by `strategy.consumeEntry()` (a timestamp, or `0` for "never expires"), written back with `strategy.persistEntry()`. When the expiry is unknown — the strategy lacks `consumeEntry()` or `persistEntry()`, or its store does not report `expiresAt` — the state is not restored and a warning is logged once. An entry that expired while the step ran is not restored. |
 | Cap | At most `maxRestores` restores per handle (counted in `state.meta.restores`, carried while the handle is re-used). After that the handle stays burned. `maxRestores: 0` disables restoring. |
@@ -386,7 +400,7 @@ The failing step's writes to the workflow context are discarded — **including 
 :::
 
 ::: warning Side effects become retryable
-A step that performed side effects before throwing (sent an email, charged a card) can run again with the same token. Make such steps idempotent before enabling `restoreOnError`.
+A restore puts back the state from before the resumed run, so every step of that run executes again on retry — not only a step that threw. When a later stage fails (`persist`, delivery, `renderEnvelope`, `onFinished`), steps that already succeeded (sent an email, charged a card) run again. Make such steps idempotent before enabling `restoreOnError`, or restrict it with the predicate form.
 :::
 
 ### Token Configuration
@@ -489,6 +503,61 @@ Control the HTTP response when a workflow finishes, without coupling steps to HT
 ```
 
 If not provided, the trigger checks `useWfFinished()` (set from within steps) and falls back to `{ finished: true }`.
+
+### Transactions and envelopes
+
+Three hooks let an app wrap and shape what the trigger does.
+
+**`around(run)`** wraps everything that touches state or the outside world: the `allow`/`block` checks, consume/start/resume, `beforePersist`, persist, and outlet delivery. Put the state store and the steps' writes in one database, and a request becomes one transaction. A step that throws rolls back its writes and the consumed token together:
+
+```ts
+handle({
+  ...config,
+  around: (run) => db.transaction(() => run()),
+})
+```
+
+`around` returns (or rethrows) what `run()` returns (or throws). It may call `run()` again after a failure — a retrying transaction (serialization failure, deadlock) is supported: every run starts over from the request, nothing from a previous run carries over. The request body is read before it.
+
+Put the state store in the same transaction as the steps' writes. If the commit fails after `run()` succeeded and the store is **not** part of the transaction, the token was already consumed and the new state persisted (and possibly delivered) while the steps' writes rolled back: the flow is stranded. With the store inside the transaction, a failed commit leaves the old token exactly as it was.
+
+With a transactional `around`, a failed request leaves the state store exactly as it was: the consume, a `restoreOnError` re-persist and the restore counter (`state.meta.restores`) roll back together. `maxRestores` then never advances, so it does not bound retries of a request that keeps failing. Limit attempts some other way (the `restoreOnError` predicate, a rate limit), or keep the state store outside the transaction.
+
+**`beforePersist(state, pause)`** runs right before a paused state is persisted, inside `around`. `state.meta` is already set. Throw to abort: nothing is persisted and the outlet is not called. Use it to validate what is about to be stored, for example a size limit on the context.
+
+**`renderEnvelope(envelope, info)`** maps every body the trigger answers with, per request:
+- on pause, the outlet's envelope, before the `wfs` token is added (`info.phase === 'paused'`, plus `outlet`, `schemaId`, `context`);
+- on finish, the `useWfFinished()` value, `onFinished()`'s result, or `{ finished: true }` (`info.phase === 'finished'`).
+
+It is the hook for translating workflow forms and messages: read the locale with [`useLocale()`](../webapp/locale.md) and resolve texts there. It may be async. It is not applied to redirects or errors; refusals go through the HTTP app's [`transformErrorBody`](../webapp/composables/response.md#transforming-every-error-body). Persist codes, not translated text, in the workflow context, so a flow resumed in another language renders in that language.
+
+## Minting a token without a request
+
+Server-initiated flows (an invite, an approval link, a reminder) start without an HTTP request. `mintWfToken()` starts the flow, persists its first pause **exactly as the trigger would**, and returns a token that the trigger resumes:
+
+```ts
+import { mintWfToken } from '@wooksjs/event-wf'
+
+const { token, inputRequired } = await mintWfToken(wfApp, {
+  wfid: 'invite',
+  context: { email },
+  state: triggerConfig.state,   // the SAME state config as the trigger that resumes it
+  ttl: 7 * 24 * 3600_000,       // ms
+  meta: { issuedBy: adminId },  // optional extra state.meta
+})
+if (token) {
+  await mailer.send(email, `https://app.example/invite?wfs=${token}`)
+}
+```
+
+- The token is `<strategy>.<handle>` for the `state` registry. A `swapStrategy()` in the first steps is honoured, and so is a `default` picker (it gets `(wfid, flowId)`).
+- `state.meta.outlet` is set as the trigger sets it. Your `meta` cannot set any key the trigger or the state strategies own (`outlet`, `restores`, `__wf*`); those are dropped. The rest of your `meta` is kept on every later pause the trigger persists for that flow.
+- Expiry is tracked as for trigger-issued tokens, so `restoreOnError` works on the first resume. When the pausing step also returns `expires`, the earlier of the two wins.
+- No outlet is called: you deliver the token. `inputRequired` tells you what the flow asked for.
+- `allow`/`block` are not checked when minting, since the server chooses the flow. They apply when the token is resumed.
+- A flow that finishes without pausing yields `token: undefined`.
+
+`wfApp` is anything with `start()`: `WooksWf`, or `MoostWf` in moost.
 
 ## Composables
 

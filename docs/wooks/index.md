@@ -125,7 +125,7 @@ You can build your own adapter for any event-driven scenario — job queues, mes
 
 - [What is Wooks?](/wooks/what) — the core idea: wooks, typed event context, and the package map
 - [Why Wooks?](/wooks/why) — motivation, design decisions, and framework comparison
-- [Generic Wooks](/wooks/generic-wooks) — `useEventId()`, `useLogger()`, `useRouteParams()`: wooks that work in every flavor
+- [Generic Wooks](/wooks/generic-wooks) — `useEventId()`, `useLogger()`, `useRouteParams()`, `useLocale()`: wooks that work in every flavor
 - [Type Safety](/wooks/type-safety) — how compile-time typing flows through every primitive
 - [Event Context](/wooks/advanced/wooks-context) — the `EventContext` API and `event-core` primitives in depth
 - [Custom Event Context](/wooks/advanced/custom-context) — step-by-step example of a custom event kind

@@ -6,11 +6,13 @@ See [event-http.md](event-http.md) for app setup/routing, [http-request.md](http
 
 - [`useResponse` / `HttpResponse`](#useresponsectx-httpresponse)
 - [Status](#status), [Headers](#headers), [Cookies (outgoing)](#cookies-outgoing), [Cache Control](#cache-control)
-- [Pre-serialized JSON & ETag](#pre-serialized-json--etag) — `prerenderJson`, 304 on `If-None-Match`
+- [Duration Units](#duration-units) — numbers are seconds
+- [Conditional GET (304)](#conditional-get-304) — automatic for any `ETag` / `Last-Modified`; `vary()`
+- [Pre-serialized JSON & ETag](#pre-serialized-json--etag) — `prerenderJson`, computed or custom ETag
 - [Response Compression](#response-compression) — `compression` option, `setCompression`, `negotiateEncoding`
 - [Body Content-Type Inference](#body-content-type-inference)
 - [Raw Response Access](#raw-response-access) — `getRawRes()`, `responded`
-- [HttpError and Error Rendering](#httperror-and-error-rendering) — content-negotiated error body
+- [HttpError and Error Rendering](#httperror-and-error-rendering) — `code`/`params`, `transformErrorBody`, content-negotiated body
 - [Streaming and SSE](#streaming-and-sse)
 - [Testing](#testing) — `prepareTestHttpContext`
 - [Rules & Gotchas](#rules--gotchas)
@@ -90,8 +92,8 @@ response.getSetCookieStrings()       // render buffered cookies as Set-Cookie st
 
 | Attribute  | Type                                     | Description        |
 | ---------- | ---------------------------------------- | ------------------ |
-| `expires`  | `Date \| string \| number`               | Expiration date    |
-| `maxAge`   | `number \| TTimeMultiString`             | Max age in seconds |
+| `expires`  | `Date \| string \| number`               | Expiration date (number = ms timestamp) |
+| `maxAge`   | `number \| TTimeMultiString`             | Seconds (number) or duration string — see [Duration Units](#duration-units) |
 | `domain`   | `string`                                 | Cookie domain      |
 | `path`     | `string`                                 | Cookie path        |
 | `secure`   | `boolean`                                | Secure flag        |
@@ -118,6 +120,37 @@ response.setExpires('2025-12-31')             // also accepts strings
 response.setPragmaNoCache()                   // Pragma: no-cache
 ```
 
+### Duration Units
+
+| # | Rule |
+|---|---|
+| 1 | Cookie `maxAge`, `setCacheControl({ maxAge, sMaxage })`, `setAge()`: **a number is seconds** (`86400` = 1 day). Never multiply by 1000. |
+| 2 | A string carries units: `'90s'`, `'1h 30m'`, `'1.5h'` (`ms s m h d w M Y`). Unparseable (`'15x'`, `''`) or non-finite numbers throw `TypeError`. |
+| 3 | Rendered as plain digits: whole seconds, rounded down, clamped to `0`–`2147483648` (never an exponent or sign). Cookie `maxAge <= 0` → `Max-Age=0` (expires the cookie). Bare digit strings (`'3600'`) throw — use a number or add a unit. |
+| 4 | Timestamps are milliseconds: cookie `expires` number, `setExpires(number)`. |
+| 5 | Before 0.7.32 a number was divided by 1000 (`maxAge: 86400` → `max-age=86.4`). Remove any `*1000` workaround when upgrading. |
+
+---
+
+## Conditional GET (304)
+
+Automatic, no opt-in. `GET`/`HEAD` (304: final status `200`; 412: any 2xx):
+
+| # | Rule |
+|---|---|
+| 1 | `If-None-Match` present → `304` iff the response's `ETag` (explicit header or `prerenderJson`) weakly matches an entry or `*`. `If-Modified-Since` then ignored. |
+| 2 | Else `If-Modified-Since` → `304` iff response `Last-Modified` ≤ it (whole seconds). Counts only if it is ONE valid HTTP-date (IMF-fixdate / RFC 850 / asctime) not in the future — `Date.parse`-style values (`'2026'`, ISO) are ignored. |
+| 3 | No validator → never `304`. Other methods/statuses (201, 206, errors) → never `304`. |
+| 4 | `304` drops body and the representation headers (`Content-Type/-Length/-Encoding/-Language/-Range/-MD5`); keeps `Content-Location`, `Content-Security-Policy`, `ETag`, `Last-Modified`, `Cache-Control`, `Vary`, cookies. Streams destroyed unread; fetch `Response` bodies cancelled. Same on socket and `app.fetch()`. A handler-set `setStatus(304)` is sent the same way. |
+| 4a | Full RFC 9110 §13.2.2 order: `If-Match` (STRONG; `*` = a current representation exists — any 2xx is one) else `If-Unmodified-Since` → stale = `412` for any GET/HEAD 2xx, rendered through the error path (standard error body via `transformErrorBody`, none for HEAD, `no-store`); then `If-None-Match` (`*` = exists), else `If-Modified-Since` → `304` (200 only). |
+| 4b | HEAD headers = GET headers: same compression negotiation (`Content-Encoding`, `Vary`, weakened ETag; no `Content-Length` next to an encoding); an explicit `Content-Length` with NO HEAD body is kept (and counts as a body for the default status); a HEAD with a body is measured like GET. |
+| 4c | Header names are case-insensitive and stored lower-case (`headers()` keys are lower-case): one line per name on the wire, every path. Content-Length = bytes sent: computed for values, the fetch Response's own for its body (a set one is dropped), yours for streams; none on 204; `''` body → no inferred Content-Type. |
+| 4d | Weak ETags (`prerenderJson({ etag: true })`, any ETag on a compressed response) never satisfy `If-Match` → 412. Lost-update recipe: GET sends a strong `ETag` (`"${version}"`), PUT/PATCH/DELETE run `checkPreconditions(method, useHeaders(), { etag })` and throw `HttpError(verdict)` on 412. With compression ON the client receives `W/"…"` (weakened) → its `If-Match` always 412s: `setCompression(false)` on those GETs, or have the client send the strong tag from the body / a custom header. |
+| 4e | A `304` carries exactly the validators of the `200` it confirms — with compression on, the weakened `W/` ETag for that `Accept-Encoding`. `If-*` detection scans `req.rawHeaders` first: an `If-*` header injected into `req.headers` by code in front of wooks (not in `rawHeaders`) is not seen; requests without `rawHeaders` (fetch, test contexts) use `req.headers`. |
+| 5 | The handler still runs. To skip expensive work / refuse a stale write: `checkPreconditions(method, useHeaders(), { etag, lastModified, exists? })` → `304` (GET/HEAD) \| `412` (stale If-Match/IUS, or matching If-None-Match on a write) \| `undefined`. `exists` (for `*`) defaults to "has etag or lastModified"; pass `false` for a create. `parseHttpDate(v)` → epoch ms \| `undefined`. `serveFile` uses the same rules (+ strong `If-Range`). |
+
+`response.vary(...headers)` merges into `Vary` (case-insensitive, deduped, leaves `*`). Compression adds `Accept-Encoding`, `useAcceptLanguage().negotiate()` adds `Accept-Language`.
+
 ---
 
 ## Pre-serialized JSON & ETag
@@ -138,11 +171,11 @@ app.get('/meta', () => {
 |---|---|
 | 1 | **Never mutate a registered object** (or anything it references) — the stored JSON is never refreshed. Build a new object; deep-freeze registered objects in dev/tests to catch violations. |
 | 2 | Hit only on the *same object identity*. A copy/spread (`{ ...meta }`) or an interceptor replacing the body is a plain miss — normal stringify, no ETag. |
-| 3 | `{ etag: true }` → weak `ETag` (`W/"…"`, sha256 of the bytes) set on `GET`/`HEAD` 2xx responses carrying the object (other methods: no ETag). Equal bytes → equal ETag. |
-| 4 | `304` only for `GET`/`HEAD` with final status `200` and a matching `If-None-Match` (weak compare, lists, `*`). Body, `content-type`, `content-length` dropped; all other headers (`ETag`, `Cache-Control`, `Vary`, cookies) kept. |
+| 3 | `{ etag: true }` → weak `ETag` (`W/"…"`, sha256 of the bytes); `{ etag: '"rev-7"' }` → your own tag (must be quoted, optional `W/`, else `TypeError`). Set on `GET`/`HEAD` 2xx responses carrying the object (other methods: no ETag). |
+| 4 | `304` follows [Conditional GET](#conditional-get-304). |
 | 5 | Errors and non-2xx never get an ETag or `304` (thrown `HttpError`, explicit `setStatus(404)`). |
-| 6 | An `ETag` header set explicitly on the response wins — no prerender ETag, no `304`. |
-| 7 | Same behaviour on the socket path and `app.fetch()`. Calling `prerenderJson` again is a no-op (adds the ETag if newly requested); entries are weak (die with the object). |
+| 6 | An `ETag` header set explicitly on the response wins — it is sent, and `If-None-Match` is judged against it. |
+| 7 | Same behaviour on the socket path and `app.fetch()`. Calling `prerenderJson` again reuses the JSON (adds a computed ETag if newly requested; a string `etag` replaces the stored one); entries are weak (die with the object). |
 | 8 | Per-viewer bodies: the ETag is computed from the final bytes, so different bodies never share an ETag — still send `Vary`/`Cache-Control: private` for shared caches. |
 
 ---
@@ -168,7 +201,7 @@ app.get('/me', () => {
 |---|---|
 | 1 | Off by default. `compression: true` → defaults above; object overrides individual fields. |
 | 2 | `useResponse().setCompression(false \| true \| opts)`: `false` disables for this response; `true`/`opts` enables even when the app has it off (opts layer over app settings). `response.compression` = effective settings or `false`. |
-| 3 | Compressed only when ALL hold: regular body (string/number/boolean/object/`Uint8Array`) ≥ `threshold` UTF-8 bytes; status not 1xx/204/206/304; no `Content-Encoding` set; no `Cache-Control: no-transform`; `filter(contentType)` true (default: text/* except event-stream, json/+json, xml/+xml, js, svg, ndjson, wasm, urlencoded); method ≠ HEAD; client accepts `br`/`gzip`. |
+| 3 | Compressed only when ALL hold: regular body (string/number/boolean/object/`Uint8Array`) ≥ `threshold` UTF-8 bytes; status not 1xx/204/206/304; no `Content-Encoding` set; no `Cache-Control: no-transform`; `filter(contentType)` true (default: text/* except event-stream, json/+json, xml/+xml, js, svg, ndjson, wasm, urlencoded); client accepts `br`/`gzip`. HEAD negotiates the same way but sends no body (and no Content-Length next to the encoding). |
 | 4 | Never compressed: `Readable` streams, SSE, fetch `Response` bodies, `app.fetch()`/`request()` (in-process, SSR local fetch), `withHttpContext`. |
 | 5 | Negotiation: highest client q wins, `encodings` order breaks ties; `q=0` excludes; `*` covers unlisted codings; missing header / `identity` only → uncompressed. Exported as `negotiateEncoding(header, supported)`. |
 | 6 | `Vary: Accept-Encoding` is merged into existing `Vary` on every eligible response — also for identity clients, HEAD and prerender `304`s. `Vary: *` left alone. |
@@ -227,8 +260,17 @@ import { HttpError } from '@wooksjs/event-http'
 
 throw new HttpError(404)                                      // default message
 throw new HttpError(400, 'Invalid email')                     // custom message
-throw new HttpError(422, { message: 'Validation failed', statusCode: 422, fields: ['email'] }) // structured body (statusCode is required by the body type; the code argument wins)
+throw new HttpError(422, { message: 'Too short', code: 'MIN_LENGTH', params: { min: 3 }, field: 'name' })
+// body: { statusCode: 422, error: 'Unprocessable Entity', message, code, params, field } — extra fields are typed (inferred)
 ```
+
+| # | Rule |
+|---|---|
+| 1 | Object body needs `message`; `code` (UPPER_SNAKE) and `params` are optional and pass through. Extra fields are inferred into `error.body`'s type. |
+| 2 | `statusCode`, `message`, `error` (status text) always come from the error, never from the body object. |
+| 3 | `createHttpApp({ transformErrorBody: (body, error, ctx) => body })` sees EVERY rendered error: thrown/returned `HttpError`, other errors (as 500), router 404. Use it to translate `message` from `code` + `params` (with `useLocale()`). Must return synchronously a plain object with numeric `statusCode` + string `message`; anything else (undefined, Promise, array…) or a throw → logged, original body sent. Status is ALWAYS the error's own. A throwing `renderError` falls back to plain JSON — a response always goes out. |
+| 3a | Every error-path response (thrown/returned errors, router 404, automatic 412, serveFile 412/416) is NEVER storable: `Cache-Control`/`Expires` set before the failure are dropped, `Cache-Control: no-store` sent. A deliberately cacheable failure = `setStatus(4xx)` + body + your cache headers (untouched). |
+| 4 | Keep `message` in the default language — it is the fallback for clients ignoring `code`. |
 
 `HttpError` skips stack trace capture (performance optimization for expected control-flow errors).
 
@@ -415,7 +457,8 @@ it('reads cookies from request', () => {
 - Calling `send()` twice throws — check `response.responded`.
 - `getRawRes()` (no arg) marks response "responded"; framework will not touch it.
 - `getRawRes(true)` passthrough: you write headers/data, framework still finalizes cookies and status.
-- Cookie `maxAge` is seconds, not milliseconds.
+- Cookie `maxAge`, cache `maxAge`/`sMaxage`, `setAge()`: numbers are seconds — see [Duration Units](#duration-units).
+- Default status: POST with body → 201; any other method with body → 200; no body → 204. Exported as `DEFAULT_HTTP_STATUS` / `getDefaultHttpStatus(method, hasBody)`.
 - `setContentType()` overwrites any prior content-type.
 - For custom error rendering, subclass `WooksHttpResponse` and override `renderError()`.
 - `prerenderJson` objects must never be mutated after registration — see [Pre-serialized JSON & ETag](#pre-serialized-json--etag).

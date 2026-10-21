@@ -1,3 +1,6 @@
+/** RFC 9110 `token` (one or more tchar) — e.g. a header or cookie name. */
+export const TOKEN_RE = /^[\w!#$%&'*+\-.^`|~]+$/u
+
 export function escapeRegex(s: string): string {
   return s.replace(/[$()*+\-./?[\\\]^{|}]/gu, '\\$&')
 }

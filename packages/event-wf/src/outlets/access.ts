@@ -2,7 +2,8 @@ import { ProstoRouter } from '@prostojs/router'
 
 import { normalizeWfId } from '../wf-id'
 
-import type { WfOutletTriggerConfig, WfOutletTriggerDeps } from './types'
+import type { WfRefusal } from './errors'
+import type { WfOutletTriggerConfig, WfStartRunner } from './types'
 import { warnOnce } from './warn-once'
 
 /*
@@ -57,14 +58,33 @@ import { warnOnce } from './warn-once'
  *   request spelling, not the flow it runs.
  */
 
-/** A refused request: HTTP status + error message for the response body. */
-interface Refusal {
-  status: 400 | 403 | 404
-  error: string
-}
-
 /** `flowOf(id)` bound to the request context; a throwing resolution counts as unresolved. */
 type Resolve = (id: string) => Promise<string | undefined>
+
+/**
+ * `flowOf` for one request, from `deps.resolveSchemaId` (`undefined` without one): resolution
+ * runs with `eventContext` as `start()` gets it, and a throwing resolution counts as unresolved.
+ * Shared by the trigger and `mintWfToken`, so both pick the same flow (and default strategy).
+ */
+export function createResolver(
+  deps: Pick<WfStartRunner, 'resolveSchemaId'>,
+  eventContext: unknown,
+): Resolve | undefined {
+  const resolveSchemaId = deps.resolveSchemaId
+  if (!resolveSchemaId) {
+    return undefined
+  }
+  return async (id) => {
+    try {
+      return await resolveSchemaId.call(deps, id, { eventContext })
+    } catch {
+      return undefined
+    }
+  }
+}
+
+/** The message of a `WF_FORBIDDEN` refusal, by reason. */
+const FORBIDDEN_MSG = { 'not-allowed': 'is not allowed', blocked: 'is blocked' } as const
 
 /** Whether `allow` / `block` restrict this trigger at all. */
 export function hasAccessLists(config: WfOutletTriggerConfig): boolean {
@@ -92,22 +112,13 @@ function allowSetOf(allow: string[]): Set<string> {
  */
 export async function createWfAccess(
   config: WfOutletTriggerConfig,
-  deps: WfOutletTriggerDeps,
+  deps: Pick<WfStartRunner, 'resolveSchemaId'>,
   eventContext?: unknown,
 ) {
   const allow = config.allow && allowSetOf(config.allow)
   const blockEntries = config.block ?? []
   const listsSet = hasAccessLists(config)
-  const resolveSchemaId = deps.resolveSchemaId
-  const resolve: Resolve | undefined =
-    resolveSchemaId &&
-    (async (id) => {
-      try {
-        return await resolveSchemaId(id, { eventContext })
-      } catch {
-        return undefined
-      }
-    })
+  const resolve = createResolver(deps, eventContext)
 
   let isBlocked: (flowId: string) => boolean = neverBlocked
   if (resolve) {
@@ -132,14 +143,22 @@ export async function createWfAccess(
     }
   }
 
-  const judge = (flowId: string, shown: string): Refusal | undefined => {
+  /** `wfid` is shown (message + params) on start only — a resume never names the stored flow. */
+  const judge = (flowId: string, wfid?: string): WfRefusal | undefined => {
+    let reason: keyof typeof FORBIDDEN_MSG
     if (allow && !allow.has(normalizeWfId(flowId))) {
-      return { status: 403, error: `${shown} is not allowed` }
+      reason = 'not-allowed'
+    } else if (isBlocked(flowId)) {
+      reason = 'blocked'
+    } else {
+      return undefined
     }
-    if (isBlocked(flowId)) {
-      return { status: 403, error: `${shown} is blocked` }
+    const shown = wfid === undefined ? 'Workflow' : `Workflow '${wfid}'`
+    return {
+      code: 'WF_FORBIDDEN',
+      message: `${shown} ${FORBIDDEN_MSG[reason]}`,
+      params: wfid === undefined ? { reason } : { wfid, reason },
     }
-    return undefined
   }
 
   return {
@@ -148,27 +167,36 @@ export async function createWfAccess(
      * `wfid` when nothing resolves or there is no resolver); `resolvedId` is
      * set only when a resolver named the flow.
      */
-    async start(wfid: string): Promise<{ flowId: string; resolvedId?: string; refusal?: Refusal }> {
+    async start(
+      wfid: string,
+    ): Promise<{ flowId: string; resolvedId?: string; refusal?: WfRefusal }> {
       if (!resolve) {
         if (listsSet && /[%?]/u.test(wfid)) {
           // The router would rewrite this id (decode / strip a query) — it
           // could reach a listed flow under a spelling the lists don't contain.
-          return { flowId: wfid, refusal: { status: 400, error: 'Invalid workflow ID' } }
+          return { flowId: wfid, refusal: { code: 'WF_INVALID' } }
         }
-        return { flowId: wfid, refusal: judge(wfid, `Workflow '${wfid}'`) }
+        return { flowId: wfid, refusal: judge(wfid, wfid) }
       }
       const resolvedId = await resolve(wfid)
       if (resolvedId === undefined) {
         // Nothing would run — and nothing unresolvable can be judged.
         return listsSet
-          ? { flowId: wfid, refusal: { status: 404, error: `Workflow '${wfid}' not found` } }
+          ? {
+              flowId: wfid,
+              refusal: {
+                code: 'WF_NOT_FOUND',
+                message: `Workflow '${wfid}' not found`,
+                params: { wfid },
+              },
+            }
           : { flowId: wfid }
       }
-      return { flowId: resolvedId, resolvedId, refusal: judge(resolvedId, `Workflow '${wfid}'`) }
+      return { flowId: resolvedId, resolvedId, refusal: judge(resolvedId, wfid) }
     },
     /** Judge a resume of a stored state's `schemaId`. */
-    resume(schemaId: string): Refusal | undefined {
-      return judge(schemaId, 'Workflow')
+    resume(schemaId: string): WfRefusal | undefined {
+      return judge(schemaId)
     },
   }
 }

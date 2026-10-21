@@ -5,7 +5,17 @@ export type { WfPauseRequest } from '../pause-request'
 export type { WfFinishedResponse } from './outlet-context'
 export { handleWfOutletRequest } from './trigger'
 export { normalizeWfId } from '../wf-id'
-export type { WfOutletTokenConfig, WfOutletTriggerConfig, WfOutletTriggerDeps } from './types'
+export type {
+  WfEnvelopeInfo,
+  WfOutletTokenConfig,
+  WfOutletTriggerConfig,
+  WfOutletTriggerDeps,
+  WfStartRunner,
+} from './types'
+export { WF_TRIGGER_ERRORS } from './errors'
+export type { WfTriggerErrorBody, WfTriggerErrorCode } from './errors'
+export { mintWfToken } from './mint'
+export type { WfMintTokenOptions, WfMintTokenResult } from './mint'
 export { createHttpOutlet, createEmailOutlet } from './create-outlet'
 export { createOutletHandler } from './create-handler'
 

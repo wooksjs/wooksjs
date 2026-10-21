@@ -10,6 +10,7 @@ import { acceptHeaderHas } from '../utils/accept'
 import { escapeHtml } from '../utils/escape-html'
 import { httpStatusCodes } from '../utils/status-codes'
 import type { EHttpStatusCode } from '../utils/status-codes'
+import { lowerCaseRenderErrors } from './header-keys'
 import { HttpResponse } from './http-response'
 
 let framework = {
@@ -62,6 +63,8 @@ export class WooksHttpResponse extends HttpResponse {
     }
   }
 }
+
+lowerCaseRenderErrors.add(WooksHttpResponse.prototype['renderError'])
 
 function renderErrorHtml(data: TWooksErrorBodyExt): string {
   const hasDetails = Object.keys(data).length > 3

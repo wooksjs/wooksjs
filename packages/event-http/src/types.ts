@@ -20,9 +20,13 @@ export type TCookieAttributesInput = Partial<TCookieAttributes>
 
 /** Full set of attributes for a `Set-Cookie` header (RFC 6265 §4.1). */
 export interface TCookieAttributes {
-  /** Cookie expiration date. */
+  /** Cookie expiration date: a `Date`, a date string, or a timestamp in **milliseconds**. */
   expires: Date | string | number
-  /** Max age in seconds, or a time string (e.g. `'1h'`). */
+  /**
+   * `Max-Age`: a number is **seconds** (`86400` = one day); a string carries its units
+   * (`'1d'`, `'15m'`, `'1.5h'`). Rendered as whole seconds, rounded down, clamped to
+   * 0–2147483648; `0` or a negative number renders `Max-Age=0` (expires the cookie).
+   */
   maxAge: number | TTimeMultiString
   /** Cookie domain. */
   domain: string

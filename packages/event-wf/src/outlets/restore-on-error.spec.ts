@@ -275,7 +275,8 @@ describe('outlet trigger — restoreOnError', () => {
       const outcomes: string[] = []
       for (let i = 0; i < n; i++) {
         const r = await post(handle, config, { wfs: body.wfs, input: { pw: `guess${i}` } })
-        outcomes.push(r.error ? 'error' : String(r.status))
+        // a step error vs a refusal (thrown as HttpError, reported by its status)
+        outcomes.push(r.error && !(r.error instanceof HttpError) ? 'error' : String(r.status))
       }
       return outcomes
     }

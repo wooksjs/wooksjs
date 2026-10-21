@@ -10,6 +10,8 @@ All composables accept an optional `ctx` parameter to skip the ALS lookup. See [
 - [`useUrlParams`](#useurlparamsctx) — query params
 - [`useAuthorization`](#useauthorizationctx) — Basic/Bearer parsing
 - [`useAccept`](#useacceptctx) — Accept header matching
+- [`useAcceptLanguage`](#useacceptlanguagectx) — `negotiate(available, fallback)` + `Vary`
+- [Proxy trust](#proxy-trust) — `trustProxy`, `getIp()`/`protocol()`/`host()`, `resolveForwarded`
 - [Rules & Gotchas](#rules--gotchas)
 
 ## `useRequest(ctx?)`
@@ -18,7 +20,7 @@ Primary request composable.
 
 ```ts
 import { useRequest } from '@wooksjs/event-http'
-const { method, url, headers, rawBody, getIp, reqId } = useRequest()
+const { method, url, headers, rawBody, getIp, protocol, host, reqId } = useRequest()
 ```
 
 **Returned properties:**
@@ -31,8 +33,10 @@ const { method, url, headers, rawBody, getIp, reqId } = useRequest()
 | `headers`        | `IncomingHttpHeaders`                             | Request headers                                  |
 | `rawBody`        | `() => Promise<Buffer>`                           | Lazy: reads and decompresses request body        |
 | `reqId`          | `() => string`                                    | Lazy UUID per request                            |
-| `getIp(opts?)`   | `(opts?: { trustProxy: boolean }) => string`      | Client IP (optional proxy trust)                 |
-| `getIpList()`    | `() => { remoteIp: string; forwarded: string[] }` | All IPs (remote + X-Forwarded-For)               |
+| `getIp()`        | `() => string`                                    | Client IP via the app's `trustProxy` ([Proxy trust](#proxy-trust)) |
+| `protocol()`     | `() => 'http' \| 'https'`                         | Client's protocol via `trustProxy`               |
+| `host()`         | `() => string`                                    | Requested host (with port) via `trustProxy`      |
+| `getIpList()`    | `() => { remoteIp: string; forwarded: string[] }` | RAW socket + X-Forwarded-For entries (forgeable) |
 | `isCompressed()` | `() => boolean`                                   | Whether the request body is compressed           |
 
 For parsed bodies (JSON / form-data / urlencoded) use `useBody()` from `@wooksjs/http-body` — see [http-body.md](http-body.md).
@@ -128,6 +132,52 @@ const { accept, has } = useAccept()
 if (has('json')) { /* ... */ }
 if (has('image/png')) { /* ... */ }
 ```
+
+---
+
+## `useAcceptLanguage(ctx?)`
+
+```ts
+import { useAcceptLanguage, useLocale } from '@wooksjs/event-http'
+const lang = useAcceptLanguage().negotiate(['en', 'de', 'pt-BR'], 'en') // tag as spelled in `available`
+```
+
+| # | Rule |
+|---|---|
+| 1 | Ranges tried by `q` desc, then header order; `q=0` = not acceptable (also excluded from `*`) — and it excludes EVERY tag it covers (`en;q=0, en-US` excludes `en-US`). Malformed entries skipped. Algorithm: RFC 4647 lookup (truncation) + basic filtering (prefix). |
+| 2 | Per range: exact tag (case-insensitive) → first available tag it covers (`en` → `en-US`) → truncations (`de-CH` → `de`). `*` = first non-excluded available. |
+| 3 | No match → `fallback` (else `undefined`). |
+| 4 | **Every `negotiate()` call adds `Vary: Accept-Language`.** `languages()` (ranked list) and `acceptLanguage` (raw) add nothing. |
+| 5 | Header only. Query/cookie/user preference = app policy → put the whole policy in `createHttpApp({ resolveLocale })`, read it anywhere with `useLocale().get()` (event-core, see [event-core.md](event-core.md)). Wooks never translates. |
+
+---
+
+## Proxy trust
+
+App-level, off by default. One resolver drives `getIp()`, `protocol()`, `host()`.
+
+```ts
+createHttpApp({ trustProxy: 1 })                          // one reverse proxy
+createHttpApp({ trustProxy: ['10.0.0.0/8', 'loopback'] }) // by address (IPs, CIDRs, 'loopback'|'linklocal'|'uniquelocal')
+createHttpApp({ trustProxy: (addr, hop) => hop === 0 })   // predicate; hop 0 = socket peer
+createHttpApp({ trustProxy: 1, proxyHeaders: 'forwarded' }) // RFC 7239 instead of X-Forwarded-*
+```
+
+| # | Rule |
+|---|---|
+| 1 | Default `false`: forwarding headers ignored; IP = socket peer, protocol = socket TLS, host = `Host`. |
+| 2 | Client = right-most hop that is NOT trusted, walking from the socket (hop 0) through `X-Forwarded-For` / `Forwarded: for=` right-to-left. Client-written entries are never reached. An entry a trusted hop wrote that is missing/empty/malformed/not an address (or a `Forwarded` element without `for=`) → client UNKNOWN `''` — never the proxy's own address. `Forwarded` is split from the right + strict RFC 7239 grammar, so a client's unterminated quote can't move the proxies' element boundaries. |
+| 3 | `trustProxy: true` throws at startup (would let clients pick their IP) — use the hop count. Invalid IP/CIDR (prefix must be plain digits in range) also throws. Empty list = trust nothing. |
+| 3a | Addresses are normalised: IPv4-mapped IPv6, dotted or hex (`::ffff:10.0.0.5`, `::ffff:a00:5`) → `10.0.0.5` for matching, predicates and `getIp()`. A throwing predicate fails closed (client `''`, logged once). |
+| 3c | No forwarding header at all (or only empty elements) from a trusted peer → the PEER is the client (direct internal call). A present but malformed entry → `''`. `Forwarded` structure is strict; `for=` may also be an unquoted IP / IP:port or a bare IPv6 (`for=2001:db8::1`, `for="2001:db8::1"`). A malformed entry from hop 0 (your own proxy) is warned once. |
+| 3d | A proxy copying the raw client `Host` into `Forwarded: host="…"` must escape it (or omit `host`) — else the client can inject an element. |
+| 3b | `host()` validated with the same rule with or without trust (malformed → `''`). It is client-chosen: allowlist before building absolute URLs. |
+| 4 | Only ONE header family is read (`proxyHeaders`, default `'x-forwarded'`). |
+| 5 | `'x-forwarded'`: `X-Forwarded-Proto`/`-Host` = right-most entry, only if hop 0 is trusted (edge sets, inner proxies pass through). `'forwarded'`: per-element walk, outermost trusted `proto=`/`host=` wins. Invalid proto/host ignored. |
+| 6 | `getIp({ trustProxy: true })` is DEPRECATED: now trusts exactly ONE hop (right-most XFF) of a KNOWN peer, not the left-most; unknown peer → `''`. `getIp({ trustProxy: false })` = socket. Logs a warning once. |
+| 7 | `app.fetch()`/`request()` inside a request inherit the caller's resolved ip/protocol/host (and locale). With NO caller the peer is unknown: list/predicate trust read no forwarding headers, `getIp()` = `''`, protocol/host from the Request URL; pass `app.fetch(req, { remoteAddress, encrypted })` on Bun/Deno/edge. A hop count still trusts whatever sits in front. |
+| 8 | Outside a request: `resolveForwarded(req, compileTrustProxy(opt), proxyHeaders, onIssue?)` → `{ ip, protocol, host }`; `onIssue` gets `{ kind: 'trust-error' }` / `{ kind: 'malformed', hop: 0 }` (`TForwardedIssue`). |
+| 9 | `getIpList()` is raw and forgeable — never use it for decisions. |
 
 ---
 

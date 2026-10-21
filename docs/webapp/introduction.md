@@ -25,13 +25,14 @@ No middleware to register. No `req`/`res` parameters. The body is parsed only wh
 
 | Composable | What it provides |
 |------------|-----------------|
-| `useRequest()` | Method, URL, headers, raw body, IP, request limits |
+| `useRequest()` | Method, URL, headers, raw body, client IP/protocol/host ([behind a proxy](./proxy-trust.md)), request limits |
 | `useResponse()` | Status, headers, cookies, cache control — one chainable API |
 | `useBody()` | JSON, URL-encoded, multipart, text parsing — on demand |
 | `useRouteParams()` | Typed route parameters |
 | `useCookies()` | Incoming cookie values |
 | `useUrlParams()` | URL query parameters |
 | `useAuthorization()` | Authorization header parsing (Basic, Bearer) |
+| `useAcceptLanguage()` | `Accept-Language` negotiation for the request's [locale](./locale.md) |
 
 Plus `@wooksjs/http-static` for file serving and `@wooksjs/http-proxy` for reverse proxy.
 
