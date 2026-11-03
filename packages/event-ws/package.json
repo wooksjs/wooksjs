@@ -45,7 +45,7 @@
     "@types/ws": "^8.18.1",
     "@wooksjs/event-core": "workspace:^",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.7",
+    "vitest": "^4.1.12",
     "wooks": "workspace:^"
   },
   "peerDependencies": {
