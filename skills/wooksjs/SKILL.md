@@ -16,7 +16,7 @@ description: >-
   StepRetriableError,
   outlets, swapStrategy, WF_ error codes, mintWfToken),
   @wooksjs/ws-client (createWsClient, RPC), "A second copy of
-  @wooksjs/event-core" / "Incompatible versions" warnings. Not for moostjs
+  @wooksjs/event-core" / "Incompatible versions" warnings, 0.8 upgrade. Not for moostjs
   or generic Node servers.
 ---
 
@@ -71,12 +71,13 @@ Most reference files end with a Rules & Gotchas table — read it before writing
 // event-core — context engine, custom adapters
 import { key, cached, cachedBy, slot, defineEventKind, defineWook,
   EventContext, run, current, tryGetCurrent, createEventContext,
-  useRouteParams, useEventId, useLogger, routeParamsKey, eventTypeKey,
+  useRouteParams, useEventId, useLogger, useLocale, routeParamsKey, eventTypeKey,
   ContextInjector, getContextInjector, replaceContextInjector, resetContextInjector } from '@wooksjs/event-core'
 
 // event-http — HTTP server + request/response composables
 import { createHttpApp, useRequest, useResponse, useHeaders, useCookies,
-  useUrlParams, useAuthorization, useAccept, HttpError, prerenderJson,
+  useUrlParams, useAuthorization, useAccept, useAcceptLanguage, useLocale,
+  HttpError, prerenderJson, checkPreconditions, getDefaultHttpStatus,
   prepareTestHttpContext, DEFAULT_FORWARD_HEADERS } from '@wooksjs/event-http'
 
 // http-body — parsed request bodies (JSON, form-data, urlencoded)
@@ -97,7 +98,8 @@ import { createWsApp, useWsConnection, useWsMessage, useWsRooms, useWsServer,
   currentConnection, prepareTestWsConnectionContext, prepareTestWsMessageContext } from '@wooksjs/event-ws'
 
 // event-wf — workflows
-import { createWfApp, useWfState, StepRetriableError } from '@wooksjs/event-wf'
+import { createWfApp, useWfState, StepRetriableError,
+  createOutletHandler, mintWfToken, WF_TRIGGER_ERRORS } from '@wooksjs/event-wf'
 
 // ws-client — standalone WS client (browser + Node)
 import { createWsClient } from '@wooksjs/ws-client'
@@ -123,6 +125,7 @@ Read the reference file that matches the task. Do not load all files — only wh
 | Workflow outlets  | [wf-outlets.md](references/wf-outlets.md)         | HTTP/email delivery, state strategies, tokens, trigger handler, WF_ refusal codes, around/beforePersist/renderEnvelope, mintWfToken |
 | Workflow advanced | [wf-advanced.md](references/wf-advanced.md)       | Parent context, spies, error handling, testing                       |
 | WS client         | [ws-client.md](references/ws-client.md)           | Browser/Node WS client, RPC, subscriptions, reconnection             |
+| Upgrading         | [upgrading.md](references/upgrading.md)           | Bumping 0.7.x → 0.8, or 0.7-era code/tests break on 0.8 (seconds durations, default statuses, trustProxy, 304/412, WF_ codes, `allow: []`) |
 
 ## Cross-cutting pointers
 

@@ -240,7 +240,7 @@ app.get('test', () => {
 | `setCookieRaw(rawValue)` | Sets a raw `Set-Cookie` header value |
 
 ::: info Duration units
-Every duration that ends up in a header as seconds — cookie `maxAge`, `setCacheControl({ maxAge, sMaxage })`, `setAge()` — follows one rule: **a number is seconds** (`86400` = one day), **a string carries its units** (`'1d'`, `'1h 30m'`, `'1.5h'`; units `ms s m h d w M Y`). The header gets whole seconds as plain digits, rounded down and clamped to `0`–`2147483648` (RFC 9111): never a negative value or an exponent. A cookie `maxAge` of `0` or less renders `Max-Age=0`, which expires the cookie. A string that is not a duration (`'15x'`, or bare digits like `'3600'`, which need a unit) throws a `TypeError` instead of silently rendering `0`. Timestamps (`expires`, `setExpires()`) are milliseconds, like `Date.now()`.
+Every duration that ends up in a header as seconds — cookie `maxAge`, `setCacheControl({ maxAge, sMaxage })`, `setAge()` — follows one rule: **a number is seconds** (`86400` = one day), **a string carries its units** (`'1d'`, `'1h 30m'`, `'1.5h'`; units `ms s m h d w M Y`). The header gets whole seconds as plain digits, rounded down and clamped to `0`–`2147483648` (RFC 9111): never a negative value or an exponent. A cookie `maxAge` of `0` or less renders `Max-Age=0`, which expires the cookie. A string that is not a duration (`'15x'`, or bare digits like `'3600'`, which need a unit) throws a `TypeError` instead of silently rendering `0`; so does a non-finite number (`NaN`, `Infinity`). Before 0.8 a number was divided by 1000 — see [Upgrading to 0.8](../../wooks/upgrading.md#durations-are-seconds). Timestamps (`expires`, `setExpires()`) are milliseconds, like `Date.now()`.
 :::
 
 ## Status

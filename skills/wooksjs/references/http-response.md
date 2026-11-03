@@ -128,7 +128,7 @@ response.setPragmaNoCache()                   // Pragma: no-cache
 | 2 | A string carries units: `'90s'`, `'1h 30m'`, `'1.5h'` (`ms s m h d w M Y`). Unparseable (`'15x'`, `''`) or non-finite numbers throw `TypeError`. |
 | 3 | Rendered as plain digits: whole seconds, rounded down, clamped to `0`–`2147483648` (never an exponent or sign). Cookie `maxAge <= 0` → `Max-Age=0` (expires the cookie). Bare digit strings (`'3600'`) throw — use a number or add a unit. |
 | 4 | Timestamps are milliseconds: cookie `expires` number, `setExpires(number)`. |
-| 5 | Before 0.7.32 a number was divided by 1000 (`maxAge: 86400` → `max-age=86.4`). Remove any `*1000` workaround when upgrading. |
+| 5 | Before 0.8.0 a number was divided by 1000 (`maxAge: 86400` → `max-age=86.4`). Remove any `*1000` workaround when upgrading. |
 
 ---
 

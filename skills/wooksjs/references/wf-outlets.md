@@ -335,7 +335,7 @@ Every refusal is THROWN as `HttpError` (reaches moost error interceptors and `tr
 | `WF_NOT_FOUND` | 404 | `wfid` resolves to no flow, lists set, with `resolveSchemaId` | `wfid` |
 | `WF_UNKNOWN_OUTLET` | 500 | step paused on an unregistered outlet | `outlet` |
 
-Before 0.7.32 these were RETURNED as `{ error: '<message>' }` with `setStatus()`: the text is now in `message` (`error` = status text). Read `body.message ?? body.error` for both.
+Before 0.8.0 these were RETURNED as `{ error: '<message>' }` with `setStatus()`: the text is now in `message` (`error` = status text). Read `body.message ?? body.error` for both.
 
 ### Trigger invariants
 

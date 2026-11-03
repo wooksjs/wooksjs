@@ -84,6 +84,7 @@ export default defineConfig({
                 text: 'Resources',
                 items: [
                     { text: 'Team', link: '/team' },
+                    { text: 'Upgrading to 0.8', link: '/wooks/upgrading' },
                     {
                         items: [
                             {
@@ -135,6 +136,10 @@ export default defineConfig({
                         {
                             text: 'Type Safety',
                             link: '/wooks/type-safety',
+                        },
+                        {
+                            text: 'Upgrading to 0.8',
+                            link: '/wooks/upgrading',
                         },
                         {
                             text: 'Advanced',
