@@ -236,6 +236,10 @@ res.headers.get('x-custom')  // 'value'
 When using `getRawRes()` during programmatic fetch, the `json()` / `text()` optimizations do not apply — the response body is captured as raw bytes.
 :::
 
+## Response Completion: `onClose`
+
+[`useResponse().onClose(cb)`](./composables/response.md#when-the-response-is-over) works for in-process requests too. For a regular body it runs before `fetch()` resolves; for a streamed body (a returned `Readable` or fetch `Response`) it runs once the caller has read the body to its end (`finished: true`) or cancelled it (`finished: false`). A streamed body nobody reads keeps the callbacks pending — read or cancel it. A streamed body is tracked only when an `onClose` callback is registered during the handler; otherwise the caller gets the body stream as the handler produced it.
+
 ## Unmatched Routes
 
 When no route matches, `fetch()` and `request()` return `null` instead of a 404 response. This lets callers distinguish "no route exists" from "a handler explicitly returned 404":
@@ -318,7 +322,7 @@ Inside `fn`:
 - **Request composables work** — `useRequest()`, `useHeaders()`, `useCookies()`, `useAuthorization()` read the real request. Route-scoped state (`useRouteParams()`) is empty, since no route was matched.
 - **Nested `fetch()` calls see this context as their caller**, so [header forwarding](#ssr-header-forwarding) and [cookie propagation](#cookie-propagation) apply exactly as they do inside route handlers.
 
-The method awaits `fn` before returning and **never writes to `res`** — the caller owns the wire. The returned response wrapper is created in capture mode, so even a stray `response.send()` inside `fn` cannot touch the socket.
+The method awaits `fn` before returning and **never writes to `res`** — the caller owns the wire. The returned response wrapper is created in capture mode, so even a stray `response.send()` inside `fn` cannot touch the socket. `useResponse().onClose()` inside `fn` fires when the real `res` closes, whenever the caller ends it.
 
 Combined with [`getServerCb(onNoMatch)`](#middleware-integration), this wraps SSR page renders in a Vite-style middleware setup:
 

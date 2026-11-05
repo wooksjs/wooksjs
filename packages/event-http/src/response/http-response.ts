@@ -5,6 +5,8 @@ import { pipeline, Readable } from 'stream'
 import type { ReadableStream as NodeReadableStream } from 'stream/web'
 
 import { HttpError } from '../errors/http-error'
+import { closeWatchOf } from './close'
+import type { THttpResponseCloseCallback } from './close'
 import type { TWooksErrorBodyExt } from '../errors/http-error'
 import { getHttpAppConfig } from '../http-config'
 import type { TCookieAttributes, TSetCookieData } from '../types'
@@ -365,6 +367,28 @@ export class HttpResponse {
   /** Whether the response has already been sent (or the underlying stream is no longer writable). */
   get responded(): boolean {
     return this._responded || !this._res.writable || this._res.writableEnded
+  }
+
+  /**
+   * Runs `cb` once when the response is over: fully sent, or the connection closed first
+   * (client abort, failing body stream). `info.finished` tells which; `info.error` carries the
+   * error that ended it early, if any. A streamed body counts as sent once its last byte is
+   * flushed; an in-process `fetch()` response once the caller has it (a streamed body: once it
+   * is read to its end or cancelled). Registered after the response is over, `cb` runs at once.
+   *
+   * Each callback runs in the event context it was registered in; one that throws (or rejects)
+   * is logged and does not affect the others. Nothing is retained after the callbacks ran.
+   * Inside `withHttpContext()` it reports the wrapped real response; in
+   * `prepareTestHttpContext()` it never fires.
+   *
+   * @example
+   * ```ts
+   * const lease = await pool.acquire()
+   * useResponse().onClose(({ finished }) => lease.release(finished))
+   * ```
+   */
+  onClose(cb: THttpResponseCloseCallback): void {
+    closeWatchOf(this, this._res, this._req, this._logger, this._captureMode).add(cb)
   }
 
   // --- Web Response (programmatic fetch) ---

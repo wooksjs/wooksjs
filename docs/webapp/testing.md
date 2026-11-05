@@ -123,7 +123,7 @@ it('propagates cookies from inner calls to outer response', async () => {
 
 ## Unit Testing with `prepareTestHttpContext`
 
-For testing composables in isolation — without routing or response rendering:
+For testing composables in isolation — without routing or response rendering. Nothing is sent, so [`useResponse().onClose()`](./composables/response.md#when-the-response-is-over) callbacks never fire here; test them through `app.request()`:
 
 ```ts
 import { prepareTestHttpContext } from '@wooksjs/event-http'

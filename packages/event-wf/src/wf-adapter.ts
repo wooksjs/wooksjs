@@ -124,6 +124,50 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
     this.wf.detachSpy<I>(fn)
   }
 
+  /** Cleanups that run when any `start()` / `resume()` of this app ends. */
+  private readonly cleanups = new Set<() => unknown>()
+
+  /**
+   * Registers `fn` to run whenever a `start()` / `resume()` of this app ends — the flow
+   * finished, paused, or failed — whoever started it (including outlet triggers and
+   * `mintWfToken()`). It runs inside the workflow event context, after the run's own
+   * `cleanup` option. A cleanup that throws (or rejects) is logged and does not affect the
+   * run's result or the other cleanups. Registering the same function twice has no effect.
+   *
+   * @returns A function that detaches `fn`.
+   *
+   * @example
+   * ```ts
+   * app.attachCleanup(() => releaseRunResources(useWfState().schemaId))
+   * ```
+   */
+  public attachCleanup(fn: () => unknown): () => void {
+    this.cleanups.add(fn)
+    return () => {
+      this.cleanups.delete(fn)
+    }
+  }
+
+  /** Ends a run: the run's own `cleanup`, then every attached cleanup (each one guarded). */
+  private endRun(cleanup: (() => void) | undefined): void {
+    try {
+      cleanup?.()
+    } finally {
+      // a snapshot: a cleanup attached or detached by a cleanup applies from the next run
+      for (const fn of Array.from(this.cleanups)) {
+        try {
+          Promise.resolve(fn()).catch(this.logCleanupFailure)
+        } catch (error) {
+          this.logCleanupFailure(error)
+        }
+      }
+    }
+  }
+
+  private readonly logCleanupFailure = (error: unknown): void => {
+    this.logger.error('Workflow cleanup failed', error)
+  }
+
   /** Registers a workflow step with the given id and handler. */
   public step<I = any>(
     id: string,
@@ -331,123 +375,115 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
     resumeOf?: { indexes: number[]; flowParams?: TWfFlowParams },
   ) {
     const { input, spy, cleanup } = opts ?? {}
-    const parentCtx = opts?.eventContext
     const indexes = resumeOf?.indexes
     // A resume always dispatches by registered id, even with empty indexes;
     // the engine resumes only when there is a position.
-    const resume = resumeOf !== undefined
-    const factory = resume ? resumeWfContext : createWfContext
-    const ctxOptions = this.contextOptions(parentCtx)
+    const factory = resumeOf ? resumeWfContext : createWfContext
+    const ctxOptions = this.contextOptions(opts?.eventContext)
     const seeds = { inputContext, schemaId, stepId: null, indexes, input }
 
     return factory(ctxOptions, seeds, async () => {
-      if (opts?.strategy?.name !== undefined) {
-        current().set(stateStrategyNameKey, opts.strategy.name)
+      const result = await this.runFlow<I>(schemaId, inputContext, opts, resumeOf).finally(() =>
+        this.endRun(cleanup),
+      )
+      if (result.inputRequired) {
+        // Augment inputRequired with the post-swap strategy name so callers
+        // (trigger / offline driver) read it from the output instead of
+        // depending on parent-context write-through.
+        const ctx = current()
+        const finalName = ctx.has(stateStrategyNameKey) ? ctx.get(stateStrategyNameKey) : undefined
+        if (finalName !== undefined) {
+          ;(result.inputRequired as unknown as WfPauseRequest).stateStrategy = finalName
+        }
       }
-      const wfCtx = current()
-      let handler: TWooksHandler | undefined
-      let flowParams: TWfFlowParams
-      if (resume) {
-        // A resume carries a registered id (state.schemaId), not a caller's
-        // spelling: run exactly that flow or nothing. Routing it would be
-        // lossy ('x/', a literal '%', regex params) and could reach another
-        // flow or onNotFound.
-        const { match } = this.matchFlow(schemaId)
-        handler = await this.findRegisteredFlow(schemaId, match, parentCtx)
-        // Fire the routing hooks; the params come from the state, not the pattern.
-        this.wooks.applyRoute('WF_FLOW', handler ? match : null)
-        flowParams = resumeOf?.flowParams ?? {}
-      } else {
-        const found = this.matchFlow(schemaId)
-        handler = found.handler
-        this.wooks.applyRoute('WF_FLOW', found.match)
-        flowParams = found.match?.ctx.params ?? {}
-      }
-      wfCtx.set(routeParamsKey, flowParams)
-      wfCtx.set(flowParamsKey, flowParams)
-      if (handler) {
-        let result: TFlowOutput<T, I, IR> = {} as TFlowOutput<T, I, IR>
-        let firstStep = true
-        const _spy: TWorkflowSpy<T, I, IR> = (...args) => {
-          if (spy) {
-            spy(...args)
-          }
-          if (firstStep && args[0] === 'step') {
-            // cleanup input after the first step
-            firstStep = false
-            const ctx = current()
-            ctx.set(wfKind.keys.input, undefined)
-          }
-        }
-        try {
-          const { id, init } = (await handler()) as {
-            init?: () => void | Promise<void>
-            id: string
-          }
-          if (opts?.expectSchemaId !== undefined && id !== opts.expectSchemaId) {
-            throw new Error(
-              `Workflow '${schemaId}' resolved to '${id}', expected '${opts.expectSchemaId}' — not started.`,
-            )
-          }
-          if (init) {
-            await init()
-          }
-          result = indexes?.length
-            ? await this.wf.resume<I>(
-                { schemaId: id, context: inputContext, indexes },
-                input as I,
-                _spy,
-              )
-            : await this.wf.start<I>(id, inputContext, input, _spy)
-        } catch (error) {
-          clean()
-          throw error
-        }
-        clean()
-        if (result.state && Object.keys(flowParams).length > 0) {
-          // Persist the flow's route params with the state so a resume (which
-          // dispatches by registered id, e.g. 'user/:id') restores them.
-          ;(result.state as { flowParams?: TWfFlowParams }).flowParams = flowParams
-        }
-        if (result.inputRequired) {
-          // Augment inputRequired with the post-swap strategy name so callers
-          // (trigger / offline driver) read it from the output instead of
-          // depending on parent-context write-through.
-          const ctx = current()
-          const finalName = ctx.has(stateStrategyNameKey)
-            ? ctx.get(stateStrategyNameKey)
-            : undefined
-          if (finalName !== undefined) {
-            ;(result.inputRequired as unknown as WfPauseRequest).stateStrategy = finalName
-          }
-        }
+      if (result.resume || result.retry) {
+        const again = (_input?: I) =>
+          this.resume(result.state, { input: _input, spy, cleanup } as TWfRunOptions<
+            I,
+            T,
+            IR
+          >) as Promise<TFlowOutput<T, unknown, IR>>
         if (result.resume) {
-          result.resume = (_input?: I) =>
-            this.resume(result.state, { input: _input, spy, cleanup } as TWfRunOptions<
-              I,
-              T,
-              IR
-            >) as Promise<TFlowOutput<T, unknown, IR>>
+          result.resume = again
         }
         if (result.retry) {
-          result.retry = (_input?: I) =>
-            this.resume(result.state, { input: _input, spy, cleanup } as TWfRunOptions<
-              I,
-              T,
-              IR
-            >) as Promise<TFlowOutput<T, unknown, IR>>
-        }
-        return result
-      }
-      clean()
-      throw new Error(`Unknown schemaId: ${schemaId}`)
-
-      function clean() {
-        if (cleanup) {
-          cleanup()
+          result.retry = again
         }
       }
+      return result
     })
+  }
+
+  /** Resolves the flow and runs it (inside the run's workflow context). */
+  private async runFlow<I>(
+    schemaId: string,
+    inputContext: T,
+    opts: TWfRunOptions<I, T, IR> | undefined,
+    resumeOf: { indexes: number[]; flowParams?: TWfFlowParams } | undefined,
+  ): Promise<TFlowOutput<T, I, IR>> {
+    const { input, spy } = opts ?? {}
+    const parentCtx = opts?.eventContext
+    const indexes = resumeOf?.indexes
+    if (opts?.strategy?.name !== undefined) {
+      current().set(stateStrategyNameKey, opts.strategy.name)
+    }
+    const wfCtx = current()
+    let handler: TWooksHandler | undefined
+    let flowParams: TWfFlowParams
+    if (resumeOf) {
+      // A resume carries a registered id (state.schemaId), not a caller's
+      // spelling: run exactly that flow or nothing. Routing it would be
+      // lossy ('x/', a literal '%', regex params) and could reach another
+      // flow or onNotFound.
+      const { match } = this.matchFlow(schemaId)
+      handler = await this.findRegisteredFlow(schemaId, match, parentCtx)
+      // Fire the routing hooks; the params come from the state, not the pattern.
+      this.wooks.applyRoute('WF_FLOW', handler ? match : null)
+      flowParams = resumeOf.flowParams ?? {}
+    } else {
+      const found = this.matchFlow(schemaId)
+      handler = found.handler
+      this.wooks.applyRoute('WF_FLOW', found.match)
+      flowParams = found.match?.ctx.params ?? {}
+    }
+    wfCtx.set(routeParamsKey, flowParams)
+    wfCtx.set(flowParamsKey, flowParams)
+    if (!handler) {
+      throw new Error(`Unknown schemaId: ${schemaId}`)
+    }
+    let firstStep = true
+    const _spy: TWorkflowSpy<T, I, IR> = (...args) => {
+      if (spy) {
+        spy(...args)
+      }
+      if (firstStep && args[0] === 'step') {
+        // cleanup input after the first step
+        firstStep = false
+        const ctx = current()
+        ctx.set(wfKind.keys.input, undefined)
+      }
+    }
+    const { id, init } = (await handler()) as {
+      init?: () => void | Promise<void>
+      id: string
+    }
+    if (opts?.expectSchemaId !== undefined && id !== opts.expectSchemaId) {
+      throw new Error(
+        `Workflow '${schemaId}' resolved to '${id}', expected '${opts.expectSchemaId}' — not started.`,
+      )
+    }
+    if (init) {
+      await init()
+    }
+    const result = indexes?.length
+      ? await this.wf.resume<I>({ schemaId: id, context: inputContext, indexes }, input as I, _spy)
+      : await this.wf.start<I>(id, inputContext, input, _spy)
+    if (result.state && Object.keys(flowParams).length > 0) {
+      // Persist the flow's route params with the state so a resume (which
+      // dispatches by registered id, e.g. 'user/:id') restores them.
+      ;(result.state as { flowParams?: TWfFlowParams }).flowParams = flowParams
+    }
+    return result
   }
 
   protected onError(e: Error) {

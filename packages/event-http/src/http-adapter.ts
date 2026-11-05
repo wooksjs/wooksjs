@@ -18,6 +18,7 @@ import { httpKind } from './http-kind'
 import { lowerCaseHeaders } from './response/header-keys'
 import type { THttpCompressionOptions, TResolvedHttpCompression } from './response/compression'
 import { resolveCompression } from './response/compression'
+import { failInProcessClose, settleInProcessClose } from './response/close'
 import type { HttpResponse } from './response/http-response'
 import { recordToWebHeaders } from './response/http-response'
 import { WooksHttpResponse } from './response/wooks-http-response'
@@ -710,40 +711,46 @@ export class WooksHttp extends WooksAdapterBase {
           seedRawBody(ctx, bodyBuffer)
         }
 
-        try {
-          // Seeds routeParams into ctx and fires the routed hook
-          const handlers = this.wooks.applyRoute(method, match, ctx)
-          const result = this.processHandlers(handlers, ctx, response)
-          // Wait for async handlers to complete
-          if (result !== null && result !== undefined && typeof (result as Promise<unknown>).then === 'function') {
-            await result.catch((error: unknown) => {
-              if (!response.responded) {
-                this.respond(error, response, ctx)
-              }
-            })
-          }
-        } finally {
-          // Emit 'end' then 'close' on the fake request and close the fake response,
-          // matching real Node.js HTTP — listeners tied to request/response completion
-          // (e.g. Moost's event-scope release on the response 'close') still fire.
-          fakeReq.emit('end')
-          fakeReq.emit('close')
-          fakeReq.destroy()
-          fakeRes.destroy()
-        }
-
-        // If handler used getRawRes() and wrote directly, build from captured data.
-        // Otherwise use the normal HttpResponse capture path.
         let webResponse: Response
-        if (rawChunks || rawStatusCode > 0) {
-          const body = rawChunks ? Buffer.concat(rawChunks) : null
-          webResponse = new Response(body && body.length > 0 ? body : null, {
-            status: rawStatusCode || 200,
-            headers: rawHeaders ? recordToWebHeaders(rawHeaders) : undefined,
-          })
-        } else {
-          webResponse = response.toWebResponse()
+        try {
+          try {
+            // Seeds routeParams into ctx and fires the routed hook
+            const handlers = this.wooks.applyRoute(method, match, ctx)
+            const result = this.processHandlers(handlers, ctx, response)
+            // Wait for async handlers to complete
+            if (result !== null && result !== undefined && typeof (result as Promise<unknown>).then === 'function') {
+              await result.catch((error: unknown) => {
+                if (!response.responded) {
+                  this.respond(error, response, ctx)
+                }
+              })
+            }
+          } finally {
+            // Emit 'end' then 'close' on the fake request and close the fake response,
+            // matching real Node.js HTTP — listeners tied to request completion still fire
+            // (the response's completion is reported through `onClose`).
+            fakeReq.emit('end')
+            fakeReq.emit('close')
+            fakeReq.destroy()
+            fakeRes.destroy()
+          }
+          // If handler used getRawRes() and wrote directly, build from captured data.
+          // Otherwise use the normal HttpResponse capture path.
+          if (rawChunks || rawStatusCode > 0) {
+            const body = rawChunks ? Buffer.concat(rawChunks) : null
+            webResponse = new Response(body && body.length > 0 ? body : null, {
+              status: rawStatusCode || 200,
+              headers: rawHeaders ? recordToWebHeaders(rawHeaders) : undefined,
+            })
+          } else {
+            webResponse = response.toWebResponse()
+          }
+        } catch (error) {
+          failInProcessClose(response, error)
+          throw error
         }
+        // no connection: `onClose` fires now, or once the caller has read a streamed body
+        webResponse = settleInProcessClose(response, webResponse)
 
         // Auto-propagate set-cookie headers to the parent response
         // so session cookies set by inner API calls reach the browser

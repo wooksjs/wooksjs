@@ -6,6 +6,7 @@ For workflow core (steps, flows, schema), see [event-wf.md](event-wf.md). For ou
 
 - [Parent Context Sharing](#parent-context-sharing) — inherit HTTP context into workflow steps
 - [Spies](#spies) — `attachSpy`/`detachSpy`, per-execution spy
+- [App-wide Cleanup](#app-wide-cleanup) — `attachCleanup`, runs after every run
 - [Error Handling](#error-handling) — step errors, `StepRetriableError`
 - [Testing](#testing) — unit tests, resume tests, outlet tests
 - [Low-level Context API](#low-level-context-api) — `wfKind`, `resumeKey`, `createWfContext`/`resumeWfContext`, `wfShortcuts`
@@ -106,6 +107,24 @@ const output = await app.start('my-flow', { result: 0 }, {
 `flowOutput` carries the current flow state. Spy exceptions are caught and logged, never break the run.
 
 Use spies for logging and metrics instead of adding instrumentation inside every step.
+
+---
+
+## App-wide Cleanup
+
+```ts
+const detach = app.attachCleanup(() => runResources.release(useWfState().schemaId))
+```
+
+| # | Rule |
+|---|------|
+| 1 | Runs once per `start()` / `resume()` call when it ends: finished, paused, failed, unknown flow id, or flow resolution throwing. |
+| 2 | Covers every entry point — `output.resume()`, outlet triggers (`createOutletHandler`), `mintWfToken()` — even `start`/`resume` bound before it was attached. Never monkey-patch `start`/`resume` for teardown. |
+| 3 | Runs inside the workflow event context, AFTER the call's own `cleanup` option (also when that one throws). |
+| 4 | A throwing/rejecting cleanup is logged; the run's result/error is unchanged; other cleanups still run. Not awaited. |
+| 5 | Same function attached twice = once. Returns a detach function. |
+
+Per-call teardown stays the `cleanup` run option — see [event-wf.md](event-wf.md).
 
 ---
 

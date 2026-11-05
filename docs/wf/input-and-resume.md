@@ -248,3 +248,22 @@ const output = await app.start('my-flow', context, {
   cleanup: () => connection.release(),
 })
 ```
+
+### App-wide cleanup: `attachCleanup`
+
+To run teardown after **every** run of an app — however it was started: `start()`, `resume()`, `output.resume()`, an [outlet trigger](./outlets.md) or a minted token — attach it once:
+
+```ts
+import { useWfState } from '@wooksjs/event-wf'
+
+const detach = app.attachCleanup(() => {
+  runResources.release(useWfState().schemaId)
+})
+// later, if needed:
+detach()
+```
+
+- It runs when each `start()` / `resume()` call ends — the flow finished, paused, or failed (including an unknown flow id) — inside the workflow event context, so workflow composables work.
+- It runs after that call's own `cleanup` option, even when that one throws.
+- A cleanup that throws (or rejects) is logged; it does not change the run's result or error, and the other cleanups still run.
+- Attaching the same function twice registers it once. `attachCleanup` returns a function that detaches it.

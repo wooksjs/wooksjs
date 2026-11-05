@@ -1,19 +1,19 @@
 ---
 name: wooksjs
 description: >-
-  Use for the wooksjs monorepo / any @wooksjs package:
-  @wooksjs/event-core (EventContext, key/cached slots, defineWook,
+  Use for wooksjs / any @wooksjs package:
+  @wooksjs/event-core (EventContext, key/cached, defineWook,
   defineEventKind, useRouteParams, useLogger, useLocale),
   @wooksjs/event-http (createHttpApp, useRequest, useHeaders, trustProxy,
   getIp, useCookies, useUrlParams, useAuthorization, useAccept(Language),
-  useResponse, HttpError code/params, transformErrorBody, ETag/304,
+  useResponse, onClose, HttpError code/params, transformErrorBody, ETag/304,
   maxAge units, compression, prepareTestHttpContext, app.fetch, SSR,
   withHttpContext), @wooksjs/http-body (useBody, seedBody),
   @wooksjs/http-static (serveFile), @wooksjs/http-proxy (useProxy),
   @wooksjs/event-cli (createCliApp, useCliOptions, useAutoHelp),
   @wooksjs/event-ws (WooksWs, onMessage, useWsConnection, useWsRooms,
   WsError), @wooksjs/event-wf (createWfApp, useWfState, pause/resume,
-  StepRetriableError,
+  StepRetriableError, attachCleanup,
   outlets, swapStrategy, WF_ error codes, mintWfToken),
   @wooksjs/ws-client (createWsClient, RPC), "A second copy of
   @wooksjs/event-core" / "Incompatible versions" warnings, 0.8 upgrade. Not for moostjs

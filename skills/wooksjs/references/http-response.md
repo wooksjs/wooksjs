@@ -12,6 +12,7 @@ See [event-http.md](event-http.md) for app setup/routing, [http-request.md](http
 - [Response Compression](#response-compression) — `compression` option, `setCompression`, `negotiateEncoding`
 - [Body Content-Type Inference](#body-content-type-inference)
 - [Raw Response Access](#raw-response-access) — `getRawRes()`, `responded`
+- [Response Completion: `onClose`](#response-completion-onclose) — release per-request resources when the response is sent or aborted
 - [HttpError and Error Rendering](#httperror-and-error-rendering) — `code`/`params`, `transformErrorBody`, content-negotiated body
 - [Streaming and SSE](#streaming-and-sse)
 - [Testing](#testing) — `prepareTestHttpContext`
@@ -253,6 +254,27 @@ const res = response.getRawRes(true)
 
 ---
 
+## Response Completion: `onClose`
+
+```ts
+const conn = await pool.acquire()
+useResponse().onClose(({ finished, error }) => conn.release()) // finished: false = aborted first
+return conn.queryStream(sql)
+```
+
+| # | Rule |
+|---|------|
+| 1 | Fires once: after the last byte is flushed (streamed bodies too — NOT when the handler returns), or when the connection closes first (`finished: false`). |
+| 2 | `error` is set when a failing body stream (or `getRawRes().destroy(err)`) ended the response; then `finished` is always `false`. |
+| 3 | Covers client aborts and pipelined requests whose client leaves while queued. |
+| 4 | In-process `app.fetch()` / `request()` / SSR self-fetch: regular body → before `fetch()` resolves; streamed body → once the caller reads it to the end (`finished: true`) or cancels it (`false`). An unread streamed body keeps it pending — never hold unbounded resources on it for SSR self-fetches. Tracked only if registered during the handler; a callback added after `fetch()` resolved runs at once. |
+| 5 | Each callback runs in the event context it was registered in (composables work); registered after the response is over → runs immediately. |
+| 6 | `withHttpContext()` → fires when the caller's real `res` closes. `prepareTestHttpContext()` → never fires; test through `app.request()`. |
+| 7 | A throwing/rejecting callback is logged, never crashes the server; the others still run. No listener to remove. |
+| 8 | Prefer it over `getRawRes(true).on('close', …)` — that misses queued pipelined responses and never fires for in-process fetch. |
+
+---
+
 ## HttpError and Error Rendering
 
 ```ts
@@ -457,6 +479,7 @@ it('reads cookies from request', () => {
 - Calling `send()` twice throws — check `response.responded`.
 - `getRawRes()` (no arg) marks response "responded"; framework will not touch it.
 - `getRawRes(true)` passthrough: you write headers/data, framework still finalizes cookies and status.
+- Release per-request resources with `useResponse().onClose(cb)`, not raw `'close'` listeners — see [Response Completion](#response-completion-onclose).
 - Cookie `maxAge`, cache `maxAge`/`sMaxage`, `setAge()`: numbers are seconds — see [Duration Units](#duration-units).
 - Default status: POST with body → 201; any other method with body → 200; no body → 204. Exported as `DEFAULT_HTTP_STATUS` / `getDefaultHttpStatus(method, hasBody)`.
 - `setContentType()` overwrites any prior content-type.

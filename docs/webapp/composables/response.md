@@ -99,6 +99,48 @@ app.get('test', () => {
 });
 ```
 
+## When the Response Is Over
+
+`onClose(cb)` runs `cb` once the response is over — fully sent, or the connection closed first. Use it to release what a request holds for as long as its response is in flight (a pooled connection, a lock, a per-request resource that a streamed body still reads from):
+
+```ts
+import { useResponse } from '@wooksjs/event-http'
+
+app.get('/export', async () => {
+  const conn = await pool.acquire()
+  useResponse().onClose(({ finished }) => {
+    conn.release()
+    if (!finished) metrics.abortedExports++
+  })
+  return conn.queryStream('SELECT * FROM orders') // conn stays busy until the stream is sent
+})
+```
+
+`cb` gets `{ finished, error? }`:
+
+| Field | Meaning |
+|-------|---------|
+| `finished` | `true` — the whole response was delivered. `false` — the client disconnected (or an in-process caller cancelled the body) first |
+| `error` | The error that ended the response early, e.g. a body stream that failed mid-way |
+
+When it fires:
+
+| Response | `onClose` runs |
+|----------|----------------|
+| Regular body, error response | After the body is flushed to the connection |
+| Streamed body (`Readable`, returned fetch `Response`) | After the last byte is flushed — not when the handler returns |
+| Client aborts, or a body stream fails | When the connection closes (`finished: false`) |
+| Pipelined request whose client leaves while it is still queued | When the connection closes (`finished: false`) |
+| [Programmatic `fetch()`](../fetch.md) / SSR self-fetch | When `fetch()` resolves; for a streamed body, once the caller has read it to its end (or cancelled it) |
+| Inside [`withHttpContext()`](../fetch.md#ssr-without-dispatch-withhttpcontext) | When the real response it wraps closes — that response belongs to the caller |
+| [`prepareTestHttpContext()`](../testing.md#unit-testing-with-preparetesthttpcontext) | Never — nothing is sent |
+
+- Callbacks run once, in registration order, each inside the event context it was registered in — composables such as `useRequest()` and `useLogger()` work there.
+- `finished` is `false` whenever `error` is set.
+- Registered after the response is already over, `cb` runs immediately. For an in-process response that means after `fetch()` handed it over — register during the handler to track a streamed body.
+- A callback that throws (or returns a rejected promise) is logged; it never crashes the server, and the other callbacks still run.
+- Nothing is kept after the callbacks ran: there is no listener to remove.
+
 ## Headers
 
 ::: tip
@@ -561,6 +603,7 @@ A few more `HttpResponse` members are useful when integrating with other tooling
 | Member | Description |
 |--------|-------------|
 | `responded` | `true` once the response has been sent |
+| `onClose(cb)` | Runs `cb` once the response is over — see [When the Response Is Over](#when-the-response-is-over) |
 | `sendError(error, ctx)` | Renders and sends an `HttpError` (called automatically when a handler throws) |
 | `toWebResponse()` | Builds a Web Standard `Response` from the accumulated state (used by [programmatic fetch](../fetch.md)) |
 | `setCompression(value)` / `compression` | Per-response compression override and the effective settings — see [Response Compression](../compression.md#per-response-control) |
