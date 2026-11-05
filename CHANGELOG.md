@@ -1,3 +1,9 @@
+## [0.8.1](https://github.com/wooksjs/wooksjs/compare/v0.8.0...v0.8.1) (2026-11-05)
+
+
+### Features
+
+* response onClose() and wf attachCleanup(); run cleanup runs on early failures ([ec590fb](https://github.com/wooksjs/wooksjs/commit/ec590fb11d5df5ce9a1a3b222abc5b285071824d))
 # [0.8.0](https://github.com/wooksjs/wooksjs/compare/v0.7.31...v0.8.0) (2026-10-21)
 
 Minor release (0.7.x → **0.8.0**): breaking changes below. Packages: `@wooksjs/event-core`, `@wooksjs/event-http`, `@wooksjs/event-wf`, `@wooksjs/http-static`, `wooks` (re-exports), `@wooksjs/event-cli` / `event-ws` (re-exports only).
