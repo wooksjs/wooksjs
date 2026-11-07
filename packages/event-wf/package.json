@@ -40,7 +40,7 @@
     "build": "rolldown -c ../../rolldown.config.mjs"
   },
   "dependencies": {
-    "@prostojs/wf": "^0.3.0"
+    "@prostojs/wf": "^0.3.1"
   },
   "devDependencies": {
     "@wooksjs/event-core": "workspace:^",

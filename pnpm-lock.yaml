@@ -176,8 +176,8 @@ importers:
         specifier: ^0.3.6
         version: 0.3.6
       '@prostojs/wf':
-        specifier: ^0.3.0
-        version: 0.3.0
+        specifier: ^0.3.1
+        version: 0.3.1
     devDependencies:
       '@wooksjs/event-core':
         specifier: workspace:^
@@ -1113,8 +1113,8 @@ packages:
   '@prostojs/tree@0.3.0':
     resolution: {integrity: sha512-9Ki9sg7UJvAy3IRXZuTBoVaepiYD+Ok3ucozNiMVWyjKmXjkgmqYUZGzDYAjTygS0s6Ze19X9ECM/0uQVfvHsw==}
 
-  '@prostojs/wf@0.3.0':
-    resolution: {integrity: sha512-NoH2I9KvQLYbLklBn6dHLRiH5yuU8/9WU5/B4kZCoNZrfLK6wNxn7ADkwIodEpwLm4Kl4+b/blV+6b1MfyffQw==}
+  '@prostojs/wf@0.3.1':
+    resolution: {integrity: sha512-U0LZx2DCuWUxr58i+WYvKNM6i5dIN8LxNQ9d85t16N28kON7YwTTnYn3Xa+QtRAsfzxRLx6PTsSXCc/MlJHb4w==}
 
   '@rolldown/binding-android-arm64@1.0.0-rc.5':
     resolution: {integrity: sha512-zCEmUrt1bggwgBgeKLxNj217J1OrChrp3jJt24VK9jAharSTeVaHODNL+LpcQVhRz+FktYWfT9cjo5oZ99ZLpg==}
@@ -3339,7 +3339,7 @@ snapshots:
 
   '@prostojs/tree@0.3.0': {}
 
-  '@prostojs/wf@0.3.0':
+  '@prostojs/wf@0.3.1':
     dependencies:
       '@prostojs/ftring': 0.0.4
 
