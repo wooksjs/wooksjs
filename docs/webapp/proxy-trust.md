@@ -22,9 +22,10 @@ All three come from one resolver, so they always agree on which proxies count.
 | `false` (default) | Nothing. Forwarding headers are ignored; the client is the socket peer. |
 | `n` (number) | The first `n` hops from the app. Hop 0 is the socket peer, hop 1 the right-most `X-Forwarded-For` entry, and so on. `1` = a single reverse proxy. |
 | `['10.0.0.0/8', 'loopback']` | Hops whose address is in the list: IPs, CIDR ranges (prefix as plain digits), and the presets `'loopback'`, `'linklocal'`, `'uniquelocal'`. A comma string (`'loopback, 10.0.0.0/8'`) works too. |
+| `{ addresses: '10.0.0.0/8', hops: 1 }` | Both at once: hop `i` is trusted only when `i < hops` **and** its address is in `addresses` (same entries as the list). Use it when clients can sit inside the trusted range — see [Clients inside the trusted range](#clients-inside-the-trusted-range). |
 | `(addr, hopIndex) => boolean` | Your own rule; `hopIndex` 0 is the socket peer. A predicate that throws trusts nothing for that request (the client becomes unknown, `''`), and the error is logged once. |
 
-`trustProxy: true` is rejected at startup, because "trust everyone" lets any client choose its own address. Pass the hop count instead. An invalid entry (`'10.0.0.0/33'`, `'10.0.0.0/0x8'`, `'not-an-ip'`) also throws at startup.
+`trustProxy: true` is rejected at startup, because "trust everyone" lets any client choose its own address. Pass the hop count instead. An invalid entry (`'10.0.0.0/33'`, `'10.0.0.0/0x8'`, `'not-an-ip'`) also throws at startup, and so does `{ addresses, hops }` with `hops` that is not an integer ≥ 1 or with no addresses (an empty plain list just trusts nothing).
 
 Addresses come in one form everywhere: an IPv4-mapped IPv6 address (`::ffff:10.0.0.5`, what a dual-stack server sees) is turned into plain IPv4 before it is matched, passed to a predicate, or returned by `getIp()`.
 
@@ -46,6 +47,17 @@ Only one family is read. A client can send either kind of header, so reading bot
 - **Protocol and host with `'x-forwarded'`.** These headers are not appended reliably per hop. Only the nearest proxy's value (the right-most entry) is used, and only when hop 0 is trusted. Have the edge proxy set `X-Forwarded-Proto`/`-Host` and let inner proxies pass them on. If inner proxies append their own view, use `'forwarded'` instead.
 - **Otherwise.** The socket's own protocol (TLS means `https`) and the `Host` header apply. A protocol other than `http`/`https` is ignored, and a malformed host gives `''` (the `Host` header is validated the same way as a forwarded host).
 
+### Clients inside the trusted range
+
+An address list alone cannot tell a proxy from a client that sits in the same range: a caller from inside your VPC, say. The walk trusts that client's hop too and steps on into the `X-Forwarded-For` entries the client wrote itself, so the client chooses its own address. Cap the walk at the number of proxies in front of the app:
+
+```ts
+// one load balancer in the VPC; callers from the same VPC reach it too
+createHttpApp({ trustProxy: { addresses: '10.0.0.0/8', hops: 1 } })
+```
+
+With `X-Forwarded-For: 10.6.6.6, 10.2.3.4` arriving from the load balancer `10.0.0.1`, the list alone resolves the client to the forged `10.6.6.6`. The capped form stops after one hop and resolves `10.2.3.4`. A peer that is not in `addresses` is still not trusted at all, and an unknown peer (a programmatic `fetch()` with none given) trusts nothing.
+
 `host()` is chosen by the client (directly, or through a proxy that passes it on). Check it against your own list of hostnames before you build absolute URLs, redirects or links from it.
 
 A proxy that writes the client's `Host` into `Forwarded: host="…"` must escape it (or leave `host` out). Copied raw, a `Host` containing `"` lets the client close the quoted string and add an element of its own.
@@ -53,7 +65,7 @@ A proxy that writes the client's `Host` into `Forwarded: host="…"` must escape
 ## Programmatic `fetch()`
 
 - **Inside a request**, an in-process [`app.fetch()` / `app.request()`](./fetch.md) inherits the caller's resolved client, protocol and host.
-- **With no caller** (Bun, Deno, edge runtimes calling `app.fetch(request)` directly), the peer is unknown. List and predicate trust then trust nothing and never read forwarding headers. `protocol()` and `host()` come from the Request URL, and `getIp()` is `''`.
+- **With no caller** (Bun, Deno, edge runtimes calling `app.fetch(request)` directly), the peer is unknown. List (with or without `hops`) and predicate trust then trust nothing and never read forwarding headers. `protocol()` and `host()` come from the Request URL, and `getIp()` is `''`.
 - **Pass the peer** when the runtime knows it, and trust works as on a socket:
 
   ```ts
@@ -80,6 +92,7 @@ const { ip, protocol, host } = resolveForwarded(req, trust, 'x-forwarded')
 
 - **Do** trust exactly the proxies every request passes through. With a higher hop count than the real chain, the client controls the extra entries.
 - **Do** prefer an address list when proxy addresses are stable. A hop count assumes every request takes the same path.
+- **Do** add `hops` to the list (`{ addresses, hops }`) when clients can come from inside the trusted range.
 - **Don't** enable trust when clients can also reach the app directly (an open port next to the load balancer). They can then send forged headers that look like a trusted hop's.
 - **Don't** use `getIpList()` for decisions. It returns the raw, unvalidated header values.
 - **Don't** build URLs from `host()` without checking it against your hostnames.

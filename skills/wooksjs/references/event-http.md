@@ -41,7 +41,7 @@ app.listen(3000)
 | `defaultHeaders` | `Record<string, string \| string[]>` | Default headers applied to every response (e.g. securityHeaders); read once at app creation |
 | `forwardHeaders` | `string[] \| false`                  | Request headers to propagate to outgoing fetch calls; `false` disables. REPLACES the defaults — spread `DEFAULT_FORWARD_HEADERS` to extend |
 | `compression`    | `boolean \| THttpCompressionOptions` | Opt-in brotli/gzip response compression (default off) — see [http-response.md](http-response.md#response-compression) |
-| `trustProxy`     | `false \| number \| string \| string[] \| (addr, hop) => boolean` (string = comma list) | Proxies to trust for `getIp()`/`protocol()`/`host()` (default `false`) — see [http-request.md](http-request.md#proxy-trust) |
+| `trustProxy`     | `false \| number \| string \| string[] \| { addresses, hops } \| (addr, hop) => boolean` (string = comma list) | Proxies to trust for `getIp()`/`protocol()`/`host()` (default `false`) — see [http-request.md](http-request.md#proxy-trust) |
 | `proxyHeaders`   | `'x-forwarded' \| 'forwarded'`       | Forwarding header family the trusted proxies write (default `'x-forwarded'`) |
 | `transformErrorBody` | `(body, error, ctx) => body`      | Maps every rendered error body (translation, field stripping) — see [http-response.md](http-response.md#httperror-and-error-rendering) |
 | `resolveLocale`  | `() => string \| undefined`          | Lazy per-request locale policy behind `useLocale().get()` — see [http-request.md](http-request.md#useacceptlanguagectx) |

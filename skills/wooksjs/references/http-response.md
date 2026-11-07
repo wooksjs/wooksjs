@@ -289,7 +289,7 @@ throw new HttpError(422, { message: 'Too short', code: 'MIN_LENGTH', params: { m
 | # | Rule |
 |---|---|
 | 1 | Object body needs `message`; `code` (UPPER_SNAKE) and `params` are optional and pass through. Extra fields are inferred into `error.body`'s type. |
-| 2 | `statusCode`, `message`, `error` (status text) always come from the error, never from the body object. |
+| 2 | `statusCode`, `message`, `error` (status text) always come from the error, never from the body object. Passing `error` in the body is a compile error (`error?: never`); use `code`. |
 | 3 | `createHttpApp({ transformErrorBody: (body, error, ctx) => body })` sees EVERY rendered error: thrown/returned `HttpError`, other errors (as 500), router 404. Use it to translate `message` from `code` + `params` (with `useLocale()`). Must return synchronously a plain object with numeric `statusCode` + string `message`; anything else (undefined, Promise, array…) or a throw → logged, original body sent. Status is ALWAYS the error's own. A throwing `renderError` falls back to plain JSON — a response always goes out. |
 | 3a | Every error-path response (thrown/returned errors, router 404, automatic 412, serveFile 412/416) is NEVER storable: `Cache-Control`/`Expires` set before the failure are dropped, `Cache-Control: no-store` sent. A deliberately cacheable failure = `setStatus(4xx)` + body + your cache headers (untouched). |
 | 4 | Keep `message` in the default language — it is the fallback for clients ignoring `code`. |

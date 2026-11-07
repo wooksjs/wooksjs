@@ -22,10 +22,26 @@ export interface WfOutletTriggerConfig {
    */
   allow?: string[]
   /**
+   * Flows that may be **resumed** through this trigger but never **started**
+   * (e.g. an invite flow an admin starts elsewhere, resumed here from the
+   * emailed link). Additive to `allow`: a flow listed here needs no `allow`
+   * entry to be resumed.
+   *
+   * - start — refused (`WF_FORBIDDEN`, reason `'not-allowed'`), like `block`
+   *   matches: the flow each entry runs plus the flow registered under exactly
+   *   it. Wins over `allow`.
+   * - resume — admitted when an entry equals the flow's **registered id**
+   *   (ignoring leading slashes), like `allow`.
+   *
+   * `block` still wins over both. `[]`: no effect. Full rules: Outlets guide →
+   * "Access Control".
+   */
+  resumeOnly?: string[]
+  /**
    * Flows refused on start and on resume through this trigger: for every
    * entry, the flow that id runs plus the flow registered under exactly it
-   * (`'user/42'` blocks the whole `'user/:id'` flow). Checked after `allow`.
-   * Full rules: Outlets guide → "Access Control".
+   * (`'user/42'` blocks the whole `'user/:id'` flow). Wins over `allow` and
+   * `resumeOnly`. Full rules: Outlets guide → "Access Control".
    */
   block?: string[]
   /**
@@ -47,7 +63,7 @@ export interface WfOutletTriggerConfig {
    * Strategy names must match `/^[A-Za-z0-9_-]+$/` (validated at trigger
    * invocation).
    *
-   * On resume the trigger calls `retrieve()` (to check `allow`/`block`) before
+   * On resume the trigger calls `retrieve()` (to check the access lists) before
    * `consume()`. A custom strategy's `retrieve()` must be side-effect free and
    * must not invalidate the handle — otherwise every resume fails with 410.
    */
@@ -81,7 +97,7 @@ export interface WfOutletTriggerConfig {
    * and `flowId` — the registered flow the request runs (`'user/:id'`; same id
    * as `state.schemaId`; the raw `wfid` without a resolver). Prefer `flowId`
    * for decisions: every spelling that runs a flow resolves to it. Without
-   * `allow`/`block`, `flowId` is the resolver's answer: with a
+   * access lists, `flowId` is the resolver's answer: with a
    * non-deterministic `onNotFound` the flow that runs may differ.
    * Default: `() => ({})` (empty context).
    */
@@ -160,7 +176,7 @@ export interface WfStartRunner {
    * Resolve a caller-supplied workflow ID to the registered flow `start()`
    * would run, or `undefined` (`WooksWf.resolveSchemaId`). The trigger passes
    * the same `eventContext` it passes to `start()`. Strongly recommended:
-   * without it `allow`/`block` fall back to a conservative check (Outlets
+   * without it the access lists fall back to a conservative check (Outlets
    * guide → "Access Control").
    */
   resolveSchemaId?(

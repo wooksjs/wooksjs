@@ -12,6 +12,11 @@ export interface THttpErrorBodyInput {
   code?: string
   /** Values for the message template (`{ min: 3 }`), so a translator can rebuild the text. */
   params?: Record<string, unknown>
+  /**
+   * Reserved: the rendered body's `error` is always the HTTP status text, so a body value would be
+   * lost. Passing it is a compile error — put a machine-readable code in `code` instead.
+   */
+  error?: never
 }
 
 /**
@@ -33,7 +38,8 @@ export type THttpErrorBody<T extends object = THttpErrorBodyInput> = Omit<T, 'er
  * throw new HttpError(409, { message: 'Name taken', code: 'NAME_TAKEN', params: { name }, field: 'name' })
  * ```
  * At runtime `statusCode`, `message` and `error` (the status text) in the rendered body always
- * come from the error itself, whatever the body object holds.
+ * come from the error itself, whatever the body object holds. `error` is rejected by the body type
+ * (it is the status text); a machine-readable code goes in `code`.
  *
  * @typeParam T - The body fields (inferred). Must include `message` when an object is passed.
  */

@@ -10,8 +10,8 @@ import { HttpError } from '@wooksjs/event-http'
  * | `WF_INVALID` | 400 | the workflow id is not a string (or, without a resolver, holds `%`/`?` while lists are set) | — |
  * | `WF_INVALID_TOKEN` | 410 | the token is malformed or names no configured strategy | — |
  * | `WF_EXPIRED` | 410 | the token's state is gone: expired, already used, or never existed | — |
- * | `WF_FORBIDDEN` | 403 | `allow` / `block` refuses the flow (start or resume) | `reason: 'not-allowed' \| 'blocked'`, `wfid` (start only) |
- * | `WF_NOT_FOUND` | 404 | with `allow`/`block` set, the workflow id resolves to no flow | `wfid` |
+ * | `WF_FORBIDDEN` | 403 | `allow` / `resumeOnly` / `block` refuses the flow (start or resume) | `reason: 'not-allowed' \| 'blocked'`, `wfid` (start only) |
+ * | `WF_NOT_FOUND` | 404 | with `allow`/`resumeOnly`/`block` set, the workflow id resolves to no flow | `wfid` |
  * | `WF_UNKNOWN_OUTLET` | 500 | a step paused on an outlet the trigger does not have | `outlet` |
  */
 export const WF_TRIGGER_ERRORS = Object.freeze({

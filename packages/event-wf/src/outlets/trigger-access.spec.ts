@@ -733,6 +733,170 @@ describe('outlet trigger — resolution against a real router', () => {
   })
 })
 
+describe('outlet trigger — resumeOnly', () => {
+  // Spellings the workflow router resolves to the `paused` flow.
+  const startVariants = ['paused', '/paused', '//paused', 'pa%75sed', 'paused?x=1']
+  const entryVariants = ['paused', '/paused', '//paused']
+
+  it.each(entryVariants)(
+    'resumeOnly [%j] refuses every start spelling (403, flow not run)',
+    async (entry) => {
+      const { deps, cfg } = setup()
+      const start = vi.spyOn(deps, 'start')
+      for (const lists of [{}, { allow: ['simple'] }, { allow: ['paused'] }]) {
+        for (const wfid of startVariants) {
+          const r = await call(cfg({ ...lists, resumeOnly: [entry] }), deps, { wfid })
+          expect(r.status).toBe(403)
+          expect(r.body).toMatchObject({
+            code: 'WF_FORBIDDEN',
+            params: { wfid, reason: 'not-allowed' },
+          })
+        }
+      }
+      expect(start).not.toHaveBeenCalled()
+      expect(ran).toEqual([])
+    },
+  )
+
+  it.each(entryVariants)(
+    'resumeOnly [%j] admits a resume, with or without `allow` listing the flow',
+    async (entry) => {
+      for (const lists of [{}, { allow: ['simple'] }, { allow: [] }]) {
+        const { deps, cfg, strategy, mint } = setup()
+        const token = await mint('paused')
+        const consume = vi.spyOn(strategy, 'consumeEntry')
+        const config = cfg({ ...lists, resumeOnly: [entry] })
+        const ok = await call(config, deps, { wfs: token, input: { x: 1 } })
+        expect(ok.body).toEqual({ finished: true })
+        expect(consume).toHaveBeenCalledTimes(1)
+      }
+    },
+  )
+
+  it('a flow registered with a leading slash matches entries without one, start and resume', async () => {
+    const { deps, cfg, mint } = setup(['/invite', 'simple'])
+    const token = await mint('invite')
+    for (const entry of ['invite', '/invite']) {
+      const config = cfg({ allow: ['simple'], resumeOnly: [entry] })
+      for (const wfid of ['invite', '/invite']) {
+        expect((await call(config, deps, { wfid })).status).toBe(403)
+      }
+    }
+    const config = cfg({ allow: ['simple'], resumeOnly: ['invite'] })
+    const ok = await call(config, deps, { wfs: token, input: { x: 1 } })
+    expect(ok.body).toEqual({ finished: true })
+  })
+
+  it('leaves other flows as `allow` (or its absence) has them', async () => {
+    const { deps, cfg, mint } = setup()
+    // no allow: every other flow starts and resumes
+    const open = cfg({ resumeOnly: ['paused'] })
+    expect(typeof (await call(open, deps, { wfid: 'simple' })).body.wfs).toBe('string')
+    expect(
+      (await call(open, deps, { wfs: await mint('public-flow'), input: { x: 1 } })).body,
+    ).toEqual({ finished: true })
+    // allow: other flows need it, on start and on resume
+    const listed = cfg({ allow: ['simple'], resumeOnly: ['paused'] })
+    expect((await call(listed, deps, { wfid: 'public-flow' })).status).toBe(403)
+    const token = await mint('public-flow')
+    expect((await call(listed, deps, { wfs: token, input: { x: 1 } })).status).toBe(403)
+    expect(typeof (await call(listed, deps, { wfid: 'simple' })).body.wfs).toBe('string')
+  })
+
+  it('block wins over resumeOnly (and allow), on start and on resume', async () => {
+    const { deps, cfg, open, mint } = setup()
+    const token = await mint('paused')
+    for (const lists of [{}, { allow: ['paused'] }]) {
+      const config = cfg({ ...lists, resumeOnly: ['paused'], block: ['/paused'] })
+      const resumed = await call(config, deps, { wfs: token, input: { x: 1 } })
+      expect(resumed.status).toBe(403)
+      expect(resumed.body).toMatchObject({ code: 'WF_FORBIDDEN', params: { reason: 'blocked' } })
+      const started = await call(config, deps, { wfid: 'paused' })
+      expect(started.status).toBe(403)
+      expect(started.body).toMatchObject({
+        code: 'WF_FORBIDDEN',
+        params: { wfid: 'paused', reason: 'blocked' },
+      })
+    }
+    // refused without consuming: the token still resumes where it is admitted
+    const ok = await call(open, deps, { wfs: token, input: { x: 1 } })
+    expect(ok.body).toEqual({ finished: true })
+  })
+
+  it('a parametric flow: the pattern entry refuses every instance start and admits its resume', async () => {
+    const { deps, cfg, mint } = setup(['user/:id', 'simple'])
+    const token = await mint('user/42')
+    const config = cfg({ allow: ['simple'], resumeOnly: ['user/:id'] })
+    expect((await call(config, deps, { wfid: 'user/7' })).status).toBe(403)
+    expect((await call(config, deps, { wfs: token, input: { x: 1 } })).body).toEqual({
+      finished: true,
+    })
+    expect(ran).toEqual([]) // the refused start never ran; the resume continues after `mark`
+  })
+
+  it('an instance entry refuses starts of its flow but admits no resume (warns once)', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      const { deps, cfg, mint } = setup(['user/:id', 'simple'])
+      const token = await mint('user/42')
+      const config = cfg({ allow: ['simple'], resumeOnly: ['user/42'] })
+      // start: resolved like `block` — every instance of the flow is refused
+      expect((await call(config, deps, { wfid: 'user/7' })).status).toBe(403)
+      // resume: admitted like `allow` — only by the registered id
+      expect((await call(config, deps, { wfs: token, input: { x: 1 } })).status).toBe(403)
+      const hits = warn.mock.calls.filter((c) =>
+        String(c[0]).includes(`resumeOnly entry 'user/42'`),
+      )
+      expect(hits).toHaveLength(1)
+    } finally {
+      warn.mockRestore()
+    }
+  })
+
+  it('entries are resolved on start only — a resume resolves none', async () => {
+    const { deps, cfg, mint } = setup()
+    const config = cfg({ resumeOnly: ['paused'] })
+    await call(config, deps, { wfid: 'simple' }) // first use: the once-per-process entry check
+    const token = await mint('paused')
+    const resolveSchemaId = vi.spyOn(deps, 'resolveSchemaId')
+    expect((await call(config, deps, { wfs: token, input: { x: 1 } })).body).toEqual({
+      finished: true,
+    })
+    expect(resolveSchemaId).not.toHaveBeenCalled()
+    await call(config, deps, { wfid: 'simple' })
+    expect(resolveSchemaId.mock.calls.map((c) => c[0])).toEqual(['simple', 'paused'])
+  })
+
+  it('a start that resolves to no flow is refused (404); resumeOnly: [] sets no list', async () => {
+    const { deps, cfg } = setup()
+    expect((await call(cfg({ resumeOnly: ['paused'] }), deps, { wfid: 'missing' })).status).toBe(
+      404,
+    )
+    const r = await call(cfg({ resumeOnly: [] }), deps, { wfid: 'missing' })
+    expect(r.error?.message).toMatch(/Unknown schemaId/)
+  })
+
+  it('without a resolver: start refused like the fallback block, resume admitted exactly', async () => {
+    const app = createApp(['paused', 'simple'])
+    const deps = bareDeps(app)
+    const strategy = freshStrategy()
+    const minted = await call({ state: strategy, outlets: [httpOutlet] }, deps, { wfid: 'paused' })
+    ran = []
+    const config = {
+      state: strategy,
+      outlets: [httpOutlet],
+      allow: ['simple'],
+      resumeOnly: ['/paused'],
+    }
+    for (const wfid of ['paused', '/paused', 'PAUSED', 'paused/']) {
+      expect((await call(config, deps, { wfid })).status).toBe(403)
+    }
+    expect(ran).toEqual([])
+    const ok = await call(config, deps, { wfs: minted.body.wfs, input: { x: 1 } })
+    expect(ok.body).toEqual({ finished: true })
+  })
+})
+
 describe('outlet trigger — deps without resolveSchemaId (fallback)', () => {
   // Custom deps: `allow` matches the raw wfid exactly (fail closed); `block`
   // over-matches (case/trailing slash folded, `:`/`*` shapes); ids with

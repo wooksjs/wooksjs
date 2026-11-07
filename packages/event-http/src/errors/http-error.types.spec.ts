@@ -98,4 +98,32 @@ describe('HttpError body typing', () => {
     // @ts-expect-error — message is required
     void new HttpError(400, { code: 'NO_MESSAGE' })
   })
+
+  it('error is reserved for the status text; a machine code goes in code', () => {
+    // @ts-expect-error — `error` is the status text, the body value would be overwritten
+    void new HttpError(412, { message: 'Stale', error: 'STALE_DOC' })
+    const error = new HttpError(412, { message: 'Stale', code: 'STALE_DOC', doc: 'a' })
+    expectTypeOf(error.body.code).toEqualTypeOf<string>()
+    expectTypeOf(error.body.doc).toEqualTypeOf<string>()
+    expectTypeOf(error.body.error).toEqualTypeOf<string>()
+    interface WithError {
+      message: string
+      error: string
+    }
+    // @ts-expect-error — also when the body type is explicit
+    void new HttpError<WithError>(412, { message: 'Stale', error: 'STALE_DOC' })
+  })
+
+  it('re-wrapping a rendered body needs its `error` dropped first', () => {
+    const upstream = new HttpError(409, { message: 'taken', code: 'NAME_TAKEN', field: 'name' })
+    // @ts-expect-error — a rendered body carries `error` (the status text)
+    void new HttpError(502, upstream.body)
+    const plain = {} as TWooksErrorBody
+    // @ts-expect-error — so may a TWooksErrorBody
+    void new HttpError(502, plain)
+    const { error: _error, ...rest } = upstream.body
+    const wrapped = new HttpError(502, rest)
+    expectTypeOf(wrapped.body.code).toEqualTypeOf<string>()
+    expectTypeOf(wrapped.body.field).toEqualTypeOf<string>()
+  })
 })

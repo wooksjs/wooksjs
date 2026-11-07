@@ -42,6 +42,9 @@ const TRUSTED_RANGES = ['10.0.0.0/8', '172.16.0.0/12', 'loopback', 'fd00::/8']
 /** Client addresses (outside every trusted range). */
 const CLIENT_V4 = ['203.0.113.7', '198.51.100.23', '8.8.4.4', '1.2.3.4']
 const CLIENT_V6 = ['2001:db8::1', '2001:db8:cafe::17', '2a00:1450::200e']
+/** Client addresses INSIDE the trusted ranges (same-network callers), none of them a proxy. */
+const IN_RANGE_CLIENT_V4 = ['10.20.30.40', '172.16.9.9', '127.0.0.9']
+const IN_RANGE_CLIENT_V6 = ['fd00::abcd', 'fd77::5']
 /** What a forging client puts in headers — including trusted-looking addresses. */
 const FORGED_FOR = [
   '6.6.6.6',
@@ -129,9 +132,13 @@ interface Scenario {
   describe: string
 }
 
-function scenario(r: () => number): Scenario {
+/** `inRange`: the client sits inside the trusted ranges (only the hop cap tells it from a proxy). */
+function scenario(r: () => number, inRange = false): Scenario {
   const family: TProxyHeaders = r() < 0.5 ? 'x-forwarded' : 'forwarded'
-  const client = r() < 0.6 ? pick(r, CLIENT_V4) : pick(r, CLIENT_V6)
+  const client =
+    r() < 0.6
+      ? pick(r, inRange ? IN_RANGE_CLIENT_V4 : CLIENT_V4)
+      : pick(r, inRange ? IN_RANGE_CLIENT_V6 : CLIENT_V6)
   const clientProto: 'http' | 'https' = r() < 0.7 ? 'https' : 'http'
   const host = pick(r, HOSTS)
   const proxyCount = Math.floor(r() * 4) // 0..3 proxies (0 = direct connection)
@@ -233,9 +240,15 @@ function scenario(r: () => number): Scenario {
 
   // --- a trust config naming exactly the real proxies ---
   const proxySet = new Set(proxies)
-  const mode = Math.floor(r() * 3)
+  const mode = inRange ? 3 : Math.floor(r() * 4)
   const trust: TTrustProxy =
-    mode === 0 ? proxyCount : mode === 1 ? TRUSTED_RANGES : (addr: string) => proxySet.has(addr)
+    mode === 0
+      ? proxyCount
+      : mode === 1
+        ? TRUSTED_RANGES
+        : mode === 2
+          ? (addr: string) => proxySet.has(addr)
+          : { addresses: TRUSTED_RANGES, hops: Math.max(1, proxyCount) }
 
   // dual-stack servers see IPv4 peers in IPv4-mapped form (dotted, or hex in some stacks)
   const socketAddr =
@@ -312,6 +325,32 @@ describe('proxy trust — generated proxy chains (oracle: ground truth of the pa
         })
       }
     }
+  })
+
+  it('a capped list returns an in-range client whatever it forged; a bare list may not (5000 paths)', () => {
+    const r = mulberry32(0x5eed_0004)
+    let checked = 0
+    let bareListFooled = 0
+    for (let n = 0; n < 5000; n++) {
+      const s = scenario(r, true)
+      if (s.proxies.length === 0) {
+        continue // a directly connected in-range client is indistinguishable from a proxy
+      }
+      const req = { headers: s.headers, socket: s.socket }
+      const got = resolveForwarded(req, compileTrustProxy(s.trust), s.family)
+      if (got.ip !== s.truth.ip || got.protocol !== s.truth.protocol || got.host !== s.truth.host) {
+        throw new Error(
+          `case ${n}: got ${JSON.stringify(got)}, truth ${JSON.stringify(s.truth)}\n${s.describe}`,
+        )
+      }
+      if (resolveForwarded(req, compileTrustProxy(TRUSTED_RANGES), s.family).ip !== s.truth.ip) {
+        bareListFooled++
+      }
+      checked++
+    }
+    expect(checked).toBeGreaterThan(1000)
+    // the cap is what makes the difference: without it the walk follows the client's own entries
+    expect(bareListFooled).toBeGreaterThan(100)
   })
 
   it('trusting too few hops stops at a real proxy, never at a forged entry (5000 paths)', () => {

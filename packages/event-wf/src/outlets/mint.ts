@@ -60,7 +60,8 @@ export interface WfMintTokenResult {
  * (honouring `swapStrategy()` in the first steps), `state.meta.outlet`, expiry tracking — so
  * resume, `allow`/`block`, `restoreOnError` and expiry behave as for a token the trigger issued.
  * No outlet is called: deliver the token yourself (`inputRequired` says how the flow asked).
- * `allow`/`block` are not checked here (the server chooses the flow); they apply on resume.
+ * `allow`/`resumeOnly`/`block` are not checked here (the server chooses the flow); they apply on
+ * resume — list the flow in `resumeOnly` to resume it on a trigger that must never start it.
  *
  * @param wf - Anything with the trigger deps' `start()` (`WooksWf`, `MoostWf`), plus optional
  *   `resolveSchemaId()` (needed only when the default-strategy picker reads the flow id).

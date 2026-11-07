@@ -84,6 +84,15 @@ describe('trustProxy (app level)', () => {
     expect(await get('/who', forged)).toMatchObject({ ip: '127.0.0.1', protocol: 'http' })
   })
 
+  it('{ addresses, hops } trusts matching hops up to the cap', async () => {
+    const get = await serve({ trustProxy: { addresses: 'loopback', hops: 1 } })
+    expect(await get('/who', forged)).toEqual({
+      ip: '203.0.113.7',
+      protocol: 'https',
+      host: 'shop.example',
+    })
+  })
+
   it('a predicate gets (address, hopIndex)', async () => {
     const calls: Array<[string, number]> = []
     const get = await serve({
@@ -138,6 +147,100 @@ describe('trustProxy (app level)', () => {
     expect(() => createHttpApp({ trustProxy: ['not-an-ip'] }, new Wooks())).toThrow(TypeError)
     expect(() => createHttpApp({ trustProxy: ['10.0.0.0/'] }, new Wooks())).toThrow(TypeError)
     expect(() => createHttpApp({ proxyHeaders: 'both' as never }, new Wooks())).toThrow(TypeError)
+    expect(() =>
+      createHttpApp({ trustProxy: { addresses: '10.0.0.0/8', hops: 0 } }, new Wooks()),
+    ).toThrow(/'hops' must be an integer >= 1/u)
+    expect(() => createHttpApp({ trustProxy: { addresses: [], hops: 1 } }, new Wooks())).toThrow(
+      /'addresses' must list at least one/u,
+    )
+  })
+})
+
+describe('trustProxy { addresses, hops }', () => {
+  const capped = (addresses: string | string[], hops: number) =>
+    compileTrustProxy({ addresses, hops })
+
+  it('an in-range client cannot walk past the cap with entries it wrote itself', () => {
+    // one load balancer (10.0.0.1) in front; the client (10.2.3.4) is in the same VPC
+    const headers = { 'x-forwarded-for': '10.6.6.6, 10.2.3.4' }
+    expect(resolveForwarded(req(headers, '10.0.0.1'), capped('10.0.0.0/8', 1)).ip).toBe('10.2.3.4')
+    // the bare list follows the client's own entry
+    expect(resolveForwarded(req(headers, '10.0.0.1'), compileTrustProxy('10.0.0.0/8')).ip).toBe(
+      '10.6.6.6',
+    )
+    // two proxies: the cap is 2, and the forged left-most entry is still never reached
+    expect(
+      resolveForwarded(
+        req({ 'x-forwarded-for': '10.6.6.6, 10.2.3.4, 10.0.0.5' }, '10.0.0.1'),
+        capped(['10.0.0.0/8'], 2),
+      ).ip,
+    ).toBe('10.2.3.4')
+    // the same with RFC 7239 Forwarded
+    expect(
+      resolveForwarded(
+        req({ forwarded: 'for=10.6.6.6, for=10.2.3.4' }, '10.0.0.1'),
+        capped('10.0.0.0/8', 1),
+        'forwarded',
+      ).ip,
+    ).toBe('10.2.3.4')
+  })
+
+  it('a hop within the cap whose address is not listed is not trusted', () => {
+    const trust = capped('10.0.0.0/8', 3)
+    expect(
+      resolveForwarded(req({ 'x-forwarded-for': '6.6.6.6, 203.0.113.7' }, '10.0.0.1'), trust).ip,
+    ).toBe('203.0.113.7')
+    expect(resolveForwarded(req({ 'x-forwarded-for': '6.6.6.6' }, '11.0.0.1'), trust).ip).toBe(
+      '11.0.0.1',
+    )
+  })
+
+  it('matches IPv6 CIDRs, presets and IPv4-mapped peers', () => {
+    const trust = capped(['fd00::/8', '10.0.0.0/8', 'loopback'], 1)!
+    expect(trust('fd12:3456::9', 0)).toBe(true)
+    expect(trust('fd12:3456::9', 1)).toBe(false)
+    expect(trust('::1', 0)).toBe(true)
+    expect(trust('2001:db8::1', 0)).toBe(false)
+    const headers = { 'x-forwarded-for': 'fd00::6, 2001:db8::1' }
+    expect(resolveForwarded(req(headers, 'fd00::1'), trust).ip).toBe('2001:db8::1')
+    for (const mapped of ['::ffff:10.0.0.1', '::ffff:a00:1', '0:0:0:0:0:ffff:a00:1']) {
+      expect(resolveForwarded(req(headers, mapped), trust).ip).toBe('2001:db8::1')
+    }
+  })
+
+  it('an unknown socket peer trusts nothing', () => {
+    const r = resolveForwarded(
+      {
+        headers: { host: 'h.example', 'x-forwarded-for': '203.0.113.7', 'x-forwarded-host': 'x' },
+        socket: {},
+      },
+      capped('0.0.0.0/0', 1),
+    )
+    expect(r).toEqual({ ip: '', protocol: 'http', host: 'h.example' })
+  })
+
+  it('rejects an invalid hops or empty addresses', () => {
+    for (const hops of [0, -1, 1.5, Number.NaN, '1' as never, undefined as never]) {
+      expect(() => capped('10.0.0.0/8', hops)).toThrow(/'hops' must be an integer >= 1/u)
+    }
+    for (const addresses of [[], '', ' , ', [''], undefined as never]) {
+      expect(() => capped(addresses, 1)).toThrow(/'addresses' must list at least one/u)
+    }
+    expect(() => capped(['10.0.0.0/33'], 1)).toThrow(TypeError)
+    expect(() => capped('10.0.0.0/8, not-an-ip', 1)).toThrow(TypeError)
+  })
+
+  it('leaves the other forms unchanged', () => {
+    expect(compileTrustProxy([])).toBeUndefined()
+    expect(compileTrustProxy(0)).toBeUndefined()
+    const list = compileTrustProxy(['10.0.0.0/8'])!
+    expect(list('10.1.1.1', 7)).toBe(true)
+    const hops = compileTrustProxy(2)!
+    expect([hops('6.6.6.6', 1), hops('6.6.6.6', 2)]).toEqual([true, false])
+    // a hop count alone still trusts what sits in front of an unknown peer
+    expect(resolveForwarded({ headers: { 'x-forwarded-for': '203.0.113.7' } }, hops).ip).toBe(
+      '203.0.113.7',
+    )
   })
 })
 

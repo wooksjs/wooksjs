@@ -364,7 +364,7 @@ throw new HttpError(400, { message: 'Validation failed', fields: ['name'] });
 // { statusCode: 400, message: 'Validation failed', error: 'Bad Request', fields: ['name'] }
 ```
 
-`statusCode`, `message` and `error` always come from the error itself, whatever the body object holds.
+`statusCode`, `message` and `error` always come from the error itself, whatever the body object holds. The body type rejects `error` at compile time; put a machine-readable code in [`code`](#error-codes-and-params) instead.
 
 ### Error codes and params
 

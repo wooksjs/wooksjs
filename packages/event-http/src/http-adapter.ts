@@ -84,6 +84,8 @@ export interface TWooksHttpOptions {
    *
    * - a number — trust that many hops (`1` = one reverse proxy: nginx, Caddy, a load balancer);
    * - a list — trust hops whose address matches (`['10.0.0.0/8', 'loopback']`);
+   * - `{ addresses, hops }` — both: a matching address within the first `hops` hops
+   *   (`{ addresses: '10.0.0.0/8', hops: 1 }`), for clients that can sit inside the range;
    * - `(addr, hopIndex) => boolean` — custom (`hopIndex` 0 is the socket peer).
    *
    * The client is the right-most hop that is not trusted. Only enable it when every request
@@ -598,8 +600,8 @@ export class WooksHttp extends WooksAdapterBase {
    * (`getIp()` / `protocol()` / `host()`) and locale (`useLocale()`).
    *
    * With no caller (a fetch runtime: Bun, Deno, edge), the peer is UNKNOWN unless passed in
-   * `peer`: list and predicate `trustProxy` then trust nothing (a hop count still trusts
-   * whatever sits in front), and `protocol()` / `host()` come from the Request URL.
+   * `peer`: list, capped list and predicate `trustProxy` then trust nothing (a hop count still
+   * trusts whatever sits in front), and `protocol()` / `host()` come from the Request URL.
    *
    * @param request - A Web Standard Request object.
    * @param peer - The connection's peer, when the runtime knows it: `remoteAddress` (the

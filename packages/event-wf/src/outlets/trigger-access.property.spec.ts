@@ -1,5 +1,5 @@
 /**
- * Property tests for the outlet trigger's allow/block spec (see `access.ts`).
+ * Property tests for the outlet trigger's allow/resumeOnly/block spec (see `access.ts`).
  *
  * The oracle is computed from ground truth only: which flow `start(id)`
  * actually runs on an unrestricted app (`flowOf`), observed through a marker
@@ -261,8 +261,14 @@ const fold = (id: string) => canon(id).replace(/\/+$/u, '').toLowerCase()
 
 interface Lists {
   allow?: string[]
+  resumeOnly?: string[]
   block: string[]
 }
+
+type Kind = 'start' | 'resume'
+
+const listsSetOf = (lists: Lists) =>
+  lists.allow !== undefined || (lists.resumeOnly?.length ?? 0) > 0 || lists.block.length > 0
 
 /** id → the flow `start(id)` runs (ground truth). */
 type FlowOf = Map<string, string | undefined>
@@ -280,15 +286,31 @@ function deniedFlows(flowOf: FlowOf, block: string[]): Set<string> {
   return denied
 }
 
-/** Spec: is flow F (registered id) admitted? */
-function specAdmits(flowOf: FlowOf, lists: Lists, flow: string): boolean {
+/**
+ * Spec: is a start / resume of flow F (registered id) admitted? `block` wins; `resumeOnly`
+ * refuses a start like `block` and admits a resume like `allow` (in addition to it).
+ */
+function specAdmits(flowOf: FlowOf, lists: Lists, flow: string, kind: Kind): boolean {
+  const resumeOnly = lists.resumeOnly ?? []
   if (deniedFlows(flowOf, lists.block).has(canon(flow))) {
     return false
+  }
+  if (kind === 'start' && deniedFlows(flowOf, resumeOnly).has(canon(flow))) {
+    return false
+  }
+  if (kind === 'resume' && resumeOnly.some((entry) => canon(entry) === canon(flow))) {
+    return true
   }
   if (lists.allow === undefined) {
     return true
   }
   return lists.allow.some((entry) => canon(entry) === canon(flow))
+}
+
+/** Fallback: does `allow` or (on resume) `resumeOnly` name the id exactly (up to leading slashes)? */
+function fallbackListed(lists: Lists, id: string, kind: Kind): boolean {
+  const entries = [...(lists.allow ?? []), ...(kind === 'resume' ? (lists.resumeOnly ?? []) : [])]
+  return entries.some((e) => canon(e) === canon(id))
 }
 
 /** Fallback guarantee: an entry blocks every id equal to it (folded) or matched by it as a pattern. */
@@ -335,7 +357,11 @@ function randomLists(r: () => number): Lists {
         : Array.from({ length: 1 + Math.floor(r() * 2) }, () => pick(r, ENTRY_POOL))
   const block =
     r() < 0.35 ? [] : Array.from({ length: 1 + Math.floor(r() * 2) }, () => pick(r, ENTRY_POOL))
-  return { allow, block }
+  const resumeOnly =
+    r() < 0.5
+      ? undefined
+      : Array.from({ length: 1 + Math.floor(r() * 2) }, () => pick(r, ENTRY_POOL))
+  return { allow, resumeOnly, block }
 }
 
 function configOf(lists: Lists, strategy: HandleStateStrategy): WfOutletTriggerConfig {
@@ -343,6 +369,7 @@ function configOf(lists: Lists, strategy: HandleStateStrategy): WfOutletTriggerC
     state: strategy,
     outlets: [httpOutlet],
     ...(lists.allow === undefined ? {} : { allow: lists.allow }),
+    ...(lists.resumeOnly === undefined ? {} : { resumeOnly: lists.resumeOnly }),
     block: lists.block,
   }
 }
@@ -352,7 +379,7 @@ interface Case {
   lists: Lists
   /** start request id, or — for a direct resume — the stored schemaId */
   id: string
-  kind: 'start' | 'resume'
+  kind: Kind
 }
 
 /**
@@ -360,7 +387,8 @@ interface Case {
  * of directly persisted states (schemaIds from SCHEMA_POOL):
  *  - every router × id × allow ∈ {omitted, [], [e] for each entry} (block empty)
  *  - every router × id × block ∈ {[e] for each entry} (allow omitted)
- *  - plus seeded random combinations with up to two allow and two block entries.
+ *  - every router × id × resumeOnly ∈ {[e] for each entry}, allow omitted and allow []
+ *  - plus seeded random combinations with up to two allow, resumeOnly and block entries.
  */
 function* cases(randomCount: number, seed: number): Generator<Case> {
   const allowChoices: Array<string[] | undefined> = [undefined, [], ...ENTRY_POOL.map((e) => [e])]
@@ -375,6 +403,8 @@ function* cases(randomCount: number, seed: number): Generator<Case> {
         }
         for (const entry of ENTRY_POOL) {
           yield { rc, id, kind, lists: { block: [entry] } }
+          yield { rc, id, kind, lists: { resumeOnly: [entry], block: [] } }
+          yield { rc, id, kind, lists: { allow: [], resumeOnly: [entry], block: [] } }
         }
       }
     }
@@ -401,7 +431,7 @@ async function checkStart(c: Case, withResolver: boolean, violations: string[]) 
   const config = configOf(lists, strategy)
   const flow = rc.flowOf.get(wfid)
   const tag = tagOf(c, flow)
-  const listsSet = lists.allow !== undefined || lists.block.length > 0
+  const listsSet = listsSetOf(lists)
 
   const started = await trigger(config, deps, { wfid })
   const ranFlow = started.ran[0]
@@ -423,7 +453,7 @@ async function checkStart(c: Case, withResolver: boolean, violations: string[]) 
       }
       return
     }
-    const admitted = specAdmits(rc.flowOf, lists, flow)
+    const admitted = specAdmits(rc.flowOf, lists, flow, 'start')
     if (admitted && ranFlow !== flow) {
       violations.push(
         `admitted flow did not run (${started.status} ${started.error ?? JSON.stringify(started.body)}): ${tag}`,
@@ -432,9 +462,10 @@ async function checkStart(c: Case, withResolver: boolean, violations: string[]) 
     if (!admitted && ranFlow !== undefined) {
       violations.push(`refused flow ran: ${tag}`)
     }
-    if (resumeAdmitted !== admitted) {
+    const resumeSpec = specAdmits(rc.flowOf, lists, flow, 'resume')
+    if (resumeAdmitted !== resumeSpec) {
       violations.push(
-        `resume ${resumeAdmitted ? 'admitted' : 'refused'} but spec ${admitted ? 'admits' : 'refuses'} (${resumed?.status} ${resumed?.error ?? JSON.stringify(resumed?.body)}): ${tag}`,
+        `resume ${resumeAdmitted ? 'admitted' : 'refused'} but spec ${resumeSpec ? 'admits' : 'refuses'} (${resumed?.status} ${resumed?.error ?? JSON.stringify(resumed?.body)}): ${tag}`,
       )
     }
     return
@@ -452,19 +483,20 @@ async function checkStart(c: Case, withResolver: boolean, violations: string[]) 
       `fallback block entry did not refuse the request id (${started.status}): ${tag}`,
     )
   }
-  if (
-    ranFlow !== undefined &&
-    lists.allow !== undefined &&
-    !lists.allow.some((e) => canon(e) === canon(wfid))
-  ) {
+  if (fallbackBlocked(lists.resumeOnly ?? [], wfid) && ![400, 403].includes(started.status ?? 0)) {
+    violations.push(
+      `fallback resumeOnly entry did not refuse the start (${started.status}): ${tag}`,
+    )
+  }
+  if (ranFlow !== undefined && lists.allow !== undefined && !fallbackListed(lists, wfid, 'start')) {
     violations.push(`ran although the request id is not in allow: ${tag}`)
   }
   if (flow !== undefined && resumeAdmitted) {
     if (fallbackBlocked(lists.block, flow)) {
       violations.push(`fallback-blocked flow resumed: ${tag}`)
     }
-    if (lists.allow !== undefined && !lists.allow.some((e) => canon(e) === canon(flow))) {
-      violations.push(`resume admitted a flow not in allow: ${tag}`)
+    if (lists.allow !== undefined && !fallbackListed(lists, flow, 'resume')) {
+      violations.push(`resume admitted a flow not in allow or resumeOnly: ${tag}`)
     }
   }
 }
@@ -500,7 +532,7 @@ async function checkDirectResume(c: Case, withResolver: boolean, violations: str
   }
   const ran = ranFlows.includes(registered)
   if (withResolver) {
-    const admitted = specAdmits(rc.flowOf, lists, registered)
+    const admitted = specAdmits(rc.flowOf, lists, registered, 'resume')
     if (admitted !== ran) {
       violations.push(
         `direct resume ${ran ? 'ran' : 'did not run'} but spec ${admitted ? 'admits' : 'refuses'} (${resumed.status} ${resumed.error ?? JSON.stringify(resumed.body)}): ${tag}`,
@@ -511,16 +543,20 @@ async function checkDirectResume(c: Case, withResolver: boolean, violations: str
   if (ran && fallbackBlocked(lists.block, registered)) {
     violations.push(`fallback-blocked flow resumed: ${tag}`)
   }
+  if (ran && lists.allow !== undefined && !fallbackListed(lists, registered, 'resume')) {
+    violations.push(`resume admitted a flow not in allow or resumeOnly: ${tag}`)
+  }
+  // a flow named by resumeOnly resumes when no block is set — even with `allow: []`
   if (
-    ran &&
-    lists.allow !== undefined &&
-    !lists.allow.some((e) => canon(e) === canon(registered))
+    !ran &&
+    lists.block.length === 0 &&
+    (lists.resumeOnly ?? []).some((e) => canon(e) === canon(registered))
   ) {
-    violations.push(`resume admitted a flow not in allow: ${tag}`)
+    violations.push(`resumeOnly did not admit a resume (${resumed.status}): ${tag}`)
   }
 }
 
-describe('outlet trigger — allow/block property', () => {
+describe('outlet trigger — allow/resumeOnly/block property', () => {
   for (const withResolver of [true, false]) {
     it(`${withResolver ? 'with' : 'without'} resolver: bounded space + ${RANDOM_CASES} seeded cases, 0 violations`, async () => {
       const violations: string[] = []
@@ -529,11 +565,11 @@ describe('outlet trigger — allow/block property', () => {
         count++
         await (c.kind === 'start' ? checkStart : checkDirectResume)(c, withResolver, violations)
       }
-      // routers × (requests + schemaIds) × (allow choices + block choices) + random
+      // routers × (requests + schemaIds) × (allow + block + 2 × resumeOnly choices) + random
       expect(count).toBe(
         routers.length *
           (REQUEST_POOL.length + SCHEMA_POOL.length) *
-          (ENTRY_POOL.length + 2 + ENTRY_POOL.length) +
+          (ENTRY_POOL.length + 2 + ENTRY_POOL.length * 3) +
           RANDOM_CASES,
       )
       expect(summarize(violations)).toEqual({ total: 0, byKind: {}, samples: [] })
@@ -600,9 +636,9 @@ describe('outlet trigger — request-dependent onNotFound is judged per request'
     const flowOf = hr.flowOf.get(header)!
     const flow = flowOf.get(wfid)
     if (flow === undefined) {
-      return lists.allow !== undefined || lists.block.length > 0 ? 'refused' : 'nothing'
+      return listsSetOf(lists) ? 'refused' : 'nothing'
     }
-    return specAdmits(flowOf, lists, flow) ? flow : 'refused'
+    return specAdmits(flowOf, lists, flow, 'start') ? flow : 'refused'
   }
 
   it('both header orders through one deps object: 0 violations', async () => {
@@ -610,6 +646,7 @@ describe('outlet trigger — request-dependent onNotFound is judged per request'
       { block: [] },
       ...ENTRY_POOL.map((e) => ({ block: [e] })),
       ...ENTRY_POOL.map((e) => ({ allow: [e], block: [] })),
+      ...ENTRY_POOL.map((e) => ({ resumeOnly: [e], block: [] })),
     ]
     const violations: string[] = []
     let count = 0

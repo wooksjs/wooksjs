@@ -11,16 +11,32 @@ import { TOKEN_RE } from './helpers'
  * - a list (or a comma string) — trust hops whose address is in it: IPs (`'10.0.0.5'`, `'::1'`),
  *   CIDR ranges (`'10.0.0.0/8'`, `'fd00::/8'`) and the presets `'loopback'`, `'linklocal'`,
  *   `'uniquelocal'`.
+ * - `{ addresses, hops }` — both: hop `i` is trusted only when `i < hops` AND its address is in
+ *   `addresses` (same entries as the list form). Use it when clients can sit inside the trusted
+ *   range (same-network callers): the walk then stops after `hops` hops instead of following
+ *   entries such a client wrote itself. See {@link TTrustProxyCapped}.
  * - a predicate `(addr, hopIndex) => boolean` — `hopIndex` 0 is the socket peer; `addr` is
  *   normalised (IPv4-mapped IPv6 as plain IPv4). A predicate that throws trusts nothing.
  *
- * When the socket peer is unknown (an in-process `fetch()` with no peer given), list and
- * predicate trust trust nothing; a hop count still trusts whatever sits in front.
+ * When the socket peer is unknown (an in-process `fetch()` with no peer given), list, capped
+ * list and predicate trust trust nothing; a hop count still trusts whatever sits in front.
  *
  * `true` is rejected (it would mean "trust everyone", which lets any client pick its own IP);
  * pass the hop count instead.
  */
-export type TTrustProxy = false | number | string | string[] | TTrustProxyFn
+export type TTrustProxy = false | number | string | string[] | TTrustProxyCapped | TTrustProxyFn
+
+/**
+ * An address list with a hop cap: trust hop `i` (0 = the socket peer) only when `i < hops` and
+ * its address is in `addresses`. E.g. `{ addresses: '10.0.0.0/8', hops: 1 }` — one load balancer
+ * in the VPC; a same-VPC client's own `X-Forwarded-For` entries are never followed.
+ */
+export interface TTrustProxyCapped {
+  /** IPs, CIDR ranges and presets, as in the list form (an array or a comma string); not empty. */
+  addresses: string | string[]
+  /** Most hops to trust, counting the socket peer (integer >= 1). */
+  hops: number
+}
 
 /**
  * Decides whether hop `hopIndex` (0 = the socket peer), whose normalised address is `addr`,
@@ -85,7 +101,7 @@ const HOP_COUNT = Symbol('wooks.trustProxy.hops')
 /**
  * Compiles a {@link TTrustProxy} option into a predicate (`undefined` = trust nothing).
  * Throws a `TypeError` for an invalid option (an unparseable address or CIDR, `true`, a negative
- * or fractional count).
+ * or fractional count; for `{ addresses, hops }` also empty `addresses` or `hops` below 1).
  */
 export function compileTrustProxy(trust: TTrustProxy | undefined): TTrustProxyFn | undefined {
   if (trust === undefined || trust === false) {
@@ -105,24 +121,51 @@ export function compileTrustProxy(trust: TTrustProxy | undefined): TTrustProxyFn
     return Object.assign(hops, { [HOP_COUNT]: true })
   }
   if (typeof trust === 'string' || Array.isArray(trust)) {
-    const entries = typeof trust === 'string' ? trust.split(',') : trust
-    if (entries.length === 0) {
-      return undefined
-    }
-    const list = new BlockList()
-    for (const raw of entries) {
-      addTrusted(list, String(raw).trim())
-    }
-    return (addr) => {
-      const ip = stripZone(addr)
-      const family = isIP(ip)
-      return family !== 0 && list.check(ip, family === 4 ? 'ipv4' : 'ipv6')
-    }
+    const entries = listEntries(trust)
+    return entries.length === 0 ? undefined : compileList(entries)
+  }
+  if (typeof trust === 'object' && trust !== null) {
+    return compileCapped(trust)
   }
   const hint = trust === true ? ' (use 1 to trust one reverse proxy)' : ''
   throw new TypeError(
-    `trustProxy: expected false, a hop count, a list of IPs/CIDRs or a function — got ${String(trust)}${hint}`,
+    `trustProxy: expected false, a hop count, a list of IPs/CIDRs, { addresses, hops } or a function — got ${String(trust)}${hint}`,
   )
+}
+
+/** The list form's entries: a comma string split, an array as is, anything else none. */
+function listEntries(list: unknown): string[] {
+  return typeof list === 'string' ? list.split(',') : Array.isArray(list) ? list : []
+}
+
+function compileList(entries: string[]): TTrustProxyFn {
+  const list = new BlockList()
+  for (const raw of entries) {
+    addTrusted(list, String(raw).trim())
+  }
+  return (addr) => {
+    const ip = stripZone(addr)
+    const family = isIP(ip)
+    return family !== 0 && list.check(ip, family === 4 ? 'ipv4' : 'ipv6')
+  }
+}
+
+/**
+ * `{ addresses, hops }`: the list form, cut off after `hops` hops. Not marked HOP_COUNT, so an
+ * unknown peer trusts nothing.
+ */
+function compileCapped({ addresses, hops }: TTrustProxyCapped): TTrustProxyFn {
+  if (!Number.isInteger(hops) || hops < 1) {
+    throw new TypeError(`trustProxy: 'hops' must be an integer >= 1, got ${String(hops)}`)
+  }
+  const entries = listEntries(addresses)
+  if (entries.every((e) => String(e).trim() === '')) {
+    throw new TypeError(
+      `trustProxy: 'addresses' must list at least one IP, CIDR range or preset, got ${JSON.stringify(addresses)}`,
+    )
+  }
+  const inList = compileList(entries)
+  return (addr, i) => i < hops && inList(addr, i)
 }
 
 function isHopCount(trust: TTrustProxyFn): boolean {
@@ -572,8 +615,8 @@ export type TForwardedIssue =
  * Otherwise the socket's protocol and the `Host` header apply. A protocol other than
  * http/https and a malformed host are ignored (a malformed `Host` header gives `''`).
  *
- * **Unknown peer.** Without a socket address, list and predicate trust trust nothing; a hop
- * count still applies. **Throwing predicate:** fails closed — nothing is trusted, the client is
+ * **Unknown peer.** Without a socket address, list, capped list and predicate trust trust
+ * nothing; a hop count still applies. **Throwing predicate:** fails closed — nothing is trusted, the client is
  * unknown (`''`), and `onIssue` gets `{ kind: 'trust-error' }`.
  *
  * Pure: usable outside a request (e.g. in a rate limiter) with a Node `IncomingMessage`.

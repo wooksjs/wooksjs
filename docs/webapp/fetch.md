@@ -100,7 +100,7 @@ Independently of these headers, an in-process request inherits from the calling 
 
 ### Calling `fetch()` from a fetch runtime
 
-With no calling event (Bun, Deno, edge runtimes), the connection's peer is unknown unless you pass it as the second argument, `app.fetch(request, { remoteAddress, encrypted })`. Without it, `getIp()` is `''`, list and predicate `trustProxy` trust nothing, and `protocol()` / `host()` come from the Request URL. See [Behind a Proxy](./proxy-trust.md#programmatic-fetch).
+With no calling event (Bun, Deno, edge runtimes), the connection's peer is unknown unless you pass it as the second argument, `app.fetch(request, { remoteAddress, encrypted })`. Without it, `getIp()` is `''`, list (with or without `hops`) and predicate `trustProxy` trust nothing, and `protocol()` / `host()` come from the Request URL. See [Behind a Proxy](./proxy-trust.md#programmatic-fetch).
 
 ### Customizing Header Forwarding
 

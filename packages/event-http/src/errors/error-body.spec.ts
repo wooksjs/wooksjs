@@ -47,7 +47,8 @@ describe('HttpError body', () => {
   })
 
   it('statusCode and error always come from the error, not the body', () => {
-    const error = new HttpError(400, { message: 'm', statusCode: 500, error: 'spoof' })
+    // cast: `error` is reserved by the type; this checks the runtime still wins
+    const error = new HttpError(400, { message: 'm', statusCode: 500, error: 'spoof' } as never)
     expect(error.body.statusCode).toBe(400)
     expect(error.body.error).toBe('Bad Request')
   })

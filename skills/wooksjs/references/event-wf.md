@@ -67,7 +67,7 @@ const app2 = createWfApp({}, wooks)
 
 ### TWooksWfOptions
 
-- `onNotFound` — handler invoked when `start()` finds no flow for the id (never on `resume()`). Must return `{ id, init? }` and be pure — `resolveSchemaId()` also calls it (see [wf-outlets.md](wf-outlets.md#access-control-allow--block) rule 5).
+- `onNotFound` — handler invoked when `start()` finds no flow for the id (never on `resume()`). Must return `{ id, init? }` and be pure — `resolveSchemaId()` also calls it (see [wf-outlets.md](wf-outlets.md#access-control-allow--resumeonly--block) rule 5).
 - `logger` — `TConsoleBase` for adapter logging (duplicate-step warnings, etc.).
 - `router` — `{ ignoreTrailingSlash?, ignoreCase?, cacheLimit? }` for the underlying router.
 - `strictStepIds` — throw on duplicate `WF_STEP` id instead of warn (default `false`).
@@ -116,7 +116,7 @@ const resumed = await app.resume(output.state, { input: userInput })
 
 ### `app.resolveSchemaId(id)`
 
-`await app.resolveSchemaId('process/json', { eventContext? })` → `'process/:type'`: the registered flow id (as passed to `flow()`) that `start(id)` would run — same rule as `start()`: first matching route handler (router decoding, `ignoreCase`, params, wildcards), else `onNotFound`; `undefined` if neither. Runs no step and no `init`; a `flow()` handler is not called, a custom `WF_FLOW` handler / `onNotFound` IS called (keep them pure) — in a throwaway WF context with the requested `schemaId` and route params, parented to `eventContext` (pass the parent you pass to `start()`). A paused run stores this registered id as `state.schemaId`, not the id it was started with. The outlet trigger uses it to check `allow`/`block` — see [wf-outlets.md](wf-outlets.md#access-control-allow--block).
+`await app.resolveSchemaId('process/json', { eventContext? })` → `'process/:type'`: the registered flow id (as passed to `flow()`) that `start(id)` would run — same rule as `start()`: first matching route handler (router decoding, `ignoreCase`, params, wildcards), else `onNotFound`; `undefined` if neither. Runs no step and no `init`; a `flow()` handler is not called, a custom `WF_FLOW` handler / `onNotFound` IS called (keep them pure) — in a throwaway WF context with the requested `schemaId` and route params, parented to `eventContext` (pass the parent you pass to `start()`). A paused run stores this registered id as `state.schemaId`, not the id it was started with. The outlet trigger uses it to check `allow`/`block` — see [wf-outlets.md](wf-outlets.md#access-control-allow--resumeonly--block).
 
 ### `TFlowOutput<T, I, IR>`
 

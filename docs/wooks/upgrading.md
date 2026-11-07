@@ -67,6 +67,7 @@ Details: [Headers](../webapp/composables/response.md#headers), [Compression](../
 | Change | What to do |
 |---|---|
 | `HttpError` is typed `HttpError<T extends object>`. A body object needs `message`, may carry `code` (UPPER_SNAKE) and `params`, and no longer needs `statusCode`. | Drop `statusCode` from body objects; it always comes from the first argument. |
+| Since 0.8.2 an `HttpError` body object may not carry `error`, which is always the status text: `new HttpError(412, { message, error: 'STALE_DOC' })` is a compile error. Re-wrapping a rendered body (`new HttpError(502, upstream.body)`, a `THttpErrorBody` or `TWooksErrorBody`) is rejected for the same reason. | Put a machine-readable code in `code`. To re-wrap a body, drop `error` first: `const { error: _e, ...rest } = upstream.body; throw new HttpError(502, rest)`. |
 | `transformErrorBody` also sees the router's `404` and non-`HttpError` `500`s. Its result is used only when it is a plain object with a numeric `statusCode` and a string `message`. | Make the hook handle bodies without `code`, return synchronously, and keep both fields. |
 
 Details: [Error Responses](../webapp/composables/response.md#error-responses).

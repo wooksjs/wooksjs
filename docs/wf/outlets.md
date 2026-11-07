@@ -221,6 +221,7 @@ interface WfOutletTriggerConfig {
   }
   wfidName?: string                            // default: 'wfid'
   allow?: string[]                             // checked on start AND resume
+  resumeOnly?: string[]                        // resumed, never started
   block?: string[]                             // checked on start AND resume
   initialContext?: (body, wfid, flowId) => unknown
   onFinished?: (ctx: { context, schemaId }) => unknown
@@ -330,7 +331,7 @@ Replay protection on a leaked `HandleStateStrategy` token: the workflow record a
 
 ### Resume Semantics
 
-When `allow` / `block` are set, the trigger first reads the state with `strategy.retrieve()` and checks it (see [Access Control](#access-control)); a refused token is **not** consumed. A custom `WfStateStrategy` must therefore implement `retrieve()` as a side-effect-free read that never invalidates the handle. The trigger then consumes the state atomically (`consumeEntry()` when the strategy implements both `consumeEntry()` and `persistEntry()`, else `consume()`) before running the step handler. After the step returns, the engine re-persists under the **same** handle so the URL `wfs` stays live for the duration of the workflow.
+When `allow` / `resumeOnly` / `block` are set, the trigger first reads the state with `strategy.retrieve()` and checks it (see [Access Control](#access-control)); a refused token is **not** consumed. A custom `WfStateStrategy` must therefore implement `retrieve()` as a side-effect-free read that never invalidates the handle. The trigger then consumes the state atomically (`consumeEntry()` when the strategy implements both `consumeEntry()` and `persistEntry()`, else `consume()`) before running the step handler. After the step returns, the engine re-persists under the **same** handle so the URL `wfs` stays live for the duration of the workflow.
 
 A replay that loses the race against a concurrent resume — or a request after the workflow has finished — is refused with **410 Gone**, code `WF_EXPIRED`. With `EncapsulatedStateStrategy`, `consume()` is a stateless no-op (see the security note above) and the token remains replayable until TTL.
 
@@ -349,8 +350,8 @@ The trigger **throws** every refusal as an `HttpError`, so app error handlers (m
 | `WF_INVALID` | 400 | `wfid` is not a string; or it holds `%` / `?` while lists are set and the deps have no `resolveSchemaId` | — |
 | `WF_INVALID_TOKEN` | 410 | the token is malformed or names no configured strategy | — |
 | `WF_EXPIRED` | 410 | the token's state is gone: expired, already used, or never existed | — |
-| `WF_FORBIDDEN` | 403 | `allow` / `block` refuses the flow — on start, or on resume (token not consumed) | `reason: 'not-allowed' \| 'blocked'`; `wfid` on start only (a resume never names the stored flow) |
-| `WF_NOT_FOUND` | 404 | with `allow`/`block` set, `wfid` resolves to no flow | `wfid` |
+| `WF_FORBIDDEN` | 403 | `allow` / `resumeOnly` / `block` refuses the flow — on start, or on resume (token not consumed) | `reason: 'not-allowed' \| 'blocked'`; `wfid` on start only (a resume never names the stored flow) |
+| `WF_NOT_FOUND` | 404 | with `allow`/`resumeOnly`/`block` set, `wfid` resolves to no flow | `wfid` |
 | `WF_UNKNOWN_OUTLET` | 500 | a step paused on an outlet the trigger does not have | `outlet` |
 
 The table is exported as `WF_TRIGGER_ERRORS` (`code → { status, message }`) for building translation catalogs. The English `message` is unchanged from earlier versions; it moved from the body's `error` field to `message` (`error` is now the status text, as for every `HttpError`). Clients that read `body.message ?? body.error` work with both.
@@ -422,16 +423,26 @@ A restore puts back the state from before the resumed run, so every step of that
 ```ts
 {
   allow: ['signup', 'reset-password'],  // only these flows can be started or resumed
+  resumeOnly: ['invite'],               // resumed from a link, never started here
   block: ['admin-setup'],               // these flows are always refused
 }
 ```
 
-Both lists apply to **starting** a workflow and to **resuming** one, and both judge the **flow**, not the id spelling:
+The lists apply to **starting** a workflow and to **resuming** one, and all of them judge the **flow**, not the id spelling:
 
-- **Start** — the flow is `flowOf(wfid)`: the registered flow that `start(wfid)` would run (the first matching route, else the one `onNotFound` picks). While either list is set, a `wfid` that resolves to no flow is refused with **404** — there is nothing to judge. `start()` is told which flow was judged and refuses to run any other, so even a non-deterministic `onNotFound` cannot slip a different flow through. (This check applies only while lists are set.)
+- **Start** — the flow is `flowOf(wfid)`: the registered flow that `start(wfid)` would run (the first matching route, else the one `onNotFound` picks). While any list is set, a `wfid` that resolves to no flow is refused with **404** — there is nothing to judge. `start()` is told which flow was judged and refuses to run any other, so even a non-deterministic `onNotFound` cannot slip a different flow through. (This check applies only while lists are set.)
 - **Resume** — the flow is the one stored in the state behind the `wfs` token. A resume runs **only** the flow registered under exactly that id — or, failing that, the one registered under the same id up to leading slashes (`'x'` ↔ `'/x'`) — never a flow the id merely routes to (another casing, a trailing slash, an instance id) and never `onNotFound`; otherwise it fails with `Unknown schemaId`. So the flow that is judged is the flow that runs. A refused token gets 403 and is **not** consumed, so it keeps working on the trigger it belongs to. A token issued by a public login flow cannot be replayed on a trigger whose lists exclude that flow.
 
-Start and resume of the same flow always get the same answer.
+Start and resume of the same flow get the same answer, except for a flow in `resumeOnly`:
+
+| flow | start | resume |
+| --- | --- | --- |
+| in `block` | refused | refused |
+| in `resumeOnly` (not blocked) | refused | admitted |
+| in `allow` (not in the lists above) | admitted | admitted |
+| in no list | admitted only when `allow` is omitted | admitted only when `allow` is omitted |
+
+`block` wins over everything, in the refusal reason too (`reason: 'blocked'`). A refused start gets the same `WF_FORBIDDEN` (`reason: 'not-allowed'`) for a `resumeOnly` flow as for a flow missing from `allow`.
 
 **`block`** refuses, for every entry, the flow that entry would run (`flowOf(entry)`) **and** the flow registered under exactly that id. So `block: ['adm%69n']`, `block: ['Admin']` under an `ignoreCase` router, and `block: ['user/42']` for a `user/:id` flow each refuse that flow, on every instance and spelling. `block` may over-block; it never under-blocks. An entry that resolves to no flow logs a warning once.
 
@@ -444,7 +455,7 @@ Start and resume of the same flow always get the same answer.
 | `'reprot'` (a typo, even if a catch-all `:name` flow would run it) | nothing — logs a warning |
 | the id `onNotFound` returns | that flow, only when listed by its registered id |
 
-Omitting `allow` admits every flow. **`allow: []` admits no flow.** `block` is checked after `allow`. Ids are compared ignoring leading slashes, because adapters that register flows as `/<path>` store the id with the slash. Use the exported `normalizeWfId()` to compare a stored `schemaId` with your own ids the same way:
+Omitting `allow` admits every flow. **`allow: []` admits no flow.** `block` wins over `allow`. Ids are compared ignoring leading slashes, because adapters that register flows as `/<path>` store the id with the slash. Use the exported `normalizeWfId()` to compare a stored `schemaId` with your own ids the same way:
 
 ```ts
 import { normalizeWfId } from '@wooksjs/event-wf'
@@ -452,13 +463,20 @@ import { normalizeWfId } from '@wooksjs/event-wf'
 normalizeWfId('/auth/login') === normalizeWfId('auth/login') // true
 ```
 
+**`resumeOnly`** is for a flow started somewhere else that this trigger must only continue. An admin-issued invite, for example: the admin starts it on a protected route (or with [`mintWfToken()`](#minting-a-token-without-a-request)), and the public trigger resumes it from the emailed link. It adds to `allow` — a flow listed here needs no `allow` entry to be resumed — and each side follows the rule of the list it acts like:
+
+- **Start** — refused like `block`: the flow each entry runs and the flow registered under exactly that id. A flow listed in both `allow` and `resumeOnly` cannot be started.
+- **Resume** — admitted like `allow`: only when an entry equals the flow's registered id (`'user/:id'`, not `'user/42'`). An entry that is not a registered id logs a warning once.
+
+`resumeOnly: []` has no effect.
+
 Lists work per flow, not per instance — restrict individual instances inside the flow's steps.
 
 **Flow handlers must be pure.** Flows registered with `flow()` resolve without running anything, and their `init` runs once per start. A custom `WF_FLOW` handler or `onNotFound` reveals the flow it picks only when called, so the trigger calls it — inside a throwaway workflow context with the same `schemaId`, route params and parent context (the HTTP request) that `start()` would give it, so an `onNotFound` that reads request data resolves exactly as it runs:
 
 - for the request id, on every start it can't route (and `start()` then calls it again);
-- for each `block` entry it can't route, on every request (in that request's context);
-- for each `allow` entry it can't route, once per process (only to decide whether to warn).
+- for each `block` entry it can't route, on every request, and for each `resumeOnly` entry it can't route, on every start (in that request's context);
+- for each `allow` and `resumeOnly` entry it can't route, once per process (only to decide whether to warn).
 
 Return `{ id, init? }` without side effects, and put side effects in `init`. If it throws while an entry is being resolved, that entry counts as unresolved — the request is not failed.
 
@@ -468,8 +486,8 @@ Return `{ id, init? }` without side effects, and put side effects in `init`. If 
 Without it the trigger cannot know which flow an id runs. It logs a warning once when lists are set and falls back to a conservative check:
 
 - a `wfid` containing `%` or `?` is refused with 400;
-- `block` over-matches: an id is refused if it equals an entry ignoring case and trailing slashes, or if the entry, read as a route pattern (params, optional `:x?`, `:a-:b`, regex params, `*`), matches it case- and trailing-slash-insensitively;
-- `allow` matches the request id exactly (leading slashes aside) on start and the stored flow id on resume. It judges the **spelling** at start, so a listed instance id or typo can still reach whatever flow the router maps it to.
+- `block` over-matches: an id is refused if it equals an entry ignoring case and trailing slashes, or if the entry, read as a route pattern (params, optional `:x?`, `:a-:b`, regex params, `*`), matches it case- and trailing-slash-insensitively. `resumeOnly` refuses a start the same way;
+- `allow` matches the request id exactly (leading slashes aside) on start and the stored flow id on resume. `resumeOnly` admits a resume the same way. It judges the **spelling** at start, so a listed instance id or typo can still reach whatever flow the router maps it to.
 
 The fallback cannot see `onNotFound` routing. Only the resolver makes the lists judge the flow that actually runs.
 :::
@@ -478,7 +496,7 @@ The fallback cannot see `onNotFound` routing. Only the resolver makes the lists 
 
 Seed the workflow context from the request body when starting. `wfid` is the caller's spelling — e.g. `'user/42'` for a `user/:id` flow; `flowId` is the registered flow the request resolves to (the same id `onFinished` receives as `schemaId`; the raw `wfid` without `resolveSchemaId`). Prefer `flowId` for decisions — every spelling that runs a flow resolves to its id. The `default` strategy picker of a named registry gets the same `(wfid, flowId)` pair.
 
-With `allow` / `block` set, the flow that runs is guaranteed to be `flowId` (see [Access Control](#access-control)). Without lists, `flowId` is only the resolver's answer: if `onNotFound` is not deterministic (A/B routing, for example), the flow `start()` then runs may differ from the `flowId` the callbacks saw.
+With any list set, the flow that runs is guaranteed to be `flowId` (see [Access Control](#access-control)). Without lists, `flowId` is only the resolver's answer: if `onNotFound` is not deterministic (A/B routing, for example), the flow `start()` then runs may differ from the `flowId` the callbacks saw.
 
 ```ts
 {
@@ -508,7 +526,7 @@ If not provided, the trigger checks `useWfFinished()` (set from within steps) an
 
 Three hooks let an app wrap and shape what the trigger does.
 
-**`around(run)`** wraps everything that touches state or the outside world: the `allow`/`block` checks, consume/start/resume, `beforePersist`, persist, and outlet delivery. Put the state store and the steps' writes in one database, and a request becomes one transaction. A step that throws rolls back its writes and the consumed token together:
+**`around(run)`** wraps everything that touches state or the outside world: the access-list checks, consume/start/resume, `beforePersist`, persist, and outlet delivery. Put the state store and the steps' writes in one database, and a request becomes one transaction. A step that throws rolls back its writes and the consumed token together:
 
 ```ts
 handle({
@@ -554,7 +572,7 @@ if (token) {
 - `state.meta.outlet` is set as the trigger sets it. Your `meta` cannot set any key the trigger or the state strategies own (`outlet`, `restores`, `__wf*`); those are dropped. The rest of your `meta` is kept on every later pause the trigger persists for that flow.
 - Expiry is tracked as for trigger-issued tokens, so `restoreOnError` works on the first resume. When the pausing step also returns `expires`, the earlier of the two wins.
 - No outlet is called: you deliver the token. `inputRequired` tells you what the flow asked for.
-- `allow`/`block` are not checked when minting, since the server chooses the flow. They apply when the token is resumed.
+- `allow`/`resumeOnly`/`block` are not checked when minting, since the server chooses the flow. They apply when the token is resumed: list the flow in `resumeOnly` to resume it on a trigger that must never start it.
 - A flow that finishes without pausing yields `token: undefined`.
 
 `wfApp` is anything with `start()`: `WooksWf`, or `MoostWf` in moost.

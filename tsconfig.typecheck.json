@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "declaration": false,
+    "emitDeclarationOnly": false
+  },
+  "include": ["globals.d.ts", "packages/*/src/**/*.d.ts", "packages/*/src/**/*.types.spec.ts"],
+  "exclude": []
+}

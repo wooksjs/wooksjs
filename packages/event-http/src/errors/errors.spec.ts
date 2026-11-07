@@ -6,7 +6,6 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { useRequest } from '../composables'
 import { prepareTestHttpContext } from '../testing'
 import { WooksHttpResponse } from '../response/wooks-http-response'
-import type { TWooksErrorBodyExt } from './http-error'
 import { HttpError } from './http-error'
 
 describe('WooksHttpResponse error rendering', () => {
@@ -46,12 +45,13 @@ describe('WooksHttpResponse error rendering', () => {
         error: string
         additional: string
       }
+      // cast: `error` is reserved (status text); the rendered body must still win
       const error = new HttpError<MyError>(405, {
         statusCode: 405,
         message: 'message text',
         error: 'error text',
         additional: 'additional text',
-      })
+      } as never)
       ;(response as any).renderError(error.body, ctx)
       expect(response.body).toEqual(
         '{"statusCode":405,"message":"message text","error":"Method Not Allowed","additional":"additional text"}',
@@ -94,12 +94,13 @@ describe('WooksHttpResponse error rendering', () => {
         error: string
         additional: string
       }
+      // cast: `error` is reserved (status text); the rendered body must still win
       const error = new HttpError<MyError>(405, {
         statusCode: 405,
         message: 'message text',
         error: 'error text',
         additional: 'additional text',
-      })
+      } as never)
       ;(response as any).renderError(error.body, ctx)
       // `details` is HTML-escaped before injection into <code>, so JSON quotes
       // appear as &quot; in the rendered HTML.
@@ -133,12 +134,13 @@ describe('WooksHttpResponse error rendering', () => {
         additional: string
       }
       const payload = '</code><script>alert(1)</script>'
+      // cast: `error` is reserved (status text)
       const error = new HttpError<MyError>(400, {
         statusCode: 400,
         message: 'm',
         error: 'Bad Request',
         additional: payload,
-      })
+      } as never)
       ;(response as any).renderError(error.body, ctx)
       const body = response.body as string
       expect(body).not.toContain('</code><script>alert(1)</script>')

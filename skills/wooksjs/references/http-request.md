@@ -159,6 +159,7 @@ App-level, off by default. One resolver drives `getIp()`, `protocol()`, `host()`
 ```ts
 createHttpApp({ trustProxy: 1 })                          // one reverse proxy
 createHttpApp({ trustProxy: ['10.0.0.0/8', 'loopback'] }) // by address (IPs, CIDRs, 'loopback'|'linklocal'|'uniquelocal')
+createHttpApp({ trustProxy: { addresses: '10.0.0.0/8', hops: 1 } }) // list AND at most N hops
 createHttpApp({ trustProxy: (addr, hop) => hop === 0 })   // predicate; hop 0 = socket peer
 createHttpApp({ trustProxy: 1, proxyHeaders: 'forwarded' }) // RFC 7239 instead of X-Forwarded-*
 ```
@@ -168,6 +169,7 @@ createHttpApp({ trustProxy: 1, proxyHeaders: 'forwarded' }) // RFC 7239 instead 
 | 1 | Default `false`: forwarding headers ignored; IP = socket peer, protocol = socket TLS, host = `Host`. |
 | 2 | Client = right-most hop that is NOT trusted, walking from the socket (hop 0) through `X-Forwarded-For` / `Forwarded: for=` right-to-left. Client-written entries are never reached. An entry a trusted hop wrote that is missing/empty/malformed/not an address (or a `Forwarded` element without `for=`) → client UNKNOWN `''` — never the proxy's own address. `Forwarded` is split from the right + strict RFC 7239 grammar, so a client's unterminated quote can't move the proxies' element boundaries. |
 | 3 | `trustProxy: true` throws at startup (would let clients pick their IP) — use the hop count. Invalid IP/CIDR (prefix must be plain digits in range) also throws. Empty list = trust nothing. |
+| 3e | `{ addresses, hops }` (`TTrustProxyCapped`): hop `i` trusted only if `i < hops` AND address in `addresses` (list entries). Use when clients can sit INSIDE the trusted range (same-VPC callers): a bare list would follow such a client's own XFF entries. `hops` must be an integer ≥ 1 and `addresses` non-empty, else throws at startup. Unknown peer → trusts nothing. |
 | 3a | Addresses are normalised: IPv4-mapped IPv6, dotted or hex (`::ffff:10.0.0.5`, `::ffff:a00:5`) → `10.0.0.5` for matching, predicates and `getIp()`. A throwing predicate fails closed (client `''`, logged once). |
 | 3c | No forwarding header at all (or only empty elements) from a trusted peer → the PEER is the client (direct internal call). A present but malformed entry → `''`. `Forwarded` structure is strict; `for=` may also be an unquoted IP / IP:port or a bare IPv6 (`for=2001:db8::1`, `for="2001:db8::1"`). A malformed entry from hop 0 (your own proxy) is warned once. |
 | 3d | A proxy copying the raw client `Host` into `Forwarded: host="…"` must escape it (or omit `host`) — else the client can inject an element. |

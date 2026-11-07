@@ -16,6 +16,7 @@ export type {
   TForwardedRequest,
   TProxyHeaders,
   TTrustProxy,
+  TTrustProxyCapped,
   TTrustProxyFn,
 } from './utils/proxy'
 export type { TTransformErrorBody } from './http-config'

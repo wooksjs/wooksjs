@@ -7,7 +7,7 @@ import type { WfOutletTriggerConfig, WfStartRunner } from './types'
 import { warnOnce } from './warn-once'
 
 /*
- * ─── Outlet trigger access spec (allow / block) ──────────────────────────
+ * ─── Outlet trigger access spec (allow / resumeOnly / block) ─────────────
  *
  * flowOf(id)  — the registered flow that `start(id)` would run: the first
  *               matching WF_FLOW route, else `onNotFound`; `undefined` if none.
@@ -26,6 +26,21 @@ import { warnOnce } from './warn-once'
  *         Resolution is NEVER used to admit: an entry that is not a
  *         registered id admits nothing (it warns once when it resolves to a
  *         different flow or to none). `allow: []` admits nothing.
+ *
+ * RESUME-ONLY — flows that may be resumed but never started. Each side
+ *         follows the rule of the list it acts like (entries are resolved on
+ *         every START, in that request's context; a resume resolves none):
+ *           start  — refused like BLOCK (canon(e) ∪ canon(flowOf(e)), reason
+ *                    'not-allowed'), even when `allow` lists the flow too;
+ *           resume — admitted like ALLOW (canon(e) only, never by
+ *                    resolution), in addition to `allow`.
+ *         An entry that is not a registered id warns once.
+ *
+ *   flow F            start               resume
+ *   in block          refused (any list)  refused (any list)
+ *   in resumeOnly     refused             admitted
+ *   in allow          admitted            admitted
+ *   in neither        admitted only when `allow` is omitted (both)
  *
  * A request is judged on its flow identity:
  *   start  — F = flowOf(wfid). While lists are set, a wfid that resolves to
@@ -53,7 +68,9 @@ import { warnOnce } from './warn-once'
  *     form equals an entry's, or if the entry, used as a route pattern on a
  *     case-insensitive, trailing-slash-insensitive router, matches it
  *     (params, optional params, multi-param segments, regex params, `*`);
- *   - ALLOW is exact on canon(wfid) at start and canon(schemaId) at resume.
+ *     RESUME-ONLY refuses a start the same way;
+ *   - ALLOW is exact on canon(wfid) at start and canon(schemaId) at resume;
+ *     RESUME-ONLY admits a resume the same way.
  *   The fallback cannot see `onNotFound`, and at start `allow` judges the
  *   request spelling, not the flow it runs.
  */
@@ -86,14 +103,18 @@ export function createResolver(
 /** The message of a `WF_FORBIDDEN` refusal, by reason. */
 const FORBIDDEN_MSG = { 'not-allowed': 'is not allowed', blocked: 'is blocked' } as const
 
-/** Whether `allow` / `block` restrict this trigger at all. */
+/** Whether `allow` / `resumeOnly` / `block` restrict this trigger at all. */
 export function hasAccessLists(config: WfOutletTriggerConfig): boolean {
-  return config.allow !== undefined || (config.block?.length ?? 0) > 0
+  return (
+    config.allow !== undefined ||
+    (config.resumeOnly?.length ?? 0) > 0 ||
+    (config.block?.length ?? 0) > 0
+  )
 }
 
 const neverBlocked = (_flowId: string) => false
 
-/** `allow` entries are context-free — canonicalise each array once. */
+/** `allow` / `resumeOnly` entries admit context-free — canonicalise each array once. */
 const allowSets = new WeakMap<string[], Set<string>>()
 
 function allowSetOf(allow: string[]): Set<string> {
@@ -106,7 +127,7 @@ function allowSetOf(allow: string[]): Set<string> {
 }
 
 /**
- * Build the allow/block decision for one trigger request (see the spec above).
+ * Build the allow/resumeOnly/block decision for one trigger request (see the spec above).
  * `eventContext` is the parent `start()` will get, so a context-aware
  * `onNotFound` resolves exactly as it would run.
  */
@@ -116,49 +137,54 @@ export async function createWfAccess(
   eventContext?: unknown,
 ) {
   const allow = config.allow && allowSetOf(config.allow)
+  const resumeOnlyEntries = config.resumeOnly ?? []
+  const resumeOnly = resumeOnlyEntries.length > 0 ? allowSetOf(resumeOnlyEntries) : undefined
   const blockEntries = config.block ?? []
   const listsSet = hasAccessLists(config)
   const resolve = createResolver(deps, eventContext)
 
-  let isBlocked: (flowId: string) => boolean = neverBlocked
   if (resolve) {
     if (config.allow) {
-      await warnOnUnregisteredAllowEntries(config.allow, resolve)
+      await warnOnUnregisteredEntries('allow', config.allow, resolve)
     }
-    if (blockEntries.length > 0) {
-      const denied = await blockedFlows(blockEntries, resolve)
-      isBlocked = (flowId) => denied.has(normalizeWfId(flowId))
-    }
-  } else {
-    if (listsSet) {
-      warnOnce(
-        'no-resolver',
-        'Workflow outlet trigger has allow/block lists but no deps.resolveSchemaId — ids cannot be ' +
-          'resolved to registered flows, so the lists cannot be guaranteed. ' +
-          'Use createOutletHandler(wfApp) or pass resolveSchemaId.',
-      )
-    }
-    if (blockEntries.length > 0) {
-      isBlocked = fallbackBlockMatcher(blockEntries)
-    }
+  } else if (listsSet) {
+    warnOnce(
+      'no-resolver',
+      'Workflow outlet trigger has access lists (allow/resumeOnly/block) but no ' +
+        'deps.resolveSchemaId — ids cannot be resolved to registered flows, so the lists ' +
+        'cannot be guaranteed. ' +
+        'Use createOutletHandler(wfApp) or pass resolveSchemaId.',
+    )
   }
+  const isBlocked =
+    blockEntries.length > 0
+      ? await flowMatcher(blockEntries, resolve, warnUnmatchedBlock)
+      : neverBlocked
+  if (resolve && resumeOnly) {
+    await warnOnUnregisteredEntries('resumeOnly', resumeOnlyEntries, resolve)
+  }
+  /** The `resumeOnly` start check (matched like `block`) — built on start only. */
+  const startDenied = resumeOnly
+    ? () => flowMatcher(resumeOnlyEntries, resolve)
+    : async () => neverBlocked
 
   /** `wfid` is shown (message + params) on start only — a resume never names the stored flow. */
-  const judge = (flowId: string, wfid?: string): WfRefusal | undefined => {
-    let reason: keyof typeof FORBIDDEN_MSG
-    if (allow && !allow.has(normalizeWfId(flowId))) {
-      reason = 'not-allowed'
-    } else if (isBlocked(flowId)) {
-      reason = 'blocked'
-    } else {
-      return undefined
+  const forbidden = (reason: keyof typeof FORBIDDEN_MSG, wfid?: string): WfRefusal => ({
+    code: 'WF_FORBIDDEN',
+    message: `${wfid === undefined ? 'Workflow' : `Workflow '${wfid}'`} ${FORBIDDEN_MSG[reason]}`,
+    params: wfid === undefined ? { reason } : { wfid, reason },
+  })
+  const notAllowed = (canon: string) => allow !== undefined && !allow.has(canon)
+
+  /** A start: `block` wins (in the reason too); `resumeOnly` refuses, even when `allow` lists it. */
+  const judgeStart = async (flowId: string, wfid: string): Promise<WfRefusal | undefined> => {
+    const notStartable = await startDenied()
+    if (isBlocked(flowId)) {
+      return forbidden('blocked', wfid)
     }
-    const shown = wfid === undefined ? 'Workflow' : `Workflow '${wfid}'`
-    return {
-      code: 'WF_FORBIDDEN',
-      message: `${shown} ${FORBIDDEN_MSG[reason]}`,
-      params: wfid === undefined ? { reason } : { wfid, reason },
-    }
+    return notStartable(flowId) || notAllowed(normalizeWfId(flowId))
+      ? forbidden('not-allowed', wfid)
+      : undefined
   }
 
   return {
@@ -176,7 +202,7 @@ export async function createWfAccess(
           // could reach a listed flow under a spelling the lists don't contain.
           return { flowId: wfid, refusal: { code: 'WF_INVALID' } }
         }
-        return { flowId: wfid, refusal: judge(wfid, wfid) }
+        return { flowId: wfid, refusal: await judgeStart(wfid, wfid) }
       }
       const resolvedId = await resolve(wfid)
       if (resolvedId === undefined) {
@@ -192,54 +218,78 @@ export async function createWfAccess(
             }
           : { flowId: wfid }
       }
-      return { flowId: resolvedId, resolvedId, refusal: judge(resolvedId, wfid) }
+      return { flowId: resolvedId, resolvedId, refusal: await judgeStart(resolvedId, wfid) }
     },
-    /** Judge a resume of a stored state's `schemaId`. */
+    /** Judge a resume of a stored state's `schemaId`: `resumeOnly` admits, like `allow`. */
     resume(schemaId: string): WfRefusal | undefined {
-      return judge(schemaId)
+      if (isBlocked(schemaId)) {
+        return forbidden('blocked')
+      }
+      const canon = normalizeWfId(schemaId)
+      return notAllowed(canon) && !resumeOnly?.has(canon) ? forbidden('not-allowed') : undefined
     },
   }
 }
 
-/** BLOCK with a resolver: canon(e) ∪ canon(flowOf(e)) for every entry, this request. */
-async function blockedFlows(entries: string[], resolve: Resolve): Promise<Set<string>> {
+/**
+ * BLOCK-style match: with a resolver, canon(e) ∪ canon(flowOf(e)) for every entry, this request
+ * (`onUnresolved` per unresolved e); without one, the fallback matcher.
+ */
+async function flowMatcher(
+  entries: string[],
+  resolve: Resolve | undefined,
+  onUnresolved?: (entry: string) => void,
+): Promise<(flowId: string) => boolean> {
+  if (!resolve) {
+    return fallbackBlockMatcher(entries)
+  }
   const resolved = await Promise.all(entries.map((entry) => resolve(entry)))
   const denied = new Set<string>()
   for (const [i, entry] of entries.entries()) {
     denied.add(normalizeWfId(entry))
     const flow = resolved[i]
     if (flow === undefined) {
-      warnOnce(
-        `block:${entry}`,
-        `Workflow outlet trigger: block entry '${entry}' matches no registered workflow ` +
-          `(it only blocks a flow registered under exactly that id).`,
-      )
+      onUnresolved?.(entry)
     } else {
       denied.add(normalizeWfId(flow))
     }
   }
-  return denied
+  return (flowId) => denied.has(normalizeWfId(flowId))
 }
 
-const checkedAllowEntries = new Set<string>()
+function warnUnmatchedBlock(entry: string) {
+  warnOnce(
+    `block:${entry}`,
+    `Workflow outlet trigger: block entry '${entry}' matches no registered workflow ` +
+      `(it only blocks a flow registered under exactly that id).`,
+  )
+}
+
+const checkedEntries = new Set<string>()
 
 /**
- * ALLOW never uses resolution to admit; resolution only flags a likely
- * mistake. Each entry is checked once per process (bounded).
+ * ALLOW / RESUME-ONLY never use resolution to admit; resolution only flags a
+ * likely mistake. Each entry is checked once per process (bounded).
  */
-async function warnOnUnregisteredAllowEntries(entries: string[], resolve: Resolve) {
+async function warnOnUnregisteredEntries(
+  list: 'allow' | 'resumeOnly',
+  entries: string[],
+  resolve: Resolve,
+) {
+  const admits = list === 'allow' ? 'admits' : 'admits a resume of'
   for (const entry of entries) {
-    if (checkedAllowEntries.has(entry) || checkedAllowEntries.size >= 256) {
+    const key = `${list}:${entry}`
+    if (checkedEntries.has(key) || checkedEntries.size >= 256) {
       continue
     }
-    checkedAllowEntries.add(entry)
+    checkedEntries.add(key)
     const flow = await resolve(entry)
     if (flow === undefined || normalizeWfId(flow) !== normalizeWfId(entry)) {
       const runs = flow === undefined ? '' : ` (a request for it runs '${flow}')`
       warnOnce(
-        `allow:${entry}`,
-        `Workflow outlet trigger: allow entry '${entry}' is not a registered flow id${runs}` +
-          ` — it admits only a flow registered as exactly '${entry}'.`,
+        key,
+        `Workflow outlet trigger: ${list} entry '${entry}' is not a registered flow id${runs}` +
+          ` — it ${admits} only a flow registered as exactly '${entry}'.`,
       )
     }
   }
