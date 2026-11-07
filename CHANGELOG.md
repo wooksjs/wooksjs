@@ -1,3 +1,9 @@
+## [0.8.2](https://github.com/wooksjs/wooksjs/compare/v0.8.1...v0.8.2) (2026-11-07)
+
+
+### Features
+
+* wf trigger resumeOnly, trustProxy { addresses, hops }, HttpError body type rejects error ([ce1e49f](https://github.com/wooksjs/wooksjs/commit/ce1e49f9f221510a0f92b7962c7235332d5652ff))
 ## [0.8.1](https://github.com/wooksjs/wooksjs/compare/v0.8.0...v0.8.1) (2026-11-05)
 
 
