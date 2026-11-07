@@ -39,12 +39,15 @@ const text = body.message ?? body.error // works on 0.7 and 0.8; or switch on bo
 
 ## New APIs worth adopting
 
-| Feature                                                                                                                                  | Where                                                              |
-| ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `useLocale()` (all kinds), `useAcceptLanguage().negotiate()`, `createHttpApp({ resolveLocale })`                                         | [event-core.md](event-core.md), [http-request.md](http-request.md) |
-| `trustProxy`, `proxyHeaders`, `compileTrustProxy`, `resolveForwarded`                                                                    | [http-request.md](http-request.md#proxy-trust)                     |
-| `checkPreconditions`, `parseHttpDate`, `useResponse().vary()`, `prerenderJson(obj, { etag: '"x"' })`                                     | [http-response.md](http-response.md)                               |
-| Trigger `around`, `beforePersist`, `renderEnvelope`, `restoreOnError`/`maxRestores`, `mintWfToken`, `normalizeWfId`, `WF_TRIGGER_ERRORS` | [wf-outlets.md](wf-outlets.md)                                     |
+| Feature                                                                                                                                  | Where                                                                                                                  |
+| ---------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `useLocale()` (all kinds), `useAcceptLanguage().negotiate()`, `createHttpApp({ resolveLocale })`                                         | [event-core.md](event-core.md), [http-request.md](http-request.md)                                                     |
+| `trustProxy`, `proxyHeaders`, `compileTrustProxy`, `resolveForwarded`                                                                    | [http-request.md](http-request.md#proxy-trust)                                                                         |
+| `checkPreconditions`, `parseHttpDate`, `useResponse().vary()`, `prerenderJson(obj, { etag: '"x"' })`                                     | [http-response.md](http-response.md)                                                                                   |
+| Trigger `around`, `beforePersist`, `renderEnvelope`, `restoreOnError`/`maxRestores`, `mintWfToken`, `normalizeWfId`, `WF_TRIGGER_ERRORS` | [wf-outlets.md](wf-outlets.md)                                                                                         |
+| 0.8.1: `useResponse().onClose()`; wf `app.attachCleanup()`                                                                               | [http-response.md](http-response.md#response-completion-onclose), [wf-advanced.md](wf-advanced.md#app-wide-cleanup)    |
+| 0.8.2: `trustProxy: { addresses, hops }` (`TTrustProxyCapped`); trigger `resumeOnly`                                                     | [http-request.md](http-request.md#proxy-trust), [wf-outlets.md](wf-outlets.md#access-control-allow--resumeonly--block) |
+| 0.8.3: `strategy.expiresAtFor()`, `strategy.defaultTtl` (`@prostojs/wf` 0.3.1)                                                           | [wf-outlets.md](wf-outlets.md#state-strategies)                                                                        |
 
 ## See also
 

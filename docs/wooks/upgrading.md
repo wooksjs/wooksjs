@@ -103,4 +103,10 @@ Not breaking, but worth knowing while you upgrade:
 - [`checkPreconditions()`](../webapp/composables/response.md#lost-update-protection-optimistic-concurrency), `parseHttpDate()`, [`useResponse().vary()`](../webapp/composables/response.md#vary), and a custom ETag for `prerenderJson()`.
 - Workflow trigger hooks [`around`, `beforePersist`, `renderEnvelope`](../wf/outlets.md#transactions-and-envelopes), [`restoreOnError`](../wf/outlets.md#retrying-a-failed-resume-restoreonerror) and [`mintWfToken()`](../wf/outlets.md#minting-a-token-without-a-request).
 
+Added in later 0.8 releases:
+
+- 0.8.1: [`useResponse().onClose()`](../webapp/composables/response.md#when-the-response-is-over) and the workflow app's [`attachCleanup()`](../wf/input-and-resume.md#app-wide-cleanup-attachcleanup).
+- 0.8.2: [`trustProxy: { addresses, hops }`](../webapp/proxy-trust.md#clients-inside-the-trusted-range) for clients inside the trusted range, and the trigger's [`resumeOnly`](../wf/outlets.md#access-control) list.
+- 0.8.3: [`strategy.expiresAtFor()` and `strategy.defaultTtl`](../wf/outlets.md#expiry) on the state strategies (`@prostojs/wf` 0.3.1).
+
 The full list is in the [changelog](https://github.com/wooksjs/wooksjs/blob/main/CHANGELOG.md).

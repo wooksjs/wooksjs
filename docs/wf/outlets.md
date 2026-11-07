@@ -317,6 +317,21 @@ const strategy = new EncapsulatedStateStrategy({
 })
 ```
 
+#### Expiry
+
+`defaultTtl` (ms) is how long a paused state stays resumable; leave it out (or pass a value that is not positive and finite) for states that never expire. A step that pauses with `expires` (an absolute ms timestamp) sets that pause's expiry instead of `defaultTtl`. For a [minted token](#minting-a-token-without-a-request), `mintWfToken()` returns the applied `expiresAt`.
+
+To know the expiry before anything is persisted (to print "this link is valid until …" or store it next to an invite record), ask the strategy. Requires `@wooksjs/event-wf` 0.8.3 or later (`@prostojs/wf` 0.3.1):
+
+```ts
+strategy.defaultTtl                       // 60_000, as configured
+strategy.expiresAtFor()                   // Date.now() + 60_000
+strategy.expiresAtFor({ ttl: 600_000 })   // Date.now() + 600_000
+strategy.expiresAtFor({ ttl: 0 })         // 0: never expires
+```
+
+`expiresAtFor({ ttl?, expiresAt? }, now?)` returns the absolute expiry (ms timestamp) that `persist()` with the same options would apply: `0` means never, `undefined` means unknown. Both built-in strategies implement it, and return `undefined` when a subclass overrides `persist()`. The method is optional on `WfStateStrategy`: when a custom strategy lacks it or it returns `undefined`, don't display or assume an expiry, and don't read it as "never". An invalid `expiresAt` throws a `TypeError`.
+
 #### Security note — token replay and session stability
 
 The `wfs` token is a **workflow session credential**, not a per-step single-use token. It is minted on start, reused on every resume, and dies when the workflow finishes (or when an unexpected error burns the handle before the engine can re-persist).
