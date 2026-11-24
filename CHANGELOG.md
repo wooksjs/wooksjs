@@ -1,3 +1,9 @@
+## [0.8.4](https://github.com/wooksjs/wooksjs/compare/v0.8.3...v0.8.4) (2026-11-24)
+
+
+### Features
+
+* **event-wf:** trigger startOnly list and beforeResume hook ([c560df5](https://github.com/wooksjs/wooksjs/commit/c560df58d2acc2a8e8475ec2e342499b18b22731))
 ## [0.8.3](https://github.com/wooksjs/wooksjs/compare/v0.8.2...v0.8.3) (2026-11-07)
 ## [0.8.2](https://github.com/wooksjs/wooksjs/compare/v0.8.1...v0.8.2) (2026-11-07)
 
