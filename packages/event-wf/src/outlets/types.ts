@@ -38,10 +38,27 @@ export interface WfOutletTriggerConfig {
    */
   resumeOnly?: string[]
   /**
+   * Flows that may be **started** through this trigger but never **resumed**
+   * (e.g. an invite flow an admin starts here, whose emailed link is accepted
+   * only on another trigger) — the mirror of `resumeOnly`. Additive to `allow`:
+   * a flow listed here needs no `allow` entry to be started.
+   *
+   * - start — admitted when an entry equals the flow's **registered id**
+   *   (ignoring leading slashes), like `allow`.
+   * - resume — refused (`WF_FORBIDDEN`, reason `'not-allowed'`; the token is
+   *   not consumed), like `block` matches: the flow each entry runs plus the
+   *   flow registered under exactly it. Wins over `allow`.
+   *
+   * `block` still wins over both. `[]`: no effect. A flow in both `startOnly`
+   * and `resumeOnly` can be neither started nor resumed. Full rules: Outlets
+   * guide → "Access Control".
+   */
+  startOnly?: string[]
+  /**
    * Flows refused on start and on resume through this trigger: for every
    * entry, the flow that id runs plus the flow registered under exactly it
-   * (`'user/42'` blocks the whole `'user/:id'` flow). Wins over `allow` and
-   * `resumeOnly`. Full rules: Outlets guide → "Access Control".
+   * (`'user/42'` blocks the whole `'user/:id'` flow). Wins over `allow`,
+   * `resumeOnly` and `startOnly`. Full rules: Outlets guide → "Access Control".
    */
   block?: string[]
   /**
@@ -63,9 +80,10 @@ export interface WfOutletTriggerConfig {
    * Strategy names must match `/^[A-Za-z0-9_-]+$/` (validated at trigger
    * invocation).
    *
-   * On resume the trigger calls `retrieve()` (to check the access lists) before
-   * `consume()`. A custom strategy's `retrieve()` must be side-effect free and
-   * must not invalidate the handle — otherwise every resume fails with 410.
+   * On resume the trigger calls `retrieve()` (to check the access lists and
+   * call `beforeResume`) before `consume()`. A custom strategy's `retrieve()`
+   * must be side-effect free and must not invalidate the handle — otherwise
+   * every resume fails with 410.
    */
   state:
     | WfStateStrategy
@@ -115,9 +133,9 @@ export interface WfOutletTriggerConfig {
    */
   onFinished?: (ctx: { context: unknown; schemaId: string }) => unknown
   /**
-   * Wraps everything the request does to state and the outside world — the `allow`/`block`
-   * checks, consume/start/resume, `beforePersist`, persist and outlet delivery — so it can run
-   * in ONE transaction: put the state store and the steps' writes in the same database and
+   * Wraps everything the request does to state and the outside world — the access-list checks,
+   * `beforeResume`, consume/start/resume, `beforePersist`, persist and outlet delivery — so it can
+   * run in ONE transaction: put the state store and the steps' writes in the same database and
    * `around: (run) => db.transaction(run)`. Return (or throw) what `run()` returns/throws. It may
    * call `run()` again after a failure — a retrying transaction is supported: each run starts
    * over from the request (nothing from a previous run carries over). Reading the request body
@@ -134,6 +152,26 @@ export interface WfOutletTriggerConfig {
    * ```
    */
   around?: (run: () => Promise<unknown>) => Promise<unknown>
+  /**
+   * Called on a resume with the paused state the token points at and the name of the strategy
+   * that holds it (the token's `<name>.` prefix; `'default'` for a single strategy) — after the
+   * access lists admitted it and BEFORE the token is consumed, inside `around`. Throw to refuse:
+   * the error propagates unchanged (e.g. an `HttpError(409)`), the token is not consumed and stays
+   * usable, nothing runs. Called once per run, on the state as it was read before the token is
+   * taken (a concurrent resume that pauses again in between is not seen — a check that must hold
+   * when the step runs belongs in the step). Treat it as read-only: on an in-memory store it is
+   * the stored state itself, so a change would be resumed. Not called on a start, nor for a token
+   * whose state is gone (410 `WF_EXPIRED`).
+   *
+   * @example
+   * ```ts
+   * beforeResume: async (state, { strategy }) => {
+   *   if (strategy !== 'store') throw new HttpError(403)
+   *   if (await isMember(state.context)) throw new HttpError(409, 'Already a member')
+   * }
+   * ```
+   */
+  beforeResume?: (state: WfState, info: { strategy: string }) => void | Promise<void>
   /**
    * Called with a paused state (its `meta` included) and the pause request right before the
    * state is persisted, inside `around`. Throw to abort: nothing is persisted and the outlet is

@@ -176,26 +176,28 @@ async function runTrigger(
       // Do not leak which strategies are configured.
       throw wfTriggerError({ code: 'WF_INVALID_TOKEN' })
     }
-    // Gate a state on allow/block (when lists are set).
+    // Gate a state on the access lists (when set).
     const access = listsSet ? await createWfAccess(config, deps, ctx) : undefined
-    const gate = (candidate: WfState | null): WfRefusal | undefined =>
+    const gate = async (candidate: WfState | null): Promise<WfRefusal | undefined> =>
       !candidate || typeof candidate.schemaId !== 'string'
         ? EXPIRED
         : access?.resume(candidate.schemaId)
 
-    // Gate BEFORE consuming: a token refused by this trigger (e.g. minted by
-    // a public flow, replayed on a protected trigger) must stay usable on the
-    // trigger it belongs to.
-    if (access) {
-      const peekRefusal = gate(await strategy.retrieve(unwrapped.raw))
+    // Gate (and `beforeResume`) BEFORE consuming: a token refused here (e.g.
+    // minted by a public flow, replayed on a protected trigger) must stay
+    // usable on the trigger it belongs to.
+    if (access || config.beforeResume) {
+      const peeked = await strategy.retrieve(unwrapped.raw)
+      const peekRefusal = await gate(peeked)
       if (peekRefusal) {
         throw wfTriggerError(peekRefusal)
       }
+      await config.beforeResume?.(peeked as WfState, { strategy: unwrapped.name })
     }
     const consumed = await consumeWithExpiry(strategy, unwrapped.raw)
     // Re-check what was actually consumed — the handle may have been
     // re-persisted between retrieve() and consume().
-    const refusal = gate(consumed.state)
+    const refusal = await gate(consumed.state)
     if (refusal) {
       throw wfTriggerError(refusal)
     }

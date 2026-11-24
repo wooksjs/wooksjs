@@ -1,3 +1,4 @@
+import { HttpError } from '@wooksjs/event-http'
 import { HandleStateStrategy, WfStateStoreMemory, outletHttp } from '@prostojs/wf/outlets'
 import type { WfState } from '@prostojs/wf/outlets'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -20,6 +21,8 @@ import { useWfFinished } from './use-wf-finished'
  *    the response; an error thrown inside propagates through it (rollback).
  *  - `beforePersist(state, pause)` runs right before a paused state is persisted (inside
  *    `around`); throwing aborts: nothing is persisted, nothing delivered.
+ *  - `beforeResume(state, { strategy })` runs on a resume, after the access lists and before the
+ *    token is consumed (inside `around`); throwing refuses: the token stays usable.
  *  - `renderEnvelope(envelope, info)` maps every body the trigger answers with on pause and on
  *    finish (per request), before the state token is added; never applied to errors/redirects.
  */
@@ -150,6 +153,228 @@ describe('beforePersist', () => {
     expect(error?.message).toBe('state too large')
     expect(set).not.toHaveBeenCalled()
     expect(deliver).not.toHaveBeenCalled()
+  })
+})
+
+describe('beforeResume', () => {
+  /** A paused `form` flow (context `{ role: 'guest' }`) and the token to resume it. */
+  async function paused(cfg: WfOutletTriggerConfig) {
+    const started = await call(
+      makeApp(),
+      { ...cfg, initialContext: () => ({ role: 'guest' }) },
+      { wfid: 'form' },
+    )
+    expect(typeof started.body?.wfs).toBe('string')
+    return started.body.wfs as string
+  }
+
+  it('gets the state and strategy name before the token is consumed — no lists needed', async () => {
+    const strategy = new HandleStateStrategy({ store: new WfStateStoreMemory() })
+    const cfg: WfOutletTriggerConfig = { state: strategy, outlets: [createHttpOutlet()] }
+    const token = await paused(cfg)
+    const consume = vi.spyOn(strategy, 'consumeEntry')
+    const beforeResume = vi.fn()
+    const done = await call(
+      makeApp(),
+      { ...cfg, beforeResume },
+      { wfs: token, input: { name: 'A' } },
+    )
+    expect(done.body).toEqual({ message: 'Welcome' })
+    expect(beforeResume).toHaveBeenCalledOnce()
+    expect(beforeResume).toHaveBeenCalledWith(
+      expect.objectContaining({ schemaId: 'form', context: { role: 'guest' } }),
+      { strategy: 'default' },
+    )
+    expect(beforeResume.mock.calls[0][0].meta).toMatchObject({ outlet: 'http' })
+    expect(consume).toHaveBeenCalledOnce()
+    expect(beforeResume.mock.invocationCallOrder[0]).toBeLessThan(
+      consume.mock.invocationCallOrder[0],
+    )
+  })
+
+  it('gets the name of the strategy that holds the state (named registry)', async () => {
+    const store = new HandleStateStrategy({ store: new WfStateStoreMemory() })
+    const other = new HandleStateStrategy({ store: new WfStateStoreMemory() })
+    const cfg: WfOutletTriggerConfig = {
+      state: { strategies: { other, store }, default: 'store' },
+      outlets: [createHttpOutlet()],
+    }
+    const token = await paused(cfg)
+    const beforeResume = vi.fn()
+    await call(makeApp(), { ...cfg, beforeResume }, { wfs: token, input: { name: 'A' } })
+    expect(beforeResume).toHaveBeenCalledWith(expect.anything(), { strategy: 'store' })
+  })
+
+  it('a throw propagates unchanged; nothing is consumed, persisted or delivered', async () => {
+    const store = new WfStateStoreMemory()
+    const outlet = createHttpOutlet()
+    const cfg: WfOutletTriggerConfig = { ...baseConfig(store), outlets: [outlet] }
+    const token = await paused(cfg)
+    const getAndDelete = vi.spyOn(store, 'getAndDelete')
+    const set = vi.spyOn(store, 'set')
+    const deliver = vi.spyOn(outlet, 'deliver')
+    const conflict = new HttpError(409, 'Already a member')
+    const refused = await call(
+      makeApp(),
+      {
+        ...cfg,
+        beforeResume: () => {
+          throw conflict
+        },
+      },
+      { wfs: token, input: { name: 'A' } },
+    )
+    expect(refused.error).toBe(conflict)
+    expect(refused.status).toBe(409)
+    expect(getAndDelete).not.toHaveBeenCalled()
+    expect(set).not.toHaveBeenCalled()
+    expect(deliver).not.toHaveBeenCalled()
+    // the token is still usable — here or on another trigger
+    const done = await call(makeApp(), cfg, { wfs: token, input: { name: 'A' } })
+    expect(done.body).toEqual({ message: 'Welcome' })
+  })
+
+  it("gets the state exactly as the strategy's retrieve() returned it", async () => {
+    const strategy = new HandleStateStrategy({ store: new WfStateStoreMemory() })
+    const cfg: WfOutletTriggerConfig = { state: strategy, outlets: [createHttpOutlet()] }
+    const token = await paused(cfg)
+    const retrieve = vi.spyOn(strategy, 'retrieve')
+    const beforeResume = vi.fn()
+    await call(makeApp(), { ...cfg, beforeResume }, { wfs: token, input: { name: 'A' } })
+    expect(retrieve).toHaveBeenCalledOnce()
+    expect(beforeResume.mock.calls[0][0]).toBe(await retrieve.mock.results[0].value)
+  })
+
+  it('an async rejection is awaited: refused before the token is consumed', async () => {
+    const store = new WfStateStoreMemory()
+    const cfg = baseConfig(store)
+    const token = await paused(cfg)
+    const getAndDelete = vi.spyOn(store, 'getAndDelete')
+    const refused = await call(
+      makeApp(),
+      {
+        ...cfg,
+        beforeResume: async () => {
+          await Promise.resolve()
+          throw new HttpError(409, 'Already a member')
+        },
+      },
+      { wfs: token, input: { name: 'A' } },
+    )
+    expect(refused.status).toBe(409)
+    expect(getAndDelete).not.toHaveBeenCalled()
+    const done = await call(makeApp(), cfg, { wfs: token, input: { name: 'A' } })
+    expect(done.body).toEqual({ message: 'Welcome' })
+  })
+
+  it('is called once per run when around retries run()', async () => {
+    class Retry extends Error {}
+    let runs = 0
+    const cfg: WfOutletTriggerConfig = {
+      ...baseConfig(),
+      around: async (run) => {
+        for (;;) {
+          runs++
+          try {
+            return await run()
+          } catch (error) {
+            if (!(error instanceof Retry) || runs > 1) {
+              throw error
+            }
+          }
+        }
+      },
+    }
+    const token = await paused(cfg)
+    runs = 0
+    const beforeResume = vi.fn().mockImplementationOnce(() => {
+      throw new Retry('serialization failure')
+    })
+    const done = await call(
+      makeApp(),
+      { ...cfg, beforeResume },
+      { wfs: token, input: { name: 'A' } },
+    )
+    expect(done.body).toEqual({ message: 'Welcome' })
+    expect(runs).toBe(2)
+    expect(beforeResume).toHaveBeenCalledTimes(2)
+  })
+
+  it('is not called on a start', async () => {
+    const beforeResume = vi.fn()
+    const cfg: WfOutletTriggerConfig = { ...baseConfig(), beforeResume }
+    const token = await paused(cfg)
+    expect(beforeResume).not.toHaveBeenCalled()
+    await call(makeApp(), cfg, { wfs: token, input: { name: 'A' } })
+    expect(beforeResume).toHaveBeenCalledOnce()
+  })
+
+  it('is not called for an unknown or spent token, which answers 410 as before', async () => {
+    const beforeResume = vi.fn()
+    const cfg: WfOutletTriggerConfig = { ...baseConfig(), beforeResume }
+    const token = await paused(cfg)
+    expect((await call(makeApp(), cfg, { wfs: token, input: { name: 'A' } })).body).toEqual({
+      message: 'Welcome',
+    })
+    expect(beforeResume).toHaveBeenCalledOnce()
+    for (const wfs of [token, 'default.nope']) {
+      const gone = await call(makeApp(), cfg, { wfs, input: { name: 'A' } })
+      expect(gone.status).toBe(410)
+      expect(gone.body).toMatchObject({ code: 'WF_EXPIRED' })
+    }
+    expect(beforeResume).toHaveBeenCalledOnce()
+  })
+
+  it('runs inside around, and its throw propagates through it', async () => {
+    const order: string[] = []
+    const cfg: WfOutletTriggerConfig = {
+      ...baseConfig(),
+      around: async (run) => {
+        order.push('begin')
+        try {
+          return await run()
+        } finally {
+          order.push('end')
+        }
+      },
+    }
+    const token = await paused(cfg)
+    order.length = 0
+    const refused = await call(
+      makeApp(),
+      {
+        ...cfg,
+        beforeResume: () => {
+          order.push('beforeResume')
+          throw new HttpError(409)
+        },
+      },
+      { wfs: token, input: { name: 'A' } },
+    )
+    expect(refused.status).toBe(409)
+    expect(order).toEqual(['begin', 'beforeResume', 'end'])
+  })
+
+  it('runs after the access lists: a list refusal never reaches it', async () => {
+    const beforeResume = vi.fn()
+    const cfg = baseConfig()
+    const token = await paused(cfg)
+    for (const lists of [{ allow: ['plain'] }, { block: ['form'] }, { startOnly: ['form'] }]) {
+      const refused = await call(
+        makeApp(),
+        { ...cfg, ...lists, beforeResume },
+        { wfs: token, input: { name: 'A' } },
+      )
+      expect(refused.body).toMatchObject({ code: 'WF_FORBIDDEN' })
+    }
+    expect(beforeResume).not.toHaveBeenCalled()
+    const done = await call(
+      makeApp(),
+      { ...cfg, allow: ['form'], beforeResume },
+      { wfs: token, input: { name: 'A' } },
+    )
+    expect(done.body).toEqual({ message: 'Welcome' })
+    expect(beforeResume).toHaveBeenCalledOnce()
   })
 })
 

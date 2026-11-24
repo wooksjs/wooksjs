@@ -1,5 +1,5 @@
 /**
- * Property tests for the outlet trigger's allow/resumeOnly/block spec (see `access.ts`).
+ * Property tests for the outlet trigger's allow/resumeOnly/startOnly/block spec (see `access.ts`).
  *
  * The oracle is computed from ground truth only: which flow `start(id)`
  * actually runs on an unrestricted app (`flowOf`), observed through a marker
@@ -262,13 +262,17 @@ const fold = (id: string) => canon(id).replace(/\/+$/u, '').toLowerCase()
 interface Lists {
   allow?: string[]
   resumeOnly?: string[]
+  startOnly?: string[]
   block: string[]
 }
 
 type Kind = 'start' | 'resume'
 
 const listsSetOf = (lists: Lists) =>
-  lists.allow !== undefined || (lists.resumeOnly?.length ?? 0) > 0 || lists.block.length > 0
+  lists.allow !== undefined ||
+  (lists.resumeOnly?.length ?? 0) > 0 ||
+  (lists.startOnly?.length ?? 0) > 0 ||
+  lists.block.length > 0
 
 /** id → the flow `start(id)` runs (ground truth). */
 type FlowOf = Map<string, string | undefined>
@@ -286,19 +290,27 @@ function deniedFlows(flowOf: FlowOf, block: string[]): Set<string> {
   return denied
 }
 
+/** The one-sided list that admits `kind` (`own`) and the one that refuses it (`other`). */
+function oneSided(lists: Lists, kind: Kind) {
+  const [own, other] =
+    kind === 'start' ? [lists.startOnly, lists.resumeOnly] : [lists.resumeOnly, lists.startOnly]
+  return { own: own ?? [], other: other ?? [] }
+}
+
 /**
  * Spec: is a start / resume of flow F (registered id) admitted? `block` wins; `resumeOnly`
- * refuses a start like `block` and admits a resume like `allow` (in addition to it).
+ * refuses a start like `block` and admits a resume like `allow` (in addition to it);
+ * `startOnly` is the mirror.
  */
 function specAdmits(flowOf: FlowOf, lists: Lists, flow: string, kind: Kind): boolean {
-  const resumeOnly = lists.resumeOnly ?? []
+  const { own, other } = oneSided(lists, kind)
   if (deniedFlows(flowOf, lists.block).has(canon(flow))) {
     return false
   }
-  if (kind === 'start' && deniedFlows(flowOf, resumeOnly).has(canon(flow))) {
+  if (deniedFlows(flowOf, other).has(canon(flow))) {
     return false
   }
-  if (kind === 'resume' && resumeOnly.some((entry) => canon(entry) === canon(flow))) {
+  if (own.some((entry) => canon(entry) === canon(flow))) {
     return true
   }
   if (lists.allow === undefined) {
@@ -307,9 +319,9 @@ function specAdmits(flowOf: FlowOf, lists: Lists, flow: string, kind: Kind): boo
   return lists.allow.some((entry) => canon(entry) === canon(flow))
 }
 
-/** Fallback: does `allow` or (on resume) `resumeOnly` name the id exactly (up to leading slashes)? */
+/** Fallback: does `allow` or the list admitting `kind` name the id exactly (up to leading slashes)? */
 function fallbackListed(lists: Lists, id: string, kind: Kind): boolean {
-  const entries = [...(lists.allow ?? []), ...(kind === 'resume' ? (lists.resumeOnly ?? []) : [])]
+  const entries = [...(lists.allow ?? []), ...oneSided(lists, kind).own]
   return entries.some((e) => canon(e) === canon(id))
 }
 
@@ -357,11 +369,13 @@ function randomLists(r: () => number): Lists {
         : Array.from({ length: 1 + Math.floor(r() * 2) }, () => pick(r, ENTRY_POOL))
   const block =
     r() < 0.35 ? [] : Array.from({ length: 1 + Math.floor(r() * 2) }, () => pick(r, ENTRY_POOL))
-  const resumeOnly =
+  const oneSidedList = () =>
     r() < 0.5
       ? undefined
       : Array.from({ length: 1 + Math.floor(r() * 2) }, () => pick(r, ENTRY_POOL))
-  return { allow, resumeOnly, block }
+  const resumeOnly = oneSidedList()
+  const startOnly = oneSidedList()
+  return { allow, resumeOnly, startOnly, block }
 }
 
 function configOf(lists: Lists, strategy: HandleStateStrategy): WfOutletTriggerConfig {
@@ -370,6 +384,7 @@ function configOf(lists: Lists, strategy: HandleStateStrategy): WfOutletTriggerC
     outlets: [httpOutlet],
     ...(lists.allow === undefined ? {} : { allow: lists.allow }),
     ...(lists.resumeOnly === undefined ? {} : { resumeOnly: lists.resumeOnly }),
+    ...(lists.startOnly === undefined ? {} : { startOnly: lists.startOnly }),
     block: lists.block,
   }
 }
@@ -388,7 +403,8 @@ interface Case {
  *  - every router × id × allow ∈ {omitted, [], [e] for each entry} (block empty)
  *  - every router × id × block ∈ {[e] for each entry} (allow omitted)
  *  - every router × id × resumeOnly ∈ {[e] for each entry}, allow omitted and allow []
- *  - plus seeded random combinations with up to two allow, resumeOnly and block entries.
+ *  - every router × id × startOnly ∈ {[e] for each entry}, allow omitted and allow []
+ *  - plus seeded random combinations with up to two allow, resumeOnly, startOnly and block entries.
  */
 function* cases(randomCount: number, seed: number): Generator<Case> {
   const allowChoices: Array<string[] | undefined> = [undefined, [], ...ENTRY_POOL.map((e) => [e])]
@@ -405,6 +421,8 @@ function* cases(randomCount: number, seed: number): Generator<Case> {
           yield { rc, id, kind, lists: { block: [entry] } }
           yield { rc, id, kind, lists: { resumeOnly: [entry], block: [] } }
           yield { rc, id, kind, lists: { allow: [], resumeOnly: [entry], block: [] } }
+          yield { rc, id, kind, lists: { startOnly: [entry], block: [] } }
+          yield { rc, id, kind, lists: { allow: [], startOnly: [entry], block: [] } }
         }
       }
     }
@@ -489,11 +507,24 @@ async function checkStart(c: Case, withResolver: boolean, violations: string[]) 
     )
   }
   if (ranFlow !== undefined && lists.allow !== undefined && !fallbackListed(lists, wfid, 'start')) {
-    violations.push(`ran although the request id is not in allow: ${tag}`)
+    violations.push(`ran although the request id is not in allow or startOnly: ${tag}`)
+  }
+  // a flow named by startOnly starts when no list refuses — even with `allow: []`
+  if (
+    ranFlow === undefined &&
+    flow !== undefined &&
+    lists.block.length === 0 &&
+    (lists.resumeOnly ?? []).length === 0 &&
+    (lists.startOnly ?? []).some((e) => canon(e) === canon(wfid))
+  ) {
+    violations.push(`startOnly did not admit a start (${started.status}): ${tag}`)
   }
   if (flow !== undefined && resumeAdmitted) {
     if (fallbackBlocked(lists.block, flow)) {
       violations.push(`fallback-blocked flow resumed: ${tag}`)
+    }
+    if (fallbackBlocked(lists.startOnly ?? [], flow)) {
+      violations.push(`fallback startOnly flow resumed: ${tag}`)
     }
     if (lists.allow !== undefined && !fallbackListed(lists, flow, 'resume')) {
       violations.push(`resume admitted a flow not in allow or resumeOnly: ${tag}`)
@@ -543,20 +574,24 @@ async function checkDirectResume(c: Case, withResolver: boolean, violations: str
   if (ran && fallbackBlocked(lists.block, registered)) {
     violations.push(`fallback-blocked flow resumed: ${tag}`)
   }
+  if (ran && fallbackBlocked(lists.startOnly ?? [], registered)) {
+    violations.push(`fallback startOnly flow resumed: ${tag}`)
+  }
   if (ran && lists.allow !== undefined && !fallbackListed(lists, registered, 'resume')) {
     violations.push(`resume admitted a flow not in allow or resumeOnly: ${tag}`)
   }
-  // a flow named by resumeOnly resumes when no block is set — even with `allow: []`
+  // a flow named by resumeOnly resumes when no list refuses — even with `allow: []`
   if (
     !ran &&
     lists.block.length === 0 &&
+    (lists.startOnly ?? []).length === 0 &&
     (lists.resumeOnly ?? []).some((e) => canon(e) === canon(registered))
   ) {
     violations.push(`resumeOnly did not admit a resume (${resumed.status}): ${tag}`)
   }
 }
 
-describe('outlet trigger — allow/resumeOnly/block property', () => {
+describe('outlet trigger — allow/resumeOnly/startOnly/block property', () => {
   for (const withResolver of [true, false]) {
     it(`${withResolver ? 'with' : 'without'} resolver: bounded space + ${RANDOM_CASES} seeded cases, 0 violations`, async () => {
       const violations: string[] = []
@@ -565,11 +600,11 @@ describe('outlet trigger — allow/resumeOnly/block property', () => {
         count++
         await (c.kind === 'start' ? checkStart : checkDirectResume)(c, withResolver, violations)
       }
-      // routers × (requests + schemaIds) × (allow + block + 2 × resumeOnly choices) + random
+      // routers × (requests + schemaIds) × (allow + block + 2 × resumeOnly + 2 × startOnly) + random
       expect(count).toBe(
         routers.length *
           (REQUEST_POOL.length + SCHEMA_POOL.length) *
-          (ENTRY_POOL.length + 2 + ENTRY_POOL.length * 3) +
+          (ENTRY_POOL.length + 2 + ENTRY_POOL.length * 5) +
           RANDOM_CASES,
       )
       expect(summarize(violations)).toEqual({ total: 0, byKind: {}, samples: [] })
@@ -581,7 +616,8 @@ describe('outlet trigger — allow/resumeOnly/block property', () => {
 
 /**
  * A request-dependent onNotFound: the `x-flow` header names the flow an
- * unroutable id runs. Every `block` entry is resolved per request, so each
+ * unroutable id runs. Every `block` entry is resolved per request (a
+ * `resumeOnly` entry per start, a `startOnly` entry per resume), so each
  * list config is exercised by two requests with different headers through one
  * deps object, in both orders — every verdict must match the spec computed
  * from header-aware ground truth.
@@ -594,6 +630,7 @@ describe('outlet trigger — request-dependent onNotFound is judged per request'
 
   interface HeaderRouter {
     label: string
+    flows: string[]
     app: WooksWf<any>
     headers: [string, string]
     /** header → id → flow that runs */
@@ -627,7 +664,13 @@ describe('outlet trigger — request-dependent onNotFound is judged per request'
           }
           flowOf.set(header, map)
         }
-        headerRouters.push({ label: `${setName} ${JSON.stringify(router)}`, app, headers, flowOf })
+        headerRouters.push({
+          label: `${setName} ${JSON.stringify(router)}`,
+          flows,
+          app,
+          headers,
+          flowOf,
+        })
       }
     }
   })
@@ -647,6 +690,7 @@ describe('outlet trigger — request-dependent onNotFound is judged per request'
       ...ENTRY_POOL.map((e) => ({ block: [e] })),
       ...ENTRY_POOL.map((e) => ({ allow: [e], block: [] })),
       ...ENTRY_POOL.map((e) => ({ resumeOnly: [e], block: [] })),
+      ...ENTRY_POOL.map((e) => ({ allow: [], startOnly: [e], block: [] })),
     ]
     const violations: string[] = []
     let count = 0
@@ -676,6 +720,40 @@ describe('outlet trigger — request-dependent onNotFound is judged per request'
       }
     }
     expect(count).toBe(headerRouters.length * lists.length * REQUEST_POOL.length * 4)
+    expect(summarize(violations)).toEqual({ total: 0, byKind: {}, samples: [] })
+  }, 120_000)
+
+  it('startOnly entries are resolved on every resume, in that request: 0 violations', async () => {
+    const lists: Lists[] = ENTRY_POOL.map((e) => ({ startOnly: [e], block: [] }))
+    const violations: string[] = []
+    let count = 0
+    for (const hr of headerRouters) {
+      const deps = depsFor(hr.app, true)
+      for (const list of lists) {
+        for (const flow of hr.flows) {
+          for (const order of [hr.headers, [hr.headers[1], hr.headers[0]]]) {
+            for (const header of order) {
+              count++
+              const strategy = new HandleStateStrategy({ store: new WfStateStoreMemory() })
+              const handle = await strategy.persist({ schemaId: flow, indexes: [1], context: {} })
+              ran = []
+              await inRequest(header, () => handleWfOutletRequest(configOf(list, strategy), deps), {
+                wfs: `default.${handle}`,
+                input: { x: 1 },
+              })
+              const got = ran.includes(`ask:${flow}`)
+              const want = specAdmits(hr.flowOf.get(header)!, list, flow, 'resume')
+              if (got !== want) {
+                violations.push(
+                  `order ${order.join('>')} header=${header}: resume ${got ? 'ran' : 'refused'}, spec ${want ? 'admits' : 'refuses'}: ${hr.label} ${JSON.stringify(list)} flow=${flow}`,
+                )
+              }
+            }
+          }
+        }
+      }
+    }
+    expect(count).toBe(headerRouters.reduce((n, hr) => n + hr.flows.length, 0) * lists.length * 4)
     expect(summarize(violations)).toEqual({ total: 0, byKind: {}, samples: [] })
   }, 120_000)
 })
