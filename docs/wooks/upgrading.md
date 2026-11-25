@@ -34,8 +34,8 @@ Details: [Status](../webapp/composables/response.md#status).
 
 | Change | What to do |
 |---|---|
-| `getIp({ trustProxy: true })` is deprecated. It now trusts **one** hop and takes the right-most `X-Forwarded-For` entry (the left-most one is client-forgeable). | Configure `createHttpApp({ trustProxy: 1 })` (or a list of proxy addresses) and call `getIp()` with no arguments. `protocol()` and `host()` follow the same setting. |
-| `getIp()` returns IPv4-mapped addresses (`::ffff:10.0.0.5`) as plain IPv4. A malformed forwarding entry written by a trusted hop gives `''`. | Don't compare against `::ffff:` forms. Treat `''` as "client unknown". |
+| `getIp({ trustProxy })` is deprecated, with either value, and logs a warning once. `{ trustProxy: true }` now trusts **one** hop and takes the right-most `X-Forwarded-For` entry (the left-most one is client-forgeable); `{ trustProxy: false }` returns the socket peer. | Configure `createHttpApp({ trustProxy: 1 })` (or a list of proxy addresses) and call `getIp()` with no arguments. `protocol()` and `host()` follow the same setting. |
+| `getIp()` returns IPv4-mapped addresses (`::ffff:10.0.0.5`) as plain IPv4 (so does the deprecated `getIp({ trustProxy: false })` since 0.8.5). A malformed forwarding entry written by a trusted hop gives `''`. | Don't compare against `::ffff:` forms. Treat `''` as "client unknown". |
 | `app.fetch()` / `app.request()` with no calling request no longer fakes `127.0.0.1`: `getIp()` is `''` and `protocol()` / `host()` come from the Request URL. | On Bun, Deno or edge runtimes pass the peer: `app.fetch(request, { remoteAddress, encrypted })`. |
 
 Details: [Behind a Proxy](../webapp/proxy-trust.md).
@@ -109,5 +109,6 @@ Added in later 0.8 releases:
 - 0.8.2: [`trustProxy: { addresses, hops }`](../webapp/proxy-trust.md#clients-inside-the-trusted-range) for clients inside the trusted range, and the trigger's [`resumeOnly`](../wf/outlets.md#access-control) list.
 - 0.8.3: [`strategy.expiresAtFor()` and `strategy.defaultTtl`](../wf/outlets.md#expiry) on the state strategies (`@prostojs/wf` 0.3.1).
 - 0.8.4: the trigger's [`startOnly`](../wf/outlets.md#access-control) list and [`beforeResume`](../wf/outlets.md#transactions-and-envelopes) hook.
+- 0.8.5: `HttpError` bodies keep `statusCode`, `message` and `error` typed after an `instanceof HttpError` check (and when the body type has an index signature), so casts such as `(e as HttpError).body` can go. The deprecated `getIp({ trustProxy: false })` returns IPv4-mapped addresses as plain IPv4, like `getIp()`. New recipe: [Behind a CDN and a load balancer](../webapp/proxy-trust.md#behind-a-cdn-and-a-load-balancer).
 
 The full list is in the [changelog](https://github.com/wooksjs/wooksjs/blob/main/CHANGELOG.md).

@@ -62,6 +62,35 @@ With `X-Forwarded-For: 10.6.6.6, 10.2.3.4` arriving from the load balancer `10.0
 
 A proxy that writes the client's `Host` into `Forwarded: host="…"` must escape it (or leave `host` out). Copied raw, a `Host` containing `"` lets the client close the quoted string and add an element of its own.
 
+## Behind a CDN and a load balancer
+
+A CDN in front of a load balancer adds two hops. Each one appends the address it received the request from to `X-Forwarded-For`: the CDN appends the viewer, the load balancer appends the CDN edge. Trust both:
+
+```ts
+// e.g. Amazon CloudFront → Application Load Balancer → app
+createHttpApp({ trustProxy: 2 })
+```
+
+Hop 0 is the load balancer (the socket peer), hop 1 the CDN edge, and `getIp()` returns the viewer. In-process `fetch()` calls made while handling the request (SSR) inherit it.
+
+To check the CDN hop by its address instead of only counting it, use a predicate. Load the CDN's edge ranges from the list the vendor publishes, and keep it current:
+
+```ts
+import { compileTrustProxy, createHttpApp } from '@wooksjs/event-http'
+
+const isLoadBalancer = compileTrustProxy(['10.0.0.0/16'])! // your network
+const isCdnEdge = compileTrustProxy(cdnEdgeRanges)! // the CDN's published ranges
+
+createHttpApp({
+  trustProxy: (addr, hop) =>
+    (hop === 0 && isLoadBalancer(addr, hop)) || (hop === 1 && isCdnEdge(addr, hop)),
+})
+```
+
+**Lock the load balancer to the CDN.** A client that can reach the load balancer directly writes its own `X-Forwarded-For`, and a hop count then trusts a forged entry. Accept traffic only from the CDN at the network level (for CloudFront, the origin-facing managed prefix list in the load balancer's security group; for Cloudflare, its published IP ranges or authenticated origin pulls). The predicate above also keeps a direct caller from choosing its own address (the caller's hop is not a CDN edge, so it is the client), but a CDN's edge addresses are shared by all of its customers, so lock the origin as well.
+
+CDNs also send the viewer's address in a header of their own (`CloudFront-Viewer-Address`, `CF-Connecting-IP`, `True-Client-IP`). Wooks deliberately has no option for it. Such a header proves nothing by itself: anyone who reaches your origin without passing through the CDN can send it, and unlike `X-Forwarded-For` it carries no per-hop record that a trust rule could check. Prefer `getIp()`. If you read the header yourself, do it only where the load balancer accepts nothing but the CDN, and fall back to `getIp()` when it is missing.
+
 ## Programmatic `fetch()`
 
 - **Inside a request**, an in-process [`app.fetch()` / `app.request()`](./fetch.md) inherits the caller's resolved client, protocol and host.
@@ -96,4 +125,5 @@ const { ip, protocol, host } = resolveForwarded(req, trust, 'x-forwarded')
 - **Don't** enable trust when clients can also reach the app directly (an open port next to the load balancer). They can then send forged headers that look like a trusted hop's.
 - **Don't** use `getIpList()` for decisions. It returns the raw, unvalidated header values.
 - **Don't** build URLs from `host()` without checking it against your hostnames.
-- **Don't** keep using `getIp({ trustProxy: true })`. It is deprecated and now means "trust one hop".
+- **Do** lock the load balancer to the CDN when a CDN sits in front, so clients cannot skip it.
+- **Don't** keep using `getIp({ trustProxy })`, with either value. It is deprecated and logs a warning once: `true` now means "trust one hop", `false` returns the socket peer.

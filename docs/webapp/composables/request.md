@@ -128,7 +128,7 @@ app.get('/test', () => {
 By default no proxy is trusted: forwarding headers are ignored, so `getIp()` is the socket's address and `protocol()`/`host()` come from the socket and the `Host` header. Behind a reverse proxy, set `trustProxy` on the app — see [Behind a Proxy](../proxy-trust.md).
 
 ::: warning Deprecated
-`getIp({ trustProxy: true })` still works for one minor version and now trusts exactly **one** proxy hop of a known socket peer (the right-most `X-Forwarded-For` entry), not the left-most one, which any client can forge. With no known peer (a programmatic `fetch()` without one) it returns `''`. Configure `createHttpApp({ trustProxy: 1 })` and call `getIp()` instead.
+`getIp({ trustProxy })` still works for one minor version, with either value, and logs a warning once. `{ trustProxy: true }` now trusts exactly **one** proxy hop of a known socket peer (the right-most `X-Forwarded-For` entry), not the left-most one, which any client can forge. With no known peer (a programmatic `fetch()` without one) it returns `''`. `{ trustProxy: false }` returns the socket peer. Configure `createHttpApp({ trustProxy: 1 })` and call `getIp()` instead.
 :::
 
 ## Cookies

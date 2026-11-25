@@ -19,13 +19,30 @@ export interface THttpErrorBodyInput {
   error?: never
 }
 
+/** `T` without `error`; unlike `Omit`, declared fields survive next to an index signature. */
+type TWithoutError<T> = { [K in keyof T as K extends 'error' ? never : K]: T[K] }
+
+/** The declared keys of `T`, without index signatures (`keyof any` and `Record<string, …>` give none). */
+type TKnownKeys<T> = keyof {
+  [
+    K in keyof T as string extends K
+      ? never
+      : number extends K
+        ? never
+        : symbol extends K
+          ? never
+          : K
+  ]: 0
+}
+
 /**
  * The rendered body of an `HttpError` whose input fields are `T`: your fields (a narrowed
  * `statusCode` such as `400 | 409` is kept), plus `error` (the status text, always a string).
- * At runtime `statusCode`, `message` and `error` are always the error's own.
+ * At runtime `statusCode`, `message` and `error` are always the error's own, so they stay typed
+ * even when `T` is `any` (after an `instanceof HttpError` check) or has an index signature.
  */
-export type THttpErrorBody<T extends object = THttpErrorBodyInput> = Omit<T, 'error'> &
-  Omit<TWooksErrorBodyExt, Exclude<keyof T, 'error'>> & { error: string }
+export type THttpErrorBody<T extends object = THttpErrorBodyInput> = TWithoutError<T> &
+  Omit<TWooksErrorBodyExt, Exclude<TKnownKeys<T>, 'error'>> & { error: string }
 
 /**
  * An HTTP error with a status and an optional structured body.

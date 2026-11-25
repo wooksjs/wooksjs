@@ -265,10 +265,21 @@ const oneHopIpSlot = cached(
       .ip,
 )
 
-const remoteIpSlot = cached((ctx: EventContext) => {
-  const req = ctx.get(httpKind.keys.req)
-  return req.socket.remoteAddress || req.connection.remoteAddress || ''
-})
+/** `useRequest().getIp` */
+interface TGetIp {
+  /**
+   * Client IP. It follows the app's `trustProxy` setting: the socket peer when no proxy is
+   * trusted (the default), otherwise the right-most hop that is not a trusted proxy.
+   */
+  (): string
+  /**
+   * @deprecated Set `trustProxy` on the HTTP app (e.g. `createHttpApp({ trustProxy: 1 })`) and
+   * call `getIp()` without arguments. Either value logs a deprecation warning once:
+   * `{ trustProxy: true }` trusts exactly one proxy hop (the right-most forwarded address — not
+   * the left-most, which any client can forge); `{ trustProxy: false }` returns the socket peer.
+   */
+  (options?: { trustProxy: boolean }): string
+}
 
 const ipListSlot = cached((ctx: EventContext) => {
   const req = ctx.get(httpKind.keys.req)
@@ -309,18 +320,11 @@ export const useRequest = defineWook((ctx: EventContext) => {
   const getReadTimeoutMs = () => limits()?.readTimeoutMs ?? DEFAULT_LIMITS.readTimeoutMs
   const setReadTimeoutMs = (limit: number) => setLimit('readTimeoutMs', limit)
 
-  /**
-   * Client IP. Without arguments it follows the app's `trustProxy` setting: the socket peer when
-   * no proxy is trusted (the default), otherwise the right-most hop that is not a trusted proxy.
-   *
-   * @param options - **Deprecated**: `{ trustProxy: true }` trusts exactly one proxy hop (the
-   *   right-most forwarded address — not the left-most, which any client can forge);
-   *   `{ trustProxy: false }` returns the socket peer. Configure `trustProxy` on the app instead.
-   */
   /** The socket peer, normalised — the client when no proxy is trusted (computed once). */
   let peerIp: string | undefined
+  const socketPeer = () => (peerIp ??= normalizeAddress(req.socket?.remoteAddress ?? ''))
 
-  function getIp(options?: { trustProxy: boolean }): string {
+  const getIp: TGetIp = (options?: { trustProxy: boolean }): string => {
     if (options) {
       if (!warnedIssues.has('legacy-get-ip')) {
         warnedIssues.add('legacy-get-ip')
@@ -329,12 +333,12 @@ export const useRequest = defineWook((ctx: EventContext) => {
             '(e.g. createHttpApp({ trustProxy: 1 })) and call getIp() without arguments.',
         )
       }
-      return options.trustProxy ? ctx.get(oneHopIpSlot) : ctx.get(remoteIpSlot)
+      return options.trustProxy ? ctx.get(oneHopIpSlot) : socketPeer()
     }
     // No proxy trusted and no client handed down (an in-process fetch seeds the caller's):
     // the socket peer, without reading any header
     if (!getHttpAppConfig(ctx).trustProxy && !ctx.has(forwardedSlot)) {
-      return (peerIp ??= normalizeAddress(req.socket?.remoteAddress ?? ''))
+      return socketPeer()
     }
     return ctx.get(forwardedSlot).ip
   }
@@ -346,6 +350,7 @@ export const useRequest = defineWook((ctx: EventContext) => {
     headers: req.headers,
     rawBody: () => ctx.get(rawBodySlot),
     reqId: useEventId(ctx).getId,
+    /** Client IP, through the app's `trustProxy` setting (the socket peer by default). */
     getIp,
     /**
      * `'https'` or `'http'` as the client used it: from the trusted proxy chain

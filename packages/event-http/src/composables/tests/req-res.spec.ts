@@ -46,6 +46,15 @@ describe('compasble/req-res', () => {
     })
   })
 
+  it('deprecated getIp({ trustProxy: false }) returns the socket peer normalised, like getIp()', () => {
+    runInContext(() => {
+      const { raw, getIp } = useRequest()
+      Object.defineProperty(raw.socket, 'remoteAddress', { value: '::ffff:10.0.0.5' })
+      expect(getIp({ trustProxy: false })).toBe('10.0.0.5')
+      expect(getIp()).toBe('10.0.0.5')
+    })
+  })
+
   it('must return response', () => {
     runInContext(() => {
       const response = useResponse()

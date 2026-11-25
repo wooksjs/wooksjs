@@ -94,6 +94,30 @@ describe('HttpError body typing', () => {
     void new HttpError(400, { message: 'x', code: 42 })
   })
 
+  it('keeps statusCode, message and error typed after an instanceof narrowing', () => {
+    const caught = new HttpError(404, 'gone') as unknown
+    if (caught instanceof HttpError) {
+      expectTypeOf(caught.body.statusCode).toEqualTypeOf<TWooksErrorBodyExt['statusCode']>()
+      expectTypeOf(caught.body.message).toEqualTypeOf<string>()
+      expectTypeOf(caught.body.error).toEqualTypeOf<string>()
+      const view = caught.body as { statusCode: number; message: string }
+      expectTypeOf(view.statusCode).toEqualTypeOf<number>()
+    }
+    const thrown = new HttpError(400, 'bad') as Error
+    if (thrown instanceof HttpError) {
+      expectTypeOf(thrown.body.statusCode).toEqualTypeOf<TWooksErrorBodyExt['statusCode']>()
+    }
+  })
+
+  it('keeps statusCode, message and error typed for a body with an index signature', () => {
+    const fields = { message: 'x' } as { message: string; [field: string]: unknown }
+    const body = new HttpError(400, fields).body
+    expectTypeOf(body.statusCode).toEqualTypeOf<TWooksErrorBodyExt['statusCode']>()
+    expectTypeOf(body.message).toEqualTypeOf<string>()
+    expectTypeOf(body.error).toEqualTypeOf<string>()
+    expectTypeOf(body.other).toEqualTypeOf<unknown>()
+  })
+
   it('an object body needs a message', () => {
     // @ts-expect-error — message is required
     void new HttpError(400, { code: 'NO_MESSAGE' })
