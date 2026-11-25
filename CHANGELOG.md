@@ -1,3 +1,9 @@
+## [0.8.5](https://github.com/wooksjs/wooksjs/compare/v0.8.4...v0.8.5) (2026-11-25)
+
+
+### Bug Fixes
+
+* **event-http:** keep HttpError body typed after instanceof, deprecate getIp options ([66023cf](https://github.com/wooksjs/wooksjs/commit/66023cfa968de783646ab2a6960586a1e4c0f9c1))
 ## [0.8.4](https://github.com/wooksjs/wooksjs/compare/v0.8.3...v0.8.4) (2026-11-24)
 
 
