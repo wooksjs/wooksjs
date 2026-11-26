@@ -42,8 +42,34 @@ describe('event-wf duplicate step ids', () => {
     const app = createWfApp<{ result?: number }>({ strictStepIds: true })
 
     app.step('strict', { handler: 'ctx.result = 1' })
-    expect(() => app.step('strict', { handler: 'ctx.result = 2' })).toThrow(
-      /already registered/u,
+    expect(() => app.step('strict', { handler: 'ctx.result = 2' })).toThrow(/already registered/u)
+  })
+
+  it('warns once, with the step warning, when two apps on the shared router reuse a step id', () => {
+    const logger = makeLogger()
+    const app1 = createWfApp<{ x?: number }>({ logger })
+    const app2 = createWfApp<{ x?: number }>({ logger })
+
+    app1.step('shared', { handler: 'ctx.x = 1' })
+    app2.step('shared', { handler: 'ctx.x = 2' })
+
+    // not repeated by the router's shared-route warning
+    expect(logger.warn).toHaveBeenCalledOnce()
+    expect(logger.warn.mock.calls[0][0]).toContain('WF step "shared" registered more than once')
+  })
+
+  it('warns once, with the flow warning, when two apps on the shared router reuse a flow id', () => {
+    const logger = makeLogger()
+    const app1 = createWfApp<{ x?: number }>({ logger })
+    const app2 = createWfApp<{ x?: number }>({ logger })
+    app1.step('only', { handler: 'ctx.x = 1' })
+
+    app1.flow('shared-flow', ['only'])
+    app2.flow('shared-flow', ['only'])
+
+    expect(logger.warn).toHaveBeenCalledOnce()
+    expect(logger.warn.mock.calls[0][0]).toContain(
+      'WF flow "shared-flow" registered more than once',
     )
   })
 

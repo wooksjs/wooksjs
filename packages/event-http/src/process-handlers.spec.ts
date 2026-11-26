@@ -1,5 +1,5 @@
 import { ContextInjector, replaceContextInjector, resetContextInjector } from '@wooksjs/event-core'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Wooks } from 'wooks'
 import { gunzipSync } from 'zlib'
 
@@ -46,12 +46,6 @@ function setup(compression = false) {
   const app = createHttpApp({ logger: logger as never, compression }, new Wooks())
   return { app, logger }
 }
-
-// Some tests register the same route on purpose; mute the router's "Duplicate route" notice
-// (@prostojs/router prints it with console.info and takes no logger)
-beforeEach(() => {
-  vi.spyOn(console, 'info').mockImplementation(() => {})
-})
 
 afterEach(() => {
   vi.restoreAllMocks()

@@ -194,7 +194,8 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
           `In tests, reset the shared router with clearGlobalWooks() in beforeEach().`,
       )
     }
-    return this.on<Step<T, I, IR>>('WF_STEP', id, () => step)
+    // this.wooks.on, not this.on: the check above already warns, across apps too
+    return this.wooks.on<Step<T, I, IR>>('WF_STEP', id, () => step)
   }
 
   /** Registers a workflow flow schema with the given id. */
@@ -224,7 +225,8 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
         registry.byCanon.set(canonical, handler)
       }
     }
-    return this.on<{ init?: () => void | Promise<void>; id: string }>('WF_FLOW', id, handler)
+    // Straight to the router, like `step()`: the registry check above already warns.
+    return this.wooks.on<{ init?: () => void | Promise<void>; id: string }>('WF_FLOW', id, handler)
   }
 
   /**

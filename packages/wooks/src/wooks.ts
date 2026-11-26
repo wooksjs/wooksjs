@@ -215,6 +215,87 @@ export function getGlobalWooks(logger?: TConsoleBase, routerOpts?: TWooksOptions
 }
 
 /**
+ * An app on a router: the identity its adapters register routes under. An adapter built from
+ * another adapter belongs to that adapter's app; one given a Wooks instance, or none, is an app
+ * of its own. A small object of its own, so a route's owner never keeps an adapter alive.
+ */
+interface TRouteApp {
+  /**
+   * Created without a Wooks instance: the app routes through the global Wooks without having
+   * asked to share it. Only these apps warn about a shared route.
+   */
+  readonly implicit: boolean
+  /** Set once the app logged its shared-route warning: it is logged once per app. */
+  warned?: boolean
+}
+
+/** Per adapter: its app, and the logger it was created with (for the warning). */
+const adapterApps = new WeakMap<WooksAdapterBase, { app: TRouteApp; logger?: TConsoleBase }>()
+
+/** Per Wooks instance: route (the router's `generalized` key, `METHOD:pattern`) → its first app. */
+const routeOwners = new WeakMap<Wooks, Map<string, TRouteApp>>()
+
+/**
+ * The methods a `'*'` route is registered for: the router's own list for `'*'`, in its order.
+ * Keyed by the router's `THttpMethod`, so a method the router adds or drops stops this from
+ * compiling.
+ */
+const ALL_METHODS = Object.keys({
+  GET: 0,
+  PUT: 0,
+  POST: 0,
+  DELETE: 0,
+  PATCH: 0,
+  HEAD: 0,
+  OPTIONS: 0,
+} satisfies Record<THttpMethod, 0>)
+
+/**
+ * Records the adapter's app as the owner of each route no app registered yet, and warns once per
+ * app when the app is implicit and another app owns one (see `WooksAdapterBase.on()`).
+ * @param routes - The registered routes: method and the route's key (its handle's `generalized`).
+ */
+function claimRoute(
+  adapter: WooksAdapterBase,
+  path: string,
+  routes: Array<{ method: string; key: string }>,
+): void {
+  const entry = adapterApps.get(adapter)
+  if (!entry) {
+    return
+  }
+  const { app } = entry
+  const wooks = adapter.getWooks()
+  let owners = routeOwners.get(wooks)
+  if (!owners) {
+    owners = new Map()
+    routeOwners.set(wooks, owners)
+  }
+  const shadowed: string[] = []
+  for (const { method, key } of routes) {
+    const owner = owners.get(key)
+    if (owner === undefined) {
+      owners.set(key, app)
+    } else if (owner !== app) {
+      shadowed.push(method)
+    }
+  }
+  if (shadowed.length > 0 && app.implicit && !app.warned) {
+    app.warned = true
+    const logger = entry.logger || adapter.getLogger(`${__DYE_CYAN_BRIGHT__}[wooks]`)
+    logger.warn(
+      `Route "${shadowed.join(', ')} ${path}" is already registered by another app on the ` +
+        `shared router: the first registration serves it, and this app's handler only runs ` +
+        `after it. Other routes this app shares with another app are not listed (logged once ` +
+        `per app). Apps created without a Wooks instance share one router per process. To ` +
+        `share routing on purpose, pass a Wooks instance (or another adapter) to the app; to ` +
+        `keep apps apart, give each its own (new Wooks()). In tests, call clearGlobalWooks() ` +
+        `(from 'wooks') before creating each app.`,
+    )
+  }
+}
+
+/**
  * Base class for Wooks adapters that bridges a specific runtime (e.g., HTTP, CLI) with Wooks routing.
  *
  * @example
@@ -239,13 +320,18 @@ export class WooksAdapterBase {
     logger?: TConsoleBase,
     routerOpts?: TWooksOptions['router'],
   ) {
+    let app: TRouteApp
     if (wooks && wooks instanceof WooksAdapterBase) {
       this.wooks = wooks.getWooks()
+      app = adapterApps.get(wooks)?.app ?? { implicit: false }
     } else if (wooks && wooks instanceof Wooks) {
       this.wooks = wooks
+      app = { implicit: false }
     } else {
       this.wooks = getGlobalWooks(logger, routerOpts)
+      app = { implicit: true }
     }
+    adapterApps.set(this, { app, logger })
   }
 
   /** Returns the underlying Wooks instance. */
@@ -274,6 +360,11 @@ export class WooksAdapterBase {
 
   /**
    * Registers a route handler for the given method and path.
+   *
+   * Registering a route this adapter's app already has (this adapter, or the adapter it was built
+   * from) appends a handler to its chain. When the app was created without a Wooks instance and
+   * another app on its router registered the route first, a warning is logged (once per app): the
+   * first app serves it.
    * @param method - HTTP method (e.g., "GET", "POST").
    * @param path - URL path pattern (supports parameters like `/users/:id`).
    * @param handler - Handler function invoked when the route matches.
@@ -283,6 +374,15 @@ export class WooksAdapterBase {
     path: string,
     handler: TWooksHandler<ResType>,
   ): TProstoRouterPathHandle<ParamsType> {
-    return this.wooks.on<ResType, ParamsType>(method as THttpMethod, path, handler)
+    // '*' is registered method by method, as the router does it, so that each method's route key
+    // is known: under `ignoreCase` one method may already hold the route under another spelling
+    const methods = method === '*' ? ALL_METHODS : [method]
+    const handles = methods.map((m) => this.wooks.on<ResType, ParamsType>(m, path, handler))
+    claimRoute(
+      this,
+      path,
+      handles.map((handle, i) => ({ method: methods[i], key: handle.generalized })),
+    )
+    return handles[0]
   }
 }
