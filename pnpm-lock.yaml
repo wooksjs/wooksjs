@@ -114,8 +114,8 @@ importers:
         specifier: ^0.4.3
         version: 0.4.3
       '@prostojs/router':
-        specifier: ^0.3.6
-        version: 0.3.6
+        specifier: ^0.3.7
+        version: 0.3.7
       minimist:
         specifier: ^1.2.8
         version: 1.2.8
@@ -151,8 +151,8 @@ importers:
         specifier: ^0.4.3
         version: 0.4.3
       '@prostojs/router':
-        specifier: ^0.3.6
-        version: 0.3.6
+        specifier: ^0.3.7
+        version: 0.3.7
     devDependencies:
       '@wooksjs/event-core':
         specifier: workspace:^
@@ -173,8 +173,8 @@ importers:
         specifier: ^0.4.3
         version: 0.4.3
       '@prostojs/router':
-        specifier: ^0.3.6
-        version: 0.3.6
+        specifier: ^0.3.7
+        version: 0.3.7
       '@prostojs/wf':
         specifier: ^0.3.1
         version: 0.3.1
@@ -204,8 +204,8 @@ importers:
         specifier: ^0.4.3
         version: 0.4.3
       '@prostojs/router':
-        specifier: ^0.3.6
-        version: 0.3.6
+        specifier: ^0.3.7
+        version: 0.3.7
       ws:
         specifier: ^8.21.0
         version: 8.22.1
@@ -271,8 +271,8 @@ importers:
         specifier: ^0.4.3
         version: 0.4.3
       '@prostojs/router':
-        specifier: ^0.3.6
-        version: 0.3.6
+        specifier: ^0.3.7
+        version: 0.3.7
       '@wooksjs/event-core':
         specifier: workspace:^
         version: link:../event-core
@@ -1107,8 +1107,8 @@ packages:
   '@prostojs/parser@0.6.0':
     resolution: {integrity: sha512-/sm+StB0O/HKNRWKGVQPtEy1bLIC8EgQekxMkK9lHPKmS7iQITfb/AqPTOSO70GNV5b1CNpiOJNZqc7pyGl6PA==}
 
-  '@prostojs/router@0.3.6':
-    resolution: {integrity: sha512-tQp2E4ME7RbtqQ9TTcHaF8pqlg7JddPtyJJHgf/BbwNgdgM2bMq8JoalrFnKxVsSwoCqpyyer4sy4+AiLwKeiw==}
+  '@prostojs/router@0.3.7':
+    resolution: {integrity: sha512-WmGtCUYkK4YheaVGouoBEtYW2Dm+EruGMiUrMTGaq7VGRibZRR2UeSutuK2Vsxw49m5zctRW3lUTjna0YXRhdA==}
 
   '@prostojs/tree@0.3.0':
     resolution: {integrity: sha512-9Ki9sg7UJvAy3IRXZuTBoVaepiYD+Ok3ucozNiMVWyjKmXjkgmqYUZGzDYAjTygS0s6Ze19X9ECM/0uQVfvHsw==}
@@ -3331,7 +3331,7 @@ snapshots:
 
   '@prostojs/parser@0.6.0': {}
 
-  '@prostojs/router@0.3.6':
+  '@prostojs/router@0.3.7':
     dependencies:
       '@prostojs/cache': 0.1.9
       '@prostojs/parser': 0.6.0
