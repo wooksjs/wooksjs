@@ -423,6 +423,8 @@ To change the branding of the HTML error page (name, version, link, logo), call 
 
 When several handlers are registered for the same route, a thrown error advances processing to the next handler — silently for `HttpError`, with a logged error otherwise. Only the last handler's error is rendered as the response.
 
+Register the chain on one app. Two apps created without a `Wooks` instance share the global router, so a route both register becomes one chain too, served by the first app; Wooks warns about it ([Two Apps on the Global Router](/wooks/advanced/wooks-adapter#two-apps-on-the-global-router)).
+
 ## Cache-Control
 
 ::: tip

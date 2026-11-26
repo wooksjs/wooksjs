@@ -175,6 +175,22 @@ const wooks = getGlobalWooks() // creates on first call, reuses afterwards
 clearGlobalWooks() // next getGlobalWooks() creates a fresh instance
 ```
 
+### Two Apps on the Global Router
+
+Several apps created without a `Wooks` instance in one process register their routes into this one router. In tests that means several apps in one test file, or test files that share a worker (vitest `isolate: false`). A route two apps register keeps both handlers, and the app that registered it first serves it: the other app's handler only runs after it (for HTTP, when the first one throws). Since 0.8.7 an app created without a `Wooks` instance logs a warning, once, the first time it registers a route another app on that router already has:
+
+```
+Route "GET /users/:id" is already registered by another app on the shared router: the first registration serves it, … Other routes this app shares with another app are not listed (logged once per app). …
+```
+
+Routes are compared the way the router stores them: `/users/:id` and `/users/:uid` are one route, and with `ignoreCase` so are `/Users` and `/users`. Routes that differ in a parameter's regex (`/users/:id(\\d+)`) or in an optional marker are different routes, even where both match a URL. To fix it, pick one:
+
+- Give each app its own router: `createHttpApp(opts, new Wooks())`.
+- Share one router on purpose: pass the `Wooks` instance (or the other adapter) to each app. An app you pass a router to never warns, and an adapter built from another adapter (`createWsApp(http)`) counts as part of that adapter's app.
+- In tests, call `clearGlobalWooks()` before creating each app, for example in `beforeEach()`.
+
+No warning is logged when one app registers a route twice: that builds a [handler chain](/webapp/composables/response#multiple-handlers-on-one-route) on purpose. Adapters of different event types don't collide either: an HTTP `GET /start` and a CLI `start` command are different routes. Workflow steps and flows keep their own duplicate-id warning, which also fires within one app ([Steps](/wf/steps#resetting-the-router-between-tests)).
+
 ### Router Options
 
 To control routing behavior, construct a `Wooks` instance explicitly with `TWooksOptions` and pass it to your adapters:

@@ -81,6 +81,7 @@ Pass a `new Wooks()` as the second argument to `createHttpApp()` so each test su
 import { Wooks } from 'wooks'
 const app = createHttpApp(undefined, new Wooks())
 ```
+On a collision the app that registered the route first answers it, and since 0.8.7 the second app logs `Route "GET /api/users/:id" is already registered by another app on the shared router`. Calling `clearGlobalWooks()` (from `wooks`) before creating each app also fixes it. See [Two Apps on the Global Router](/wooks/advanced/wooks-adapter#two-apps-on-the-global-router).
 :::
 
 ### Testing SSR Flows

@@ -103,6 +103,14 @@ Details: [Access Control](../wf/outlets.md#access-control) and [Refusals](../wf/
 | Such a nested run is now isolated from the enclosing run in every wf composable. Before, `useWfState()`, `useWfFinished()`, `useWfOutlet()` and `useWfStrategy()` in its steps could return the enclosing run's object, so `useWfState().ctx()` read the outer context and a minted token missed the inner run's writes. A run also no longer overwrites the HTTP request's route params. | Nothing. If you worked around it, for example by passing data to a nested run outside the workflow context, you can drop the workaround. |
 | When a run has a strategy name (the trigger, `mintWfToken()`, `start({ strategy })`) or a renewal, the paused output's `inputRequired` is a copy that carries `stateStrategy` / `renewStateToken`. The outlet object the step returned is no longer written to. | Read those fields from `output.inputRequired`, not from the object your step returned. |
 
+## Routing (`wooks`)
+
+### Changed in 0.8.7
+
+| Change | What to do |
+|---|---|
+| Apps created without a `Wooks` instance share one router per process. When such an app registers a route another app on that router already has, Wooks now logs a warning, once per app, naming the first shared route: `Route "GET /users/:id" is already registered by another app on the shared router …`. Routing is unchanged: the first registration still serves the route. One app registering a route twice (a handler chain) and apps you passed a router to stay silent. | When you see it, usually in tests (several apps in one test file, or test files sharing a worker with `isolate: false`), give each app its own router (`createHttpApp(opts, new Wooks())`), pass one `Wooks` instance (or adapter) to the apps that should share routing, or call `clearGlobalWooks()` before creating each app. See [Two Apps on the Global Router](./advanced/wooks-adapter.md#two-apps-on-the-global-router). |
+
 ## New in 0.8
 
 Not breaking, but worth knowing while you upgrade:
@@ -121,5 +129,6 @@ Added in later 0.8 releases:
 - 0.8.4: the trigger's [`startOnly`](../wf/outlets.md#access-control) list and [`beforeResume`](../wf/outlets.md#transactions-and-envelopes) hook.
 - 0.8.5: `HttpError` bodies keep `statusCode`, `message` and `error` typed after an `instanceof HttpError` check (and when the body type has an index signature), so casts such as `(e as HttpError).body` can go. The deprecated `getIp({ trustProxy: false })` returns IPv4-mapped addresses as plain IPv4, like `getIp()`. New recipe: [Behind a CDN and a load balancer](../webapp/proxy-trust.md#behind-a-cdn-and-a-load-balancer).
 - 0.8.6: [`renewStateToken()`](../wf/outlets.md#renewing-the-token) moves a run to a new state token from the next pause on, for a step that raises the privilege of the token holder. Behaviour changes in the same release: [Changed in 0.8.6](#changed-in-0-8-6).
+- 0.8.7: a warning when two apps on the shared global router register the same route. See [Changed in 0.8.7](#changed-in-0-8-7).
 
 The full list is in the [changelog](https://github.com/wooksjs/wooksjs/blob/main/CHANGELOG.md).

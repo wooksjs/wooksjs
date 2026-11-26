@@ -162,6 +162,8 @@ app.get('/resource', mainHandler) // tried if authHandler throws
 
 If all handlers throw, the last error is sent as the response.
 
+Build a chain inside ONE app. Two apps on the global router registering the same route also land in one chain (the first app answers) and warn — [router.md](router.md#rules--gotchas) rule 13.
+
 ---
 
 ## Default and Security Headers

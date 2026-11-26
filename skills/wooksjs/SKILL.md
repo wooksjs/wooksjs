@@ -111,7 +111,7 @@ Read the reference file that matches the task. Do not load all files — only wh
 
 | Domain            | File                                              | Load when...                                                        |
 | ----------------- | ------------------------------------------------- | -------------------------------------------------------------------- |
-| Routing           | [router.md](references/router.md)                 | Route patterns, params, wildcards, regex, path builders, config      |
+| Routing           | [router.md](references/router.md)                 | Route patterns, params, wildcards, regex, path builders, config; two apps in one process / tests sharing the global router ("already registered by another app on the shared router" warning, `clearGlobalWooks()`) |
 | Context engine    | [event-core.md](references/event-core.md)         | Working with slots, composables, EventContext, custom adapters       |
 | HTTP core/routing | [event-http.md](references/event-http.md)         | Creating HTTP apps, routing, server lifecycle, security headers      |
 | HTTP request      | [http-request.md](references/http-request.md)     | Reading headers, cookies, query params, raw body, authorization, client IP/protocol/host behind proxies (trustProxy), Accept-Language |

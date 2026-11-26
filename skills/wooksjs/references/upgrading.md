@@ -62,6 +62,12 @@ const text = body.message ?? body.error // works on 0.7 and 0.8; or switch on bo
 | 3a | Such a nested run is isolated in EVERY wf composable (`useWfState` / `useWfFinished` / `useWfOutlet` / `useWfStrategy` resolve the innermost run per call; before, they could return the enclosing run's object — wrong `ctx()`, minted tokens missing inner writes); a nested run's `useWfFinished()` no longer sets the trigger's response; a run no longer overwrites the HTTP request's route params. | Nothing; drop workarounds. Rules: [wf-advanced.md](wf-advanced.md#parent-context-sharing). |
 | 4 | `output.inputRequired` is a COPY when the run has a strategy name or a renewal; the step's returned outlet object is never written to. | Read `stateStrategy` / `renewStateToken` from the output. |
 
+## Behaviour changes in 0.8.7 (`wooks`)
+
+| # | Change | Do |
+|---|---|---|
+| 1 | New warning, once per colliding app, naming its first shared route only: `Route "GET /x" is already registered by another app on the shared router …` — an app created without a `Wooks` registered a route another app on the global router already has. Routing unchanged: the first app still serves it. Silent: one app registering a route twice (handler chain), apps given a `Wooks`/adapter, different methods. | Tests (several apps in one file, or files sharing a worker with `isolate: false`): `createHttpApp(opts, new Wooks())` per app or `beforeEach(() => clearGlobalWooks())`; apps meant to share routing: pass one `Wooks`/adapter. [router.md](router.md#rules--gotchas) rule 13. |
+
 ## See also
 
 - Changelog: https://github.com/wooksjs/wooksjs/blob/main/CHANGELOG.md
