@@ -1,3 +1,9 @@
+## [0.8.7](https://github.com/wooksjs/wooksjs/compare/v0.8.6...v0.8.7) (2026-11-26)
+
+
+### Bug Fixes
+
+* **wooks:** warn once per app when two apps register one route on the shared router ([cf42bfe](https://github.com/wooksjs/wooksjs/commit/cf42bfea9b889a080d7bd557b960f24423db4253))
 ## [0.8.6](https://github.com/wooksjs/wooksjs/compare/v0.8.5...v0.8.6) (2026-11-26)
 
 
