@@ -1,3 +1,9 @@
+## [0.8.6](https://github.com/wooksjs/wooksjs/compare/v0.8.5...v0.8.6) (2026-11-26)
+
+
+### Bug Fixes
+
+* **event-wf:** fresh state handle for out-of-band pauses, renewStateToken(), nested-run isolation ([bf8c312](https://github.com/wooksjs/wooksjs/commit/bf8c312281f19e304df6b39bc9e28f9dee28b070))
 ## [0.8.5](https://github.com/wooksjs/wooksjs/compare/v0.8.4...v0.8.5) (2026-11-25)
 
 
