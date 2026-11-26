@@ -26,6 +26,13 @@ The child context seeds its own WF slots locally. Slot lookups not found in the 
 traverse the parent chain. Both WF composables and parent composables (e.g. HTTP) work
 transparently inside step handlers.
 
+| # | Run isolation (event-wf ≥ 0.8.6) |
+|---|---|
+| 1 | Every run's per-run state lives on its OWN context: seeds, resume flag, flow/step route params, strategy name (`useWfStrategy().current()` throws in a run started without `strategy` — never the enclosing run's name), renewal request, and the objects of `useWfState()` / `useWfFinished()` / `useWfOutlet()` / `useWfStrategy()` (each resolves the innermost run around the caller per call and caches on it). |
+| 2 | A run started inside a step (`eventContext: current()`, `mintWfToken(…, { eventContext: current() })`) is isolated both ways: its steps never see or change the enclosing run's state — whether or not the enclosing step called a composable first — and a nested run that finishes never sets the trigger's `useWfFinished()` response. |
+| 3 | Request-level state still reads through: HTTP composables, your own `defineWook` composables cached by the request, the trigger's outlet registry. A run no longer overwrites the request's route params (before 0.8.6 `useRouteParams()` in the HTTP handler returned the last step's params after a run). |
+| 4 | Your OWN `defineWook` composables that hold per-run data are still cached by whichever context computed them first (the request, or an enclosing run) — derive per-run data from `useWfState()` inside them instead of caching it. |
+
 ### HTTP -> WF integration example
 
 ```ts

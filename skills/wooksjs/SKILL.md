@@ -122,7 +122,7 @@ Read the reference file that matches the task. Do not load all files — only wh
 | CLI apps          | [event-cli.md](references/event-cli.md)           | Building CLI tools, command routing, options, help system            |
 | WebSocket server  | [event-ws.md](references/event-ws.md)             | WS server, rooms, broadcasting, message routing, wire protocol       |
 | Workflow core     | [event-wf.md](references/event-wf.md)             | Steps, flows, schema syntax, pause/resume, useWfState                |
-| Workflow outlets  | [wf-outlets.md](references/wf-outlets.md)         | HTTP/email delivery, state strategies, tokens, trigger handler, WF_ refusal codes, access lists (allow/resumeOnly/startOnly/block), around/beforeResume/beforePersist/renderEnvelope, mintWfToken |
+| Workflow outlets  | [wf-outlets.md](references/wf-outlets.md)         | HTTP/email delivery, state strategies, tokens (swapStrategy, renewStateToken), trigger handler, WF_ refusal codes, access lists (allow/resumeOnly/startOnly/block), around/beforeResume/beforePersist/renderEnvelope, mintWfToken |
 | Workflow advanced | [wf-advanced.md](references/wf-advanced.md)       | Parent context, spies, error handling, testing                       |
 | WS client         | [ws-client.md](references/ws-client.md)           | Browser/Node WS client, RPC, subscriptions, reconnection             |
 | Upgrading         | [upgrading.md](references/upgrading.md)           | Bumping 0.7.x → 0.8, or 0.7-era code/tests break on 0.8 (seconds durations, default statuses, trustProxy, 304/412, WF_ codes, `allow: []`) |
