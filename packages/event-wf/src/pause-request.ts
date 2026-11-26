@@ -12,4 +12,10 @@ import type { WfOutletRequest } from '@prostojs/wf/outlets'
  */
 export type WfPauseRequest<P = unknown> = WfOutletRequest<P> & {
   stateStrategy?: string
+  /**
+   * `true` when a step of the run called `renewStateToken()`: persist this pause under a FRESH
+   * handle, never under the one the run was resumed with. The outlet trigger honours it; an
+   * offline resume driver that re-uses handles should too.
+   */
+  renewStateToken?: boolean
 }

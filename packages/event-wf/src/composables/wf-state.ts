@@ -1,5 +1,6 @@
-import { defineWook } from '@wooksjs/event-core'
 import type { EventContext } from '@wooksjs/event-core'
+
+import { defineWfWook } from '../run-context'
 
 import { flowParamsKey, resumeKey, wfKind } from '../wf-kind'
 
@@ -13,7 +14,7 @@ import { flowParamsKey, resumeKey, wfKind } from '../wf-kind'
  * const { id } = flowParams<{ id: string }>() // flow `user/:id` started as `user/42` → '42'
  * ```
  */
-export const useWfState = defineWook((c: EventContext) => ({
+export const useWfState = defineWfWook((c: EventContext) => ({
   ctx: <T>() => c.get(wfKind.keys.inputContext) as T,
   input: <I>() => c.get(wfKind.keys.input) as I | undefined,
   schemaId: c.get(wfKind.keys.schemaId),

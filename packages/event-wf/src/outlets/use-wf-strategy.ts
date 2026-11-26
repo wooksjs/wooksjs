@@ -1,7 +1,7 @@
-import { defineWook } from '@wooksjs/event-core'
 import type { EventContext } from '@wooksjs/event-core'
 
-import { STRATEGY_NAME_RE, stateStrategyNameKey } from '../strategy-context'
+import { defineWfWook, isRunContext } from '../run-context'
+import { STRATEGY_NAME_RE, renewStateTokenKey, stateStrategyNameKey } from '../strategy-context'
 
 /**
  * Composable for inspecting / swapping the active state strategy name from
@@ -26,20 +26,37 @@ import { STRATEGY_NAME_RE, stateStrategyNameKey } from '../strategy-context'
  * })
  * ```
  */
-export const useWfStrategy = defineWook((ctx: EventContext) => ({
-  /** Name of the strategy currently set for the next persist. */
-  current: () => ctx.get(stateStrategyNameKey),
-  /**
-   * Swap the active strategy by name. Validates name format only; unknown
-   * names surface as a loud error at pause time from the trigger.
-   */
-  swap: (name: string) => {
-    if (!STRATEGY_NAME_RE.test(name)) {
-      throw new Error(`swapStrategy: invalid name '${name}' — must match ${STRATEGY_NAME_RE}`)
+export const useWfStrategy = defineWfWook((ctx: EventContext) => {
+  // `ctx` is the innermost run around the caller (see defineWfWook) — or, outside any run, the
+  // current context, where every method throws. Per-run state is written with `setOwn`.
+  const inRun = (caller: string): EventContext => {
+    if (!isRunContext(ctx)) {
+      throw new Error(`${caller}: call it inside a workflow step`)
     }
-    ctx.set(stateStrategyNameKey, name)
-  },
-}))
+    return ctx
+  }
+  return {
+    /** Name of the strategy currently set for the next persist. Throws outside a workflow run. */
+    current: () => inRun('useWfStrategy().current()').getOwn(stateStrategyNameKey),
+    /**
+     * Swap the active strategy by name. Validates name format only; unknown
+     * names surface as a loud error at pause time from the trigger. Throws outside a workflow run.
+     */
+    swap: (name: string) => {
+      if (!STRATEGY_NAME_RE.test(name)) {
+        throw new Error(`swapStrategy: invalid name '${name}' — must match ${STRATEGY_NAME_RE}`)
+      }
+      inRun('swapStrategy').setOwn(stateStrategyNameKey, name)
+    },
+    /**
+     * Continue under a NEW state token from the pause that ends this run — see
+     * {@link renewStateToken}. Throws outside a workflow run.
+     */
+    renewToken: () => {
+      inRun('renewStateToken').setOwn(renewStateTokenKey, true)
+    },
+  }
+})
 
 /**
  * Sugar — calls `useWfStrategy().swap(name)`. Returns `undefined` so a step
@@ -47,5 +64,39 @@ export const useWfStrategy = defineWook((ctx: EventContext) => ({
  */
 export function swapStrategy(name: string): undefined {
   useWfStrategy().swap(name)
+  return undefined
+}
+
+/**
+ * Continue the workflow under a NEW state token from the pause that ends this run — for a step
+ * that raises the privilege of whoever holds the token (e.g. the user just set a password on an
+ * invitation delivered by email). The token the run was resumed with (in an email, a URL, the
+ * browser history) can no longer continue the flow: it answers 410 `WF_EXPIRED`. The new token
+ * is delivered like any pause's (body `wfs` or cookie, per `token.write`); later pauses re-use
+ * it as usual.
+ *
+ * - Handle strategies (`HandleStateStrategy`): the pause is persisted under a freshly minted
+ *   handle instead of the incoming one, which the resume already consumed.
+ * - `EncapsulatedStateStrategy`: no effect — every pause already gets a new token, and an old
+ *   one stays valid until it expires (it carries its own state); guard replays in the step.
+ * - The run finishes without pausing, or is a start (no incoming token): no effect.
+ * - A request that fails discards the new state (its token never reached the client); under
+ *   `restoreOnError` the old state is restored under the old token, the one to retry.
+ *
+ * Returns `undefined` so a step can write `return renewStateToken()`. Throws outside a
+ * workflow run (e.g. in an HTTP handler).
+ *
+ * @example
+ * ```ts
+ * app.step('set-password', {
+ *   handler: async () => {
+ *     await savePassword(useWfState().input<{ password: string }>()!.password)
+ *     renewStateToken() // the emailed invite link stops working from the next pause on
+ *   },
+ * })
+ * ```
+ */
+export function renewStateToken(): undefined {
+  useWfStrategy().renewToken()
   return undefined
 }

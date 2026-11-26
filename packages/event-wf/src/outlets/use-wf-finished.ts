@@ -1,5 +1,6 @@
-import { defineWook } from '@wooksjs/event-core'
 import type { EventContext } from '@wooksjs/event-core'
+
+import { defineWfWook } from '../run-context'
 
 import type { WfFinishedResponse } from './outlet-context'
 import { wfFinishedKey } from './outlet-context'
@@ -16,7 +17,7 @@ import { wfFinishedKey } from './outlet-context'
  * useWfFinished().set({ type: 'data', value: { success: true } })
  * ```
  */
-export const useWfFinished = defineWook((ctx: EventContext) => ({
+export const useWfFinished = defineWfWook((ctx: EventContext) => ({
   set: (response: WfFinishedResponse) => ctx.set(wfFinishedKey, response),
   get: () => (ctx.has(wfFinishedKey) ? ctx.get(wfFinishedKey) : undefined),
 }))

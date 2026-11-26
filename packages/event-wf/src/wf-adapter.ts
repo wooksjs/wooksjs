@@ -8,7 +8,7 @@ import { WooksAdapterBase } from 'wooks'
 
 import { createWfContext, resumeWfContext } from './event-wf'
 import type { WfPauseRequest } from './pause-request'
-import { stateStrategyNameKey } from './strategy-context'
+import { renewStateTokenKey, stateStrategyNameKey } from './strategy-context'
 import { flowPath, normalizeWfId } from './wf-id'
 import { flowParamsKey, wfKind } from './wf-kind'
 import type { TWfFlowParams } from './wf-kind'
@@ -293,7 +293,7 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
       input: undefined,
     }
     const result = await createWfContext(this.contextOptions(parentCtx), seeds, async () => {
-      current().set(routeParamsKey, match?.ctx.params ?? {})
+      current().setOwn(routeParamsKey, match?.ctx.params ?? {})
       return (await handler()) as { id?: unknown } | undefined
     })
     return typeof result?.id === 'string' ? result.id : undefined
@@ -386,14 +386,24 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
       const result = await this.runFlow<I>(schemaId, inputContext, opts, resumeOf).finally(() =>
         this.endRun(cleanup),
       )
-      if (result.inputRequired) {
-        // Augment inputRequired with the post-swap strategy name so callers
-        // (trigger / offline driver) read it from the output instead of
-        // depending on parent-context write-through.
+      if (result.inputRequired && typeof result.inputRequired === 'object') {
+        // Augment inputRequired with this run's own post-swap strategy name and renewal request,
+        // so callers (trigger / offline driver) read them from the output. Both go on a copy: a
+        // step may return a shared outlet object, which must not carry them into other runs.
         const ctx = current()
-        const finalName = ctx.has(stateStrategyNameKey) ? ctx.get(stateStrategyNameKey) : undefined
-        if (finalName !== undefined) {
-          ;(result.inputRequired as unknown as WfPauseRequest).stateStrategy = finalName
+        const finalName = ctx.hasOwn(stateStrategyNameKey)
+          ? ctx.getOwn(stateStrategyNameKey)
+          : undefined
+        const renew = ctx.hasOwn(renewStateTokenKey) && ctx.getOwn(renewStateTokenKey)
+        if (finalName !== undefined || renew) {
+          const pause = { ...(result.inputRequired as object) } as WfPauseRequest
+          if (finalName !== undefined) {
+            pause.stateStrategy = finalName
+          }
+          if (renew) {
+            pause.renewStateToken = true
+          }
+          result.inputRequired = pause as IR
         }
       }
       if (result.resume || result.retry) {
@@ -424,10 +434,11 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
     const { input, spy } = opts ?? {}
     const parentCtx = opts?.eventContext
     const indexes = resumeOf?.indexes
-    if (opts?.strategy?.name !== undefined) {
-      current().set(stateStrategyNameKey, opts.strategy.name)
-    }
     const wfCtx = current()
+    if (opts?.strategy?.name !== undefined) {
+      // On this run's own context: a run started inside a step never renames the enclosing one.
+      wfCtx.setOwn(stateStrategyNameKey, opts.strategy.name)
+    }
     let handler: TWooksHandler | undefined
     let flowParams: TWfFlowParams
     if (resumeOf) {
@@ -446,8 +457,8 @@ export class WooksWf<T = any, IR = any> extends WooksAdapterBase {
       this.wooks.applyRoute('WF_FLOW', found.match)
       flowParams = found.match?.ctx.params ?? {}
     }
-    wfCtx.set(routeParamsKey, flowParams)
-    wfCtx.set(flowParamsKey, flowParams)
+    wfCtx.setOwn(routeParamsKey, flowParams)
+    wfCtx.setOwn(flowParamsKey, flowParams)
     if (!handler) {
       throw new Error(`Unknown schemaId: ${schemaId}`)
     }

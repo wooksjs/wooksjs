@@ -36,7 +36,22 @@ interface TriggerRequest {
   tokenWrite: 'body' | 'cookie'
   /** The state token to set as a cookie — only once the whole request has succeeded. */
   cookieToken?: string
+  /** Cookie transport, and the request's token cookie holds the token being resumed. */
+  cookieHoldsToken: boolean
+  /** That cookie's token is spent (finish, out-of-band pause): expire it once the request succeeded. */
+  clearCookie?: boolean
+  /**
+   * A start (`wfid`) whose token came only from the cookie: a token refused as gone or invalid
+   * is ignored and the request runs as the start it asked for.
+   */
+  startOverDeadCookie: boolean
 }
+
+/** A dead cookie token ignored by a start (see `startOverDeadCookie`). */
+const IGNORED = Symbol('ignored token')
+
+/** Attributes of the state-token cookie (the same when it is set and when it is expired). */
+const TOKEN_COOKIE = { httpOnly: true, sameSite: 'Strict', path: '/' } as const
 
 /**
  * Handle an HTTP request that starts or resumes a workflow.
@@ -79,6 +94,7 @@ export async function handleWfOutletRequest(
 
   // Body values are untrusted JSON — they may be arrays/objects, not strings.
   let token: unknown
+  let tokenSource: 'body' | 'query' | 'cookie' | undefined
   for (const source of tokenRead) {
     if (source === 'body') {
       token = body?.[tokenName]
@@ -88,29 +104,41 @@ export async function handleWfOutletRequest(
       token = getCookie(tokenName) ?? undefined
     }
     if (token) {
+      tokenSource = source
       break
     }
   }
 
+  const tokenWrite = tok.write ?? 'body'
+  const wfid = body?.[wfidName] ?? queryParams.get(wfidName) ?? undefined
   const request: TriggerRequest = {
     ctx,
     body,
     token,
-    wfid: body?.[wfidName] ?? queryParams.get(wfidName) ?? undefined,
+    wfid,
     input: body?.input,
     tokenName,
-    tokenWrite: tok.write ?? 'body',
+    tokenWrite,
+    cookieHoldsToken:
+      tokenWrite === 'cookie' && typeof token === 'string' && getCookie(tokenName) === token,
+    // Never a token the client sent explicitly (body / query): only a cookie the browser kept
+    startOverDeadCookie:
+      tokenSource === 'cookie' &&
+      wfid !== undefined &&
+      wfid !== '' &&
+      !body?.[tokenName] &&
+      !queryParams.get(tokenName),
   }
   // Everything that reads or writes state, or delivers, runs inside `around`.
   const run = () => runTrigger(config, deps, request)
   const value = await (config.around ? config.around(run) : run())
-  // Only now, with nothing left that can fail, hand out the token the request made live
+  // Only now, with nothing left that can fail, hand out the token the request made live — or
+  // expire the cookie whose token the request spent, so the browser can start over
+  const response = useResponse()
   if (request.cookieToken !== undefined) {
-    useResponse().setCookie(tokenName, request.cookieToken, {
-      httpOnly: true,
-      sameSite: 'Strict',
-      path: '/',
-    })
+    response.setCookie(tokenName, request.cookieToken, TOKEN_COOKIE)
+  } else if (request.clearCookie && !response.getCookie(tokenName)) {
+    response.setCookie(tokenName, '', { ...TOKEN_COOKIE, maxAge: 0, expires: 0 })
   }
   return value
 }
@@ -123,6 +151,7 @@ async function runTrigger(
   const { ctx, body, token, wfid, input, tokenName, tokenWrite } = request
   // Each run starts over (`around` may retry it): nothing from a previous run carries over
   request.cookieToken = undefined
+  request.clearCookie = false
   ctx.set(wfFinishedKey, undefined)
   const stateConfig = normalizeStateConfig(config.state)
   const strategyRegistry = stateConfig.registry
@@ -169,73 +198,12 @@ async function runTrigger(
   }
 
   if (token) {
-    // --- RESUME ---
-    const unwrapped = typeof token === 'string' ? unwrapToken(token) : null
-    const strategy = unwrapped ? strategyByName(strategyRegistry, unwrapped.name) : undefined
-    if (!unwrapped || !strategy) {
-      // Do not leak which strategies are configured.
-      throw wfTriggerError({ code: 'WF_INVALID_TOKEN' })
+    const resumed = await resume()
+    if (resumed !== IGNORED) {
+      return resumed
     }
-    // Gate a state on the access lists (when set).
-    const access = listsSet ? await createWfAccess(config, deps, ctx) : undefined
-    const gate = async (candidate: WfState | null): Promise<WfRefusal | undefined> =>
-      !candidate || typeof candidate.schemaId !== 'string'
-        ? EXPIRED
-        : access?.resume(candidate.schemaId)
-
-    // Gate (and `beforeResume`) BEFORE consuming: a token refused here (e.g.
-    // minted by a public flow, replayed on a protected trigger) must stay
-    // usable on the trigger it belongs to.
-    if (access || config.beforeResume) {
-      const peeked = await strategy.retrieve(unwrapped.raw)
-      const peekRefusal = await gate(peeked)
-      if (peekRefusal) {
-        throw wfTriggerError(peekRefusal)
-      }
-      await config.beforeResume?.(peeked as WfState, { strategy: unwrapped.name })
-    }
-    const consumed = await consumeWithExpiry(strategy, unwrapped.raw)
-    // Re-check what was actually consumed — the handle may have been
-    // re-persisted between retrieve() and consume().
-    const refusal = await gate(consumed.state)
-    if (refusal) {
-      throw wfTriggerError(refusal)
-    }
-    const state = consumed.state as WfState
-
-    incoming = {
-      name: unwrapped.name,
-      raw: unwrapped.raw,
-      restores: restoreCount(state),
-      meta: state.meta,
-    }
-    // restoreOnError: snapshot the state as consumed, before the step can
-    // mutate its context in place.
-    const snapshot = config.restoreOnError ? snapshotState(state) : undefined
-    // From here on the token is spent: ANY failure (the step, beforePersist, an unknown
-    // strategy/outlet, persist, delivery, rendering, onFinished) restores it under restoreOnError.
-    // Exactly one continuation survives a failure: the new state when it went under the
-    // client's own handle; otherwise the restored old one (restoreOnError) or none.
-    try {
-      const output = await deps.resume(state, {
-        input,
-        eventContext: ctx,
-        strategy: { name: unwrapped.name },
-      })
-      return await settle(output)
-    } catch (error) {
-      // Delivered out of band: that token is the continuation — never discard or restore.
-      // Not delivered out of band: the client still holds the old token — clean up the new
-      // state and restore the old one (the one reachable continuation).
-      if (!committed) {
-        await discardNewState()
-        if (snapshot && !persisted?.sameHandle) {
-          await restoreConsumedState(config, strategy, unwrapped.raw, snapshot, consumed, error)
-        }
-      }
-      throw error
-    }
-  } else if (wfid !== undefined && wfid !== '') {
+  }
+  if (wfid !== undefined && wfid !== '') {
     // --- START ---
     if (typeof wfid !== 'string') {
       throw wfTriggerError({ code: 'WF_INVALID' })
@@ -275,10 +243,94 @@ async function runTrigger(
   }
   throw wfTriggerError({ code: 'WF_MISSING' })
 
+  /**
+   * --- RESUME --- the run behind `token`. Returns `IGNORED` instead of refusing a dead cookie
+   * token on a start (`startOverDeadCookie`): the request then runs as the start it asked for.
+   */
+  async function resume(): Promise<unknown> {
+    /** Refuses the token — or ignores a dead cookie token that a start does not need. */
+    const refuse = (refusal: WfRefusal): typeof IGNORED => {
+      if (
+        request.startOverDeadCookie &&
+        (refusal.code === 'WF_EXPIRED' || refusal.code === 'WF_INVALID_TOKEN')
+      ) {
+        return IGNORED
+      }
+      throw wfTriggerError(refusal)
+    }
+    const unwrapped = typeof token === 'string' ? unwrapToken(token) : null
+    const strategy = unwrapped ? strategyByName(strategyRegistry, unwrapped.name) : undefined
+    if (!unwrapped || !strategy) {
+      // Do not leak which strategies are configured.
+      return refuse({ code: 'WF_INVALID_TOKEN' })
+    }
+    // Gate a state on the access lists (when set).
+    const access = listsSet ? await createWfAccess(config, deps, ctx) : undefined
+    const gate = async (candidate: WfState | null): Promise<WfRefusal | undefined> =>
+      !candidate || typeof candidate.schemaId !== 'string'
+        ? EXPIRED
+        : access?.resume(candidate.schemaId)
+
+    // Gate (and `beforeResume`) BEFORE consuming: a token refused here (e.g.
+    // minted by a public flow, replayed on a protected trigger) must stay
+    // usable on the trigger it belongs to.
+    if (access || config.beforeResume) {
+      const peeked = await strategy.retrieve(unwrapped.raw)
+      const peekRefusal = await gate(peeked)
+      if (peekRefusal) {
+        return refuse(peekRefusal)
+      }
+      await config.beforeResume?.(peeked as WfState, { strategy: unwrapped.name })
+    }
+    const consumed = await consumeWithExpiry(strategy, unwrapped.raw)
+    // Re-check what was actually consumed — the handle may have been
+    // re-persisted between retrieve() and consume().
+    const refusal = await gate(consumed.state)
+    if (refusal) {
+      return refuse(refusal)
+    }
+    const state = consumed.state as WfState
+
+    incoming = {
+      name: unwrapped.name,
+      raw: unwrapped.raw,
+      restores: restoreCount(state),
+      meta: state.meta,
+    }
+    // restoreOnError: snapshot the state as consumed, before the step can
+    // mutate its context in place.
+    const snapshot = config.restoreOnError ? snapshotState(state) : undefined
+    // From here on the token is spent: ANY failure (the step, beforePersist, an unknown
+    // strategy/outlet, persist, delivery, rendering, onFinished) restores it under restoreOnError.
+    // Exactly one continuation survives a failure: the new state when it went under the
+    // client's own handle; otherwise the restored old one (restoreOnError) or none.
+    try {
+      const output = await deps.resume(state, {
+        input,
+        eventContext: ctx,
+        strategy: { name: unwrapped.name },
+      })
+      return await settle(output)
+    } catch (error) {
+      // Delivered out of band: that token is the continuation — never discard or restore.
+      // Not delivered out of band: the client still holds the old token — clean up the new
+      // state and restore the old one (the one reachable continuation).
+      if (!committed) {
+        await discardNewState()
+        if (snapshot && !persisted?.sameHandle) {
+          await restoreConsumedState(config, strategy, unwrapped.raw, snapshot, consumed, error)
+        }
+      }
+      throw error
+    }
+  }
+
   /** Answers a finished or paused run: persist + deliver on pause, the finished value on finish. */
   async function settle(output: TFlowOutput<unknown, unknown, WfPauseRequest>): Promise<unknown> {
     const render = config.renderEnvelope
     if (output.finished) {
+      // The resumed token died with the run: expire the cookie holding it
+      request.clearCookie = request.cookieHoldsToken && incoming !== undefined
       const schemaId = output.state.schemaId
       const finishedInfo = { phase: 'finished' as const, schemaId, context: output.state.context }
       if (config.onFinished) {
@@ -322,11 +374,20 @@ async function runTrigger(
         outletReq,
       )
 
+      const outOfBand = outletHandler.tokenDelivery === 'out-of-band'
+
       // Reuse the incoming handle so the URL token stays valid across the
       // whole workflow (refresh / bookmark / lost-connection-then-resume).
-      // Mint fresh on start (no incoming token) or after a strategy swap —
-      // the incoming raw handle belongs to a different keyspace.
-      const reuseHandle = incoming?.name === finalName ? { handle: incoming.raw } : undefined
+      // Mint fresh on start (no incoming token); after a strategy swap — the
+      // incoming raw handle belongs to a different keyspace; for a token
+      // delivered out of band — it goes to another principal than this
+      // caller, who holds the incoming token; and when a step asked for a new
+      // token (`renewStateToken()`). The incoming handle was consumed on
+      // resume and is then never written again.
+      const reuseHandle =
+        incoming?.name === finalName && !outOfBand && outletReq.renewStateToken !== true
+          ? { handle: incoming.raw }
+          : undefined
       // Clamp: an expiry already past by save time must persist as "expired
       // now" — a zero/negative ttl reads as "no expiry" to the state strategies.
       const ttl = output.expires ? Math.max(1, output.expires - Date.now()) : undefined
@@ -351,8 +412,6 @@ async function runTrigger(
       }
       const newToken = wrapToken(finalName, newRaw)
 
-      const outOfBand = outletHandler.tokenDelivery === 'out-of-band'
-
       const result = await outletHandler.deliver(outletReq, newToken)
       // The token has left the server (email, SMS…): this request is committed from here on.
       committed = outOfBand
@@ -369,6 +428,9 @@ async function runTrigger(
 
       if (tokenWrite === 'cookie' && !outOfBand) {
         request.cookieToken = newToken
+      } else if (outOfBand) {
+        // The new token went to someone else; the resumed one (fresh handle above) is spent
+        request.clearCookie = request.cookieHoldsToken && incoming !== undefined
       }
 
       // The token rides in the body only when the outlet answered with an object

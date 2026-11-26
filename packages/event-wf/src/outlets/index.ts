@@ -1,6 +1,6 @@
 export { useWfOutlet } from './use-wf-outlet'
 export { useWfFinished } from './use-wf-finished'
-export { useWfStrategy, swapStrategy } from './use-wf-strategy'
+export { useWfStrategy, swapStrategy, renewStateToken } from './use-wf-strategy'
 export type { WfPauseRequest } from '../pause-request'
 export type { WfFinishedResponse } from './outlet-context'
 export { handleWfOutletRequest } from './trigger'
